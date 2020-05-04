@@ -129,7 +129,7 @@ object dependencies {
     Typing ++
     Config
 
-  lazy val watcher: List[ModuleID] = Monix
+  lazy val watcher: List[ModuleID] = Monix ++ Kafka ++ Enums
 
   lazy val matcher: List[ModuleID] = Monix
 
