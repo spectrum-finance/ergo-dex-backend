@@ -13,6 +13,7 @@ object Order {
 
   type SellOrder = Order[OrderType.Sell.type]
   type BuyOrder  = Order[OrderType.Buy.type]
+  type AnyOrder  = Order[_ <: OrderType]
 
   def mkBuy(pair: (TokenId, TokenId), amount: Long, limit: Long): BuyOrder =
     Order(OrderType.Buy, pair, amount, limit)

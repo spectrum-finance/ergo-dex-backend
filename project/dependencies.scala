@@ -54,7 +54,13 @@ object dependencies {
     "com.github.fd4s" %% "fs2-kafka" % Fs2KafkaVersion
   )
 
-  val Tofu: List[ModuleID] = List("ru.tinkoff" %% "tofu-core" % TofuVersion)
+  val Tofu: List[ModuleID] = List(
+    "ru.tinkoff" %% "tofu-core"         % TofuVersion,
+    "ru.tinkoff" %% "tofu-concurrent"   % TofuVersion,
+    "ru.tinkoff" %% "tofu-optics-core"  % TofuVersion,
+    "ru.tinkoff" %% "tofu-optics-macro" % TofuVersion,
+    "ru.tinkoff" %% "tofu-derivation"   % TofuVersion
+  )
 
   val Ergo: List[ModuleID] = List(
     "org.ergoplatform" %% "ergo-wallet"        % ErgoWalletVersion,
