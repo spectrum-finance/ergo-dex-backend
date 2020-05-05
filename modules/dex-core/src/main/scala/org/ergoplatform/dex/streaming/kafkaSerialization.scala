@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.watcher.streaming
+package org.ergoplatform.dex.streaming
 
 import cats.effect.Sync
 import fs2.kafka.Deserializer

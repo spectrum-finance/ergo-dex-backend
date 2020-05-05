@@ -27,24 +27,24 @@ object dependencies {
       "io.circe" %% "circe-generic",
       "io.circe" %% "circe-parser",
       "io.circe" %% "circe-refined"
-    ).map(_ % CirceVersion) ++ List(
+    ).map(_      % CirceVersion) ++ List(
       "io.circe" %% "circe-derivation" % CirceDerivationVersion
     )
 
   val Cats: List[ModuleID] = List(
-    "org.typelevel" %% "cats-core" % CatsVersion,
-    "org.typelevel" %% "cats-effect" % CatsEffectVersion,
-    "org.typelevel" %% "cats-mtl-core" % CatsMtlVersion,
-    "com.olegpy" %% "meow-mtl-core" % CatsMeowMtl,
+    "org.typelevel" %% "cats-core"           % CatsVersion,
+    "org.typelevel" %% "cats-effect"         % CatsEffectVersion,
+    "org.typelevel" %% "cats-mtl-core"       % CatsMtlVersion,
+    "com.olegpy"    %% "meow-mtl-core"       % CatsMeowMtl,
     "org.typelevel" %% "cats-tagless-macros" % CatsTaglessVersion,
-    "org.typelevel" %% "cats-tagless-core" % CatsTaglessVersion,
-    "org.typelevel" %% "mouse" % MouseVersion
+    "org.typelevel" %% "cats-tagless-core"   % CatsTaglessVersion,
+    "org.typelevel" %% "mouse"               % MouseVersion
   )
 
   val Monix: List[ModuleID] = List("io.monix" %% "monix" % MonixVersion)
 
   val Monocle: List[ModuleID] = List(
-    "com.github.julien-truffaut" %% "monocle-core" % MonocleVersion,
+    "com.github.julien-truffaut" %% "monocle-core"  % MonocleVersion,
     "com.github.julien-truffaut" %% "monocle-macro" % MonocleVersion
   )
 
@@ -57,50 +57,50 @@ object dependencies {
   val Tofu: List[ModuleID] = List("ru.tinkoff" %% "tofu-core" % TofuVersion)
 
   val Ergo: List[ModuleID] = List(
-    "org.ergoplatform" %% "ergo-wallet" % ErgoWalletVersion,
+    "org.ergoplatform" %% "ergo-wallet"        % ErgoWalletVersion,
     "org.ergoplatform" %% "verified-contracts" % ErgoContractsVertions
   )
 
   val Logging: List[ModuleID] = List(
-    "ch.qos.logback" % "logback-classic" % Logback,
-    "org.slf4j" % "slf4j-api" % Slf4j,
+    "ch.qos.logback"    % "logback-classic" % Logback,
+    "org.slf4j"         % "slf4j-api"       % Slf4j,
     "io.chrisdavenport" %% "log4cats-slf4j" % Log4Cats
   )
 
   val Db: List[ModuleID] = List(
-    "org.tpolecat" %% "doobie-core" % DoobieVersion,
-    "org.tpolecat" %% "doobie-postgres" % DoobieVersion,
+    "org.tpolecat" %% "doobie-core"      % DoobieVersion,
+    "org.tpolecat" %% "doobie-postgres"  % DoobieVersion,
     "org.tpolecat" %% "doobie-scalatest" % DoobieVersion,
-    "org.tpolecat" %% "doobie-hikari" % DoobieVersion,
-    "org.tpolecat" %% "doobie-refined" % DoobieVersion,
-    "org.flywaydb" % "flyway-core" % FlywayVersion
+    "org.tpolecat" %% "doobie-hikari"    % DoobieVersion,
+    "org.tpolecat" %% "doobie-refined"   % DoobieVersion,
+    "org.flywaydb" % "flyway-core"       % FlywayVersion
   )
 
   val Testing: List[ModuleID] = List(
-    "org.tpolecat" %% "doobie-scalatest" % DoobieVersion % Test,
-    "org.scalatest" %% "scalatest" % ScalaTestVersion % Test,
-    "org.scalacheck" %% "scalacheck" % ScalaCheckVersion % Test,
-    "org.testcontainers" % "postgresql" % TestContainersPostgresVersion % Test,
-    "com.dimafeng" %% "testcontainers-scala" % TestContainersScalaVersion % Test,
-    "com.github.alexarchambault" %% "scalacheck-shapeless_1.14" % ScalaCheckShapelessVersion % Test
+    "org.tpolecat"               %% "doobie-scalatest"          % DoobieVersion                 % Test,
+    "org.scalatest"              %% "scalatest"                 % ScalaTestVersion              % Test,
+    "org.scalacheck"             %% "scalacheck"                % ScalaCheckVersion             % Test,
+    "org.testcontainers"         % "postgresql"                 % TestContainersPostgresVersion % Test,
+    "com.dimafeng"               %% "testcontainers-scala"      % TestContainersScalaVersion    % Test,
+    "com.github.alexarchambault" %% "scalacheck-shapeless_1.14" % ScalaCheckShapelessVersion    % Test
   )
 
   val Typing: List[ModuleID] = List(
-    "org.scalaz" %% "deriving-macro" % DerivingVersion,
-    "io.estatico" %% "newtype" % NewtypeVersion,
-    "eu.timepit" %% "refined" % RefinedVersion,
-    "eu.timepit" %% "refined-cats" % RefinedVersion
+    "org.scalaz"  %% "deriving-macro" % DerivingVersion,
+    "io.estatico" %% "newtype"        % NewtypeVersion,
+    "eu.timepit"  %% "refined"        % RefinedVersion,
+    "eu.timepit"  %% "refined-cats"   % RefinedVersion
   )
 
   val Enums: List[ModuleID] = List(
-    "com.beachape" %% "enumeratum" % EnumeratumVersion,
+    "com.beachape" %% "enumeratum"       % EnumeratumVersion,
     "com.beachape" %% "enumeratum-circe" % EnumeratumCirceVersion
   )
 
   val Redis = List("dev.profunktor" %% "redis4cats-effects" % CatsRedisV)
 
   val Config: List[ModuleID] = List(
-    "com.github.pureconfig" %% "pureconfig" % PureConfigVersion,
+    "com.github.pureconfig" %% "pureconfig"             % PureConfigVersion,
     "com.github.pureconfig" %% "pureconfig-cats-effect" % PureConfigVersion
   )
 
@@ -127,9 +127,11 @@ object dependencies {
     Circe ++
     Logging ++
     Typing ++
-    Config
+    Config ++
+    Kafka ++
+    Enums
 
-  lazy val watcher: List[ModuleID] = Monix ++ Kafka ++ Enums
+  lazy val watcher: List[ModuleID] = Monix
 
   lazy val matcher: List[ModuleID] = Monix
 

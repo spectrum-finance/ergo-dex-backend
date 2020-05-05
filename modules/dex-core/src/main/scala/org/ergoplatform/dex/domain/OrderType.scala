@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.watcher.domain
+package org.ergoplatform.dex.domain
 
 import enumeratum._
 

@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.watcher.settings
+package org.ergoplatform.dex.settings
 
 import org.ergoplatform.dex.UrlString
 

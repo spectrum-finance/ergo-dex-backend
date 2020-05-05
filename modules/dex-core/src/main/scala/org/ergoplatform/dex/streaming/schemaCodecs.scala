@@ -1,7 +1,7 @@
-package org.ergoplatform.dex.watcher.streaming
+package org.ergoplatform.dex.streaming
 
 import io.circe.Decoder
-import org.ergoplatform.dex.watcher.domain.ErgoBox
+import org.ergoplatform.dex.domain.ErgoBox
 
 object schemaCodecs {
 
