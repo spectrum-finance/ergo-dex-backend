@@ -120,4 +120,12 @@ package object dex {
         .toRaise[F]
         .map(UrlString.apply)
   }
+
+  @newtype case class TopicId(value: String)
+
+  object TopicId {
+    // circe instances
+    implicit def encoder: Encoder[TopicId] = deriving
+    implicit def decoder: Decoder[TopicId] = deriving
+  }
 }

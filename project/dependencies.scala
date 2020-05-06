@@ -59,18 +59,13 @@ object dependencies {
     "ru.tinkoff" %% "tofu-concurrent"   % TofuVersion,
     "ru.tinkoff" %% "tofu-optics-core"  % TofuVersion,
     "ru.tinkoff" %% "tofu-optics-macro" % TofuVersion,
-    "ru.tinkoff" %% "tofu-derivation"   % TofuVersion
+    "ru.tinkoff" %% "tofu-derivation"   % TofuVersion,
+    "ru.tinkoff" %% "tofu-logging"      % TofuVersion
   )
 
   val Ergo: List[ModuleID] = List(
     "org.ergoplatform" %% "ergo-wallet"        % ErgoWalletVersion,
     "org.ergoplatform" %% "verified-contracts" % ErgoContractsVertions
-  )
-
-  val Logging: List[ModuleID] = List(
-    "ch.qos.logback"    % "logback-classic" % Logback,
-    "org.slf4j"         % "slf4j-api"       % Slf4j,
-    "io.chrisdavenport" %% "log4cats-slf4j" % Log4Cats
   )
 
   val Db: List[ModuleID] = List(
@@ -131,7 +126,6 @@ object dependencies {
     Tofu ++
     Fs2 ++
     Circe ++
-    Logging ++
     Typing ++
     Config ++
     Kafka ++
