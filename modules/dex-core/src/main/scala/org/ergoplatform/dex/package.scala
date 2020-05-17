@@ -128,4 +128,12 @@ package object dex {
     implicit def encoder: Encoder[TopicId] = deriving
     implicit def decoder: Decoder[TopicId] = deriving
   }
+
+  @newtype case class PairId(value: String)
+
+  object PairId {
+    // circe instances
+    implicit def encoder: Encoder[PairId] = deriving
+    implicit def decoder: Decoder[PairId] = deriving
+  }
 }

@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.domain.models
+package org.ergoplatform.dex.streaming.models
 
 import io.circe.{Decoder, HCursor}
 import org.ergoplatform.dex.BoxId

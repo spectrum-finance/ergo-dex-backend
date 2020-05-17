@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.domain.models
+package org.ergoplatform.dex.streaming.models
 
 import cats.instances.either._
 import cats.syntax.option._

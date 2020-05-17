@@ -1,7 +1,6 @@
-package org.ergoplatform.dex.matcher
+package org.ergoplatform.dex.domain
 
 import cats.data.NonEmptyList
-import org.ergoplatform.dex.domain.Order
 
 final case class Match(
   order: Order,

@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.watcher.context
 
 import org.ergoplatform.dex.domain.Order
-import org.ergoplatform.dex.domain.models.Transaction
+import org.ergoplatform.dex.streaming.models.Transaction
 import org.ergoplatform.dex.streaming.{Consumer, Producer}
 import tofu.optics.macros.{ClassyOptics, promote}
 
