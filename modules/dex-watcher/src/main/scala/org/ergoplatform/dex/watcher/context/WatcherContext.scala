@@ -8,5 +8,5 @@ import tofu.optics.macros.{ClassyOptics, promote}
 @ClassyOptics
 final case class WatcherContext[F[_]](
   @promote consumer: Consumer[F, Transaction],
-  @promote producer: Producer[F, Order[_]]
+  @promote producer: Producer[F, Order]
 )

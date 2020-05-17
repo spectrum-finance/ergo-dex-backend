@@ -8,12 +8,12 @@ import org.ergoplatform.dex.{BoxId, HexString}
   * See `ErgoTransactionOutput` in https://github.com/ergoplatform/ergo/blob/master/src/main/resources/api/openapi.yaml
   */
 final case class Output(
-                            boxId: BoxId,
-                            value: Long,
-                            creationHeight: Int,
-                            ergoTree: HexString,
-                            assets: List[Asset],
-                            additionalRegisters: Json
+  boxId: BoxId,
+  value: Long,
+  creationHeight: Int,
+  ergoTree: HexString,
+  assets: List[Asset],
+  additionalRegisters: Json
 )
 
 object Output {

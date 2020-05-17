@@ -47,17 +47,17 @@ package object dex {
     implicit def decoder: Decoder[BoxId] = deriving
   }
 
-  @newtype case class TokenId(value: HexString)
+  @newtype case class AssetId(value: HexString)
 
-  object TokenId {
+  object AssetId {
     // circe instances
-    implicit def encoder: Encoder[TokenId] = deriving
-    implicit def decoder: Decoder[TokenId] = deriving
+    implicit def encoder: Encoder[AssetId] = deriving
+    implicit def decoder: Decoder[AssetId] = deriving
 
     def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
       s: String
-    ): F[TokenId] =
-      HexString.fromString(s).map(TokenId.apply)
+    ): F[AssetId] =
+      HexString.fromString(s).map(AssetId.apply)
   }
 
   // Ergo Address

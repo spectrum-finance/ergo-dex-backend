@@ -6,7 +6,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import fs2.Stream
 import org.ergoplatform.dex.HexString
-import org.ergoplatform.dex.domain.Order.{AnyOrder, BuyOrder, SellOrder}
+import org.ergoplatform.dex.domain.Order
 import org.ergoplatform.dex.domain.models.Output
 import org.ergoplatform.dex.watcher.context._
 import tofu.logging._
@@ -29,7 +29,7 @@ object OrdersWatcher {
 
     def run: Stream[F, Unit] =
       Stream.force(
-        consumer.map {
+        askConsumer.map {
           _.consume { rec =>
             Stream.emit(rec).unNone.flatMap { tx =>
               process(tx.outputs) >> Stream.eval(debug"${tx.outputs.size} boxes processed")
@@ -40,7 +40,7 @@ object OrdersWatcher {
 
     private def process(outputs: List[Output]): Stream[F, Unit] =
       Stream.force(
-        producer.map { producer =>
+        askProducer.map { producer =>
           Stream
             .emit(outputs)
             .evalMap(makeOrders)
@@ -49,18 +49,14 @@ object OrdersWatcher {
         }
       )
 
-    private def makeOrders: List[Output] => F[List[AnyOrder]] =
-      _.foldLeft(Array.empty[AnyOrder].pure[F]) { (acc, out) =>
-        if (isBuyOrder(out.ergoTree)) acc >>= (xs => makeBuyOrder(out).map(xs :+ _))
-        else if (isSellOrder(out.ergoTree)) acc >>= (xs => makeSellOrder(out).map(xs :+ _))
+    private def makeOrders: List[Output] => F[List[Order]] =
+      _.foldLeft(Array.empty[Order].pure[F]) { (acc, out) =>
+        if (isOrder(out.ergoTree)) acc >>= (xs => makeOrder(out).map(xs :+ _))
         else acc
-      }.map(_.toList)
-        .flatTap(orders => info"${orders.size} orders extracted")
+      }.map(_.toList).flatTap(orders => info"${orders.size} orders extracted")
 
-    private def makeSellOrder(out: Output): F[SellOrder] = ???
-    private def makeBuyOrder(out: Output): F[BuyOrder]   = ???
+    private def makeOrder(out: Output): F[Order] = ???
 
-    private def isSellOrder(ergoTree: HexString): Boolean = ???
-    private def isBuyOrder(ergoTree: HexString): Boolean  = ???
+    private def isOrder(ergoTree: HexString): Boolean = ???
   }
 }

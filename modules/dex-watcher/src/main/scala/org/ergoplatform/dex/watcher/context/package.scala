@@ -10,13 +10,13 @@ package object context {
 
   type HasWatcherContext[F[_]] = F HasContext WatcherContext[F]
 
-  @inline def consumer[F[_]: HasWatcherContext](
+  @inline def askConsumer[F[_]: HasWatcherContext](
     implicit lens: WatcherContext[F] Extract Consumer[F, Transaction]
   ): F[Consumer[F, Transaction]] =
     Context[F].extract(lens).context
 
-  @inline def producer[F[_]: HasWatcherContext](
-    implicit lens: WatcherContext[F] Extract Producer[F, Order[_]]
-  ): F[Producer[F, Order[_]]] =
+  @inline def askProducer[F[_]: HasWatcherContext](
+    implicit lens: WatcherContext[F] Extract Producer[F, Order]
+  ): F[Producer[F, Order]] =
     Context[F].extract(lens).context
 }
