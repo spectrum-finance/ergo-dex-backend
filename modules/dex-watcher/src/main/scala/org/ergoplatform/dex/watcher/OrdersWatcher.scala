@@ -12,20 +12,19 @@ import org.ergoplatform.dex.watcher.context._
 import tofu.logging._
 import tofu.syntax.logging._
 
-abstract class OrdersWatcher[F[_], S[_[_] <: F[_], _]] {
+trait OrdersWatcher[F[_]] {
 
-  def run: S[F, Unit]
+  def run: Stream[F, Unit]
 }
 
 object OrdersWatcher {
 
   def apply[G[_]: Functor, F[_]: Monad: HasWatcherContext](
     implicit logs: Logs[G, F]
-  ): G[OrdersWatcher[F, Stream]] =
-    logs.forService[OrdersWatcher[F, Stream]].map(implicit l => new Live[F])
+  ): G[OrdersWatcher[F]] =
+    logs.forService[OrdersWatcher[F]].map(implicit l => new Live[F])
 
-  final private class Live[F[_]: Monad: Logging: HasWatcherContext]
-    extends OrdersWatcher[F, Stream] {
+  final private class Live[F[_]: Monad: Logging: HasWatcherContext] extends OrdersWatcher[F] {
 
     def run: Stream[F, Unit] =
       Stream.force(
@@ -50,7 +49,7 @@ object OrdersWatcher {
       )
 
     private def makeOrders: List[Output] => F[List[Order]] =
-      _.foldLeft(Array.empty[Order].pure[F]) { (acc, out) =>
+      _.foldLeft(Vector.empty[Order].pure[F]) { (acc, out) =>
         if (isOrder(out.ergoTree)) acc >>= (xs => makeOrder(out).map(xs :+ _))
         else acc
       }.map(_.toList).flatTap(orders => info"${orders.size} orders extracted")

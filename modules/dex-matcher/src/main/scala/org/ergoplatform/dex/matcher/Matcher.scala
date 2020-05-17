@@ -2,14 +2,14 @@ package org.ergoplatform.dex.matcher
 
 import fs2._
 
-abstract class Matcher[F[_], S[_[_] <: F[_], _]] {
+trait Matcher[F[_]] {
 
-  def run: S[F, Unit]
+  def run: Stream[F, Unit]
 }
 
 object Matcher {
 
-  final private class Live[F[_]] extends Matcher[F, Stream] {
+  final private class Live[F[_]] extends Matcher[F] {
 
     def run: Stream[F, Unit] = ??? // read order from the topic -> add to OB -> persist unless filled
   }
