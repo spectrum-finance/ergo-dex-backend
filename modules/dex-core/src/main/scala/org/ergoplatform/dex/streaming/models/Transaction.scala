@@ -7,10 +7,10 @@ import org.ergoplatform.dex.TxId
   * See `ErgoTransaction` in https://github.com/ergoplatform/ergo/blob/master/src/main/resources/api/openapi.yaml
   */
 final case class Transaction(
-                              id: TxId,
-                              inputs: List[Input],
-                              outputs: List[Output],
-                              size: Int
+  id: TxId,
+  inputs: List[Input],
+  outputs: List[Output],
+  size: Int
 )
 
 object Transaction {

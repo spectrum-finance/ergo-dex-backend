@@ -7,8 +7,8 @@ import org.ergoplatform.dex.AssetId
   * See `Asset` in https://github.com/ergoplatform/ergo/blob/master/src/main/resources/api/openapi.yaml
   */
 final case class Asset(
-                        tokenId: AssetId,
-                        amount: Long
+  tokenId: AssetId,
+  amount: Long
 )
 
 object Asset {
