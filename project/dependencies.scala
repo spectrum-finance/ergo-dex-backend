@@ -60,7 +60,8 @@ object dependencies {
     "ru.tinkoff" %% "tofu-optics-core"  % TofuVersion,
     "ru.tinkoff" %% "tofu-optics-macro" % TofuVersion,
     "ru.tinkoff" %% "tofu-derivation"   % TofuVersion,
-    "ru.tinkoff" %% "tofu-logging"      % TofuVersion
+    "ru.tinkoff" %% "tofu-logging"      % TofuVersion,
+    "org.manatki" %% "derevo-cats-tagless" % DerevoVersion
   )
 
   val Ergo: List[ModuleID] = List(
