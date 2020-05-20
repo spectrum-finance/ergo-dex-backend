@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.watcher
 
-import org.ergoplatform.dex.domain.Order
+import org.ergoplatform.dex.domain.Order.AnyOrder
 import org.ergoplatform.dex.streaming.models.Transaction
 import org.ergoplatform.dex.streaming.{Consumer, Producer}
 import tofu.{Context, HasContext}
@@ -16,7 +16,7 @@ package object context {
     Context[F].extract(lens).context
 
   @inline def askProducer[F[_]: HasWatcherContext](
-    implicit lens: WatcherContext[F] Extract Producer[F, Order]
-  ): F[Producer[F, Order]] =
+    implicit lens: WatcherContext[F] Extract Producer[F, AnyOrder]
+  ): F[Producer[F, AnyOrder]] =
     Context[F].extract(lens).context
 }

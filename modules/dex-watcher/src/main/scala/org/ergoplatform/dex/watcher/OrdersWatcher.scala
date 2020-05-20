@@ -7,6 +7,7 @@ import cats.syntax.functor._
 import fs2.Stream
 import org.ergoplatform.dex.HexString
 import org.ergoplatform.dex.domain.Order
+import org.ergoplatform.dex.domain.Order.AnyOrder
 import org.ergoplatform.dex.streaming.models.Output
 import org.ergoplatform.dex.watcher.context._
 import tofu.logging._
@@ -48,13 +49,13 @@ object OrdersWatcher {
         }
       )
 
-    private def makeOrders: List[Output] => F[List[Order]] =
-      _.foldLeft(Vector.empty[Order].pure[F]) { (acc, out) =>
+    private def makeOrders: List[Output] => F[List[AnyOrder]] =
+      _.foldLeft(Vector.empty[AnyOrder].pure[F]) { (acc, out) =>
         if (isOrder(out.ergoTree)) acc >>= (xs => makeOrder(out).map(xs :+ _))
         else acc
       }.map(_.toList).flatTap(orders => info"${orders.size} orders extracted")
 
-    private def makeOrder(out: Output): F[Order] = ???
+    private def makeOrder(out: Output): F[AnyOrder] = ???
 
     private def isOrder(ergoTree: HexString): Boolean = ???
   }

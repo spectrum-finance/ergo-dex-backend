@@ -3,7 +3,7 @@ package org.ergoplatform.dex.matcher.repositories
 import derevo.derive
 import derevo.tagless.functorK
 import org.ergoplatform.dex.PairId
-import org.ergoplatform.dex.domain.TaggedOrder.{BuyOrder, SellOrder}
+import org.ergoplatform.dex.domain.Order.{BuyOrder, SellOrder}
 
 @derive(functorK)
 trait OrdersRepo[F[_]] {
