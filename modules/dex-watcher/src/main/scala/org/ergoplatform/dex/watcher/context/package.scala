@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.watcher
 
-import org.ergoplatform.dex.domain.Order.AnyOrder
+import org.ergoplatform.dex.domain.models.Order.AnyOrder
 import org.ergoplatform.dex.streaming.models.Transaction
 import org.ergoplatform.dex.streaming.{Consumer, Producer}
 import tofu.{Context, HasContext}

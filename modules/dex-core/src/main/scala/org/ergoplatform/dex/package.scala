@@ -1,6 +1,7 @@
 package org.ergoplatform
 
 import cats.Applicative
+import cats.arrow.FunctionK
 import cats.instances.either._
 import cats.syntax.either._
 import cats.syntax.functor._
@@ -19,7 +20,8 @@ import tofu.syntax.raise._
 
 package object dex {
 
-  type CRaise[F[_], -E] = ContravariantRaise[F, E]
+  type CRaise[F[_], -E]  = ContravariantRaise[F, E]
+  type Trans[D[_], F[_]] = FunctionK[D, F]
 
   object constraints {
 

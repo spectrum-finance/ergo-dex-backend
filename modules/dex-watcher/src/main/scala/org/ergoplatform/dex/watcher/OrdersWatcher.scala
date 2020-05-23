@@ -6,8 +6,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import fs2.Stream
 import org.ergoplatform.dex.HexString
-import org.ergoplatform.dex.domain.Order
-import org.ergoplatform.dex.domain.Order.AnyOrder
+import org.ergoplatform.dex.domain.models.Order.AnyOrder
 import org.ergoplatform.dex.streaming.models.Output
 import org.ergoplatform.dex.watcher.context._
 import tofu.logging._

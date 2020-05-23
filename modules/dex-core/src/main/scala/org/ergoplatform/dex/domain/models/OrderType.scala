@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.domain
+package org.ergoplatform.dex.domain.models
 
 import enumeratum._
 
