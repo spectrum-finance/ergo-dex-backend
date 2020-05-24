@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.matcher
 
 import org.ergoplatform.dex.PairId
-import org.ergoplatform.dex.domain.models.Match
+import org.ergoplatform.dex.domain.models.Match.AnyMatch
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
 import org.ergoplatform.dex.streaming.{Consumer, Producer}
 import tofu.optics.Extract
@@ -19,7 +19,7 @@ package object context {
     Context[F].extract(lens).context
 
   @inline def askProducer[F[_]: HasMatcherContext](
-    implicit lens: MatcherContext[F] Extract Producer[F, Match]
-  ): F[Producer[F, Match]] =
+    implicit lens: MatcherContext[F] Extract Producer[F, AnyMatch]
+  ): F[Producer[F, AnyMatch]] =
     Context[F].extract(lens).context
 }

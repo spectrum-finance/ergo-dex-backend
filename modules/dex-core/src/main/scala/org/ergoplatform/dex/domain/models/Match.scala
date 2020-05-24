@@ -1,9 +1,13 @@
 package org.ergoplatform.dex.domain.models
 
 import cats.data.NonEmptyList
-import org.ergoplatform.dex.domain.models.Order.{BuyOrder, SellOrder}
+import shapeless.=:!=
 
-final case class Match(
-  sellOrders: NonEmptyList[SellOrder],
-  buyOrders: NonEmptyList[BuyOrder]
-)
+final case class Match[T0 <: OrderType, T1 <: OrderType](
+  order: Order[T0],
+  counterOrders: NonEmptyList[Order[T1]]
+)(implicit ev: T0 =:!= T1)
+
+object Match {
+  type AnyMatch = Match[_ <: OrderType, _ <: OrderType]
+}
