@@ -7,8 +7,8 @@ import cats.syntax.functor._
 import fs2.Stream
 import org.ergoplatform.dex.HexString
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
-import org.ergoplatform.dex.streaming.models.Output
-import org.ergoplatform.dex.watcher.context._
+import org.ergoplatform.dex.streaming.models.{Output, Transaction}
+import org.ergoplatform.dex.watcher.streaming.StreamingBundle
 import tofu.logging._
 import tofu.syntax.logging._
 
@@ -19,34 +19,27 @@ trait OrdersWatcher[F[_]] {
 
 object OrdersWatcher {
 
-  def apply[G[_]: Functor, F[_]: Monad: HasWatcherContext](
+  def apply[G[_]: Functor, F[_]: Monad](streaming: StreamingBundle[F])(
     implicit logs: Logs[G, F]
   ): G[OrdersWatcher[F]] =
-    logs.forService[OrdersWatcher[F]].map(implicit l => new Live[F])
+    logs.forService[OrdersWatcher[F]].map(implicit l => new Live[F](streaming))
 
-  final private class Live[F[_]: Monad: Logging: HasWatcherContext] extends OrdersWatcher[F] {
+  final private class Live[F[_]: Monad: Logging](streaming: StreamingBundle[F])
+    extends OrdersWatcher[F] {
 
     def run: Stream[F, Unit] =
-      Stream.force(
-        askConsumer.map {
-          _.consume { rec =>
-            Stream.emit(rec).unNone.flatMap { tx =>
-              process(tx.outputs) >> Stream.eval(debug"${tx.outputs.size} boxes processed")
-            }
-          }
+      streaming.consumer.consume { rec =>
+        Stream.emit(rec).unNone.flatMap { tx =>
+          process(tx.outputs) >> Stream.eval(debug"${tx.outputs.size} boxes processed")
         }
-      )
+      }
 
     private def process(outputs: List[Output]): Stream[F, Unit] =
-      Stream.force(
-        askProducer.map { producer =>
           Stream
             .emit(outputs)
             .evalMap(makeOrders)
             .flatMap(Stream.emits)
-            .through(producer.produce)
-        }
-      )
+            .through(streaming.producer.produce)
 
     private def makeOrders: List[Output] => F[List[AnyOrder]] =
       _.foldLeft(Vector.empty[AnyOrder].pure[F]) { (acc, out) =>

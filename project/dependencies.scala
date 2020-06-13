@@ -61,6 +61,7 @@ object dependencies {
     "ru.tinkoff"  %% "tofu-optics-macro"   % TofuVersion,
     "ru.tinkoff"  %% "tofu-derivation"     % TofuVersion,
     "ru.tinkoff"  %% "tofu-logging"        % TofuVersion,
+    "ru.tinkoff"  %% "tofu-doobie"         % TofuVersion,
     "org.manatki" %% "derevo-cats"         % DerevoVersion,
     "org.manatki" %% "derevo-cats-tagless" % DerevoVersion
   )
