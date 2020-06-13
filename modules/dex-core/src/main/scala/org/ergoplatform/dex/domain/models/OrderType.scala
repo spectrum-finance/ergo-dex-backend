@@ -10,5 +10,8 @@ object OrderType extends Enum[OrderType] with CirceEnum[OrderType] {
   case object Sell extends OrderType("sell") { override def isSell: Boolean = true }
   case object Buy extends OrderType("buy")
 
+  type Sell = Sell.type
+  type Buy  = Buy.type
+
   val values = findValues
 }

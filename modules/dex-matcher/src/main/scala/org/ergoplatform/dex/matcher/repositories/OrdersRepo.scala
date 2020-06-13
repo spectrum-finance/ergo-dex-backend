@@ -11,4 +11,6 @@ trait OrdersRepo[D[_]] {
   def getBuyWall(pairId: PairId, limit: Long): D[List[BuyOrder]]
 
   def getSellWall(pairId: PairId, limit: Long): D[List[SellOrder]]
+
+  def remove(ids: List[Long]): D[Unit]
 }
