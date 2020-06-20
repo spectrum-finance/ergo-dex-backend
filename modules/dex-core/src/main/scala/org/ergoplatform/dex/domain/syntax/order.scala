@@ -3,6 +3,7 @@ package org.ergoplatform.dex.domain.syntax
 import cats.syntax.bifunctor._
 import cats.instances.tuple._
 import cats.syntax.list._
+import org.ergoplatform.dex.PairId
 import org.ergoplatform.dex.domain.OrderComparator
 import org.ergoplatform.dex.domain.models.Match.AnyMatch
 import org.ergoplatform.dex.domain.models.Order.{AnyOrder, BuyOrder, SellOrder}
@@ -29,6 +30,8 @@ object order {
         }
       fill(counterOrders, Nil, order.amount).toNel.map(Match(order, _))
     }
+
+    def pairId: PairId = ???
   }
 
   implicit final class OrdersOps(private val xs: List[AnyOrder]) extends AnyVal {

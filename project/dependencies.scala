@@ -27,7 +27,7 @@ object dependencies {
       "io.circe" %% "circe-generic",
       "io.circe" %% "circe-parser",
       "io.circe" %% "circe-refined"
-    ).map(_      % CirceVersion) ++ List(
+    ).map(_       % CirceVersion) ++ List(
       "io.circe" %% "circe-derivation" % CirceDerivationVersion
     )
 
@@ -62,6 +62,7 @@ object dependencies {
     "ru.tinkoff"  %% "tofu-derivation"     % TofuVersion,
     "ru.tinkoff"  %% "tofu-logging"        % TofuVersion,
     "ru.tinkoff"  %% "tofu-doobie"         % TofuVersion,
+    "ru.tinkoff"  %% "tofu-fs2-interop"    % TofuVersion,
     "org.manatki" %% "derevo-cats"         % DerevoVersion,
     "org.manatki" %% "derevo-cats-tagless" % DerevoVersion
   )
@@ -77,14 +78,14 @@ object dependencies {
     "org.tpolecat" %% "doobie-scalatest" % DoobieVersion,
     "org.tpolecat" %% "doobie-hikari"    % DoobieVersion,
     "org.tpolecat" %% "doobie-refined"   % DoobieVersion,
-    "org.flywaydb" % "flyway-core"       % FlywayVersion
+    "org.flywaydb"  % "flyway-core"      % FlywayVersion
   )
 
   val Testing: List[ModuleID] = List(
     "org.tpolecat"               %% "doobie-scalatest"          % DoobieVersion                 % Test,
     "org.scalatest"              %% "scalatest"                 % ScalaTestVersion              % Test,
     "org.scalacheck"             %% "scalacheck"                % ScalaCheckVersion             % Test,
-    "org.testcontainers"         % "postgresql"                 % TestContainersPostgresVersion % Test,
+    "org.testcontainers"          % "postgresql"                % TestContainersPostgresVersion % Test,
     "com.dimafeng"               %% "testcontainers-scala"      % TestContainersScalaVersion    % Test,
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.14" % ScalaCheckShapelessVersion    % Test
   )

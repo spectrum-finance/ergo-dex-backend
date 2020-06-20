@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.matcher
+package org.ergoplatform.dex.matcher.domain
 
 import org.ergoplatform.dex.PairId
 import org.ergoplatform.dex.domain.models.Match.AnyMatch

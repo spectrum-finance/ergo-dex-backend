@@ -19,8 +19,8 @@ trait OrdersWatcher[F[_]] {
 
 object OrdersWatcher {
 
-  def apply[G[_]: Functor, F[_]: Monad](streaming: StreamingBundle[F])(
-    implicit logs: Logs[G, F]
+  def apply[G[_]: Functor, F[_]: Monad](streaming: StreamingBundle[F])(implicit
+    logs: Logs[G, F]
   ): G[OrdersWatcher[F]] =
     logs.forService[OrdersWatcher[F]].map(implicit l => new Live[F](streaming))
 
@@ -35,11 +35,11 @@ object OrdersWatcher {
       }
 
     private def process(outputs: List[Output]): Stream[F, Unit] =
-          Stream
-            .emit(outputs)
-            .evalMap(makeOrders)
-            .flatMap(Stream.emits)
-            .through(streaming.producer.produce)
+      Stream
+        .emit(outputs)
+        .evalMap(makeOrders)
+        .flatMap(Stream.emits)
+        .through(streaming.producer.produce)
 
     private def makeOrders: List[Output] => F[List[AnyOrder]] =
       _.foldLeft(Vector.empty[AnyOrder].pure[F]) { (acc, out) =>

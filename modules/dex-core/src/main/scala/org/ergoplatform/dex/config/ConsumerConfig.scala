@@ -1,8 +1,8 @@
-package org.ergoplatform.dex.settings
+package org.ergoplatform.dex.config
 
 import org.ergoplatform.dex.UrlString
 
-final case class KafkaSettings(
+final case class ConsumerConfig(
   host: UrlString,
   port: Int,
   groupId: String,

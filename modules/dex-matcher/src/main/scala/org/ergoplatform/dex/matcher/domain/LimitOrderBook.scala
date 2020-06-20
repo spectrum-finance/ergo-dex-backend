@@ -1,16 +1,18 @@
-package org.ergoplatform.dex.matcher
+package org.ergoplatform.dex.matcher.domain
 
 import cats.{FlatMap, Monad}
 import mouse.anyf._
 import org.ergoplatform.dex.PairId
 import org.ergoplatform.dex.domain.models.Match.AnyMatch
 import org.ergoplatform.dex.domain.models.Order._
+import org.ergoplatform.dex.domain.syntax.match_._
 import org.ergoplatform.dex.domain.syntax.order._
 import org.ergoplatform.dex.matcher.repositories.OrdersRepo
 import tofu.doobie.transactor.Txr
 import tofu.syntax.monadic._
 
 import scala.annotation.tailrec
+import scala.language.existentials
 
 final class LimitOrderBook[F[_]: FlatMap, D[_]: Monad](
   repo: OrdersRepo[D],
@@ -23,7 +25,12 @@ final class LimitOrderBook[F[_]: FlatMap, D[_]: Monad](
     val (sell, buy)                 = orders.partitioned
     val List(sellDemand, buyDemand) = List(sell, buy).map(_.map(_.amount).sum)
     (repo.getSellWall(pairId, buyDemand), repo.getBuyWall(pairId, sellDemand))
-      .mapN((oldSell, oldBuy) => mkMatch(oldSell ++ sell, oldBuy ++ buy)) ||> txr.trans // todo: remove matched orders from DB
+      .mapN((oldSell, oldBuy) => mkMatch(oldSell ++ sell, oldBuy ++ buy))
+      .flatTap { matches =>
+        val matched   = matches.flatMap(_.allOrders.map(_.id).toList)
+        val unmatched = orders.filterNot(o => matched.contains(o.id))
+        repo.remove(matched) >> repo.insert(unmatched)
+      } ||> txr.trans
   }
 }
 
@@ -48,7 +55,9 @@ object LimitOrderBook {
               case Some(anyMatch) =>
                 matchLoop(
                   sellOrders.tail,
-                  buyOrders.dropWhile(anyMatch.counterOrders.toList.contains), // todo: make sure orders compared correctly
+                  buyOrders.dropWhile(
+                    anyMatch.counterOrders.toList.contains
+                  ), // todo: make sure orders compared correctly
                   anyMatch +: matched
                 )
               case None =>
