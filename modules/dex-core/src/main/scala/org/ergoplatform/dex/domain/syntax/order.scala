@@ -31,6 +31,10 @@ object order {
       fill(counterOrders, Nil, order.amount).toNel.map(Match(order, _))
     }
 
+    def id: Long = ???
+
+    def fee: Double = order.feePerToken * order.amount
+
     def pairId: PairId = ???
   }
 

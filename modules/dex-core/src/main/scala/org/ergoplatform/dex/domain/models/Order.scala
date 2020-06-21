@@ -12,10 +12,7 @@ final case class Order[T <: OrderType](
   price: Long,
   feePerToken: Double,
   meta: OrderMeta
-) {
-  val fee: Double = feePerToken * amount
-  val id: Long = ???
-}
+)
 
 object Order {
 

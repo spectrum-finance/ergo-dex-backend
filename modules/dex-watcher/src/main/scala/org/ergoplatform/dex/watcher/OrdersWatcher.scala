@@ -1,13 +1,13 @@
 package org.ergoplatform.dex.watcher
 
-import cats.{Functor, Monad}
 import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+import cats.{Functor, Monad}
 import fs2.Stream
 import org.ergoplatform.dex.HexString
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
-import org.ergoplatform.dex.streaming.models.{Output, Transaction}
+import org.ergoplatform.dex.streaming.models.Output
 import org.ergoplatform.dex.watcher.streaming.StreamingBundle
 import tofu.logging._
 import tofu.syntax.logging._
