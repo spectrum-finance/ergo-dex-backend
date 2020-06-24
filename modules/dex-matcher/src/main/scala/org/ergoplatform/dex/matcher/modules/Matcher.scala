@@ -41,7 +41,7 @@ object Matcher {
       context[Stream[F, *]] >>= { conf =>
         streaming.consumer.consumeBatch(conf.batchSize, conf.interval) { ch =>
           val matches = ch
-            .collect { case Some(value) => value }
+            .collect { case Some(order) => order }
             .toList
             .groupBy(_.pairId)
             .toList

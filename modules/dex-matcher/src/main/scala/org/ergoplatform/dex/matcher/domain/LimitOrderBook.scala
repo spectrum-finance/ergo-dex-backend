@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.matcher.domain
 
-import cats.{FlatMap, Monad}
+import cats.{FlatMap, Functor, Monad}
 import mouse.anyf._
 import org.ergoplatform.dex.PairId
 import org.ergoplatform.dex.domain.models.Match.AnyMatch
@@ -9,12 +9,13 @@ import org.ergoplatform.dex.domain.syntax.match_._
 import org.ergoplatform.dex.domain.syntax.order._
 import org.ergoplatform.dex.matcher.repositories.OrdersRepo
 import tofu.doobie.transactor.Txr
+import tofu.logging.{Logging, Logs}
 import tofu.syntax.monadic._
 
 import scala.annotation.tailrec
 import scala.language.existentials
 
-final class LimitOrderBook[F[_]: FlatMap, D[_]: Monad](
+final class LimitOrderBook[F[_]: FlatMap: Logging, D[_]: Monad](
   repo: OrdersRepo[D],
   txr: Txr.Aux[F, D]
 ) extends OrderBook[F] {
@@ -39,7 +40,15 @@ object LimitOrderBook {
   implicit private val sellOrd: Ordering[SellOrder] = Ordering.by(o => (o.price, -o.fee))
   implicit private val buyOrd: Ordering[BuyOrder]   = Ordering.by(o => (-o.price, -o.fee))
 
-  private def mkMatch(
+  def make[I[_]: Functor, F[_]: FlatMap, D[_]: Monad](
+    repo: OrdersRepo[D],
+    txr: Txr.Aux[F, D]
+  )(implicit logs: Logs[I, F]): I[LimitOrderBook[F, D]] =
+    logs.forService[LimitOrderBook[F, D]] map { implicit l =>
+      new LimitOrderBook[F, D](repo, txr)
+    }
+
+  private[domain] def mkMatch(
     sellOrders: List[SellOrder],
     buyOrders: List[BuyOrder]
   ): List[AnyMatch] = {
