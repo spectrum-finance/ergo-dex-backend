@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.config
+package org.ergoplatform.dex.configs
 
 import org.ergoplatform.dex.UrlString
 

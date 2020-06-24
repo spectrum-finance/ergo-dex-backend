@@ -7,7 +7,7 @@ import cats.syntax.either._
 import cats.syntax.functor._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{refineV, W}
+import eu.timepit.refined.{W, refineV}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
@@ -16,6 +16,7 @@ import org.ergoplatform.dex.constraints.{AddressType, Base58Spec, HexStringType,
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import tofu.Raise.ContravariantRaise
+import tofu.logging.Loggable
 import tofu.syntax.raise._
 
 package object dex {
@@ -37,24 +38,24 @@ package object dex {
 
   object TxId {
     // circe instances
-    implicit def encoder: Encoder[TxId] = deriving
-    implicit def decoder: Decoder[TxId] = deriving
+    implicit val encoder: Encoder[TxId] = deriving
+    implicit val decoder: Decoder[TxId] = deriving
   }
 
   @newtype case class BoxId(value: String)
 
   object BoxId {
     // circe instances
-    implicit def encoder: Encoder[BoxId] = deriving
-    implicit def decoder: Decoder[BoxId] = deriving
+    implicit val encoder: Encoder[BoxId] = deriving
+    implicit val decoder: Decoder[BoxId] = deriving
   }
 
   @newtype case class AssetId(value: HexString)
 
   object AssetId {
     // circe instances
-    implicit def encoder: Encoder[AssetId] = deriving
-    implicit def decoder: Decoder[AssetId] = deriving
+    implicit val encoder: Encoder[AssetId] = deriving
+    implicit val decoder: Decoder[AssetId] = deriving
 
     def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
       s: String
@@ -69,8 +70,8 @@ package object dex {
 
   object Address {
     // circe instances
-    implicit def encoder: Encoder[Address] = deriving
-    implicit def decoder: Decoder[Address] = deriving
+    implicit val encoder: Encoder[Address] = deriving
+    implicit val decoder: Decoder[Address] = deriving
 
     def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
       s: String
@@ -87,8 +88,8 @@ package object dex {
 
   object HexString {
     // circe instances
-    implicit def encoder: Encoder[HexString] = deriving
-    implicit def decoder: Decoder[HexString] = deriving
+    implicit val encoder: Encoder[HexString] = deriving
+    implicit val decoder: Decoder[HexString] = deriving
 
     def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
       s: String
@@ -105,10 +106,10 @@ package object dex {
 
   object UrlString {
     // circe instances
-    implicit def encoder: Encoder[UrlString] = deriving
-    implicit def decoder: Decoder[UrlString] = deriving
+    implicit val encoder: Encoder[UrlString] = deriving
+    implicit val decoder: Decoder[UrlString] = deriving
 
-    implicit def configReader: ConfigReader[UrlString] =
+    implicit val configReader: ConfigReader[UrlString] =
       implicitly[ConfigReader[String]].emap { s =>
         fromString[Either[RefinementFailed, *]](s)
           .leftMap(e => CannotConvert(s, s"Refined", e.msg))
@@ -127,15 +128,17 @@ package object dex {
 
   object TopicId {
     // circe instances
-    implicit def encoder: Encoder[TopicId] = deriving
-    implicit def decoder: Decoder[TopicId] = deriving
+    implicit val encoder: Encoder[TopicId] = deriving
+    implicit val decoder: Decoder[TopicId] = deriving
   }
 
   @newtype case class PairId(value: String)
 
   object PairId {
     // circe instances
-    implicit def encoder: Encoder[PairId] = deriving
-    implicit def decoder: Decoder[PairId] = deriving
+    implicit val encoder: Encoder[PairId] = deriving
+    implicit val decoder: Decoder[PairId] = deriving
+
+    implicit val loggable: Loggable[PairId] = deriving
   }
 }

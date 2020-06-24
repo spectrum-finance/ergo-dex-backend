@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.watcher
+package org.ergoplatform.dex.watcher.modules
 
 import cats.{Functor, Monad}
 import fs2.Stream

@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.matcher.config
+package org.ergoplatform.dex.matcher.configs
 
 import scala.concurrent.duration.FiniteDuration
 

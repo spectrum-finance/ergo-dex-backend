@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.matcher.domain
+package org.ergoplatform.dex.matcher.services
 
 import cats.{FlatMap, Functor, Monad}
 import mouse.anyf._
@@ -11,6 +11,7 @@ import org.ergoplatform.dex.matcher.repositories.OrdersRepo
 import tofu.doobie.transactor.Txr
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.monadic._
+import tofu.syntax.logging._
 
 import scala.annotation.tailrec
 import scala.language.existentials
@@ -25,13 +26,15 @@ final class LimitOrderBook[F[_]: FlatMap: Logging, D[_]: Monad](
   def process(pairId: PairId)(orders: List[AnyOrder]): F[List[AnyMatch]] = {
     val (sell, buy)                 = orders.partitioned
     val List(sellDemand, buyDemand) = List(sell, buy).map(_.map(_.amount).sum)
+    info"Processing [${orders.size}] new orders of pair [$pairId]" >>
     (repo.getSellWall(pairId, buyDemand), repo.getBuyWall(pairId, sellDemand))
       .mapN((oldSell, oldBuy) => mkMatch(oldSell ++ sell, oldBuy ++ buy))
       .flatTap { matches =>
         val matched   = matches.flatMap(_.allOrders.map(_.id).toList)
         val unmatched = orders.filterNot(o => matched.contains(o.id))
         repo.remove(matched) >> repo.insert(unmatched)
-      } ||> txr.trans
+      }
+      .thrushK(txr.trans)
   }
 }
 
@@ -48,7 +51,7 @@ object LimitOrderBook {
       new LimitOrderBook[F, D](repo, txr)
     }
 
-  private[domain] def mkMatch(
+  private[services] def mkMatch(
     sellOrders: List[SellOrder],
     buyOrders: List[BuyOrder]
   ): List[AnyMatch] = {

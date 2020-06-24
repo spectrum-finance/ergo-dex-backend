@@ -4,8 +4,8 @@ import cats.{Functor, Monad, Parallel}
 import fs2._
 import cats.instances.list._
 import cats.syntax.parallel._
-import org.ergoplatform.dex.matcher.config.MatcherConfig
-import org.ergoplatform.dex.matcher.domain.OrderBook
+import org.ergoplatform.dex.matcher.configs.MatcherConfig
+import org.ergoplatform.dex.matcher.services.OrderBook
 import org.ergoplatform.dex.domain.syntax.order._
 import org.ergoplatform.dex.matcher.streaming.StreamingBundle
 import tofu.HasContext
