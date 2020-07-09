@@ -68,8 +68,8 @@ object dependencies {
   )
 
   val Ergo: List[ModuleID] = List(
-    "org.ergoplatform" %% "ergo-wallet"        % ErgoWalletVersion,
-    "org.ergoplatform" %% "verified-contracts" % ErgoContractsVertions
+    "org.ergoplatform" %% "ergo-wallet" % ErgoWalletVersion,
+    "org.ergoplatform" %% "contracts"   % ErgoContractsVertions
   )
 
   val Db: List[ModuleID] = List(

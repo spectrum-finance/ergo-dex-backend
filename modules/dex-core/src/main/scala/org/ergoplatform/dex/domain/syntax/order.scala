@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.domain.syntax
 
-import cats.syntax.bifunctor._
 import cats.instances.tuple._
+import cats.syntax.bifunctor._
 import cats.syntax.list._
 import org.ergoplatform.dex.PairId
 import org.ergoplatform.dex.domain.OrderComparator

@@ -4,6 +4,7 @@ import cats.{Functor, Monad}
 import fs2.Stream
 import org.ergoplatform.dex.clients.ErgoNetworkClient
 import org.ergoplatform.dex.domain.models.Match.AnyMatch
+import org.ergoplatform.dex.executor.context.TxContext
 import org.ergoplatform.dex.executor.services.TransactionService
 import org.ergoplatform.dex.streaming.Consumer
 import tofu.logging.{Logging, Logs}
@@ -35,8 +36,11 @@ object OrdersExecutor {
       consumer.consume { rec =>
         Stream.emit(rec).covary[F].unNone >>= { mc =>
           Stream.eval(info"Executing $mc") >>
-          Stream.eval(txs.makeTx(mc) >>= client.submitTransaction)
+          Stream.eval(makeTxContext >>= txs.makeTx(mc) >>= client.submitTransaction)
         }
       }
+
+    private def makeTxContext: F[TxContext] =
+      client.getCurrentHeight map TxContext
   }
 }

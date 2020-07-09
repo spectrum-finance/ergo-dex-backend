@@ -46,12 +46,14 @@ object OrdersWatcher {
 
     def makeOrders[F[_]: Monad: Logging]: List[Output] => F[List[AnyOrder]] =
       _.foldLeft(Vector.empty[AnyOrder].pure[F]) { (acc, out) =>
-        if (isOrder(out.ergoTree)) acc >>= (xs => makeOrder[F](out).map(xs :+ _))
+        if (isOrder(out.ergoTree) && isValid(out)) acc >>= (xs => makeOrder[F](out).map(xs :+ _))
         else acc
       }.map(_.toList).flatTap(orders => info"${orders.size} orders extracted")
 
     def makeOrder[F[_]](out: Output): F[AnyOrder] = ???
 
     def isOrder(ergoTree: HexString): Boolean = ???
+
+    def isValid(out: Output): Boolean = ???
   }
 }
