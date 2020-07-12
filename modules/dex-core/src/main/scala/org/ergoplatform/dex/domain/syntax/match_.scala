@@ -2,7 +2,9 @@ package org.ergoplatform.dex.domain.syntax
 
 import cats.data.NonEmptyList
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexSellerContractParameters}
+import org.ergoplatform.dex.domain.models.Match.AnyMatch
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
+import org.ergoplatform.dex.domain.models.OrderType.{Buy, Sell}
 import org.ergoplatform.dex.domain.models.{Match, OrderType}
 import org.ergoplatform.dex.domain.syntax.ergo._
 
@@ -27,5 +29,10 @@ object match_ {
         m.order.price,
         m.order.feePerToken
       )
+  }
+
+  implicit final class AnyMatchOps(private val m: AnyMatch) extends AnyVal {
+    def refine: Either[Match[Sell, Buy], Match[Buy, Sell]] =
+      Either.cond(m.order.`type`.isSell, m.asInstanceOf[Match[Buy, Sell]], m.asInstanceOf[Match[Sell, Buy]])
   }
 }
