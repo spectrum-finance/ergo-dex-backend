@@ -2,15 +2,15 @@ package org.ergoplatform.dex.matcher.repositories
 
 import derevo.derive
 import org.ergoplatform.dex.PairId
-import org.ergoplatform.dex.domain.models.Order.{AnyOrder, BuyOrder, SellOrder}
+import org.ergoplatform.dex.domain.models.Order.{AnyOrder, Bid, Ask}
 import tofu.higherKind.derived.representableK
 
 @derive(representableK)
 trait OrdersRepo[D[_]] {
 
-  def getBuyWall(pairId: PairId, limit: Long): D[List[BuyOrder]]
+  def getBuyWall(pairId: PairId, limit: Long): D[List[Bid]]
 
-  def getSellWall(pairId: PairId, limit: Long): D[List[SellOrder]]
+  def getSellWall(pairId: PairId, limit: Long): D[List[Ask]]
 
   def insert(orders: List[AnyOrder]): D[Unit]
 

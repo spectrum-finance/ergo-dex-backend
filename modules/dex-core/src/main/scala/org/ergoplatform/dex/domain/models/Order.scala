@@ -4,7 +4,7 @@ import org.ergoplatform.dex.AssetId
 
 /** Global market order.
   * @param `type` - type of the order (sell or buy)
-  * @param asset  - id of the asset X
+  * @param quoteAsset  - id of the asset X
   * @param baseAsset - id of the asset Y
   * @param amount - amount of the `asset`
   * @param price - price for `asset` in `baseAsset`
@@ -13,7 +13,7 @@ import org.ergoplatform.dex.AssetId
   */
 final case class Order[T <: OrderType](
   `type`: T,
-  asset: AssetId,
+  quoteAsset: AssetId,
   baseAsset: AssetId,
   amount: Long,
   price: Long,
@@ -23,27 +23,27 @@ final case class Order[T <: OrderType](
 
 object Order {
 
-  type SellOrder = Order[OrderType.Sell.type]
-  type BuyOrder  = Order[OrderType.Buy.type]
-  type AnyOrder  = Order[_ <: OrderType]
+  type Ask      = Order[OrderType.Ask.type]
+  type Bid      = Order[OrderType.Bid.type]
+  type AnyOrder = Order[_ <: OrderType]
 
-  def mkBuy(
-    asset: AssetId,
+  def mkBid(
+    quoteAsset: AssetId,
     baseAsset: AssetId,
     amount: Long,
     price: Long,
     feePerToken: Long,
     meta: OrderMeta
-  ): BuyOrder =
-    Order(OrderType.Buy, asset, baseAsset, amount, price, feePerToken, meta)
+  ): Bid =
+    Order(OrderType.Bid, quoteAsset, baseAsset, amount, price, feePerToken, meta)
 
-  def mkSell(
-    asset: AssetId,
+  def mkAsk(
+    quoteAsset: AssetId,
     baseAsset: AssetId,
     amount: Long,
     price: Long,
     feePerToken: Long,
     meta: OrderMeta
-  ): SellOrder =
-    Order(OrderType.Sell, asset, baseAsset, amount, price, feePerToken, meta)
+  ): Ask =
+    Order(OrderType.Ask, quoteAsset, baseAsset, amount, price, feePerToken, meta)
 }

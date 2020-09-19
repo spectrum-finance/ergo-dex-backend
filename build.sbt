@@ -2,7 +2,7 @@ import dependencies._
 
 lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
-  scalaVersion := "2.12.11",
+  scalaVersion := "2.12.12",
   organization := "org.ergoplatform",
   version := "0.0.1",
   resolvers += Resolver.sonatypeRepo("public"),
@@ -29,6 +29,7 @@ lazy val commonScalacOptions = List(
   "-Xfuture",
   "-Yno-adapted-args",
   "-Ywarn-numeric-widen",
+  "-Ywarn-value-discard",
   "-Ypartial-unification"
 )
 
