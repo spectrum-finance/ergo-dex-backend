@@ -4,9 +4,9 @@ import org.ergoplatform.dex.AssetId
 
 /** Global market order.
   * @param `type` - type of the order (sell or buy)
-  * @param quoteAsset  - id of the asset X
-  * @param baseAsset - id of the asset Y
-  * @param amount - amount of the `asset`
+  * @param quoteAsset  - id of the quote asset
+  * @param baseAsset - id of the base asset
+  * @param amount - amount of `asset`
   * @param price - price for `asset` in `baseAsset`
   * @param feePerToken - amount of fee (in nanoERG) per one traded `asset`
   * @param meta - order metadata

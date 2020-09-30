@@ -1,7 +1,6 @@
 package org.ergoplatform
 
 import cats.Applicative
-import cats.arrow.FunctionK
 import cats.instances.either._
 import cats.syntax.either._
 import cats.syntax.functor._
@@ -15,14 +14,11 @@ import org.ergoplatform.dex.Err.RefinementFailed
 import org.ergoplatform.dex.constraints.{AddressType, Base58Spec, HexStringType, UrlStringType}
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
-import tofu.Raise.ContravariantRaise
+import tofu.Raise
 import tofu.logging.Loggable
 import tofu.syntax.raise._
 
 package object dex {
-
-  type CRaise[F[_], -E]  = ContravariantRaise[F, E]
-  type Trans[D[_], F[_]] = FunctionK[D, F]
 
   object constraints {
 
@@ -57,7 +53,7 @@ package object dex {
     implicit val encoder: Encoder[AssetId] = deriving
     implicit val decoder: Decoder[AssetId] = deriving
 
-    def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
+    def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
     ): F[AssetId] =
       HexString.fromString(s).map(AssetId.apply)
@@ -73,7 +69,7 @@ package object dex {
     implicit val encoder: Encoder[Address] = deriving
     implicit val decoder: Decoder[Address] = deriving
 
-    def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
+    def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
     ): F[Address] =
       refineV[Base58Spec](s)
@@ -91,7 +87,7 @@ package object dex {
     implicit val encoder: Encoder[HexString] = deriving
     implicit val decoder: Decoder[HexString] = deriving
 
-    def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
+    def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
     ): F[HexString] =
       refineV[HexStringSpec](s)
@@ -115,7 +111,7 @@ package object dex {
           .leftMap(e => CannotConvert(s, s"Refined", e.msg))
       }
 
-    def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
+    def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
     ): F[UrlString] =
       refineV[Url](s)

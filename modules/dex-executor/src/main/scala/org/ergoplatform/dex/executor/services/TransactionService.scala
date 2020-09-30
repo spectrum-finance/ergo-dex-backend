@@ -34,9 +34,9 @@ object TransactionService {
   final private class ErgoToTokenTransactionService[F[_]: Monad: HasContext[*[_], ExchangeConfig]]
     extends TransactionService[F] {
 
-    def makeTx(anyMatch: AnyTrade)(implicit ctx: TxContext): F[ErgoLikeTransaction] =
-      outputs(anyMatch).map(_.toList.toVector).map { out =>
-        val in = inputs(anyMatch).toList.toVector
+    def makeTx(trade: AnyTrade)(implicit ctx: TxContext): F[ErgoLikeTransaction] =
+      outputs(trade).map(_.toList.toVector).map { out =>
+        val in = inputs(trade).toList.toVector
         ErgoLikeTransaction(in, out)
       }
   }

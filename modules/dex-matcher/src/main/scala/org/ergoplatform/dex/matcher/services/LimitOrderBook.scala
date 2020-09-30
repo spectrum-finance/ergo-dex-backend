@@ -24,11 +24,11 @@ final class LimitOrderBook[F[_]: FlatMap: Logging, D[_]: Monad](
   import LimitOrderBook._
 
   def process(pairId: PairId)(orders: List[AnyOrder]): F[List[AnyTrade]] = {
-    val (sell, buy)                 = orders.partitioned
-    val List(sellDemand, buyDemand) = List(sell, buy).map(_.map(_.amount).sum)
+    val (asks, bids)                = orders.partitioned
+    val List(sellDemand, buyDemand) = List(asks, bids).map(_.map(_.amount).sum)
     info"Processing [${orders.size}] new orders of pair [$pairId]" >>
     (repo.getSellWall(pairId, buyDemand), repo.getBuyWall(pairId, sellDemand))
-      .mapN((oldSell, oldBuy) => mkMatch(oldSell ++ sell, oldBuy ++ buy))
+      .mapN((oldAsks, oldBids) => mkMatch(oldAsks ++ asks, oldBids ++ bids))
       .flatTap { matches =>
         val matched   = matches.flatMap(_.orders.map(_.id).toList)
         val unmatched = orders.filterNot(o => matched.contains(o.id))
@@ -40,8 +40,8 @@ final class LimitOrderBook[F[_]: FlatMap: Logging, D[_]: Monad](
 
 object LimitOrderBook {
 
-  implicit private val sellOrd: Ordering[Ask] = Ordering.by(o => (o.price, -o.fee))
-  implicit private val buyOrd: Ordering[Bid]  = Ordering.by(o => (-o.price, -o.fee))
+  implicit private val askOrd: Ordering[Ask] = Ordering.by(o => (o.price, -o.fee))
+  implicit private val bidOrd: Ordering[Bid] = Ordering.by(o => (-o.price, -o.fee))
 
   def make[I[_]: Functor, F[_]: FlatMap, D[_]: Monad](
     repo: OrdersRepo[D],
@@ -52,42 +52,40 @@ object LimitOrderBook {
     }
 
   private[services] def mkMatch(
-    sellOrders: List[Ask],
-    buyOrders: List[Bid]
+    asks: List[Ask],
+    bids: List[Bid]
   ): List[AnyTrade] = {
     @tailrec def matchLoop(
-      sellOrders: List[Ask],
-      buyOrders: List[Bid],
-      matched: List[AnyTrade]
+      asks: List[Ask],
+      bids: List[Bid],
+      trades: List[AnyTrade]
     ): List[AnyTrade] =
-      (sellOrders.headOption, buyOrders.headOption) match {
-        case (Some(sell), Some(buy)) if sell.price <= buy.price =>
-          if (sell.fee > buy.fee)
-            sell fillWith buyOrders match {
-              case Some(anyMatch) =>
+      (asks.headOption, bids.headOption) match {
+        case (Some(ask), Some(bid)) if ask.price <= bid.price =>
+          if (ask.fee > bid.fee)
+            ask fillWith bids match {
+              case Some(anyTrade) =>
                 matchLoop(
-                  sellOrders.tail,
-                  buyOrders.dropWhile(
-                    anyMatch.counterOrders.toList.contains
-                  ), // todo: make sure orders compared correctly
-                  anyMatch +: matched
+                  asks.tail,
+                  bids.dropWhile(anyTrade.counterOrders.toList.contains), // todo: make sure orders compared correctly
+                  anyTrade +: trades
                 )
               case None =>
-                matched
+                trades
             }
           else
-            buy fillWith sellOrders match {
-              case Some(anyMatch) =>
+            bid fillWith asks match {
+              case Some(anyTrade) =>
                 matchLoop(
-                  sellOrders.dropWhile(anyMatch.counterOrders.toList.contains),
-                  buyOrders.tail,
-                  anyMatch +: matched
+                  asks.dropWhile(anyTrade.counterOrders.toList.contains),
+                  bids.tail,
+                  anyTrade +: trades
                 )
               case None =>
-                matched
+                trades
             }
-        case _ => matched
+        case _ => trades
       }
-    matchLoop(sellOrders.sorted, buyOrders.sorted, Nil)
+    matchLoop(asks.sorted, bids.sorted, Nil)
   }
 }

@@ -62,6 +62,7 @@ object dependencies {
     "ru.tinkoff"  %% "tofu-derivation"     % TofuVersion,
     "ru.tinkoff"  %% "tofu-logging"        % TofuVersion,
     "ru.tinkoff"  %% "tofu-doobie"         % TofuVersion,
+    "ru.tinkoff"  %% "tofu-streams"        % TofuVersion,
     "ru.tinkoff"  %% "tofu-fs2-interop"    % TofuVersion,
     "org.manatki" %% "derevo-cats"         % DerevoVersion,
     "org.manatki" %% "derevo-cats-tagless" % DerevoVersion
