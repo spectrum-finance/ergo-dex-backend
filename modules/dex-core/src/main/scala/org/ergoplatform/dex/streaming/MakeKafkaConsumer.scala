@@ -6,13 +6,13 @@ import fs2.Stream
 
 /** Kafka consumer instance maker.
   */
-trait MakeKafkaConsumer[A, F[_]] {
+trait MakeKafkaConsumer[K, V, F[_]] {
 
-  def apply(settings: ConsumerSettings[F, String, A]): Stream[F, KafkaConsumer[F, String, A]]
+  def apply(settings: ConsumerSettings[F, K, V]): Stream[F, KafkaConsumer[F, K, V]]
 }
 
 object MakeKafkaConsumer {
 
-  implicit def instance[F[_]: ConcurrentEffect: Timer: ContextShift, A]: MakeKafkaConsumer[A, F] =
-    (settings: ConsumerSettings[F, String, A]) => consumerStream(settings)
+  implicit def instance[F[_]: ConcurrentEffect: Timer: ContextShift, K, V]: MakeKafkaConsumer[K, V, F] =
+    (settings: ConsumerSettings[F, K, V]) => consumerStream(settings)
 }

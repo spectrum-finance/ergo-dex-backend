@@ -12,7 +12,7 @@ import scala.concurrent.duration.FiniteDuration
 
 object syntax {
 
-  implicit final class CommittableOps[S[_], F[_], A, O](private val fa: S[Committable[A, O, F]]) extends AnyVal {
+  implicit final class CommittableOps[S[_], F[_], K, V, O](private val fa: S[Committable[K, V, O, F]]) extends AnyVal {
 
     def commitBatchWithin[C[_]: Foldable](n: Int, d: FiniteDuration)(implicit
       T: Temporal[S, C],

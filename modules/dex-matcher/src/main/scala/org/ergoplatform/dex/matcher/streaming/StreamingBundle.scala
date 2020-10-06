@@ -6,5 +6,5 @@ import org.ergoplatform.dex.streaming.{Consumer, Producer}
 
 final case class StreamingBundle[F[_], G[_]](
   producer: Producer[F, AnyTrade],
-  consumer: Consumer[AnyOrder, F, G]
+  consumer: Consumer[String, AnyOrder, F, G]
 )

@@ -2,22 +2,18 @@ package org.ergoplatform.dex.executor.modules
 
 import cats.{Foldable, Functor, Monad}
 import derevo.derive
-import fs2.Stream
-import org.ergoplatform.dex.clients.ErgoNetworkClient
 import org.ergoplatform.dex.context.HasCommitPolicy
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
-import org.ergoplatform.dex.executor.context.TxContext
 import org.ergoplatform.dex.executor.services.ExecutionService
-import org.ergoplatform.dex.streaming.{CommitPolicy, Consumer}
 import org.ergoplatform.dex.streaming.syntax._
+import org.ergoplatform.dex.streaming.{CommitPolicy, Consumer}
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Evals, Temporal}
-import tofu.syntax.streams.evals._
-import tofu.syntax.monadic._
-import tofu.syntax.logging._
 import tofu.syntax.context._
 import tofu.syntax.embed._
+import tofu.syntax.monadic._
+import tofu.syntax.streams.evals._
 
 @derive(representableK)
 trait OrdersExecutor[F[_]] {
@@ -33,7 +29,7 @@ object OrdersExecutor {
     G[_]: Monad,
     C[_]: Foldable
   ](implicit
-    consumer: Consumer[AnyTrade, F, G],
+    consumer: Consumer[String, AnyTrade, F, G],
     txs: ExecutionService[G],
     logs: Logs[I, G]): I[OrdersExecutor[F]] =
     logs.forService[OrdersExecutor[F]] map { implicit l =>
@@ -45,7 +41,7 @@ object OrdersExecutor {
     G[_]: Monad: Logging,
     C[_]: Foldable
   ](commitPolicy: CommitPolicy)(implicit
-    consumer: Consumer[AnyTrade, F, G],
+    consumer: Consumer[String, AnyTrade, F, G],
     txs: ExecutionService[G]
   ) extends OrdersExecutor[F] {
 

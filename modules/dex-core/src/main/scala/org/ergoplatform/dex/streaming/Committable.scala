@@ -4,9 +4,11 @@ import cats.data.Chain
 
 /** A message associated with some offset that can be committed.
   */
-trait Committable[A, O, F[_]] {
+trait Committable[K, V, O, F[_]] {
 
-  def message: A
+  def key: K
+
+  def message: V
 
   def offset: O
 
