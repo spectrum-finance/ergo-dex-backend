@@ -1,47 +1,44 @@
 package org.ergoplatform.dex.executor.services
 
-import cats.{Applicative, Functor, Monad}
 import cats.data.NonEmptyList
+import cats.{Functor, Monad}
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexLimitOrderContracts, DexSellerContractParameters}
-import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.domain.models.Order.{Ask, Bid}
+import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.domain.syntax.trade._
 import org.ergoplatform.dex.executor.config.ExchangeConfig
 import org.ergoplatform.dex.executor.context.TxContext
 import org.ergoplatform.{ErgoBoxCandidate, ErgoLikeTransaction, Input}
 import sigmastate.SType.AnyOps
-import sigmastate.Values.{EvaluatedValue, _}
-import sigmastate._
+import sigmastate.Values._
 import sigmastate.eval._
 import sigmastate.interpreter.ProverResult
+import sigmastate.{SByte, SCollection, SType}
 import tofu.HasContext
-import tofu.syntax.monadic._
 import tofu.syntax.context._
+import tofu.syntax.monadic._
 
-abstract class TransactionService[F[_]] {
+trait Transactions[F[_]] {
 
-  /** Assembly Ergo transaction from a given `match`.
-    */
-  def makeTx(anyMatch: AnyTrade)(implicit ctx: TxContext): F[ErgoLikeTransaction]
+  def toTransaction(trade: AnyTrade)(implicit ctx: TxContext): F[ErgoLikeTransaction]
 }
 
-object TransactionService {
+object Transactions {
 
-  /** Implements processing of trades necessarily involving ERG.
-    */
-  final private class ErgoToTokenTransactionService[F[_]: Monad: HasContext[*[_], ExchangeConfig]]
-    extends TransactionService[F] {
+  final private class ErgoToTokenTransactions[
+    F[_]: Monad: HasContext[*[_], ExchangeConfig]
+  ] extends Transactions[F] {
 
-    def makeTx(trade: AnyTrade)(implicit ctx: TxContext): F[ErgoLikeTransaction] =
+    def toTransaction(trade: AnyTrade)(implicit ctx: TxContext): F[ErgoLikeTransaction] =
       outputs(trade).map(_.toList.toVector).map { out =>
         val in = inputs(trade).toList.toVector
         ErgoLikeTransaction(in, out)
       }
   }
 
-  private val MinBoxValue = 1000000
+  private val MinBoxValue = 1000000L
 
   private[services] def inputs(anyMatch: AnyTrade): NonEmptyList[Input] =
     anyMatch.orders.map { ord =>
@@ -56,10 +53,9 @@ object TransactionService {
     trade.refine match {
       case Left(sellTrade) =>
         val order = sellTrade.order
-        val (totalCost, _) = sellTrade.counterOrders.foldLeft(0L -> toFill) {
-          case ((acc, rem), ord) =>
-            val amt = math.min(ord.amount, rem)
-            (acc + amt * ord.price) -> (toFill - amt)
+        val (totalCost, _) = sellTrade.counterOrders.foldLeft(0L -> toFill) { case ((acc, rem), ord) =>
+          val amt = math.min(ord.amount, rem)
+          (acc + amt * ord.price) -> (toFill - amt)
         }
         val (counterEval, _) = sellTrade.counterOrders.foldLeft(List.empty[ErgoBoxCandidate].pure[F] -> toFill) {
           case ((acc, rem), ord) =>

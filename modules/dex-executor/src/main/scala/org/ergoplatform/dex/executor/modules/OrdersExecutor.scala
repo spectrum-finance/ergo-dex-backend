@@ -1,46 +1,60 @@
 package org.ergoplatform.dex.executor.modules
 
-import cats.{Functor, Monad}
+import cats.{Foldable, Functor, Monad}
+import derevo.derive
 import fs2.Stream
 import org.ergoplatform.dex.clients.ErgoNetworkClient
+import org.ergoplatform.dex.context.HasCommitPolicy
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.executor.context.TxContext
-import org.ergoplatform.dex.executor.services.TransactionService
-import org.ergoplatform.dex.streaming.Consumer
+import org.ergoplatform.dex.executor.services.ExecutionService
+import org.ergoplatform.dex.streaming.{CommitPolicy, Consumer}
+import org.ergoplatform.dex.streaming.syntax._
+import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
+import tofu.streams.{Evals, Temporal}
+import tofu.syntax.streams.evals._
 import tofu.syntax.monadic._
 import tofu.syntax.logging._
+import tofu.syntax.context._
+import tofu.syntax.embed._
 
-abstract class OrdersExecutor[F[_]] {
-  def run: Stream[F, Unit]
+@derive(representableK)
+trait OrdersExecutor[F[_]] {
+
+  def run: F[Unit]
 }
 
 object OrdersExecutor {
 
-  def make[I[_]: Functor, F[_]: Monad](
-    consumer: Consumer[F, AnyTrade],
-    txs: TransactionService[F],
-    client: ErgoNetworkClient[F]
-  )(implicit logs: Logs[I, F]): I[OrdersExecutor[F]] =
+  def make[
+    I[_]: Functor,
+    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: HasCommitPolicy,
+    G[_]: Monad,
+    C[_]: Foldable
+  ](implicit
+    consumer: Consumer[AnyTrade, F, G],
+    txs: ExecutionService[G],
+    logs: Logs[I, G]): I[OrdersExecutor[F]] =
     logs.forService[OrdersExecutor[F]] map { implicit l =>
-      new Live[F](consumer, txs, client)
+      (context[F] map (policy => new Live[F, G, C](policy): OrdersExecutor[F])).embed
     }
 
-  final private class Live[F[_]: Monad: Logging](
-    consumer: Consumer[F, AnyTrade],
-    txs: TransactionService[F],
-    client: ErgoNetworkClient[F]
+  final private class Live[
+    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C],
+    G[_]: Monad: Logging,
+    C[_]: Foldable
+  ](commitPolicy: CommitPolicy)(implicit
+    consumer: Consumer[AnyTrade, F, G],
+    txs: ExecutionService[G]
   ) extends OrdersExecutor[F] {
 
-    def run: Stream[F, Unit] =
-      consumer.consume { rec =>
-        Stream.emit(rec).covary[F].unNone >>= { mc =>
-          Stream.eval(info"Executing $mc") >>
-          Stream.eval(makeTxContext >>= (txs.makeTx(mc)(_)) >>= client.submitTransaction)
+    def run: F[Unit] =
+      consumer.stream
+        .evalTap { rec =>
+          val trade = rec.message
+          txs.execute(trade)
         }
-      }
-
-    private def makeTxContext: F[TxContext] =
-      client.getCurrentHeight map TxContext
+        .commitBatchWithin[C](commitPolicy.maxBatchSize, commitPolicy.commitTimeout)
   }
 }

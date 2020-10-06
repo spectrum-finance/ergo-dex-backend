@@ -7,7 +7,7 @@ import org.ergoplatform.dex.TopicId
 
 trait Producer[F[_], A] {
 
-  def produce: Pipe[F, A, Unit]
+  def produce: F[A] => F[Unit]
 }
 
 object Producer {
@@ -15,7 +15,7 @@ object Producer {
   final private class Live[F[_]: ConcurrentEffect: ContextShift: Timer, A: KeyEncoder](
     settings: ProducerSettings[F, String, A],
     topicId: TopicId
-  ) extends Producer[F, A] {
+  ) extends Producer[Stream[F, *], A] {
 
     def produce: Pipe[F, A, Unit] =
       _.map { v =>

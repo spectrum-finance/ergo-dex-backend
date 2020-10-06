@@ -1,5 +1,3 @@
-import dependencies._
-
 lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
   scalaVersion := "2.12.12",
@@ -14,7 +12,7 @@ lazy val commonSettings = Seq(
     case other if other.contains("io.netty.versions") => MergeStrategy.first
     case other                                        => (assemblyMergeStrategy in assembly).value(other)
   },
-  libraryDependencies ++= CompilerPlugins
+  libraryDependencies ++= dependencies.Testing ++ dependencies.CompilerPlugins
 )
 
 lazy val commonScalacOptions = List(
@@ -45,7 +43,7 @@ lazy val dexBackend = project
 lazy val core = utils
   .mkModule("dex-core", "DexCore")
   .settings(commonSettings)
-  .settings(libraryDependencies ++= dependencies.core ++ dependencies.Testing)
+  .settings(libraryDependencies ++= dependencies.core)
 
 lazy val watcher = utils
   .mkModule("dex-watcher", "DexWatcher")

@@ -1,54 +1,48 @@
 package org.ergoplatform.dex.streaming
 
-import cats.effect.{ConcurrentEffect, ContextShift, Timer}
-import cats.syntax.functor._
-import cats.syntax.flatMap._
-import fs2.{Chunk, Stream}
+import cats.tagless.FunctorK
+import cats.{Functor, ~>}
+import fs2.Stream
 import fs2.kafka._
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.common.TopicPartition
 import org.ergoplatform.dex.TopicId
+import tofu.fs2.LiftStream
 
-import scala.concurrent.duration._
+trait Consumer[A, F[_], G[_]] {
 
-trait Consumer[F[_], A] {
+  type O
 
-  /** Consume single element from upstream.
-    */
-  def consume(f: Option[A] => Stream[F, Unit]): Stream[F, Unit]
-
-  /** Consume batch of elements received within a time window
-    * or limited by the number of the elements, whichever happens first.
-    */
-  def consumeBatch(n: Int, duration: FiniteDuration)(
-    f: Chunk[Option[A]] => Stream[F, Unit]
-  ): Stream[F, Unit]
+  def stream: F[Committable[A, O, G]]
 }
 
 object Consumer {
 
-  final private class Live[F[_]: ConcurrentEffect: ContextShift: Timer, A](
-    settings: ConsumerSettings[F, String, Option[A]],
-    topicId: TopicId
-  ) extends Consumer[F, A] {
+  implicit def functorK[I[_], A]: FunctorK[Consumer[A, *[_], I]] =
+    new FunctorK[Consumer[A, *[_], I]] {
 
-    def consume(f: Option[A] => Stream[F, Unit]): Stream[F, Unit] =
-      stream
-        .evalMap { rec =>
-          f(rec.record.value).compile.drain as rec.offset
+      def mapK[F[_], G[_]](af: Consumer[A, F, I])(fk: F ~> G): Consumer[A, G, I] =
+        new Consumer[A, G, I] {
+          type O = af.O
+          def stream: G[Committable[A, O, I]] = fk(af.stream)
         }
-        .through(commitBatchWithin(500, 5.seconds))
+    }
 
-    def consumeBatch(n: Int, duration: FiniteDuration)(
-      f: Chunk[Option[A]] => Stream[F, Unit]
-    ): Stream[F, Unit] =
-      stream.groupWithin(n, duration) >>= { xs =>
-        f(xs.map(_.record.value)) >> Stream.eval(
-          CommittableOffsetBatch.fromFoldable(xs.map(_.offset)).commit
-        )
-      }
+  def make[F[_]: LiftStream[*[_], G], G[_]: Functor, A](settings: ConsumerSettings[G, String, A], topicId: TopicId)(
+    implicit makeConsumer: MakeKafkaConsumer[A, G]
+  ): Consumer[A, F, G] =
+    functorK.mapK(new Live[A, G](settings, topicId))(LiftStream[F, G].liftF)
 
-    private def stream =
-      consumerStream(settings)
+  final class Live[A, F[_]: Functor](settings: ConsumerSettings[F, String, A], topicId: TopicId)(implicit
+    makeConsumer: MakeKafkaConsumer[A, F]
+  ) extends Consumer[A, Stream[F, *], F] {
+
+    type O = (TopicPartition, OffsetAndMetadata)
+
+    def stream: Stream[F, Committable[A, O, F]] =
+      makeConsumer(settings)
         .evalTap(_.subscribeTo(topicId.value))
         .flatMap(_.stream)
+        .map(KafkaCommittable(_))
   }
 }

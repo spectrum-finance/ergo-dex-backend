@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.streaming.models
+package org.ergoplatform.dex.protocol.models
 
 import io.circe.Json
 import io.circe.refined._

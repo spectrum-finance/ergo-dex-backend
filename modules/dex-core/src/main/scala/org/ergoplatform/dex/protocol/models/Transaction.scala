@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.streaming.models
+package org.ergoplatform.dex.protocol.models
 
 import org.ergoplatform.dex.TxId
 
