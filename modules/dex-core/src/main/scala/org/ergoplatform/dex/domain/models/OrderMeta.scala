@@ -1,11 +1,13 @@
 package org.ergoplatform.dex.domain.models
 
-import org.ergoplatform.P2PKAddress
 import org.ergoplatform.dex.BoxId
+import sigmastate.Values.ErgoTree
+import sigmastate.basics.DLogProtocol.ProveDlog
 
 final case class OrderMeta(
   boxId: BoxId,
   boxValue: Long,
-  ownerAddress: P2PKAddress,
+  script: ErgoTree,
+  pk: ProveDlog,
   ts: Long
 )

@@ -4,12 +4,16 @@ import eu.timepit.refined.refineV
 import eu.timepit.refined.string.HexStringSpec
 import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.P2PKAddress
+import org.ergoplatform.contracts.{DexBuyerContractParameters, DexSellerContractParameters}
 import org.ergoplatform.dex.domain.models.{Order, OrderMeta}
+import org.ergoplatform.dex.domain.syntax.ergo._
 import org.scalacheck.Gen
 import scorex.crypto.hash.Blake2b256
 import scorex.util.encode.Base16
-import sigmastate.basics.DLogProtocol.DLogProverInput
+import sigmastate.basics.DLogProtocol.{DLogProverInput, ProveDlog}
 import org.ergoplatform.dex.implicits._
+import sigmastate.Values.ErgoTree
+import org.ergoplatform.contracts.DexLimitOrderContracts._
 
 object generators {
 
@@ -35,17 +39,24 @@ object generators {
       dlog = DLogProverInput(BigIntegers.fromUnsignedByteArray(key)).publicImage
     } yield new P2PKAddress(dlog, dlog.pkBytes)
 
-  def orderMetaGen(boxValue: Long, address: P2PKAddress): Gen[OrderMeta] =
+  def proveDlogGen: Gen[ProveDlog] =
+    Gen.delay(DLogProverInput.random()).map(_.publicImage)
+
+  def orderMetaBuyerGen(boxValue: Long, quoteAssetId: AssetId, price: Long, feePerToken: Long): Gen[OrderMeta] =
     for {
       boxId <- boxIdGen
       ts    <- Gen.choose(1601447470169L, 1603447470169L)
-    } yield OrderMeta(boxId, boxValue, address, ts)
+      pk    <- proveDlogGen
+      script = buyerContractInstance(DexBuyerContractParameters(pk, quoteAssetId.toErgo, price, feePerToken))
+    } yield OrderMeta(boxId, boxValue, script.ergoTree, pk, ts)
 
-  def orderMetaGen(boxValue: Long): Gen[OrderMeta] =
-    p2PkAddressGen flatMap (orderMetaGen(boxValue, _))
-
-  def orderMetaGen: Gen[OrderMeta] =
-    Gen.posNum[Long] flatMap orderMetaGen
+  def orderMetaSellerGen(boxValue: Long, quoteAssetId: AssetId, price: Long, feePerToken: Long): Gen[OrderMeta] =
+    for {
+      boxId <- boxIdGen
+      ts    <- Gen.choose(1601447470169L, 1603447470169L)
+      pk    <- proveDlogGen
+      script = sellerContractInstance(DexSellerContractParameters(pk, quoteAssetId.toErgo, price, feePerToken))
+    } yield OrderMeta(boxId, boxValue, script.ergoTree, pk, ts)
 
   def bidGen(
     quoteAsset: AssetId,
@@ -54,7 +65,7 @@ object generators {
     price: Long,
     feePerToken: Long
   ): Gen[Order.Bid] =
-    orderMetaGen(price * amount + feePerToken * amount) flatMap
+    orderMetaBuyerGen(price * amount + feePerToken * amount, quoteAsset, price, feePerToken) flatMap
     (meta => Order.mkBid(quoteAsset, baseAsset, amount, price, feePerToken, meta))
 
   def askGen(
@@ -64,6 +75,6 @@ object generators {
     price: Long,
     feePerToken: Long
   ): Gen[Order.Ask] =
-    orderMetaGen(price * feePerToken) flatMap
+    orderMetaSellerGen(price * feePerToken, quoteAsset, price, feePerToken) flatMap
     (meta => Order.mkAsk(quoteAsset, baseAsset, amount, price, feePerToken, meta))
 }

@@ -6,7 +6,7 @@ import cats.syntax.either._
 import cats.syntax.functor._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{W, refineV}
+import eu.timepit.refined.{refineV, W}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
@@ -46,7 +46,9 @@ package object dex {
     implicit val decoder: Decoder[BoxId] = deriving
   }
 
-  @newtype case class AssetId(value: HexString)
+  @newtype case class AssetId(value: HexString) {
+    def unwrapped: String = value.unwrapped
+  }
 
   object AssetId {
     // circe instances
@@ -57,6 +59,9 @@ package object dex {
       s: String
     ): F[AssetId] =
       HexString.fromString(s).map(AssetId.apply)
+
+    def fromBytes(bytes: Array[Byte]): AssetId =
+      AssetId(HexString.fromBytes(bytes))
   }
 
   // Ergo Address
@@ -94,6 +99,11 @@ package object dex {
         .leftMap(RefinementFailed)
         .toRaise[F]
         .map(HexString.apply)
+
+    def fromBytes(bytes: Array[Byte]): HexString =
+      unsafeFromString(scorex.util.encode.Base16.encode(bytes))
+
+    def unsafeFromString(s: String): HexString = HexString(Refined.unsafeApply(s))
   }
 
   @newtype case class UrlString(value: UrlStringType) {

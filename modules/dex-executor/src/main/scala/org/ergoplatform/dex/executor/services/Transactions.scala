@@ -87,7 +87,7 @@ object Transactions {
       val fee       = amount * order.feePerToken
       val rem       = order.meta.boxValue - fee
       val reward    = amount * order.price
-      val pk        = order.meta.ownerAddress.script
+      val pk        = order.meta.pk
       val unfilled  = order.amount - canFill
       val boxValue  = math.max(rem, MinBoxValue)
       val feeAmount = if (boxValue == rem) fee else fee - MinBoxValue
@@ -104,7 +104,7 @@ object Transactions {
         val ret = new ErgoBoxCandidate(reward, pk, ctx.curHeight)
         val residualParams =
           DexSellerContractParameters(
-            order.meta.ownerAddress.pubkey,
+            order.meta.pk,
             order.quoteAsset.toErgo,
             order.price,
             order.feePerToken
@@ -126,7 +126,7 @@ object Transactions {
       val fee       = amount * order.feePerToken
       val rem       = order.meta.boxValue - fee
       val reward    = amount
-      val pk        = order.meta.ownerAddress.script
+      val pk        = order.meta.pk
       val unfilled  = order.amount - canFill
       val boxValue  = math.max(rem, MinBoxValue)
       val feeAmount = if (boxValue == rem) fee else fee - MinBoxValue
@@ -139,7 +139,7 @@ object Transactions {
         val ret = new ErgoBoxCandidate(rem, pk, ctx.curHeight, retTokens)
         val residualParams =
           DexBuyerContractParameters(
-            order.meta.ownerAddress.pubkey,
+            order.meta.pk,
             order.quoteAsset.toErgo,
             order.price,
             order.feePerToken

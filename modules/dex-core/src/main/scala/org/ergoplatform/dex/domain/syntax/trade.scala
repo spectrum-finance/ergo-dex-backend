@@ -16,7 +16,7 @@ object trade {
 
     def sellerParams(implicit ev: T1 =:= OrderType.Ask): DexSellerContractParameters =
       DexSellerContractParameters(
-        m.order.meta.ownerAddress.pubkey,
+        m.order.meta.pk,
         m.order.quoteAsset.toErgo,
         m.order.price,
         m.order.feePerToken
@@ -24,7 +24,7 @@ object trade {
 
     def buyerParams(implicit ev: T1 =:= OrderType.Bid): DexBuyerContractParameters =
       DexBuyerContractParameters(
-        m.order.meta.ownerAddress.pubkey,
+        m.order.meta.pk,
         m.order.quoteAsset.toErgo,
         m.order.price,
         m.order.feePerToken
