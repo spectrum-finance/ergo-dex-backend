@@ -1,6 +1,7 @@
 package org.ergoplatform.dex.matcher
 
 import cats.Eval
+import org.ergoplatform.dex.domain.models.Trade
 import org.scalatest.{Matchers, PropSpec}
 import org.ergoplatform.dex.generators._
 import org.scalacheck.Gen
@@ -22,8 +23,13 @@ class MatchingAlgoSpec extends PropSpec with Matchers with ScalaCheckDrivenPrope
     forAll(gen) { case (ask, bid) =>
       val matcher = MatchingAlgo.instance[Eval]
       val result  = matcher(List(ask), List(bid)).value
-      result.isEmpty shouldBe false
-      println(result)
+      result.foreach { case Trade(order, counterOrders) =>
+        counterOrders.toList.foreach { co =>
+          co.quoteAsset shouldBe order.quoteAsset
+          co.baseAsset shouldBe order.baseAsset
+        }
+        order.amount shouldBe counterOrders.map(_.amount).toList.sum
+      }
     }
   }
 }
