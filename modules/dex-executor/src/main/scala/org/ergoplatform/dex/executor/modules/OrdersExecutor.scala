@@ -30,7 +30,7 @@ object OrdersExecutor {
     C[_]: Foldable
   ](implicit
     consumer: Consumer[String, AnyTrade, F, G],
-    txs: ExecutionService[G],
+    executor: ExecutionService[G],
     logs: Logs[I, G]): I[OrdersExecutor[F]] =
     logs.forService[OrdersExecutor[F]] map { implicit l =>
       (context[F] map (policy => new Live[F, G, C](policy): OrdersExecutor[F])).embed
@@ -42,14 +42,14 @@ object OrdersExecutor {
     C[_]: Foldable
   ](commitPolicy: CommitPolicy)(implicit
     consumer: Consumer[String, AnyTrade, F, G],
-    txs: ExecutionService[G]
+    executor: ExecutionService[G]
   ) extends OrdersExecutor[F] {
 
     def run: F[Unit] =
       consumer.stream
         .evalTap { rec =>
           val trade = rec.message
-          txs.execute(trade)
+          executor.execute(trade)
         }
         .commitBatchWithin[C](commitPolicy.maxBatchSize, commitPolicy.commitTimeout)
   }
