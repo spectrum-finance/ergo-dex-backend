@@ -62,8 +62,7 @@ object Matcher {
         .groupWithin(config.batchSize, config.interval)
         .flatTap { batch =>
           val pairs = batch.toList.map(_.message).groupBy(_.pairId).toList
-          emits(pairs.map { case (pairId, orders) => eval[F](orderBook.process(pairId)(orders)) }).parFlattenUnbounded
-            .flatMap(emits(_))
+          emits(pairs.map { case (pairId, orders) => evals[F](orderBook.process(pairId)(orders)) }).parFlattenUnbounded
             .thrush(streaming.producer.produce)
         }
         .flatMap(emits(_))
