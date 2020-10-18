@@ -30,6 +30,9 @@ package object dex {
 
     type UrlStringType = String Refined Url
   }
+
+  @newtype case class OrderId(value: String)
+
   @newtype case class TxId(value: String)
 
   object TxId {

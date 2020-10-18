@@ -36,7 +36,7 @@ object MatchingAlgo {
                 case Some(anyTrade) =>
                   matchLoop(
                     asks.tail,
-                    bids.dropWhile(anyTrade.counterOrders.toList.contains), // todo: make sure orders compared correctly
+                    bids.dropWhile(anyTrade.counterOrders.toList.contains),
                     anyTrade +: trades
                   )
                 case None =>

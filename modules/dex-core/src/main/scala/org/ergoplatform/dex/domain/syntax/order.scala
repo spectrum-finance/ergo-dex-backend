@@ -3,11 +3,14 @@ package org.ergoplatform.dex.domain.syntax
 import cats.instances.tuple._
 import cats.syntax.bifunctor._
 import cats.syntax.list._
-import org.ergoplatform.dex.PairId
+import io.estatico.newtype.ops._
+import org.ergoplatform.dex.{constants, OrderId, PairId}
 import org.ergoplatform.dex.domain.OrderComparator
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
-import org.ergoplatform.dex.domain.models.Order.{AnyOrder, Bid, Ask}
-import org.ergoplatform.dex.domain.models.{Trade, Order, OrderType}
+import org.ergoplatform.dex.domain.models.Order.{AnyOrder, Ask, Bid}
+import org.ergoplatform.dex.domain.models.{Order, OrderType, Trade}
+import scorex.util.encode.Base16
+import scorex.crypto.hash.Blake2b256
 
 import scala.annotation.tailrec
 
@@ -15,8 +18,8 @@ object order {
 
   implicit final class OrderOps[T <: OrderType](private val order: Order[T]) extends AnyVal {
 
-    def satisfies[T1 <: OrderType](thatOrder: Order[T1])(
-      implicit cmp: OrderComparator[T, T1]
+    def satisfies[T1 <: OrderType](thatOrder: Order[T1])(implicit
+      cmp: OrderComparator[T, T1]
     ): Boolean = cmp.compare(order, thatOrder) >= 0
 
     def fillWith[T1 <: OrderType](
@@ -31,11 +34,14 @@ object order {
       fill(counterOrders, Nil, order.amount).toNel.map(Trade(order, _))
     }
 
-    def id: Long = ???
+    def id: OrderId = order.meta.boxId.value.coerce[OrderId]
 
     def fee: Long = order.feePerToken * order.amount
 
-    def pairId: PairId = ???
+    def pairId: PairId =
+      Base16
+        .encode(Blake2b256.hash((order.baseAsset.unwrapped + order.quoteAsset.unwrapped).getBytes(constants.Charset)))
+        .coerce[PairId]
   }
 
   implicit final class OrdersOps(private val xs: List[AnyOrder]) extends AnyVal {
