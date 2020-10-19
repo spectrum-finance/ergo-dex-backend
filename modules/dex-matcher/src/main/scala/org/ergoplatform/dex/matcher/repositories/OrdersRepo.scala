@@ -1,8 +1,8 @@
 package org.ergoplatform.dex.matcher.repositories
 
 import derevo.derive
-import org.ergoplatform.dex.PairId
-import org.ergoplatform.dex.domain.models.Order.{AnyOrder, Bid, Ask}
+import org.ergoplatform.dex.{OrderId, PairId}
+import org.ergoplatform.dex.domain.models.Order.{AnyOrder, Ask, Bid}
 import tofu.higherKind.derived.representableK
 
 @derive(representableK)
@@ -14,5 +14,5 @@ trait OrdersRepo[D[_]] {
 
   def insert(orders: List[AnyOrder]): D[Unit]
 
-  def remove(ids: List[Long]): D[Unit]
+  def remove(ids: List[OrderId]): D[Unit]
 }
