@@ -133,14 +133,6 @@ package object dex {
         .map(UrlString.apply)
   }
 
-  @newtype case class TopicId(value: String)
-
-  object TopicId {
-    // circe instances
-    implicit val encoder: Encoder[TopicId] = deriving
-    implicit val decoder: Decoder[TopicId] = deriving
-  }
-
   @newtype case class PairId(value: String)
 
   object PairId {

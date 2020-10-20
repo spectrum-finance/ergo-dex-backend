@@ -1,11 +1,11 @@
 package org.ergoplatform.dex.configs
 
-import org.ergoplatform.dex.UrlString
+import cats.data.NonEmptyList
+import org.ergoplatform.dex.streaming.{ClientId, GroupId, TopicId}
 
 final case class ConsumerConfig(
-  host: UrlString,
-  port: Int,
-  groupId: String,
-  clientId: String,
-  topicId: String
+  bootstrapServers: NonEmptyList[String],
+  groupId: GroupId,
+  clientId: ClientId,
+  topicId: TopicId
 )

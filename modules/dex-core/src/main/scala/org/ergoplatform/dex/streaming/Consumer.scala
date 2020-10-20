@@ -1,13 +1,17 @@
 package org.ergoplatform.dex.streaming
 
 import cats.tagless.FunctorK
-import cats.{Functor, ~>}
+import cats.{~>, FlatMap, Functor, Monad}
 import fs2.Stream
 import fs2.kafka._
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.ergoplatform.dex.TopicId
+import org.ergoplatform.dex.configs.ConsumerConfig
+import tofu.WithContext
 import tofu.fs2.LiftStream
+import tofu.higherKind.Embed
+import tofu.syntax.context._
+import tofu.syntax.monadic._
 
 trait Consumer[K, V, F[_], G[_]] {
 
@@ -17,6 +21,25 @@ trait Consumer[K, V, F[_], G[_]] {
 }
 
 object Consumer {
+
+  type Aux[K, V, O1, F[_], G[_]] = Consumer[K, V, F, G] { type O = O1 }
+
+  final private class ConsumerContainer[K, V, O1, F[_]: FlatMap, G[_]](
+    ffa: F[Consumer.Aux[K, V, O1, F, G]]
+  ) extends Consumer[K, V, F, G] {
+
+    type O = O1
+
+    def stream: F[Committable[K, V, O, G]] =
+      ffa.flatMap(_.stream)
+  }
+
+  implicit def embed[I[_], K, V, O]: Embed[Consumer.Aux[K, V, O, *[_], I]] =
+    new Embed[Consumer.Aux[K, V, O, *[_], I]] {
+
+      def embed[F[_]: FlatMap](ft: F[Consumer.Aux[K, V, O, F, I]]): Consumer.Aux[K, V, O, F, I] =
+        new ConsumerContainer[K, V, O, F, I](ft)
+    }
 
   implicit def functorK[I[_], K, V]: FunctorK[Consumer[K, V, *[_], I]] =
     new FunctorK[Consumer[K, V, *[_], I]] {
@@ -28,20 +51,26 @@ object Consumer {
         }
     }
 
-  def make[F[_]: LiftStream[*[_], G], G[_]: Functor, K, V](settings: ConsumerSettings[G, K, V], topicId: TopicId)(
-    implicit makeConsumer: MakeKafkaConsumer[K, V, G]
-  ): Consumer[K, V, F, G] =
-    functorK.mapK(new Live[K, V, G](settings, topicId))(LiftStream[F, G].liftF)
+  def make[
+    F[_]: Monad: LiftStream[*[_], G]: WithContext[*[_], ConsumerConfig],
+    G[_]: Functor,
+    K,
+    V
+  ](implicit makeConsumer: MakeKafkaConsumer[K, V, G]): Consumer[K, V, F, G] =
+    embed.embed(
+      (context map (conf => functorK.mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF)))
+        .asInstanceOf[F[Consumer.Aux[K, V, Live[K, V, F]#O, F, G]]]
+    )
 
-  final class Live[K, V, F[_]: Functor](settings: ConsumerSettings[F, K, V], topicId: TopicId)(implicit
+  final class Live[K, V, F[_]: Functor](config: ConsumerConfig)(implicit
     makeConsumer: MakeKafkaConsumer[K, V, F]
   ) extends Consumer[K, V, Stream[F, *], F] {
 
     type O = (TopicPartition, OffsetAndMetadata)
 
     def stream: Stream[F, Committable[K, V, O, F]] =
-      makeConsumer(settings)
-        .evalTap(_.subscribeTo(topicId.value))
+      makeConsumer(config)
+        .evalTap(_.subscribeTo(config.topicId.value))
         .flatMap(_.stream)
         .map(KafkaCommittable(_))
   }
