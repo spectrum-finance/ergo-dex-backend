@@ -38,19 +38,19 @@ lazy val dexBackend = project
   .withId("ergo-dex-backend")
   .settings(commonSettings)
   .settings(moduleName := "ergo-dex-backend", name := "ErgoDexBackend")
-  .aggregate(core, watcher, matcher, executor)
+  .aggregate(core, tracker, matcher, executor)
 
 lazy val core = utils
   .mkModule("dex-core", "DexCore")
   .settings(commonSettings)
   .settings(libraryDependencies ++= dependencies.core)
 
-lazy val watcher = utils
-  .mkModule("dex-watcher", "DexWatcher")
+lazy val tracker = utils
+  .mkModule("dex-tracker", "DexTracker")
   .settings(commonSettings)
   .settings(
     mainClass in assembly := Some(
-      "org.ergoplatform.explorer.http.api.Application"
+      "org.ergoplatform.explorer.http.api.App"
     ),
     libraryDependencies ++= dependencies.watcher
   )
@@ -61,7 +61,7 @@ lazy val matcher = utils
   .settings(commonSettings)
   .settings(
     mainClass in assembly := Some(
-      "org.ergoplatform.explorer.grabber.Application"
+      "org.ergoplatform.dex.matcher.App"
     ),
     libraryDependencies ++= dependencies.matcher
   )
@@ -72,7 +72,7 @@ lazy val executor = utils
   .settings(commonSettings)
   .settings(
     mainClass in assembly := Some(
-      "org.ergoplatform.explorer.grabber.Application"
+      "org.ergoplatform.dex.tracker.App"
     ),
     libraryDependencies ++= dependencies.executor
   )

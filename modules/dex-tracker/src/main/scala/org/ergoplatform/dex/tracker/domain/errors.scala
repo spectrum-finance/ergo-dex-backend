@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.watcher.domain
+package org.ergoplatform.dex.tracker.domain
 
 import org.ergoplatform.dex.AssetId
 import sigmastate.Values.ErgoTree

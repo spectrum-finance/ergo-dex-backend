@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.watcher
+package org.ergoplatform.dex.tracker
 
 import java.util
 
@@ -11,7 +11,7 @@ import org.ergoplatform.dex.domain.models.Order._
 import org.ergoplatform.dex.domain.models.OrderMeta
 import org.ergoplatform.dex.protocol.ErgoTreeParser
 import org.ergoplatform.dex.protocol.models.{Asset, Output}
-import org.ergoplatform.dex.watcher.domain.errors.{AssetNotProvided, BadParams, FeeNotSatisfied, OrderError}
+import org.ergoplatform.dex.tracker.domain.errors.{AssetNotProvided, BadParams, FeeNotSatisfied, OrderError}
 import org.ergoplatform.dex.{constants, AssetId}
 import sigmastate.Values.ErgoTree
 import tofu.{ApplicativeThrow, Raise}
@@ -42,13 +42,13 @@ object Orders {
         else none[AnyOrder].pure
       }
 
-    private[watcher] def isSellerScript(tree: ErgoTree): Boolean =
+    private[tracker] def isSellerScript(tree: ErgoTree): Boolean =
       util.Arrays.equals(tree.template, sellerContractErgoTreeTemplate)
 
-    private[watcher] def isBuyerScript(tree: ErgoTree): Boolean =
+    private[tracker] def isBuyerScript(tree: ErgoTree): Boolean =
       util.Arrays.equals(tree.template, buyerContractErgoTreeTemplate)
 
-    private[watcher] def makeAsk(tree: ErgoTree, output: Output): F[Ask] =
+    private[tracker] def makeAsk(tree: ErgoTree, output: Output): F[Ask] =
       for {
         params <- parseSellerContractParameters(tree).orRaise(BadParams(tree))
         baseAsset  = constants.ErgoAssetId
@@ -64,7 +64,7 @@ object Orders {
         meta = OrderMeta(output.boxId, output.value, tree, params.sellerPk, ts)
       } yield mkAsk(quoteAsset, baseAsset, amount, price, feePerToken, meta)
 
-    private[watcher] def makeBid(tree: ErgoTree, output: Output): F[Bid] =
+    private[tracker] def makeBid(tree: ErgoTree, output: Output): F[Bid] =
       for {
         params <- parseBuyerContractParameters(tree).orRaise(BadParams(tree))
         baseAsset   = constants.ErgoAssetId

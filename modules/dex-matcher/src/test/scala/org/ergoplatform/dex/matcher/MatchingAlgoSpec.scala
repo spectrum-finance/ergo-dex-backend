@@ -15,8 +15,8 @@ class MatchingAlgoSpec extends PropSpec with Matchers with ScalaCheckDrivenPrope
         assetX      <- assetIdGen
         assetY      <- assetIdGen
         amount      <- Gen.posNum[Long]
-        price       <- Gen.posNum[Long]
-        feePerToken <- Gen.chooseNum(100L, 1000L)
+        price       <- priceGen
+        feePerToken <- feeGen
         ask         <- askGen(assetX, assetY, amount, price, feePerToken)
         bid         <- bidGen(assetX, assetY, amount, price, feePerToken)
       } yield (ask, bid)
@@ -40,8 +40,8 @@ class MatchingAlgoSpec extends PropSpec with Matchers with ScalaCheckDrivenPrope
         assetY      <- assetIdGen
         askAmount   <- Gen.chooseNum(1000L, 10000000L)
         bidAmount   <- Gen.chooseNum(100L, 900L)
-        price       <- Gen.chooseNum(2L, 1000L)
-        feePerToken <- Gen.chooseNum(100L, 1000L)
+        price       <- priceGen
+        feePerToken <- feeGen
         ask         <- askGen(assetX, assetY, askAmount, price, feePerToken)
         bid0        <- bidGen(assetX, assetY, bidAmount, price, feePerToken)
         bid1        <- bidGen(assetX, assetY, askAmount - bidAmount, price, feePerToken)

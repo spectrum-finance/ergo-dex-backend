@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.watcher.streaming
+package org.ergoplatform.dex.tracker.streaming
 
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
 import org.ergoplatform.dex.protocol.models.Transaction

@@ -12,7 +12,6 @@ import scorex.crypto.hash.Blake2b256
 import scorex.util.encode.Base16
 import sigmastate.basics.DLogProtocol.{DLogProverInput, ProveDlog}
 import org.ergoplatform.dex.implicits._
-import sigmastate.Values.ErgoTree
 import org.ergoplatform.contracts.DexLimitOrderContracts._
 
 object generators {
@@ -77,4 +76,10 @@ object generators {
   ): Gen[Order.Ask] =
     orderMetaSellerGen(price * feePerToken, quoteAsset, price, feePerToken) flatMap
     (meta => Order.mkAsk(quoteAsset, baseAsset, amount, price, feePerToken, meta))
+
+  def priceGen: Gen[Long] =
+    Gen.chooseNum(2L, 100000000L)
+
+  def feeGen: Gen[Long] =
+    Gen.chooseNum(1000L, 1000000000L)
 }

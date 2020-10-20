@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.watcher.modules
+package org.ergoplatform.dex.tracker.modules
 
 import cats.{Foldable, Functor, FunctorFilter, Monad}
 import derevo.derive
@@ -7,8 +7,8 @@ import org.ergoplatform.dex.context.HasCommitPolicy
 import org.ergoplatform.dex.protocol.models.Output
 import org.ergoplatform.dex.streaming.CommitPolicy
 import org.ergoplatform.dex.streaming.syntax._
-import org.ergoplatform.dex.watcher.Orders
-import org.ergoplatform.dex.watcher.streaming.StreamingBundle
+import org.ergoplatform.dex.tracker.Orders
+import org.ergoplatform.dex.tracker.streaming.StreamingBundle
 import tofu.higherKind.derived.representableK
 import tofu.logging._
 import tofu.streams.{Evals, Temporal}
@@ -20,12 +20,12 @@ import tofu.syntax.streams.evals._
 import tofu.syntax.streams.filter._
 
 @derive(representableK)
-trait OrdersWatcher[F[_]] {
+trait OrdersTracker[F[_]] {
 
   def run: F[Unit]
 }
 
-object OrdersWatcher {
+object OrdersTracker {
 
   def make[
     I[_]: Functor,
@@ -36,9 +36,9 @@ object OrdersWatcher {
     streaming: StreamingBundle[F, G],
     logs: Logs[I, G],
     orders: Orders[G]
-  ): I[OrdersWatcher[F]] =
-    logs.forService[OrdersWatcher[F]].map { implicit l =>
-      (context[F] map (policy => new Live[F, G, C](policy): OrdersWatcher[F])).embed
+  ): I[OrdersTracker[F]] =
+    logs.forService[OrdersTracker[F]].map { implicit l =>
+      (context[F] map (policy => new Live[F, G, C](policy): OrdersTracker[F])).embed
     }
 
   final private class Live[
@@ -46,7 +46,7 @@ object OrdersWatcher {
     G[_]: Monad: Logging,
     C[_]: Foldable
   ](commitPolicy: CommitPolicy)(implicit streaming: StreamingBundle[F, G], orders: Orders[G])
-    extends OrdersWatcher[F] {
+    extends OrdersTracker[F] {
 
     def run: F[Unit] =
       streaming.consumer.stream
