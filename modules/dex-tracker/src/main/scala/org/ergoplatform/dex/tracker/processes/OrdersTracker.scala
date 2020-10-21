@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.tracker.modules
+package org.ergoplatform.dex.tracker.processes
 
 import cats.{Foldable, Functor, FunctorFilter, Monad}
 import derevo.derive
@@ -7,7 +7,7 @@ import org.ergoplatform.dex.context.HasCommitPolicy
 import org.ergoplatform.dex.protocol.models.Output
 import org.ergoplatform.dex.streaming.CommitPolicy
 import org.ergoplatform.dex.streaming.syntax._
-import org.ergoplatform.dex.tracker.Orders
+import org.ergoplatform.dex.tracker.modules.Orders
 import org.ergoplatform.dex.tracker.streaming.StreamingBundle
 import tofu.higherKind.derived.representableK
 import tofu.logging._

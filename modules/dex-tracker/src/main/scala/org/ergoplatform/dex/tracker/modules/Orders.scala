@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.tracker
+package org.ergoplatform.dex.tracker.modules
 
 import java.util
 
@@ -12,12 +12,12 @@ import org.ergoplatform.dex.domain.models.OrderMeta
 import org.ergoplatform.dex.protocol.ErgoTreeParser
 import org.ergoplatform.dex.protocol.models.{Asset, Output}
 import org.ergoplatform.dex.tracker.domain.errors.{AssetNotProvided, BadParams, FeeNotSatisfied, OrderError}
-import org.ergoplatform.dex.{constants, AssetId}
+import org.ergoplatform.dex.{AssetId, constants}
 import sigmastate.Values.ErgoTree
-import tofu.{ApplicativeThrow, Raise}
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
 import tofu.syntax.time._
+import tofu.{ApplicativeThrow, Raise}
 
 trait Orders[F[_]] {
 

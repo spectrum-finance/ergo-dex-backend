@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.matcher.modules
+package org.ergoplatform.dex.matcher.processes
 
 import cats.instances.list._
 import cats.syntax.foldable._

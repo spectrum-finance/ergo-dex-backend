@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.matcher
+package org.ergoplatform.dex.matcher.modules
 
 import cats.Applicative
 import cats.syntax.applicative._

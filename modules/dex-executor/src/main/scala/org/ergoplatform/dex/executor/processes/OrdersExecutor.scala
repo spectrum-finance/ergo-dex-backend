@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.executor.modules
+package org.ergoplatform.dex.executor.processes
 
 import cats.{Foldable, Functor, Monad}
 import derevo.derive
