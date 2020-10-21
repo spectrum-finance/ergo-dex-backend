@@ -4,6 +4,7 @@ import cats.Eval
 import org.ergoplatform.dex.domain.models.Trade
 import org.scalatest.{Matchers, PropSpec}
 import org.ergoplatform.dex.generators._
+import org.ergoplatform.dex.matcher.modules.MatchingAlgo
 import org.scalacheck.Gen
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
