@@ -136,9 +136,9 @@ object dependencies {
     Kafka ++
     Enums
 
-  lazy val watcher: List[ModuleID] = Monix
+  lazy val tracker: List[ModuleID] = Monix
 
-  lazy val matcher: List[ModuleID] = Monix
+  lazy val matcher: List[ModuleID] = Monix ++ Db
 
   lazy val executor: List[ModuleID] = Monix
 }

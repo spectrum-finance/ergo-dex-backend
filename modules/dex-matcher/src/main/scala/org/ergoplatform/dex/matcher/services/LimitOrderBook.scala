@@ -1,6 +1,9 @@
 package org.ergoplatform.dex.matcher.services
 
 import cats.{FlatMap, Functor, Monad}
+import cats.syntax.list._
+import cats.syntax.traverse._
+import cats.instances.option._
 import mouse.anyf._
 import org.ergoplatform.dex.PairId
 import org.ergoplatform.dex.domain.models.Order._
@@ -26,13 +29,12 @@ final class LimitOrderBook[F[_]: FlatMap: Logging, D[_]: Monad](implicit
     val (asks, bids)                = orders.partitioned
     val List(sellDemand, buyDemand) = List(asks, bids).map(_.map(_.amount).sum)
     info"Processing [${orders.size}] new orders of pair [$pairId]" >>
-    (repo.getSellWall(pairId, buyDemand), repo.getBuyWall(pairId, sellDemand))
-      .tupled
+    (repo.getSellWall(pairId, buyDemand), repo.getBuyWall(pairId, sellDemand)).tupled
       .flatMap { case (oldAsks, oldBids) => matcher(oldAsks ++ asks, oldBids ++ bids) }
       .flatTap { trades =>
         val matched   = trades.flatMap(_.orders.map(_.id).toList)
         val unmatched = orders.filterNot(o => matched.contains(o.id))
-        repo.remove(matched) >> repo.insert(unmatched)
+        matched.toNel.fold(().pure[D])(repo.remove) >> unmatched.toNel.fold(().pure[D])(repo.insert)
       }
       .thrushK(txr.trans)
   }

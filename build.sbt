@@ -50,9 +50,9 @@ lazy val tracker = utils
   .settings(commonSettings)
   .settings(
     mainClass in assembly := Some(
-      "org.ergoplatform.explorer.http.api.App"
+      "org.ergoplatform.dex.tracker.App"
     ),
-    libraryDependencies ++= dependencies.watcher
+    libraryDependencies ++= dependencies.tracker
   )
   .dependsOn(core)
 

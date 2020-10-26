@@ -9,10 +9,10 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.dex.domain.models.Order._
 import org.ergoplatform.dex.domain.models.OrderMeta
-import org.ergoplatform.dex.protocol.ErgoTreeParser
+import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.models.{Asset, Output}
 import org.ergoplatform.dex.tracker.domain.errors.{AssetNotProvided, BadParams, FeeNotSatisfied, OrderError}
-import org.ergoplatform.dex.{AssetId, constants}
+import org.ergoplatform.dex.{constants, AssetId}
 import sigmastate.Values.ErgoTree
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
@@ -31,12 +31,12 @@ object Orders {
   ): Orders[F] = new Live[F]
 
   final private class Live[F[_]: Monad: Clock: Raise[*[_], OrderError]](implicit
-    ergoTreeParser: ErgoTreeParser[F],
+    treeSer: ErgoTreeSerializer[F],
     addressEncoder: ErgoAddressEncoder
   ) extends Orders[F] {
 
     def makeOrder(output: Output): F[Option[AnyOrder]] =
-      ergoTreeParser(output.ergoTree).flatMap { tree =>
+      treeSer.deserialize(output.ergoTree).flatMap { tree =>
         if (isSellerScript(tree)) makeAsk(tree, output).map(_.some)
         else if (isBuyerScript(tree)) makeBid(tree, output).map(_.some)
         else none[AnyOrder].pure

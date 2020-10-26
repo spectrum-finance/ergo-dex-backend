@@ -1,12 +1,15 @@
 package org.ergoplatform
 
-import cats.Applicative
+import cats.{Applicative, Show}
 import cats.instances.either._
 import cats.syntax.either._
 import cats.syntax.functor._
+import cats.instances.string._
+import derevo.derive
+import doobie._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{refineV, W}
+import eu.timepit.refined.{W, refineV}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
@@ -16,6 +19,7 @@ import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import tofu.Raise
 import tofu.logging.Loggable
+import tofu.logging.derivation.loggable
 import tofu.syntax.raise._
 
 package object dex {
@@ -33,6 +37,11 @@ package object dex {
 
   @newtype case class OrderId(value: String)
 
+  object OrderId {
+    implicit val get: Get[OrderId] = deriving
+    implicit val put: Put[OrderId] = deriving
+  }
+
   @newtype case class TxId(value: String)
 
   object TxId {
@@ -47,6 +56,9 @@ package object dex {
     // circe instances
     implicit val encoder: Encoder[BoxId] = deriving
     implicit val decoder: Decoder[BoxId] = deriving
+
+    implicit val get: Get[BoxId] = deriving
+    implicit val put: Put[BoxId] = deriving
   }
 
   @newtype case class AssetId(value: HexString) {
@@ -57,6 +69,14 @@ package object dex {
     // circe instances
     implicit val encoder: Encoder[AssetId] = deriving
     implicit val decoder: Decoder[AssetId] = deriving
+
+    implicit val get: Get[AssetId] =
+      Get[HexString].map(AssetId(_))
+
+    implicit val put: Put[AssetId] =
+      Put[String].contramap[AssetId](_.unwrapped)
+
+    implicit val loggable: Loggable[AssetId] = Loggable.stringValue.contramap(_.unwrapped)
 
     def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
@@ -94,6 +114,16 @@ package object dex {
     // circe instances
     implicit val encoder: Encoder[HexString] = deriving
     implicit val decoder: Decoder[HexString] = deriving
+
+    implicit val show: Show[HexString] = _.unwrapped
+
+    implicit val get: Get[HexString] =
+      Get[String]
+        .temap(s => refineV[HexStringSpec](s))
+        .map(rs => HexString(rs))
+
+    implicit val put: Put[HexString] =
+      Put[String].contramap[HexString](_.unwrapped)
 
     def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
@@ -133,13 +163,6 @@ package object dex {
         .map(UrlString.apply)
   }
 
-  @newtype case class PairId(value: String)
-
-  object PairId {
-    // circe instances
-    implicit val encoder: Encoder[PairId] = deriving
-    implicit val decoder: Decoder[PairId] = deriving
-
-    implicit val loggable: Loggable[PairId] = deriving
-  }
+  @derive(loggable)
+  final case class PairId(quoteId: AssetId, baseId: AssetId)
 }

@@ -1,6 +1,8 @@
 package org.ergoplatform.dex.domain.models
 
+import doobie.util.Write
 import org.ergoplatform.dex.AssetId
+import org.ergoplatform.dex.protocol.instances._
 
 /** Global market order.
   * @param `type` - type of the order (sell or buy)
@@ -26,6 +28,8 @@ object Order {
   type Ask      = Order[OrderType.Ask.type]
   type Bid      = Order[OrderType.Bid.type]
   type AnyOrder = Order[_ <: OrderType]
+
+  implicit def write: Write[AnyOrder] = Write[Ask].asInstanceOf[Write[AnyOrder]]
 
   def mkBid(
     quoteAsset: AssetId,

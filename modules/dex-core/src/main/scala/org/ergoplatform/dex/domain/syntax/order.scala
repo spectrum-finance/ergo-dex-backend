@@ -4,13 +4,11 @@ import cats.instances.tuple._
 import cats.syntax.bifunctor._
 import cats.syntax.list._
 import io.estatico.newtype.ops._
-import org.ergoplatform.dex.{constants, OrderId, PairId}
 import org.ergoplatform.dex.domain.OrderComparator
-import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.domain.models.Order.{AnyOrder, Ask, Bid}
+import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.domain.models.{Order, OrderType, Trade}
-import scorex.util.encode.Base16
-import scorex.crypto.hash.Blake2b256
+import org.ergoplatform.dex.{OrderId, PairId}
 
 import scala.annotation.tailrec
 
@@ -38,10 +36,7 @@ object order {
 
     def fee: Long = order.feePerToken * order.amount
 
-    def pairId: PairId =
-      Base16
-        .encode(Blake2b256.hash((order.baseAsset.unwrapped + order.quoteAsset.unwrapped).getBytes(constants.Charset)))
-        .coerce[PairId]
+    def pairId: PairId = PairId(order.quoteAsset, order.baseAsset)
   }
 
   implicit final class OrdersOps(private val xs: List[AnyOrder]) extends AnyVal {
