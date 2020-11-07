@@ -9,7 +9,7 @@ import derevo.derive
 import doobie._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{W, refineV}
+import eu.timepit.refined.{refineV, W}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
@@ -104,6 +104,9 @@ package object dex {
         .leftMap(RefinementFailed)
         .toRaise[F]
         .map(Address.apply)
+
+    def fromStringUnsafe(s: String): Address =
+      Address(refineV[Base58Spec].unsafeFrom(s))
   }
 
   @newtype case class HexString(value: HexStringType) {

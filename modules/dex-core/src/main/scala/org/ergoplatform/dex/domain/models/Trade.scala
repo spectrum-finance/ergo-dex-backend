@@ -13,5 +13,6 @@ object Trade {
 
   type AnyTrade = Trade[_ <: OrderType, _ <: OrderType]
 
-  implicit def loggable[T0 <: OrderType, T1 <: OrderType]: Loggable[Trade[T0, T1]] = ???
+  implicit def loggable[T0 <: OrderType, T1 <: OrderType]: Loggable[Trade[T0, T1]] =
+    Loggable.stringValue.contramap[Trade[T0, T1]](_.toString)
 }

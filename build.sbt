@@ -54,7 +54,7 @@ lazy val tracker = utils
     ),
     libraryDependencies ++= dependencies.tracker
   )
-  .dependsOn(core)
+  .dependsOn(core % allConfigDependency)
 
 lazy val matcher = utils
   .mkModule("dex-matcher", "DexMatcher")
@@ -65,15 +65,15 @@ lazy val matcher = utils
     ),
     libraryDependencies ++= dependencies.matcher
   )
-  .dependsOn(core)
+  .dependsOn(core % allConfigDependency)
 
 lazy val executor = utils
   .mkModule("dex-executor", "DexExecutor")
   .settings(commonSettings)
   .settings(
     mainClass in assembly := Some(
-      "org.ergoplatform.dex.tracker.App"
+      "org.ergoplatform.dex.executor.App"
     ),
     libraryDependencies ++= dependencies.executor
   )
-  .dependsOn(core)
+  .dependsOn(core % allConfigDependency)

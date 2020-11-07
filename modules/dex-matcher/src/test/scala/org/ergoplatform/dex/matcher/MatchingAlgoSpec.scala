@@ -5,10 +5,12 @@ import org.ergoplatform.dex.domain.models.Trade
 import org.ergoplatform.dex.generators._
 import org.ergoplatform.dex.matcher.modules.MatchingAlgo
 import org.scalacheck.Gen
-import org.scalatest.{Matchers, PropSpec}
-import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatest._
+import matchers._
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-class MatchingAlgoSpec extends PropSpec with Matchers with ScalaCheckDrivenPropertyChecks {
+class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks {
 
   property("1 to 1 match, full") {
     val gen =

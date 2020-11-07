@@ -85,7 +85,7 @@ object dependencies {
   val Testing: List[ModuleID] = List(
     "org.tpolecat"               %% "doobie-scalatest"          % DoobieVersion                 % Test,
     "org.scalatest"              %% "scalatest"                 % ScalaTestVersion              % Test,
-    "org.scalacheck"             %% "scalacheck"                % ScalaCheckVersion             % Test,
+    "org.scalatestplus"          %% "scalacheck-1-14"           % ScalaTestPlusVersion          % Test,
     "org.testcontainers"          % "postgresql"                % TestContainersPostgresVersion % Test,
     "com.dimafeng"               %% "testcontainers-scala"      % TestContainersScalaVersion    % Test,
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.14" % ScalaCheckShapelessVersion    % Test

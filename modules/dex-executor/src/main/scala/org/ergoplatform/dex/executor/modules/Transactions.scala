@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.executor.services
+package org.ergoplatform.dex.executor.modules
 
 import cats.data.NonEmptyList
 import cats.{Functor, Monad}
@@ -10,7 +10,7 @@ import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.domain.syntax.trade._
 import org.ergoplatform.dex.executor.config.ExchangeConfig
 import org.ergoplatform.dex.executor.context.TxContext
-import org.ergoplatform.{ErgoBoxCandidate, ErgoLikeTransaction, Input}
+import org.ergoplatform.{ErgoAddressEncoder, ErgoBoxCandidate, ErgoLikeTransaction, Input}
 import sigmastate.SType.AnyOps
 import sigmastate.Values._
 import sigmastate.eval._
@@ -27,9 +27,15 @@ trait Transactions[F[_]] {
 
 object Transactions {
 
+  implicit def instance[F[_]: Monad: HasContext[*[_], ExchangeConfig]](implicit
+    e: ErgoAddressEncoder
+  ): Transactions[F] =
+    new ErgoToTokenTransactions[F]
+
   final private class ErgoToTokenTransactions[
     F[_]: Monad: HasContext[*[_], ExchangeConfig]
-  ] extends Transactions[F] {
+  ](implicit e: ErgoAddressEncoder)
+    extends Transactions[F] {
 
     def toTransaction(trade: AnyTrade)(implicit ctx: TxContext): F[ErgoLikeTransaction] =
       outputs(trade).map(_.toList.toVector).map { out =>
@@ -40,14 +46,14 @@ object Transactions {
 
   private val MinBoxValue = 1000000L
 
-  private[services] def inputs(anyMatch: AnyTrade): NonEmptyList[Input] =
+  private[modules] def inputs(anyMatch: AnyTrade): NonEmptyList[Input] =
     anyMatch.orders.map { ord =>
       Input(ord.meta.boxId.toErgo, ProverResult.empty)
     }
 
-  private[services] def outputs[F[_]: Monad: HasContext[*[_], ExchangeConfig]](
+  private[modules] def outputs[F[_]: Monad: HasContext[*[_], ExchangeConfig]](
     trade: AnyTrade
-  )(implicit ctx: TxContext): F[NonEmptyList[ErgoBoxCandidate]] = {
+  )(implicit ctx: TxContext, e: ErgoAddressEncoder): F[NonEmptyList[ErgoBoxCandidate]] = {
     val toFill      = trade.order.amount
     val canBeFilled = trade.counterOrders.map(_.amount).toList.sum
     trade.refine match {
@@ -77,11 +83,11 @@ object Transactions {
     }
   }
 
-  private[services] def sellOut[F[_]: Functor: HasContext[*[_], ExchangeConfig]](
+  private[modules] def sellOut[F[_]: Functor: HasContext[*[_], ExchangeConfig]](
     order: Ask,
     canFill: Long,
     totalCost: Long
-  )(implicit ctx: TxContext): F[NonEmptyList[ErgoBoxCandidate]] =
+  )(implicit ctx: TxContext, e: ErgoAddressEncoder): F[NonEmptyList[ErgoBoxCandidate]] =
     context map { conf =>
       val amount    = math.min(order.amount, canFill)
       val fee       = amount * order.feePerToken
@@ -118,8 +124,9 @@ object Transactions {
       }
     }
 
-  private[services] def buyOut[F[_]: Functor: HasContext[*[_], ExchangeConfig]](order: Bid, canFill: Long)(implicit
-    ctx: TxContext
+  private[modules] def buyOut[F[_]: Functor: HasContext[*[_], ExchangeConfig]](order: Bid, canFill: Long)(implicit
+    ctx: TxContext,
+    e: ErgoAddressEncoder
   ): F[NonEmptyList[ErgoBoxCandidate]] =
     context map { conf =>
       val amount    = math.min(order.amount, canFill)

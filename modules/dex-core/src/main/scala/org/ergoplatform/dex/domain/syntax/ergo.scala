@@ -1,16 +1,19 @@
 package org.ergoplatform.dex.domain.syntax
 
-import org.ergoplatform.ErgoBox
+import org.ergoplatform.{ErgoAddressEncoder, ErgoBox}
 import org.ergoplatform.dex.{Address, AssetId, BoxId}
+import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Digest32
+import scorex.util.encode.Base16
 import sigmastate.Values.ErgoTree
+import sigmastate.eval.Extensions._
 import special.collection.Coll
 
 object ergo {
 
   implicit final class BoxIdOps(private val id: BoxId) extends AnyVal {
-    def toErgo: ErgoBox.BoxId = ???
-    def toSigma: Coll[Byte]   = ???
+    def toErgo: ErgoBox.BoxId = ADKey @@ Base16.decode(id.value).get
+    def toSigma: Coll[Byte]   = toErgo.toColl
   }
 
   implicit final class AssetIdOps(private val id: AssetId) extends AnyVal {
@@ -18,6 +21,6 @@ object ergo {
   }
 
   implicit final class AddressOps(private val address: Address) extends AnyVal {
-    def toErgoTree: ErgoTree = ???
+    def toErgoTree(implicit e: ErgoAddressEncoder): ErgoTree = e.fromString(address.unwrapped).get.script
   }
 }

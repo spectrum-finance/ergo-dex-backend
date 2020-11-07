@@ -15,7 +15,7 @@ object versions {
   val MouseVersion           = "0.23"
   val Fs2Version             = "2.2.2"
   val Fs2KafkaVersion        = "1.0.0"
-  val DoobieVersion          = "0.8.8"
+  val DoobieVersion          = "0.9.2"
   val FlywayVersion          = "5.1.1"
   val MonixVersion           = "3.1.0"
   val MonocleVersion         = "2.0.0"
@@ -41,7 +41,8 @@ object versions {
   val KindProjector = "0.11.0"
   val MacroParadise = "2.1.1"
 
-  val ScalaTestVersion              = "3.0.8"
+  val ScalaTestVersion              = "3.2.2"
+  val ScalaTestPlusVersion          = "3.2.2.0"
   val ScalaCheckVersion             = "1.14.1"
   val ScalaCheckShapelessVersion    = "1.2.3"
   val TestContainersPostgresVersion = "1.7.3"

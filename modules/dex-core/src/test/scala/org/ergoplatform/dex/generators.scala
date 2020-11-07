@@ -38,6 +38,11 @@ object generators {
       dlog = DLogProverInput(BigIntegers.fromUnsignedByteArray(key)).publicImage
     } yield new P2PKAddress(dlog, dlog.pkBytes)
 
+  def addressGen: Gen[Address] =
+    p2PkAddressGen.map { p2pk =>
+      Address.fromStringUnsafe(p2pk.encoder.toString(p2pk))
+    }
+
   def proveDlogGen: Gen[ProveDlog] =
     Gen.delay(DLogProverInput.random()).map(_.publicImage)
 

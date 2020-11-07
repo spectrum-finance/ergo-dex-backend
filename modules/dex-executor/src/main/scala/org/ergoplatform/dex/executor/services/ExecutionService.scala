@@ -4,13 +4,14 @@ import cats.Monad
 import org.ergoplatform.dex.clients.ErgoNetworkClient
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.executor.context.TxContext
+import org.ergoplatform.dex.executor.modules.Transactions
 import tofu.syntax.monadic._
 
 abstract class ExecutionService[F[_]] {
 
   /** Assembly Ergo transaction from a given `match`.
     */
-  def execute(anyMatch: AnyTrade): F[Unit]
+  def execute(trade: AnyTrade): F[Unit]
 }
 
 object ExecutionService {
