@@ -123,9 +123,9 @@ class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
       for {
         assetX      <- assetIdGen
         assetY      <- assetIdGen
-        askAmount   <- Gen.const(1000)
-        bidAmount0  <- Gen.const(500)
-        bidAmount1  <- Gen.const(600)
+        askAmount   <- Gen.const(1000L)
+        bidAmount0  <- Gen.const(500L)
+        bidAmount1  <- Gen.const(600L)
         price       <- priceGen
         feePerToken <- feeGen
         ask         <- askGen(assetX, assetY, askAmount, price, feePerToken)

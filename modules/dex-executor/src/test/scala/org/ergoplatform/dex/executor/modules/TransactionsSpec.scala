@@ -2,16 +2,20 @@ package org.ergoplatform.dex.executor.modules
 
 import cats.Eval
 import cats.data.{NonEmptyList, ReaderT}
+import cats.syntax.show._
 import io.circe.Printer
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.models.Trade
-import org.ergoplatform.dex.executor.config.ExchangeConfig
-import org.ergoplatform.dex.executor.context.TxContext
+import org.ergoplatform.dex.executor.config.{ConfigBundle, ExchangeConfig, ProtocolConfig}
+import org.ergoplatform.dex.executor.context.BlockchainContext
 import org.ergoplatform.dex.generators._
+import org.ergoplatform.dex.protocol.codecs._
 import org.scalacheck.Gen
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import tofu.Context
+import tofu.optics.macros.{promote, ClassyOptics}
 
 class TransactionsSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks {
 
@@ -20,21 +24,24 @@ class TransactionsSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
       for {
         assetX      <- assetIdGen
         assetY      <- assetIdGen
-        amount      <- Gen.posNum[Long]
-        price       <- priceGen
-        feePerToken <- feeGen
+        amount      <- Gen.const(1000L)
+        price       <- Gen.const(100L)
+        feePerToken <- Gen.const(10L)
         ask         <- askGen(assetX, assetY, amount, price, feePerToken)
         bid         <- bidGen(assetX, assetY, amount, price, feePerToken)
       } yield Trade(ask, NonEmptyList.one(bid))
-    implicit val e: ErgoAddressEncoder = new ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
-    val transactions                   = Transactions.instance[ReaderT[Eval, ExchangeConfig, *]]
     forAll(tradeGen, addressGen) { case (trade, rewardAddress) =>
-      val config                    = ExchangeConfig(rewardAddress)
-      implicit val txCtx: TxContext = TxContext(curHeight = 100)
-      val tx                        = transactions.toTransaction(trade).run(config).value
+      val configs           = ConfigBundle(ExchangeConfig(rewardAddress), ProtocolConfig(ErgoAddressEncoder.MainnetNetworkPrefix))
+      val blockchainContext = BlockchainContext(curHeight = 100)
+      val ctx               = Ctx(configs, blockchainContext)
+      val tx                = Transactions[ReaderT[Eval, Ctx, *]].translate(trade).run(ctx).value
       import io.circe.syntax._
-      import org.ergoplatform.dex.protocol.codecs._
+      println(trade.show)
       println(tx.asJson.printWith(Printer.spaces4))
     }
   }
+
+  @ClassyOptics
+  final case class Ctx(@promote configs: ConfigBundle, @promote blockchain: BlockchainContext)
+  object Ctx extends Context.Companion[Ctx]
 }

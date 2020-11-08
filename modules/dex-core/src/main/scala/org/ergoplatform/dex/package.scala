@@ -53,6 +53,10 @@ package object dex {
   @newtype case class BoxId(value: String)
 
   object BoxId {
+
+    implicit val show: Show[BoxId]         = deriving
+    implicit val loggable: Loggable[BoxId] = deriving
+
     // circe instances
     implicit val encoder: Encoder[BoxId] = deriving
     implicit val decoder: Decoder[BoxId] = deriving
@@ -76,7 +80,8 @@ package object dex {
     implicit val put: Put[AssetId] =
       Put[String].contramap[AssetId](_.unwrapped)
 
-    implicit val loggable: Loggable[AssetId] = Loggable.stringValue.contramap(_.unwrapped)
+    implicit val show: Show[AssetId]         = _.unwrapped
+    implicit val loggable: Loggable[AssetId] = Loggable.show
 
     def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String

@@ -4,8 +4,8 @@ import cats.data.NonEmptyList
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexSellerContractParameters}
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
-import org.ergoplatform.dex.domain.models.OrderType.{Bid, Ask}
-import org.ergoplatform.dex.domain.models.{Trade, OrderType}
+import org.ergoplatform.dex.domain.models.OrderType.{Ask, Bid}
+import org.ergoplatform.dex.domain.models.{OrderType, Trade}
 import org.ergoplatform.dex.domain.syntax.ergo._
 
 object trade {
@@ -31,8 +31,9 @@ object trade {
       )
   }
 
-  implicit final class AnyMatchOps(private val m: AnyTrade) extends AnyVal {
-    def refine: Either[Trade[Ask, Bid], Trade[Bid, Ask]] =
-      Either.cond(m.order.`type`.isAsk, m.asInstanceOf[Trade[Bid, Ask]], m.asInstanceOf[Trade[Ask, Bid]])
+  implicit final class AnyMatchOps(private val trade: AnyTrade) extends AnyVal {
+
+    def refine: Either[Trade[Bid, Ask], Trade[Ask, Bid]] =
+      Either.cond(trade.order.`type`.isAsk, trade.asInstanceOf[Trade[Ask, Bid]], trade.asInstanceOf[Trade[Bid, Ask]])
   }
 }

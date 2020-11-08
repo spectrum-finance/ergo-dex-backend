@@ -1,14 +1,16 @@
 package org.ergoplatform.dex.domain.models
 
+import cats.Show
 import cats.instances.string._
 import cats.syntax.either._
 import doobie.{Get, Put}
 import enumeratum._
+import tofu.logging.Loggable
 
 import scala.collection.immutable
 
 sealed trait OrderType extends EnumEntry {
-  def isAsk = false
+  def isAsk: Boolean = false
 }
 
 object OrderType extends Enum[OrderType] {
@@ -21,9 +23,13 @@ object OrderType extends Enum[OrderType] {
 
   val values: immutable.IndexedSeq[OrderType] = findValues
 
-  implicit def get: Get[OrderType] =
+  implicit val get: Get[OrderType] =
     Get[String].temap(s => withNameInsensitiveEither(s).leftMap(_.getMessage))
 
-  implicit def put: Put[OrderType] =
+  implicit val put: Put[OrderType] =
     Put[String].contramap[OrderType](_.entryName)
+
+  implicit val show: Show[OrderType] = _.entryName
+
+  implicit val loggable: Loggable[OrderType] = Loggable.show
 }

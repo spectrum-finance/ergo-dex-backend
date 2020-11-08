@@ -69,7 +69,7 @@ object generators {
     price: Long,
     feePerToken: Long
   ): Gen[Order.Bid] =
-    orderMetaBuyerGen(price * amount + feePerToken * amount, quoteAsset, price, feePerToken) flatMap
+    orderMetaBuyerGen(amount * (price + feePerToken), quoteAsset, price, feePerToken) flatMap
     (meta => Order.mkBid(quoteAsset, baseAsset, amount, price, feePerToken, meta))
 
   def askGen(
@@ -79,11 +79,11 @@ object generators {
     price: Long,
     feePerToken: Long
   ): Gen[Order.Ask] =
-    orderMetaSellerGen(price * feePerToken, quoteAsset, price, feePerToken) flatMap
+    orderMetaSellerGen(amount * feePerToken, quoteAsset, price, feePerToken) flatMap
     (meta => Order.mkAsk(quoteAsset, baseAsset, amount, price, feePerToken, meta))
 
   def priceGen: Gen[Long] =
-    Gen.chooseNum(2L, 100000000L)
+    Gen.chooseNum(2L, 1000L)
 
   def feeGen: Gen[Long] =
     Gen.chooseNum(1000L, 1000000000L)

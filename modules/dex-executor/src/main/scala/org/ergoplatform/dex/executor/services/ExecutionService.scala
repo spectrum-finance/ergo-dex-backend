@@ -3,8 +3,10 @@ package org.ergoplatform.dex.executor.services
 import cats.Monad
 import org.ergoplatform.dex.clients.ErgoNetworkClient
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
-import org.ergoplatform.dex.executor.context.TxContext
+import org.ergoplatform.dex.executor.config.{ExchangeConfig, ProtocolConfig}
+import org.ergoplatform.dex.executor.context.BlockchainContext
 import org.ergoplatform.dex.executor.modules.Transactions
+import tofu.{Context, WithContext}
 import tofu.syntax.monadic._
 
 abstract class ExecutionService[F[_]] {
@@ -18,14 +20,16 @@ object ExecutionService {
 
   /** Implements processing of trades necessarily involving ERG.
     */
-  final private class ErgoToTokenExecutionService[F[_]: Monad](implicit
-    client: ErgoNetworkClient[F],
-    txs: Transactions[F]
+  final private class ErgoToTokenExecutionService[
+    F[_]: Monad: WithContext[*[_], ExchangeConfig]: WithContext[*[_], ProtocolConfig]
+  ](implicit
+    client: ErgoNetworkClient[F]
   ) extends ExecutionService[F] {
 
     def execute(trade: AnyTrade): F[Unit] =
-      (client.getCurrentHeight map TxContext)
-        .flatMap(implicit ctx => txs.toTransaction(trade))
+      (client.getCurrentHeight map BlockchainContext)
+        .map(Context.const[F, BlockchainContext])
+        .flatMap(implicit ctx => Transactions[F].translate(trade))
         .flatMap(client.submitTransaction)
   }
 }

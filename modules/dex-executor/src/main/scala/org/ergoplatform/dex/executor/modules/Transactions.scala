@@ -1,161 +1,159 @@
 package org.ergoplatform.dex.executor.modules
 
 import cats.data.NonEmptyList
-import cats.{Functor, Monad}
+import cats.{Applicative, Monad}
+import derevo.derive
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexLimitOrderContracts, DexSellerContractParameters}
-import org.ergoplatform.dex.domain.models.Order.{Ask, Bid}
+import org.ergoplatform.dex.domain.models.Order._
+import org.ergoplatform.dex.domain.models.Trade
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.domain.syntax.trade._
-import org.ergoplatform.dex.executor.config.ExchangeConfig
-import org.ergoplatform.dex.executor.context.TxContext
+import org.ergoplatform.dex.executor.config.{ExchangeConfig, ProtocolConfig}
+import org.ergoplatform.dex.executor.context.BlockchainContext
 import org.ergoplatform.{ErgoAddressEncoder, ErgoBoxCandidate, ErgoLikeTransaction, Input}
 import sigmastate.SType.AnyOps
 import sigmastate.Values._
 import sigmastate.eval._
 import sigmastate.interpreter.ProverResult
 import sigmastate.{SByte, SCollection, SType}
-import tofu.HasContext
+import tofu.WithContext
+import tofu.higherKind.derived.representableK
 import tofu.syntax.context._
+import tofu.syntax.embed._
 import tofu.syntax.monadic._
 
+import scala.annotation.tailrec
+
+@derive(representableK)
 trait Transactions[F[_]] {
 
-  def toTransaction(trade: AnyTrade)(implicit ctx: TxContext): F[ErgoLikeTransaction]
+  /** Translate a given `trade` to executing transaction.
+    */
+  def translate(trade: AnyTrade): F[ErgoLikeTransaction]
 }
 
 object Transactions {
 
-  implicit def instance[F[_]: Monad: HasContext[*[_], ExchangeConfig]](implicit
-    e: ErgoAddressEncoder
-  ): Transactions[F] =
-    new ErgoToTokenTransactions[F]
+  // format: off
+  implicit def apply[
+    F[_]: Monad: WithContext[*[_], ExchangeConfig]
+        : WithContext[*[_], ProtocolConfig]: WithContext[*[_], BlockchainContext]
+  ]: Transactions[F] =
+    (hasContext[F, ExchangeConfig], hasContext[F, ProtocolConfig], hasContext[F, BlockchainContext])
+      .mapN(new Live[F](_, _, _): Transactions[F]).embed
+  // format: on
 
-  final private class ErgoToTokenTransactions[
-    F[_]: Monad: HasContext[*[_], ExchangeConfig]
-  ](implicit e: ErgoAddressEncoder)
-    extends Transactions[F] {
+  final class Live[F[_]: Applicative](
+    exchangeConfig: ExchangeConfig,
+    protocolConfig: ProtocolConfig,
+    ctx: BlockchainContext
+  ) extends Transactions[F] {
 
-    def toTransaction(trade: AnyTrade)(implicit ctx: TxContext): F[ErgoLikeTransaction] =
-      outputs(trade).map(_.toList.toVector).map { out =>
-        val in = inputs(trade).toList.toVector
-        ErgoLikeTransaction(in, out)
+    implicit private val addressEncoder: ErgoAddressEncoder = ErgoAddressEncoder(protocolConfig.addressPrefix)
+
+    def translate(trade: AnyTrade): F[ErgoLikeTransaction] = {
+      val outsF =
+        trade.refine match {
+          case Right(Trade(order, counterOrders)) =>
+            outputs(NonEmptyList.one(order), counterOrders)
+          case Left(Trade(order, counterOrders)) =>
+            outputs(counterOrders, NonEmptyList.one(order))
+        }
+      outsF.map { outs =>
+        val ins = inputs(trade.orders)
+        ErgoLikeTransaction(ins.toList.toVector, outs.toList.toVector)
+      }
+    }
+
+    private def inputs(orders: NonEmptyList[AnyOrder]): NonEmptyList[Input] =
+      orders.map(ord => Input(ord.meta.boxId.toErgo, ProverResult.empty))
+
+    //todo: merge exchange reward boxes into one
+    private def outputs(asks: NonEmptyList[Ask], bids: NonEmptyList[Bid]): F[NonEmptyList[ErgoBoxCandidate]] = {
+      val askAmount = asks.toList.map(_.amount).sum
+      val bidAmount = bids.toList.map(_.amount).sum
+      val outputs   = executeAsks(asks.toList)(bidAmount) ++ executeBids(bids.toList)(askAmount)
+      NonEmptyList.fromListUnsafe(outputs).pure
+    }
+
+    @tailrec private def executeAsks(
+      asks: List[Ask]
+    )(toFill: Long, acc: List[ErgoBoxCandidate] = List.empty): List[ErgoBoxCandidate] =
+      asks match {
+        case ask :: tl if ask.amount <= toFill =>
+          val amount    = ask.amount
+          val fee       = amount * ask.feePerToken
+          val rem       = ask.meta.boxValue - fee // todo: what if remainder is too small?
+          val reward    = amount * ask.price
+          val pk        = ask.meta.pk
+          val dexFeeBox = new ErgoBoxCandidate(fee, exchangeConfig.rewardAddress.toErgoTree, ctx.curHeight)
+          val rewardBox = new ErgoBoxCandidate(reward + rem, pk, ctx.curHeight)
+          executeAsks(tl)(toFill - amount, rewardBox +: dexFeeBox +: acc)
+        case ask :: tl =>
+          val amount    = toFill
+          val fee       = amount * ask.feePerToken
+          val rem       = ask.meta.boxValue - fee // todo: what if remainder is too small?
+          val reward    = amount * ask.price
+          val pk        = ask.meta.pk
+          val unfilled  = ask.amount - toFill
+          val dexFeeBox = new ErgoBoxCandidate(fee, exchangeConfig.rewardAddress.toErgoTree, ctx.curHeight)
+          val rewardBox = new ErgoBoxCandidate(reward, pk, ctx.curHeight)
+          val residualParams =
+            DexSellerContractParameters(
+              ask.meta.pk,
+              ask.quoteAsset.toErgo,
+              ask.price,
+              ask.feePerToken
+            )
+          val residualScript = DexLimitOrderContracts.sellerContractInstance(residualParams).ergoTree
+          val residualTokens = Colls.fromItems(ask.quoteAsset.toErgo -> unfilled)
+          val residualRegisters = Map(R4 -> Constant(ask.meta.boxId.toSigma.asWrappedType, SCollection(SByte)).value)
+            .asInstanceOf[Map[NonMandatoryRegisterId, EvaluatedValue[SType]]]
+          val residualBox = new ErgoBoxCandidate(rem, residualScript, ctx.curHeight, residualTokens, residualRegisters)
+          executeAsks(tl)(toFill = 0L, residualBox +: rewardBox +: dexFeeBox +: acc)
+        case Nil =>
+          acc
+      }
+
+    @tailrec private def executeBids(
+      bids: List[Bid]
+    )(toFill: Long, acc: List[ErgoBoxCandidate] = List.empty): List[ErgoBoxCandidate] =
+      bids match {
+        case bid :: tl if bid.amount <= toFill =>
+          val amount       = bid.amount
+          val fee          = amount * bid.feePerToken
+          val rem          = bid.meta.boxValue - fee - amount * bid.price
+          val reward       = amount
+          val pk           = bid.meta.pk
+          val dexFeeBox    = new ErgoBoxCandidate(fee, exchangeConfig.rewardAddress.toErgoTree, ctx.curHeight)
+          val rewardTokens = Colls.fromItems(bid.quoteAsset.toErgo -> reward)
+          val rewardBox    = new ErgoBoxCandidate(rem, pk, ctx.curHeight, rewardTokens)
+          executeBids(tl)(toFill - amount, rewardBox +: dexFeeBox +: acc)
+        case bid :: tl =>
+          val amount       = toFill
+          val fee          = amount * bid.feePerToken
+          val rem          = bid.meta.boxValue - fee - amount * bid.price
+          val reward       = amount
+          val pk           = bid.meta.pk
+          val dexFeeBox    = new ErgoBoxCandidate(fee, exchangeConfig.rewardAddress.toErgoTree, ctx.curHeight)
+          val rewardTokens = Colls.fromItems(bid.quoteAsset.toErgo -> reward)
+          val rewardBox    = new ErgoBoxCandidate(rem, pk, ctx.curHeight, rewardTokens)
+          val residualParams =
+            DexBuyerContractParameters(
+              bid.meta.pk,
+              bid.quoteAsset.toErgo,
+              bid.price,
+              bid.feePerToken
+            )
+          val residualScript = DexLimitOrderContracts.buyerContractInstance(residualParams).ergoTree
+          val residualRegisters = Map(R4 -> Constant(bid.meta.boxId.toSigma.asWrappedType, SCollection(SByte)).value)
+            .asInstanceOf[Map[NonMandatoryRegisterId, EvaluatedValue[SType]]]
+          val residualBox = new ErgoBoxCandidate(rem, residualScript, ctx.curHeight, Colls.emptyColl, residualRegisters)
+          executeBids(tl)(toFill = 0L, residualBox +: rewardBox +: dexFeeBox +: acc)
+        case Nil =>
+          acc
       }
   }
-
-  private val MinBoxValue = 1000000L
-
-  private[modules] def inputs(anyMatch: AnyTrade): NonEmptyList[Input] =
-    anyMatch.orders.map { ord =>
-      Input(ord.meta.boxId.toErgo, ProverResult.empty)
-    }
-
-  private[modules] def outputs[F[_]: Monad: HasContext[*[_], ExchangeConfig]](
-    trade: AnyTrade
-  )(implicit ctx: TxContext, e: ErgoAddressEncoder): F[NonEmptyList[ErgoBoxCandidate]] = {
-    val toFill      = trade.order.amount
-    val canBeFilled = trade.counterOrders.map(_.amount).toList.sum
-    trade.refine match {
-      case Left(sellTrade) =>
-        val order = sellTrade.order
-        val (totalCost, _) = sellTrade.counterOrders.foldLeft(0L -> toFill) { case ((acc, rem), ord) =>
-          val amt = math.min(ord.amount, rem)
-          (acc + amt * ord.price) -> (toFill - amt)
-        }
-        val (counterEval, _) = sellTrade.counterOrders.foldLeft(List.empty[ErgoBoxCandidate].pure[F] -> toFill) {
-          case ((acc, rem), ord) =>
-            if (rem > 0) (buyOut(ord, rem) >>= (xs => acc.map(_ ++ xs.toList))) -> (rem - ord.amount)
-            else acc                                                            -> rem
-        }
-        val orderEval = sellOut(order, canBeFilled, totalCost)
-        orderEval >>= (xs => counterEval.map(xs.concat))
-      case Right(buyTrade) =>
-        val order = buyTrade.order
-        val (counterEval, _) = buyTrade.counterOrders.foldLeft(List.empty[ErgoBoxCandidate].pure[F] -> toFill) {
-          case ((acc, rem), ord) =>
-            val cost = math.min(ord.amount, rem)
-            if (rem > 0) (sellOut(ord, rem, cost) >>= (xs => acc.map(_ ++ xs.toList))) -> (rem - ord.amount)
-            else acc                                                                   -> rem
-        }
-        val orderEval = buyOut(order, canBeFilled)
-        orderEval >>= (xs => counterEval.map(xs.concat))
-    }
-  }
-
-  private[modules] def sellOut[F[_]: Functor: HasContext[*[_], ExchangeConfig]](
-    order: Ask,
-    canFill: Long,
-    totalCost: Long
-  )(implicit ctx: TxContext, e: ErgoAddressEncoder): F[NonEmptyList[ErgoBoxCandidate]] =
-    context map { conf =>
-      val amount    = math.min(order.amount, canFill)
-      val fee       = amount * order.feePerToken
-      val rem       = order.meta.boxValue - fee
-      val reward    = amount * order.price
-      val pk        = order.meta.pk
-      val unfilled  = order.amount - canFill
-      val boxValue  = math.max(rem, MinBoxValue)
-      val feeAmount = if (boxValue == rem) fee else fee - MinBoxValue
-      val dexFee    = new ErgoBoxCandidate(feeAmount, conf.rewardAddress.toErgoTree, ctx.curHeight)
-      if (unfilled <= 0) {
-        val ret =
-          if (totalCost == amount) new ErgoBoxCandidate(reward + rem, pk, ctx.curHeight)
-          else {
-            val spreadTokens = Colls.fromItems(order.quoteAsset.toErgo -> (amount - totalCost))
-            new ErgoBoxCandidate(reward + rem, pk, ctx.curHeight, spreadTokens)
-          }
-        NonEmptyList.of(ret, dexFee)
-      } else {
-        val ret = new ErgoBoxCandidate(reward, pk, ctx.curHeight)
-        val residualParams =
-          DexSellerContractParameters(
-            order.meta.pk,
-            order.quoteAsset.toErgo,
-            order.price,
-            order.feePerToken
-          )
-        val residualScript = DexLimitOrderContracts.sellerContractInstance(residualParams).ergoTree
-        val residualTokens = Colls.fromItems(order.quoteAsset.toErgo -> unfilled)
-        val residualRegisters = Map(R4 -> Constant(order.meta.boxId.toSigma.asWrappedType, SCollection(SByte)).value)
-          .asInstanceOf[Map[NonMandatoryRegisterId, EvaluatedValue[SType]]]
-        val residual = new ErgoBoxCandidate(rem, residualScript, ctx.curHeight, residualTokens, residualRegisters)
-        NonEmptyList.of(ret, residual, dexFee)
-      }
-    }
-
-  private[modules] def buyOut[F[_]: Functor: HasContext[*[_], ExchangeConfig]](order: Bid, canFill: Long)(implicit
-    ctx: TxContext,
-    e: ErgoAddressEncoder
-  ): F[NonEmptyList[ErgoBoxCandidate]] =
-    context map { conf =>
-      val amount    = math.min(order.amount, canFill)
-      val fee       = amount * order.feePerToken
-      val rem       = order.meta.boxValue - fee
-      val reward    = amount
-      val pk        = order.meta.pk
-      val unfilled  = order.amount - canFill
-      val boxValue  = math.max(rem, MinBoxValue)
-      val feeAmount = if (boxValue == rem) fee else fee - MinBoxValue
-      val retTokens = Colls.fromItems(order.quoteAsset.toErgo -> reward)
-      val dexFee    = new ErgoBoxCandidate(feeAmount, conf.rewardAddress.toErgoTree, ctx.curHeight)
-      if (unfilled <= 0) {
-        val ret = new ErgoBoxCandidate(rem, pk, ctx.curHeight, retTokens)
-        NonEmptyList.of(ret, dexFee)
-      } else {
-        val ret = new ErgoBoxCandidate(rem, pk, ctx.curHeight, retTokens)
-        val residualParams =
-          DexBuyerContractParameters(
-            order.meta.pk,
-            order.quoteAsset.toErgo,
-            order.price,
-            order.feePerToken
-          )
-        val residualScript = DexLimitOrderContracts.buyerContractInstance(residualParams).ergoTree
-        val residualRegisters = Map(R4 -> Constant(order.meta.boxId.toSigma.asWrappedType, SCollection(SByte)).value)
-          .asInstanceOf[Map[NonMandatoryRegisterId, EvaluatedValue[SType]]]
-        val residual = new ErgoBoxCandidate(rem, residualScript, ctx.curHeight, Colls.emptyColl, residualRegisters)
-        NonEmptyList.of(ret, residual, dexFee)
-      }
-    }
 }
