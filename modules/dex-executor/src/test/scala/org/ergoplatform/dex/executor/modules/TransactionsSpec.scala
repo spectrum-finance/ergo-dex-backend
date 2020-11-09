@@ -2,20 +2,19 @@ package org.ergoplatform.dex.executor.modules
 
 import cats.Eval
 import cats.data.{NonEmptyList, ReaderT}
-import cats.syntax.show._
-import io.circe.Printer
 import org.ergoplatform.ErgoAddressEncoder
+import org.ergoplatform.dex.BoxId
 import org.ergoplatform.dex.domain.models.Trade
+import org.ergoplatform.dex.domain.syntax.ergo._
+import org.ergoplatform.dex.domain.syntax.trade._
 import org.ergoplatform.dex.executor.config.{ConfigBundle, ExchangeConfig, ProtocolConfig}
 import org.ergoplatform.dex.executor.context.BlockchainContext
 import org.ergoplatform.dex.generators._
-import org.ergoplatform.dex.protocol.codecs._
 import org.scalacheck.Gen
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import tofu.Context
-import tofu.optics.macros.{promote, ClassyOptics}
+import sigmastate.Values._
 
 class TransactionsSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks {
 
@@ -33,15 +32,25 @@ class TransactionsSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
     forAll(tradeGen, addressGen) { case (trade, rewardAddress) =>
       val configs           = ConfigBundle(ExchangeConfig(rewardAddress), ProtocolConfig(ErgoAddressEncoder.MainnetNetworkPrefix))
       val blockchainContext = BlockchainContext(curHeight = 100)
-      val ctx               = Ctx(configs, blockchainContext)
-      val tx                = Transactions[ReaderT[Eval, Ctx, *]].translate(trade).run(ctx).value
-      import io.circe.syntax._
-      println(trade.show)
-      println(tx.asJson.printWith(Printer.spaces4))
+      val ctx               = TestCtx(configs, blockchainContext)
+      val tx                = Transactions[ReaderT[Eval, TestCtx, *]].translate(trade).run(ctx).value
+      tx.inputs.map(i => BoxId.fromErgo(i.boxId)) should contain theSameElementsAs trade.orders.map(_.meta.boxId).toList
+      trade.orders.toList.foreach {
+        case order if order.`type`.isAsk =>
+          val orderReward = tx.outputCandidates.find { o =>
+            o.value == order.amount * order.price && o.ergoTree == ErgoTree.fromSigmaBoolean(order.meta.pk)
+          }
+          orderReward should not be empty
+        case order =>
+          val orderReward = tx.outputCandidates.find { o =>
+            o.additionalTokens.toMap
+              .find { case (id, _) => java.util.Arrays.equals(id, order.quoteAsset.toErgo) }
+              .map(_._2)
+              .contains(order.amount) &&
+            o.ergoTree == ErgoTree.fromSigmaBoolean(order.meta.pk)
+          }
+          orderReward should not be empty
+      }
     }
   }
-
-  @ClassyOptics
-  final case class Ctx(@promote configs: ConfigBundle, @promote blockchain: BlockchainContext)
-  object Ctx extends Context.Companion[Ctx]
 }

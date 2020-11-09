@@ -9,14 +9,16 @@ import derevo.derive
 import doobie._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{refineV, W}
+import eu.timepit.refined.{W, refineV}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
+import io.estatico.newtype.ops._
 import org.ergoplatform.dex.Err.RefinementFailed
 import org.ergoplatform.dex.constraints.{AddressType, Base58Spec, HexStringType, UrlStringType}
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
+import scorex.util.encode.Base16
 import tofu.Raise
 import tofu.logging.Loggable
 import tofu.logging.derivation.loggable
@@ -63,6 +65,9 @@ package object dex {
 
     implicit val get: Get[BoxId] = deriving
     implicit val put: Put[BoxId] = deriving
+
+    def fromErgo(ergoBoxId: ErgoBox.BoxId): BoxId =
+      Base16.encode(ergoBoxId).coerce[BoxId]
   }
 
   @newtype case class AssetId(value: HexString) {

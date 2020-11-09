@@ -1,8 +1,8 @@
 package org.ergoplatform.dex.executor.modules
 
 import cats.data.NonEmptyList
-import cats.{Applicative, FlatMap, Functor, Monad}
 import cats.syntax.option._
+import cats.{Applicative, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexLimitOrderContracts, DexSellerContractParameters}
