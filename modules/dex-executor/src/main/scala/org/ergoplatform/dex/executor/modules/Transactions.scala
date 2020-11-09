@@ -1,7 +1,8 @@
 package org.ergoplatform.dex.executor.modules
 
 import cats.data.NonEmptyList
-import cats.{Applicative, Monad}
+import cats.{Applicative, FlatMap, Functor, Monad}
+import cats.syntax.option._
 import derevo.derive
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexLimitOrderContracts, DexSellerContractParameters}
@@ -19,6 +20,7 @@ import sigmastate.eval._
 import sigmastate.interpreter.ProverResult
 import sigmastate.{SByte, SCollection, SType}
 import tofu.WithContext
+import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.syntax.context._
 import tofu.syntax.embed._
@@ -42,7 +44,9 @@ object Transactions {
         : WithContext[*[_], ProtocolConfig]: WithContext[*[_], BlockchainContext]
   ]: Transactions[F] =
     (hasContext[F, ExchangeConfig], hasContext[F, ProtocolConfig], hasContext[F, BlockchainContext])
-      .mapN(new Live[F](_, _, _): Transactions[F]).embed
+      .mapN { (dexConf, protoConf, blockchainCtx) =>
+        new DexOutputsCompaction[F](dexConf, protoConf) attach new Live[F](dexConf, protoConf, blockchainCtx)
+      }.embed
   // format: on
 
   final class Live[F[_]: Applicative](
@@ -52,6 +56,7 @@ object Transactions {
   ) extends Transactions[F] {
 
     implicit private val addressEncoder: ErgoAddressEncoder = ErgoAddressEncoder(protocolConfig.addressPrefix)
+    private val dexRewardProp                               = exchangeConfig.rewardAddress.toErgoTree
 
     def translate(trade: AnyTrade): F[ErgoLikeTransaction] = {
       val outsF =
@@ -70,7 +75,6 @@ object Transactions {
     private def inputs(orders: NonEmptyList[AnyOrder]): NonEmptyList[Input] =
       orders.map(ord => Input(ord.meta.boxId.toErgo, ProverResult.empty))
 
-    //todo: merge exchange reward boxes into one
     private def outputs(asks: NonEmptyList[Ask], bids: NonEmptyList[Bid]): F[NonEmptyList[ErgoBoxCandidate]] = {
       val askAmount = asks.toList.map(_.amount).sum
       val bidAmount = bids.toList.map(_.amount).sum
@@ -88,7 +92,7 @@ object Transactions {
           val rem       = ask.meta.boxValue - fee // todo: what if remainder is too small?
           val reward    = amount * ask.price
           val pk        = ask.meta.pk
-          val dexFeeBox = new ErgoBoxCandidate(fee, exchangeConfig.rewardAddress.toErgoTree, ctx.curHeight)
+          val dexFeeBox = new ErgoBoxCandidate(fee, dexRewardProp, ctx.curHeight)
           val rewardBox = new ErgoBoxCandidate(reward + rem, pk, ctx.curHeight)
           executeAsks(tl)(toFill - amount, rewardBox +: dexFeeBox +: acc)
         case ask :: tl =>
@@ -98,7 +102,7 @@ object Transactions {
           val reward    = amount * ask.price
           val pk        = ask.meta.pk
           val unfilled  = ask.amount - toFill
-          val dexFeeBox = new ErgoBoxCandidate(fee, exchangeConfig.rewardAddress.toErgoTree, ctx.curHeight)
+          val dexFeeBox = new ErgoBoxCandidate(fee, dexRewardProp, ctx.curHeight)
           val rewardBox = new ErgoBoxCandidate(reward, pk, ctx.curHeight)
           val residualParams =
             DexSellerContractParameters(
@@ -127,7 +131,7 @@ object Transactions {
           val rem          = bid.meta.boxValue - fee - amount * bid.price
           val reward       = amount
           val pk           = bid.meta.pk
-          val dexFeeBox    = new ErgoBoxCandidate(fee, exchangeConfig.rewardAddress.toErgoTree, ctx.curHeight)
+          val dexFeeBox    = new ErgoBoxCandidate(fee, dexRewardProp, ctx.curHeight)
           val rewardTokens = Colls.fromItems(bid.quoteAsset.toErgo -> reward)
           val rewardBox    = new ErgoBoxCandidate(rem, pk, ctx.curHeight, rewardTokens)
           executeBids(tl)(toFill - amount, rewardBox +: dexFeeBox +: acc)
@@ -137,7 +141,7 @@ object Transactions {
           val rem          = bid.meta.boxValue - fee - amount * bid.price
           val reward       = amount
           val pk           = bid.meta.pk
-          val dexFeeBox    = new ErgoBoxCandidate(fee, exchangeConfig.rewardAddress.toErgoTree, ctx.curHeight)
+          val dexFeeBox    = new ErgoBoxCandidate(fee, dexRewardProp, ctx.curHeight)
           val rewardTokens = Colls.fromItems(bid.quoteAsset.toErgo -> reward)
           val rewardBox    = new ErgoBoxCandidate(rem, pk, ctx.curHeight, rewardTokens)
           val residualParams =
@@ -154,6 +158,37 @@ object Transactions {
           executeBids(tl)(toFill = 0L, residualBox +: rewardBox +: dexFeeBox +: acc)
         case Nil =>
           acc
+      }
+  }
+
+  /** An aspect merging dex reward outputs into single one.
+    */
+  final class DexOutputsCompaction[F[_]: Functor](exchangeConfig: ExchangeConfig, protocolConfig: ProtocolConfig)
+    extends Transactions[Mid[F, *]] {
+
+    implicit private val addressEncoder: ErgoAddressEncoder = ErgoAddressEncoder(protocolConfig.addressPrefix)
+    private val dexRewardProp                               = exchangeConfig.rewardAddress.toErgoTree
+
+    def translate(trade: AnyTrade): Mid[F, ErgoLikeTransaction] =
+      _.map(compact)
+
+    private def compact(tx: ErgoLikeTransaction): ErgoLikeTransaction =
+      tx.outputCandidates.partition(_.ergoTree == dexRewardProp) match {
+        case (dexOuts, _) if dexOuts.length == 1 => tx
+        case (dexOuts, otherOuts) =>
+          val dexOutsMerged = dexOuts.foldLeft(none[ErgoBoxCandidate]) {
+            case (None, out) => out.some
+            case (Some(acc), out) =>
+              new ErgoBoxCandidate(
+                acc.value + out.value,
+                acc.ergoTree,
+                acc.creationHeight,
+                acc.additionalTokens,
+                acc.additionalRegisters
+              ).some
+          }
+          val outs = dexOutsMerged ++ otherOuts
+          new ErgoLikeTransaction(tx.inputs, tx.dataInputs, outs.toVector)
       }
   }
 }
