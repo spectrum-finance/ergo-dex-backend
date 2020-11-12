@@ -44,6 +44,13 @@ package object dex {
     implicit val put: Put[OrderId] = deriving
   }
 
+  @newtype case class TradeId(value: String)
+
+  object TradeId {
+    implicit val get: Get[TradeId] = deriving
+    implicit val put: Put[TradeId] = deriving
+  }
+
   @newtype case class TxId(value: String)
 
   object TxId {

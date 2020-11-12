@@ -31,12 +31,6 @@ object order {
         }
       fill(counterOrders, Nil, order.amount).toNel.map(Trade(order, _))
     }
-
-    def id: OrderId = order.meta.boxId.value.coerce[OrderId]
-
-    def fee: Long = order.feePerToken * order.amount
-
-    def pairId: PairId = PairId(order.quoteAsset, order.baseAsset)
   }
 
   implicit final class OrdersOps(private val xs: List[AnyOrder]) extends AnyVal {

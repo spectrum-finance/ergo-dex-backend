@@ -3,9 +3,11 @@ package org.ergoplatform.dex.tracker.processes
 import cats.{Foldable, Functor, FunctorFilter, Monad}
 import derevo.derive
 import mouse.any._
+import org.ergoplatform.dex.OrderId
 import org.ergoplatform.dex.context.HasCommitPolicy
+import org.ergoplatform.dex.domain.models.Order.AnyOrder
 import org.ergoplatform.dex.protocol.models.Output
-import org.ergoplatform.dex.streaming.CommitPolicy
+import org.ergoplatform.dex.streaming.{CommitPolicy, Record}
 import org.ergoplatform.dex.streaming.syntax._
 import org.ergoplatform.dex.tracker.modules.Orders
 import org.ergoplatform.dex.tracker.streaming.StreamingBundle
@@ -54,6 +56,6 @@ object OrdersTracker {
         .commitBatchWithin[C](commitPolicy.maxBatchSize, commitPolicy.commitTimeout)
 
     private def process(outputs: List[Output]): F[Unit] =
-      emits(outputs).evalMap(orders.makeOrder).unNone.thrush(streaming.producer.produce)
+      emits(outputs).evalMap(orders.makeOrder).unNone.map(o => Record[OrderId, AnyOrder](o.id, o)).thrush(streaming.producer.produce)
   }
 }

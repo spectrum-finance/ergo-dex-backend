@@ -5,12 +5,13 @@ import cats.syntax.foldable._
 import cats.{Foldable, Functor, Monad}
 import derevo.derive
 import mouse.any._
+import org.ergoplatform.dex.TradeId
 import org.ergoplatform.dex.context.HasCommitPolicy
-import org.ergoplatform.dex.domain.syntax.order._
+import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.matcher.configs.MatcherConfig
 import org.ergoplatform.dex.matcher.services.OrderBook
 import org.ergoplatform.dex.matcher.streaming.StreamingBundle
-import org.ergoplatform.dex.streaming.CommitPolicy
+import org.ergoplatform.dex.streaming.{CommitPolicy, Record}
 import org.ergoplatform.dex.streaming.syntax._
 import tofu.HasContext
 import tofu.higherKind.derived.representableK
@@ -63,6 +64,7 @@ object Matcher {
         .flatTap { batch =>
           val pairs = batch.toList.map(_.message).groupBy(_.pairId).toList
           emits(pairs.map { case (pairId, orders) => evals(orderBook.process(pairId)(orders)) }).parFlattenUnbounded
+            .map(t => Record[TradeId, AnyTrade](t.id, t))
             .thrush(streaming.producer.produce)
         }
         .flatMap(emits(_))

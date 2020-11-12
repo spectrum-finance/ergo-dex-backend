@@ -8,3 +8,8 @@ trait MakeKafkaProducer[F[_], K, V] {
 
   def apply(config: ProducerConfig): Pipe[F, ProducerRecords[K, V, Unit], Unit]
 }
+
+object MakeKafkaProducer {
+
+
+}

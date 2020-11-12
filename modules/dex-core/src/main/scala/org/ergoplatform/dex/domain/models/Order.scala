@@ -4,7 +4,8 @@ import cats.Show
 import cats.syntax.semigroup._
 import cats.syntax.show._
 import doobie.util.Write
-import org.ergoplatform.dex.AssetId
+import io.estatico.newtype.ops._
+import org.ergoplatform.dex.{AssetId, OrderId, PairId}
 import org.ergoplatform.dex.protocol.instances._
 import tofu.logging.{Loggable, _}
 
@@ -25,7 +26,14 @@ final case class Order[T <: OrderType](
   price: Long,
   feePerToken: Long,
   meta: OrderMeta
-)
+) {
+
+  def id: OrderId = meta.boxId.value.coerce[OrderId]
+
+  def fee: Long = feePerToken * amount
+
+  def pairId: PairId = PairId(quoteAsset, baseAsset)
+}
 
 object Order {
 
