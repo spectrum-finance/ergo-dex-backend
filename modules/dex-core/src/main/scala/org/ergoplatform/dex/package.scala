@@ -9,13 +9,15 @@ import derevo.derive
 import doobie._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{W, refineV}
+import eu.timepit.refined.{refineV, W}
+import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.Err.RefinementFailed
 import org.ergoplatform.dex.constraints.{AddressType, Base58Spec, HexStringType, UrlStringType}
+import org.ergoplatform.dex.protocol.models.Transaction
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import scorex.util.encode.Base16
@@ -42,6 +44,9 @@ package object dex {
   object OrderId {
     implicit val get: Get[OrderId] = deriving
     implicit val put: Put[OrderId] = deriving
+
+    implicit def recordSerializer[F[_]]: RecordSerializer[F, OrderId]     = ???
+    implicit def recordDeserializer[F[_]]: RecordDeserializer[F, OrderId] = ???
   }
 
   @newtype case class TradeId(value: String)
@@ -57,6 +62,8 @@ package object dex {
     // circe instances
     implicit val encoder: Encoder[TxId] = deriving
     implicit val decoder: Decoder[TxId] = deriving
+
+    implicit def recordDeserializer[F[_]]: RecordDeserializer[F, TxId] = ???
   }
 
   @newtype case class BoxId(value: String)

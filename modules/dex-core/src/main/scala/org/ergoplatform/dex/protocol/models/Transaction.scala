@@ -1,5 +1,6 @@
 package org.ergoplatform.dex.protocol.models
 
+import fs2.kafka.RecordDeserializer
 import org.ergoplatform.dex.TxId
 
 /** A model mirroring ErgoTransaction entity from Ergo node REST API.
@@ -11,3 +12,8 @@ final case class Transaction(
   outputs: List[Output],
   size: Int
 )
+
+object Transaction {
+
+  implicit def recordDeserializer[F[_]]: RecordDeserializer[F, Transaction] = ???
+}

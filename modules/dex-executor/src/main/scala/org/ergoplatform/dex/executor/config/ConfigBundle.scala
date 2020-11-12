@@ -1,5 +1,6 @@
 package org.ergoplatform.dex.executor.config
 
+import org.ergoplatform.dex.configs.ProtocolConfig
 import tofu.Context
 import tofu.optics.macros.{ClassyOptics, promote}
 

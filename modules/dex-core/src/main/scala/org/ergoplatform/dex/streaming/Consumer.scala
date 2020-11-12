@@ -56,14 +56,14 @@ object Consumer {
     G[_]: Functor,
     K,
     V
-  ](implicit makeConsumer: MakeKafkaConsumer[K, V, G]): Consumer[K, V, F, G] =
+  ](implicit makeConsumer: MakeKafkaConsumer[G, K, V]): Consumer[K, V, F, G] =
     embed.embed(
       (context map (conf => functorK.mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF)))
         .asInstanceOf[F[Consumer.Aux[K, V, Live[K, V, F]#O, F, G]]]
     )
 
   final class Live[K, V, F[_]: Functor](config: ConsumerConfig)(implicit
-    makeConsumer: MakeKafkaConsumer[K, V, F]
+    makeConsumer: MakeKafkaConsumer[F, K, V]
   ) extends Consumer[K, V, Stream[F, *], F] {
 
     type O = (TopicPartition, OffsetAndMetadata)

@@ -6,6 +6,6 @@ import org.ergoplatform.dex.protocol.models.Transaction
 import org.ergoplatform.dex.streaming.{Consumer, Producer}
 
 final case class StreamingBundle[F[_], G[_]](
-  producer: Producer[OrderId, AnyOrder, F],
-  consumer: Consumer[TxId, Transaction, F, G]
+  consumer: Consumer[TxId, Transaction, F, G],
+  producer: Producer[OrderId, AnyOrder, F]
 )

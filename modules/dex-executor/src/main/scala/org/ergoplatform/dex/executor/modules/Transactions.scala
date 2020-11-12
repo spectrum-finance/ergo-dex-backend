@@ -6,12 +6,13 @@ import cats.{Applicative, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexLimitOrderContracts, DexSellerContractParameters}
+import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.models.Order._
 import org.ergoplatform.dex.domain.models.Trade
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.domain.syntax.trade._
-import org.ergoplatform.dex.executor.config.{ExchangeConfig, ProtocolConfig}
+import org.ergoplatform.dex.executor.config.ExchangeConfig
 import org.ergoplatform.dex.executor.context.BlockchainContext
 import org.ergoplatform.{ErgoAddressEncoder, ErgoBoxCandidate, ErgoLikeTransaction, Input}
 import sigmastate.SType.AnyOps

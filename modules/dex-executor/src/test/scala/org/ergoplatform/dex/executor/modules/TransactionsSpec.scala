@@ -4,10 +4,11 @@ import cats.Eval
 import cats.data.{NonEmptyList, ReaderT}
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.BoxId
+import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.models.Trade
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.domain.syntax.trade._
-import org.ergoplatform.dex.executor.config.{ConfigBundle, ExchangeConfig, ProtocolConfig}
+import org.ergoplatform.dex.executor.config.{ConfigBundle, ExchangeConfig}
 import org.ergoplatform.dex.executor.context.BlockchainContext
 import org.ergoplatform.dex.generators._
 import org.scalacheck.Gen

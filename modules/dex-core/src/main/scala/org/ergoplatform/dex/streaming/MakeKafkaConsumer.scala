@@ -1,13 +1,13 @@
 package org.ergoplatform.dex.streaming
 
 import cats.effect.{ConcurrentEffect, ContextShift, Timer}
-import fs2.kafka.{consumerStream, AutoOffsetReset, ConsumerSettings, KafkaConsumer, RecordDeserializer}
 import fs2.Stream
+import fs2.kafka._
 import org.ergoplatform.dex.configs.ConsumerConfig
 
 /** Kafka consumer instance maker.
   */
-trait MakeKafkaConsumer[K, V, F[_]] {
+trait MakeKafkaConsumer[F[_], K, V] {
 
   def apply(config: ConsumerConfig): Stream[F, KafkaConsumer[F, K, V]]
 }
@@ -18,7 +18,7 @@ object MakeKafkaConsumer {
     F[_]: ConcurrentEffect: Timer: ContextShift,
     K: RecordDeserializer[F, *],
     V: RecordDeserializer[F, *]
-  ]: MakeKafkaConsumer[K, V, F] = { (config: ConsumerConfig) =>
+  ]: MakeKafkaConsumer[F, K, V] = { (config: ConsumerConfig) =>
     val settings =
       ConsumerSettings[F, K, V]
         .withAutoOffsetReset(AutoOffsetReset.Earliest)
