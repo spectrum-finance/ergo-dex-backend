@@ -1,11 +1,15 @@
 package org.ergoplatform.dex.matcher.repositories
 
+import cats.FlatMap
 import cats.data.NonEmptyList
+import cats.tagless.syntax.functorK._
 import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
-import org.ergoplatform.dex.{OrderId, PairId}
 import org.ergoplatform.dex.domain.models.Order.{AnyOrder, Ask, Bid}
+import org.ergoplatform.dex.{OrderId, PairId}
+import tofu.doobie.LiftConnectionIO
+import tofu.doobie.log.EmbeddableLogHandler
 import tofu.higherKind.derived.representableK
 
 @derive(representableK)
@@ -21,6 +25,9 @@ trait OrdersRepo[D[_]] {
 }
 
 object OrdersRepo {
+
+  def make[D[_]: FlatMap: LiftConnectionIO](implicit elh: EmbeddableLogHandler[D]): OrdersRepo[D] =
+    elh.embed(implicit lh => new Live().mapK(LiftConnectionIO[D].liftF))
 
   final class Live(implicit lh: LogHandler) extends OrdersRepo[ConnectionIO] {
 

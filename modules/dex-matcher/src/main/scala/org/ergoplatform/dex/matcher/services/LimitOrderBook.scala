@@ -9,7 +9,6 @@ import org.ergoplatform.dex.PairId
 import org.ergoplatform.dex.domain.models.Order._
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.domain.syntax.order._
-import org.ergoplatform.dex.domain.syntax.trade._
 import org.ergoplatform.dex.matcher.modules.MatchingAlgo
 import org.ergoplatform.dex.matcher.repositories.OrdersRepo
 import tofu.doobie.transactor.Txr

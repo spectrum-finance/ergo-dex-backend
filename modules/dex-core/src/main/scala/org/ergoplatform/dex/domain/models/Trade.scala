@@ -3,6 +3,7 @@ package org.ergoplatform.dex.domain.models
 import cats.Show
 import cats.data.NonEmptyList
 import cats.syntax.show._
+import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.TradeId
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
@@ -33,4 +34,7 @@ object Trade {
 
   implicit def loggable[T0 <: OrderType, T1 <: OrderType]: Loggable[Trade[T0, T1]] =
     Loggable.stringValue.contramap[Trade[T0, T1]](_.toString)
+
+  implicit def recordSerializer[F[_]]: RecordSerializer[F, AnyTrade]     = ???
+  implicit def recordDeserializer[F[_]]: RecordDeserializer[F, AnyTrade] = ???
 }

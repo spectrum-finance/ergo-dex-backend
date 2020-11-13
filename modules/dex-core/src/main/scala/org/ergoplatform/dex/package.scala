@@ -54,6 +54,9 @@ package object dex {
   object TradeId {
     implicit val get: Get[TradeId] = deriving
     implicit val put: Put[TradeId] = deriving
+
+    implicit def recordSerializer[F[_]]: RecordSerializer[F, TradeId]     = ???
+    implicit def recordDeserializer[F[_]]: RecordDeserializer[F, TradeId] = ???
   }
 
   @newtype case class TxId(value: String)
