@@ -14,10 +14,10 @@ import org.ergoplatform.dex.tracker.streaming.StreamingBundle
 import org.ergoplatform.dex.{OrderId, TxId}
 import tofu.env.Env
 import tofu.fs2Instances._
-import tofu.lift.{IsoK, Unlift}
+import tofu.lift.IsoK
 import tofu.logging.derivation.loggable.generate
 import tofu.logging.{LoggableContext, Logs}
-import tofu.syntax.unlift._
+import tofu.syntax.embed._
 
 object App extends TaskApp {
 
@@ -38,19 +38,13 @@ object App extends TaskApp {
   private def init(configPathOpt: Option[String]): InitF[(OrdersTracker[StreamF], AppContext)] =
     for {
       ctx <- AppContext.make[InitF](configPathOpt)
-      implicit0(mc: MakeKafkaConsumer[AppF, TxId, Transaction]) <-
-        Unlift[InitF, AppF].concurrentEffect
-          .map(implicit ce => implicitly[MakeKafkaConsumer[AppF, TxId, Transaction]])
-          .thrush(_.run(ctx))
-      implicit0(mp: MakeKafkaProducer[AppF, OrderId, AnyOrder]) <-
-        Unlift[InitF, AppF].concurrentEffect
-          .map(implicit ce => implicitly[MakeKafkaProducer[AppF, OrderId, AnyOrder]])
-          .thrush(_.run(ctx))
-      implicit0(isoK: IsoK[StreamF, StreamF])           = IsoK.id[StreamF]
-      consumer                                          = Consumer.make[StreamF, AppF, TxId, Transaction]
-      producer                                          = Producer.make[StreamF, AppF, OrderId, AnyOrder]
-      implicit0(bundle: StreamingBundle[StreamF, AppF]) = StreamingBundle(consumer, producer)
-      implicit0(e: ErgoAddressEncoder)                  = ErgoAddressEncoder(ctx.protocolConfig.addressPrefix)
+      implicit0(mc: MakeKafkaConsumer[AppF, TxId, Transaction]) = MakeKafkaConsumer.make[InitF, AppF, TxId, Transaction]
+      implicit0(mp: MakeKafkaProducer[AppF, OrderId, AnyOrder]) = MakeKafkaProducer.make[InitF, AppF, OrderId, AnyOrder]
+      implicit0(isoK: IsoK[StreamF, StreamF])                   = IsoK.id[StreamF]
+      consumer                                                  = Consumer.make[StreamF, AppF, TxId, Transaction]
+      producer                                                  = Producer.make[StreamF, AppF, OrderId, AnyOrder]
+      implicit0(bundle: StreamingBundle[StreamF, AppF])         = StreamingBundle(consumer, producer)
+      implicit0(e: ErgoAddressEncoder)                          = ErgoAddressEncoder(ctx.protocolConfig.addressPrefix)
       tracker <- OrdersTracker.make[InitF, StreamF, AppF, Chunk]
     } yield tracker -> ctx
 }
