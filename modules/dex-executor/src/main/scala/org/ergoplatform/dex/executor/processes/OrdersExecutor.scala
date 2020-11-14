@@ -2,6 +2,7 @@ package org.ergoplatform.dex.executor.processes
 
 import cats.{Foldable, Functor, Monad}
 import derevo.derive
+import org.ergoplatform.dex.TradeId
 import org.ergoplatform.dex.context.HasCommitPolicy
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.executor.services.ExecutionService
@@ -29,7 +30,7 @@ object OrdersExecutor {
     G[_]: Monad,
     C[_]: Foldable
   ](implicit
-    consumer: Consumer[String, AnyTrade, F, G],
+    consumer: Consumer[TradeId, AnyTrade, F, G],
     executor: ExecutionService[G],
     logs: Logs[I, G]): I[OrdersExecutor[F]] =
     logs.forService[OrdersExecutor[F]] map { implicit l =>
@@ -41,7 +42,7 @@ object OrdersExecutor {
     G[_]: Monad: Logging,
     C[_]: Foldable
   ](commitPolicy: CommitPolicy)(implicit
-    consumer: Consumer[String, AnyTrade, F, G],
+    consumer: Consumer[TradeId, AnyTrade, F, G],
     executor: ExecutionService[G]
   ) extends OrdersExecutor[F] {
 

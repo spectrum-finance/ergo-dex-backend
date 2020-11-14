@@ -10,6 +10,11 @@ object dependencies {
       "com.softwaremill.sttp.client3" %% "circe"
     ).map(_ % SttpVersion)
 
+  val SttpClient: List[ModuleID] =
+    List(
+      "com.softwaremill.sttp.client3" %% "async-http-client-backend-cats"
+    ).map(_ % SttpVersion)
+
   val Circe: List[ModuleID] =
     List(
       "io.circe" %% "circe-core",
@@ -131,5 +136,5 @@ object dependencies {
 
   lazy val matcher: List[ModuleID] = Monix ++ Db
 
-  lazy val executor: List[ModuleID] = Monix
+  lazy val executor: List[ModuleID] = Monix ++ SttpClient
 }
