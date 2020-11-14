@@ -31,9 +31,10 @@ class TransactionsSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
         bid         <- bidGen(assetX, assetY, amount, price, feePerToken)
       } yield Trade(ask, NonEmptyList.one(bid))
     forAll(tradeGen, addressGen) { case (trade, rewardAddress) =>
-      val configs           = ConfigBundle(ExchangeConfig(rewardAddress), ProtocolConfig(ErgoAddressEncoder.MainnetNetworkPrefix))
+      val exConf = ExchangeConfig(rewardAddress)
+      val protoConf = ProtocolConfig(ErgoAddressEncoder.MainnetNetworkPrefix)
       val blockchainContext = BlockchainContext(curHeight = 100)
-      val ctx               = TestCtx(configs, blockchainContext)
+      val ctx               = TestCtx(exConf, protoConf, blockchainContext)
       val tx                = Transactions[ReaderT[Eval, TestCtx, *]].translate(trade).run(ctx).value
       tx.inputs.map(i => BoxId.fromErgo(i.boxId)) should contain theSameElementsAs trade.orders.map(_.meta.boxId).toList
       trade.orders.toList.foreach {
