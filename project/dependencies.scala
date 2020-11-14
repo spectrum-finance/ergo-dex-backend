@@ -4,22 +4,11 @@ object dependencies {
 
   import versions._
 
-  val Http4s: List[ModuleID] =
+  val SttpCore: List[ModuleID] =
     List(
-      "org.http4s" %% "http4s-dsl",
-      "org.http4s" %% "http4s-blaze-server",
-      "org.http4s" %% "http4s-blaze-client",
-      "org.http4s" %% "http4s-circe"
-    ).map(_ % Http4sVersion)
-
-  val Tapir: List[ModuleID] =
-    List(
-      "com.softwaremill.sttp.tapir" %% "tapir-core",
-      "com.softwaremill.sttp.tapir" %% "tapir-json-circe",
-      "com.softwaremill.sttp.tapir" %% "tapir-http4s-server",
-      "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs",
-      "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml"
-    ).map(_ % TapirVersion)
+      "com.softwaremill.sttp.client3" %% "core",
+      "com.softwaremill.sttp.client3" %% "circe"
+    ).map(_ % SttpVersion)
 
   val Circe: List[ModuleID] =
     List(
@@ -135,6 +124,7 @@ object dependencies {
     Typing ++
     Config ++
     Kafka ++
+    SttpCore ++
     Enums
 
   lazy val tracker: List[ModuleID] = Monix

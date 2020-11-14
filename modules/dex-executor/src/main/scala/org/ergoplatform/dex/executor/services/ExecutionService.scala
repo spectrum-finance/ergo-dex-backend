@@ -49,6 +49,7 @@ object ExecutionService {
         .map(Context.const[F, BlockchainContext])
         .flatMap(implicit ctx => Transactions[F].translate(trade))
         .flatMap(client.submitTransaction)
+        .void // todo: save and track tx id, retry if transaction failed.
   }
 
   final private class ExecutionServiceTracing[F[_]: Apply: Logging] extends ExecutionService[Mid[F, *]] {
