@@ -2,15 +2,14 @@ package org.ergoplatform.dex.executor.modules
 
 import cats.Eval
 import cats.data.{NonEmptyList, ReaderT}
-import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.BoxId
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.models.Trade
 import org.ergoplatform.dex.domain.syntax.ergo._
-import org.ergoplatform.dex.domain.syntax.trade._
-import org.ergoplatform.dex.executor.config.{ConfigBundle, ExchangeConfig}
+import org.ergoplatform.dex.executor.config.ExchangeConfig
 import org.ergoplatform.dex.executor.context.BlockchainContext
 import org.ergoplatform.dex.generators._
+import org.ergoplatform.dex.protocol.Network
 import org.scalacheck.Gen
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
@@ -31,8 +30,8 @@ class TransactionsSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
         bid         <- bidGen(assetX, assetY, amount, price, feePerToken)
       } yield Trade(ask, NonEmptyList.one(bid))
     forAll(tradeGen, addressGen) { case (trade, rewardAddress) =>
-      val exConf = ExchangeConfig(rewardAddress)
-      val protoConf = ProtocolConfig(ErgoAddressEncoder.MainnetNetworkPrefix)
+      val exConf            = ExchangeConfig(rewardAddress)
+      val protoConf         = ProtocolConfig(Network.MainNet)
       val blockchainContext = BlockchainContext(curHeight = 100)
       val ctx               = TestCtx(exConf, protoConf, blockchainContext)
       val tx                = Transactions[ReaderT[Eval, TestCtx, *]].translate(trade).run(ctx).value

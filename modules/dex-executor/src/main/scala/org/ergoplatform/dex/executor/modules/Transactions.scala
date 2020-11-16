@@ -56,7 +56,7 @@ object Transactions {
     ctx: BlockchainContext
   ) extends Transactions[F] {
 
-    implicit private val addressEncoder: ErgoAddressEncoder = ErgoAddressEncoder(protocolConfig.addressPrefix)
+    implicit private val addressEncoder: ErgoAddressEncoder = protocolConfig.networkType.addressEncoder
     private val dexRewardProp                               = exchangeConfig.rewardAddress.toErgoTree
 
     def translate(trade: AnyTrade): F[ErgoLikeTransaction] = {
@@ -167,7 +167,7 @@ object Transactions {
   final class DexOutputsCompaction[F[_]: Functor](exchangeConfig: ExchangeConfig, protocolConfig: ProtocolConfig)
     extends Transactions[Mid[F, *]] {
 
-    implicit private val addressEncoder: ErgoAddressEncoder = ErgoAddressEncoder(protocolConfig.addressPrefix)
+    implicit private val addressEncoder: ErgoAddressEncoder = protocolConfig.networkType.addressEncoder
     private val dexRewardProp                               = exchangeConfig.rewardAddress.toErgoTree
 
     def translate(trade: AnyTrade): Mid[F, ErgoLikeTransaction] =

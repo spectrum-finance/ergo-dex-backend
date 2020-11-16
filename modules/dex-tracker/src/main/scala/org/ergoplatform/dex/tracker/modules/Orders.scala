@@ -5,20 +5,26 @@ import java.util
 import cats.Monad
 import cats.effect.Clock
 import cats.syntax.option._
+import derevo.derive
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.contracts.DexLimitOrderContracts._
+import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.models.Order._
 import org.ergoplatform.dex.domain.models.OrderMeta
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.models.{Asset, Output}
 import org.ergoplatform.dex.tracker.domain.errors.{AssetNotProvided, BadParams, FeeNotSatisfied, OrderError}
-import org.ergoplatform.dex.{constants, AssetId}
+import org.ergoplatform.dex.{AssetId, constants}
 import sigmastate.Values.ErgoTree
+import tofu.higherKind.derived.representableK
+import tofu.syntax.context._
+import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
 import tofu.syntax.time._
-import tofu.{ApplicativeThrow, Raise}
+import tofu.{MonadThrow, Raise, WithContext}
 
+@derive(representableK)
 trait Orders[F[_]] {
 
   def makeOrder(output: Output): F[Option[AnyOrder]]
@@ -26,9 +32,11 @@ trait Orders[F[_]] {
 
 object Orders {
 
-  implicit def instance[F[_]: Monad: Clock: ApplicativeThrow](implicit
-    addressEncoder: ErgoAddressEncoder
-  ): Orders[F] = new Live[F]
+  implicit def instance[F[_]: Clock: MonadThrow: WithContext[*[_], ProtocolConfig]]: Orders[F] =
+    context.map { conf =>
+      implicit val e: ErgoAddressEncoder = conf.networkType.addressEncoder
+      new Live[F]: Orders[F]
+    }.embed
 
   final private class Live[F[_]: Monad: Clock: Raise[*[_], OrderError]](implicit
     treeSer: ErgoTreeSerializer[F],

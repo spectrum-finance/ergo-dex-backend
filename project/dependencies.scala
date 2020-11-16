@@ -49,18 +49,22 @@ object dependencies {
   )
 
   val Tofu: List[ModuleID] = List(
-    "ru.tinkoff"  %% "tofu-core"           % TofuVersion,
-    "ru.tinkoff"  %% "tofu-concurrent"     % TofuVersion,
-    "ru.tinkoff"  %% "tofu-env"            % TofuVersion,
-    "ru.tinkoff"  %% "tofu-optics-core"    % TofuVersion,
-    "ru.tinkoff"  %% "tofu-optics-macro"   % TofuVersion,
-    "ru.tinkoff"  %% "tofu-derivation"     % TofuVersion,
-    "ru.tinkoff"  %% "tofu-logging"        % TofuVersion,
-    "ru.tinkoff"  %% "tofu-doobie"         % TofuVersion,
-    "ru.tinkoff"  %% "tofu-streams"        % TofuVersion,
-    "ru.tinkoff"  %% "tofu-fs2-interop"    % TofuVersion,
+    "ru.tinkoff" %% "tofu-core"         % TofuVersion,
+    "ru.tinkoff" %% "tofu-concurrent"   % TofuVersion,
+    "ru.tinkoff" %% "tofu-env"          % TofuVersion,
+    "ru.tinkoff" %% "tofu-optics-core"  % TofuVersion,
+    "ru.tinkoff" %% "tofu-optics-macro" % TofuVersion,
+    "ru.tinkoff" %% "tofu-derivation"   % TofuVersion,
+    "ru.tinkoff" %% "tofu-logging"      % TofuVersion,
+    "ru.tinkoff" %% "tofu-doobie"       % TofuVersion,
+    "ru.tinkoff" %% "tofu-streams"      % TofuVersion,
+    "ru.tinkoff" %% "tofu-fs2-interop"  % TofuVersion
+  )
+
+  val Derevo: List[ModuleID] = List(
     "org.manatki" %% "derevo-cats"         % DerevoVersion,
-    "org.manatki" %% "derevo-cats-tagless" % DerevoVersion
+    "org.manatki" %% "derevo-cats-tagless" % DerevoVersion,
+    "org.manatki" %% "derevo-pureconfig"   % DerevoVersion
   )
 
   val Ergo: List[ModuleID] = List(
@@ -124,6 +128,7 @@ object dependencies {
     Ergo ++
     Cats ++
     Tofu ++
+    Derevo ++
     Fs2 ++
     Circe ++
     Typing ++

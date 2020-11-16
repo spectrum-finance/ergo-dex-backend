@@ -4,7 +4,6 @@ import cats.effect.ExitCode
 import fs2._
 import monix.eval.{Task, TaskApp}
 import mouse.any._
-import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
 import org.ergoplatform.dex.protocol.models.Transaction
 import org.ergoplatform.dex.streaming.{Consumer, MakeKafkaConsumer, MakeKafkaProducer, Producer}
@@ -44,7 +43,6 @@ object App extends TaskApp {
       consumer                                                  = Consumer.make[StreamF, AppF, TxId, Transaction]
       producer                                                  = Producer.make[StreamF, AppF, OrderId, AnyOrder]
       implicit0(bundle: StreamingBundle[StreamF, AppF])         = StreamingBundle(consumer, producer)
-      implicit0(e: ErgoAddressEncoder)                          = ErgoAddressEncoder(configs.protocol.addressPrefix)
       tracker <- OrdersTracker.make[InitF, StreamF, AppF, Chunk]
     } yield tracker -> configs
 }
