@@ -57,7 +57,7 @@ object Consumer {
     K,
     V
   ](implicit makeConsumer: MakeKafkaConsumer[G, K, V]): Consumer[K, V, F, G] =
-    Embed.of(
+    embed.embed(
       (context map (conf => functorK.mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF)))
         .asInstanceOf[F[Consumer.Aux[K, V, Live[K, V, F]#O, F, G]]]
     )

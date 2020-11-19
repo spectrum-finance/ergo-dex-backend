@@ -37,7 +37,7 @@ object MakeKafkaProducer {
     K: RecordSerializer[F, *],
     V: RecordSerializer[F, *]
   ](implicit U: Unlift[I, F]): MakeKafkaProducer[F, K, V] =
-    Embed.of(
+    embed.embed(
       U.concurrentEffect.map { implicit ce =>
         new MakeKafkaProducer[F, K, V] {
           def apply(config: ProducerConfig): Pipe[F, ProducerRecords[K, V, Unit], Unit] = {
