@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.protocol.models
 
-import io.circe.Json
+import io.circe.{Decoder, Json}
 import io.circe.refined._
 import org.ergoplatform.dex.{BoxId, HexString}
 
@@ -15,3 +15,8 @@ final case class Output(
   assets: List[Asset],
   additionalRegisters: Json
 )
+
+object Output {
+
+  implicit val decoder: Decoder[Output] = io.circe.derivation.deriveDecoder
+}

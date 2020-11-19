@@ -1,5 +1,6 @@
 package org.ergoplatform.dex.protocol.models
 
+import io.circe.Decoder
 import org.ergoplatform.dex.AssetId
 
 /** A model mirroring Asset entity from Ergo node REST API.
@@ -9,3 +10,8 @@ final case class Asset(
   tokenId: AssetId,
   amount: Long
 )
+
+object Asset {
+
+  implicit val decoder: Decoder[Asset] = io.circe.derivation.deriveDecoder
+}

@@ -1,12 +1,14 @@
 package org.ergoplatform.dex.executor.config
 
-import cats.effect.Sync
-import org.ergoplatform.dex.configs.{ConsumerConfig, NetworkConfig, ProtocolConfig}
+import derevo.derive
+import derevo.pureconfig.pureconfigReader
+import org.ergoplatform.dex.configs.{ConfigBundleCompanion, ConsumerConfig, NetworkConfig, ProtocolConfig}
 import org.ergoplatform.dex.streaming.CommitPolicy
 import tofu.Context
 import tofu.logging.Loggable
-import tofu.optics.macros.{promote, ClassyOptics}
+import tofu.optics.macros.{ClassyOptics, promote}
 
+@derive(pureconfigReader)
 @ClassyOptics
 final case class ConfigBundle(
   @promote commitPolicy: CommitPolicy,
@@ -16,9 +18,7 @@ final case class ConfigBundle(
   @promote network: NetworkConfig
 )
 
-object ConfigBundle extends Context.Companion[ConfigBundle] {
+object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {
 
   implicit val loggable: Loggable[ConfigBundle] = Loggable.empty
-
-  def load[F[_]: Sync](pathOpt: Option[String]): F[ConfigBundle] = ???
 }

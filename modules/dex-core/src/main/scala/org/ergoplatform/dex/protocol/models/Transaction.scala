@@ -1,6 +1,9 @@
 package org.ergoplatform.dex.protocol.models
 
+import cats.effect.Sync
 import fs2.kafka.RecordDeserializer
+import fs2.kafka.instances.deserializerByDecoder
+import io.circe.Decoder
 import org.ergoplatform.dex.TxId
 
 /** A model mirroring ErgoTransaction entity from Ergo node REST API.
@@ -15,5 +18,7 @@ final case class Transaction(
 
 object Transaction {
 
-  implicit def recordDeserializer[F[_]]: RecordDeserializer[F, Transaction] = ???
+  implicit val decoder: Decoder[Transaction] = io.circe.derivation.deriveDecoder
+
+  implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, Transaction] = deserializerByDecoder
 }

@@ -1,10 +1,11 @@
 package org.ergoplatform
 
-import cats.{Applicative, Show}
+import cats.effect.Sync
 import cats.instances.either._
+import cats.instances.string._
 import cats.syntax.either._
 import cats.syntax.functor._
-import cats.instances.string._
+import cats.{Applicative, Show}
 import derevo.derive
 import doobie._
 import eu.timepit.refined.api.Refined
@@ -17,7 +18,8 @@ import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.Err.RefinementFailed
 import org.ergoplatform.dex.constraints.{AddressType, Base58Spec, HexStringType, UrlStringType}
-import org.ergoplatform.dex.protocol.models.Transaction
+import fs2.kafka.instances._
+import org.ergoplatform.dex.BoxId
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import scorex.util.encode.Base16
@@ -45,8 +47,12 @@ package object dex {
     implicit val get: Get[OrderId] = deriving
     implicit val put: Put[OrderId] = deriving
 
-    implicit def recordSerializer[F[_]]: RecordSerializer[F, OrderId]     = ???
-    implicit def recordDeserializer[F[_]]: RecordDeserializer[F, OrderId] = ???
+    // circe instances
+    implicit val encoder: Encoder[OrderId] = deriving
+    implicit val decoder: Decoder[OrderId] = deriving
+
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OrderId]     = serializerByEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OrderId] = deserializerByDecoder
   }
 
   @newtype case class TradeId(value: String)
@@ -55,8 +61,12 @@ package object dex {
     implicit val get: Get[TradeId] = deriving
     implicit val put: Put[TradeId] = deriving
 
-    implicit def recordSerializer[F[_]]: RecordSerializer[F, TradeId]     = ???
-    implicit def recordDeserializer[F[_]]: RecordDeserializer[F, TradeId] = ???
+    // circe instances
+    implicit val encoder: Encoder[TradeId] = deriving
+    implicit val decoder: Decoder[TradeId] = deriving
+
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, TradeId]     = serializerByEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TradeId] = deserializerByDecoder
   }
 
   @newtype case class TxId(value: String)
@@ -66,7 +76,7 @@ package object dex {
     implicit val encoder: Encoder[TxId] = deriving
     implicit val decoder: Decoder[TxId] = deriving
 
-    implicit def recordDeserializer[F[_]]: RecordDeserializer[F, TxId] = ???
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TxId] = deserializerByDecoder
   }
 
   @newtype case class BoxId(value: String)
@@ -123,6 +133,10 @@ package object dex {
     // circe instances
     implicit val encoder: Encoder[Address] = deriving
     implicit val decoder: Decoder[Address] = deriving
+
+    implicit val configReader: ConfigReader[Address] = implicitly[ConfigReader[String]].emap { raw =>
+      fromString[Either[Throwable, *]](raw).leftMap(e => CannotConvert(raw, "Address", e.getMessage))
+    }
 
     def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String

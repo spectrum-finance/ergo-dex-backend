@@ -10,7 +10,7 @@ object instances {
 
   private val charset = "UTF-8"
 
-  implicit def deserializerFromDecoder[F[_]: Sync, A: Decoder]: RecordDeserializer[F, A] =
+  implicit def deserializerByDecoder[F[_]: Sync, A: Decoder]: RecordDeserializer[F, A] =
     RecordDeserializer.lift {
       Deserializer.lift { xs =>
         val raw = new String(xs, charset)
@@ -18,7 +18,7 @@ object instances {
       }
     }
 
-  implicit def serializerFromEncoder[F[_]: Sync, A: Encoder]: RecordSerializer[F, A] =
+  implicit def serializerByEncoder[F[_]: Sync, A: Encoder]: RecordSerializer[F, A] =
     RecordSerializer.lift {
       Serializer.lift { a =>
         a.asJson.noSpacesSortKeys.getBytes(charset).pure

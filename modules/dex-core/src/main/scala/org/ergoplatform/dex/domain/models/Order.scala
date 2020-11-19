@@ -22,7 +22,7 @@ import tofu.logging.{Loggable, _}
   * @param feePerToken - amount of fee (in nanoERG) per one traded `quoteAsset`
   * @param meta - order metadata
   */
-final case class Order[T <: OrderType](
+final case class Order[+T <: OrderType](
   `type`: T,
   quoteAsset: AssetId,
   baseAsset: AssetId,
@@ -43,7 +43,7 @@ object Order {
 
   type Ask      = Order[OrderType.Ask.type]
   type Bid      = Order[OrderType.Bid.type]
-  type AnyOrder = Order[_ <: OrderType]
+  type AnyOrder = Order[OrderType]
 
   implicit val write: Write[AnyOrder] = Write[Ask].asInstanceOf[Write[AnyOrder]]
 
@@ -67,16 +67,16 @@ object Order {
     }
 
   implicit val encoder: Encoder[AnyOrder] =
-    io.circe.derivation.deriveEncoder[Order[OrderType]].asInstanceOf[Encoder[AnyOrder]]
+    io.circe.derivation.deriveEncoder[Order[OrderType]]
 
   implicit val decoder: Decoder[AnyOrder] =
-    io.circe.derivation.deriveDecoder[Order[OrderType]].asInstanceOf[Decoder[AnyOrder]]
+    io.circe.derivation.deriveDecoder[Order[OrderType]]
 
   implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, AnyOrder] =
-    fs2.kafka.instances.serializerFromEncoder
+    fs2.kafka.instances.serializerByEncoder
 
   implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, AnyOrder] =
-    fs2.kafka.instances.deserializerFromDecoder
+    fs2.kafka.instances.deserializerByDecoder
 
   def mkBid(
     quoteAsset: AssetId,
