@@ -45,7 +45,7 @@ object Order {
   type Bid      = Order[OrderType.Bid.type]
   type AnyOrder = Order[OrderType]
 
-  implicit val write: Write[AnyOrder] = Write[Ask].asInstanceOf[Write[AnyOrder]]
+  implicit val write: Write[AnyOrder] = Write[AnyOrder]
 
   implicit def show[T <: OrderType]: Show[Order[T]] =
     o =>
@@ -67,10 +67,10 @@ object Order {
     }
 
   implicit val encoder: Encoder[AnyOrder] =
-    io.circe.derivation.deriveEncoder[Order[OrderType]]
+    io.circe.derivation.deriveEncoder[AnyOrder]
 
   implicit val decoder: Decoder[AnyOrder] =
-    io.circe.derivation.deriveDecoder[Order[OrderType]]
+    io.circe.derivation.deriveDecoder[AnyOrder]
 
   implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, AnyOrder] =
     fs2.kafka.instances.serializerByEncoder
