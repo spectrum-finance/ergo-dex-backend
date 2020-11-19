@@ -40,7 +40,7 @@ object MakeKafkaConsumer {
     K: RecordDeserializer[F, *],
     V: RecordDeserializer[F, *]
   ](implicit U: Unlift[I, F]): MakeKafkaConsumer[F, K, V] =
-    embed.embed(
+    Embed.of(
       U.concurrentEffect.map { implicit ce =>
         new MakeKafkaConsumer[F, K, V] {
           def apply(config: ConsumerConfig): Stream[F, KafkaConsumer[F, K, V]] = {
