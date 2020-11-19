@@ -64,6 +64,7 @@ object dependencies {
   val Derevo: List[ModuleID] = List(
     "org.manatki" %% "derevo-cats"         % DerevoVersion,
     "org.manatki" %% "derevo-cats-tagless" % DerevoVersion,
+    "org.manatki" %% "derevo-circe"        % DerevoVersion,
     "org.manatki" %% "derevo-pureconfig"   % DerevoVersion
   )
 

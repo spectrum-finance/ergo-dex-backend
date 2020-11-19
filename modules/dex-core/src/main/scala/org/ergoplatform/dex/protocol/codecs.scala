@@ -12,12 +12,12 @@ import scorex.crypto.authds.{ADDigest, ADKey}
 import scorex.crypto.hash.Digest32
 import scorex.util.ModifierId
 import sigmastate.Values.{ErgoTree, EvaluatedValue}
+import sigmastate.basics.DLogProtocol.ProveDlog
 import sigmastate.eval.Extensions._
 import sigmastate.eval._
 import sigmastate.interpreter.{ContextExtension, ProverResult}
-import sigmastate.serialization.ValueSerializer
+import sigmastate.serialization.{GroupElementSerializer, ValueSerializer, ErgoTreeSerializer => SigmaErgoTreeSerializer}
 import sigmastate.{AvlTreeData, AvlTreeFlags, SType}
-import sigmastate.serialization.{ErgoTreeSerializer => SigmaErgoTreeSerializer}
 import special.collection.Coll
 
 import scala.util.Try
@@ -76,6 +76,13 @@ object codecs {
 
   implicit val digest32Encoder: Encoder[Digest32] = Encoder.instance(_.array.asJson)
   implicit val digest32Decoder: Decoder[Digest32] = bytesDecoder(Digest32 @@ _)
+
+  implicit val proveDlogEncoder: Encoder[ProveDlog] = arrayBytesEncoder.contramap[ProveDlog](_.pkBytes)
+
+  implicit val proveDlogDecoder: Decoder[ProveDlog] =
+    arrayBytesDecoder.emap { xs =>
+      Try(GroupElementSerializer.parse(xs)).toEither.leftMap(_.getMessage).map(ProveDlog(_))
+    }
 
   implicit val assetEncoder: Encoder[(TokenId, Long)] =
     Encoder.instance { asset =>
