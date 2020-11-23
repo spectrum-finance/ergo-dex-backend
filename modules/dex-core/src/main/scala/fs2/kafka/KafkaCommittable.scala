@@ -19,9 +19,9 @@ object KafkaCommittable {
       def offset: (TopicPartition, OffsetAndMetadata) =
         committable.offset.topicPartition -> committable.offset.offsetAndMetadata
 
-      def commit: ((TopicPartition, OffsetAndMetadata)) => F[Unit] = offset => batchCommit(Chain.one(offset))
+      def commit[O1 >: (TopicPartition, OffsetAndMetadata)]: O1 => F[Unit] = offset => batchCommit(Chain.one(offset))
 
-      def batchCommit: Chain[(TopicPartition, OffsetAndMetadata)] => F[Unit] = offsets =>
-        committable.offset.commitOffsets(offsets.toList.toMap)
+      def batchCommit[O1 >: (TopicPartition, OffsetAndMetadata)]: Chain[O1] => F[Unit] = offsets =>
+        committable.offset.commitOffsets(offsets.toList.asInstanceOf[List[(TopicPartition, OffsetAndMetadata)]].toMap)
     }
 }

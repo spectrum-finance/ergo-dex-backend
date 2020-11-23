@@ -13,6 +13,8 @@ import tofu.higherKind.Embed
 import tofu.syntax.context._
 import tofu.syntax.monadic._
 
+import scala.annotation.unchecked.uncheckedVariance
+
 trait Consumer[K, V, F[_], G[_]] {
 
   type O
@@ -24,21 +26,21 @@ object Consumer {
 
   type Aux[K, V, O1, F[_], G[_]] = Consumer[K, V, F, G] { type O = O1 }
 
-  final private class ConsumerContainer[K, V, O1, F[_]: FlatMap, G[_]](
-    ffa: F[Consumer.Aux[K, V, O1, F, G]]
+  final private class ConsumerContainer[K, V, F[_]: FlatMap, G[_]](
+    ffa: F[Consumer[K, V, F, G]]
   ) extends Consumer[K, V, F, G] {
 
-    type O = O1
+    type O = Any
 
     def stream: F[Committable[K, V, O, G]] =
-      ffa.flatMap(_.stream)
+      ffa.flatMap(_.stream.widen[Committable[K, V, O, G]])
   }
 
-  implicit def embed[I[_], K, V, O]: Embed[Consumer.Aux[K, V, O, *[_], I]] =
-    new Embed[Consumer.Aux[K, V, O, *[_], I]] {
+  implicit def embed[I[_], K, V]: Embed[Consumer[K, V, *[_], I]] =
+    new Embed[Consumer[K, V, *[_], I]] {
 
-      def embed[F[_]: FlatMap](ft: F[Consumer.Aux[K, V, O, F, I]]): Consumer.Aux[K, V, O, F, I] =
-        new ConsumerContainer[K, V, O, F, I](ft)
+      def embed[F[_]: FlatMap](ft: F[Consumer[K, V, F, I]]): Consumer[K, V, F, I] =
+        new ConsumerContainer[K, V, F, I](ft)
     }
 
   implicit def functorK[I[_], K, V]: FunctorK[Consumer[K, V, *[_], I]] =
@@ -58,8 +60,7 @@ object Consumer {
     V
   ](implicit makeConsumer: MakeKafkaConsumer[G, K, V]): Consumer[K, V, F, G] =
     embed.embed(
-      (context map (conf => functorK.mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF)))
-        .asInstanceOf[F[Consumer.Aux[K, V, Live[K, V, F]#O, F, G]]]
+      context map (conf => functorK.mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF))
     )
 
   final class Live[K, V, F[_]: Functor](config: ConsumerConfig)(implicit
