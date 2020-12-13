@@ -1,26 +1,34 @@
 package org.ergoplatform.dex.clients
 
-import cats.Monad
+import cats.FlatMap
 import cats.syntax.either._
-import derevo.derive
+import cats.tagless.FunctorK
+import cats.tagless.syntax.functorK._
+import fs2.Stream
+import io.circe.Json
+import io.circe.jawn.CirceSupportParser
+import jawnfs2._
 import org.ergoplatform.ErgoLikeTransaction
+import org.ergoplatform.alg.ConstrainedEmbed
 import org.ergoplatform.dex.TxId
 import org.ergoplatform.dex.clients.errors.ResponseError
-import org.ergoplatform.dex.explorer.models.{BlockInfo, Items, TxIdResponse}
 import org.ergoplatform.dex.configs.NetworkConfig
-import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.dex.explorer.constants._
+import org.ergoplatform.dex.explorer.models.{BlockInfo, Items, Output, TxIdResponse}
+import org.ergoplatform.dex.protocol.codecs._
+import org.typelevel.jawn.Facade
+import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3._
 import sttp.client3.circe._
 import sttp.model.{MediaType, Uri}
-import tofu.higherKind.derived.representableK
-import tofu.{Raise, WithContext}
-import tofu.syntax.monadic._
-import tofu.syntax.raise._
+import tofu.fs2.LiftStream
+import tofu.streams.Evals
 import tofu.syntax.context._
 import tofu.syntax.embed._
+import tofu.syntax.monadic._
+import tofu.syntax.raise._
+import tofu.{MonadThrow, WithContext}
 
-@derive(representableK)
 trait ErgoNetworkClient[F[_]] {
 
   /** Submit a transaction to the network.
@@ -32,20 +40,61 @@ trait ErgoNetworkClient[F[_]] {
   def getCurrentHeight: F[Int]
 }
 
-object ErgoNetworkClient {
+trait StreamingErgoNetworkClient[S[_], F[_]] extends ErgoNetworkClient[F] {
 
-  def make[F[_]: Monad: Raise[*[_], ResponseError]: WithContext[*[_], NetworkConfig]](implicit
-    backend: SttpBackend[F, Any]
-  ): ErgoNetworkClient[F] =
-    context.map(conf => new ErgoExplorerNetworkClient[F](conf): ErgoNetworkClient[F]).embed
+  /** Get a stream of unspent outputs appeared in the network after `lastEpochs`.
+    */
+  def streamUnspentOutputs(lastEpochs: Int): S[Output]
+}
 
-  final private class ErgoExplorerNetworkClient[
-    F[_]: Monad: Raise[*[_], ResponseError]
+object StreamingErgoNetworkClient {
+
+  final private class ClientContainer[S[_]: FlatMap, F[_]: FlatMap](tft: F[StreamingErgoNetworkClient[S, F]])(implicit
+    evals: Evals[S, F]
+  ) extends StreamingErgoNetworkClient[S, F] {
+
+    def submitTransaction(tx: ErgoLikeTransaction): F[TxId] =
+      tft.flatMap(_.submitTransaction(tx))
+
+    def getCurrentHeight: F[Int] =
+      tft.flatMap(_.getCurrentHeight)
+
+    def streamUnspentOutputs(lastEpochs: Int): S[Output] =
+      evals.eval(tft.map(_.streamUnspentOutputs(lastEpochs))).flatten
+  }
+
+  implicit def functorK[F[_]]: FunctorK[StreamingErgoNetworkClient[*[_], F]] = {
+    type Mod[S[_]] = StreamingErgoNetworkClient[S, F]
+    cats.tagless.Derive.functorK[Mod]
+  }
+
+  implicit def cEmbed[S[_]: FlatMap]: ConstrainedEmbed[StreamingErgoNetworkClient[S, *[_]], Evals[S, *[_]]] =
+    new ConstrainedEmbed[StreamingErgoNetworkClient[S, *[_]], Evals[S, *[_]]] {
+
+      def embed[F[_]: FlatMap: Evals[S, *[_]]](
+        ft: F[StreamingErgoNetworkClient[S, F]]
+      ): StreamingErgoNetworkClient[S, F] =
+        new ClientContainer[S, F](ft)
+    }
+
+  def make[
+    S[_]: FlatMap: Evals[*[_], F]: LiftStream[*[_], F],
+    F[_]: MonadThrow: WithContext[*[_], NetworkConfig]
+  ](implicit backend: SttpBackend[F, Fs2Streams[F]]): StreamingErgoNetworkClient[S, F] =
+    cEmbed[S].embed(
+      context
+        .map(conf => new ErgoExplorerNetworkClient[F](conf))
+        .map(client => functorK.mapK(client)(LiftStream[S, F].liftF))
+    )
+
+  final class ErgoExplorerNetworkClient[
+    F[_]: MonadThrow
   ](networkConfig: NetworkConfig)(implicit
-    backend: SttpBackend[F, Any]
-  ) extends ErgoNetworkClient[F] {
+    backend: SttpBackend[F, Fs2Streams[F]]
+  ) extends StreamingErgoNetworkClient[Stream[F, *], F] {
 
-    private val explorerUri = Uri.unsafeApply(networkConfig.explorerUri)
+    private val explorerUri                   = Uri.unsafeApply(networkConfig.explorerUri)
+    implicit private val facade: Facade[Json] = new CirceSupportParser(None, allowDuplicateKeys = false).facade
 
     def submitTransaction(tx: ErgoLikeTransaction): F[TxId] =
       basicRequest
@@ -64,5 +113,20 @@ object ErgoNetworkClient {
         .send(backend)
         .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
         .map(_.items.headOption.map(_.height).getOrElse(0))
+
+    def streamUnspentOutputs(lastEpochs: Int): Stream[F, Output] = {
+      val req =
+        basicRequest
+          .get(explorerUri.withPathSegment(utxoPathSeg).addParams("lastEpochs" -> lastEpochs.toString))
+          .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
+          .send(backend)
+          .map(_.body)
+      Stream
+        .force(req)
+        .chunks
+        .parseJsonStream
+        .map(_.as[Output].toOption)
+        .unNone
+    }
   }
 }

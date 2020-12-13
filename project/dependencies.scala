@@ -12,7 +12,7 @@ object dependencies {
 
   val SttpClient: List[ModuleID] =
     List(
-      "com.softwaremill.sttp.client3" %% "async-http-client-backend-cats"
+      "com.softwaremill.sttp.client3" %% "async-http-client-backend-fs2"
     ).map(_ % SttpVersion)
 
   val Circe: List[ModuleID] =
@@ -43,6 +43,8 @@ object dependencies {
   )
 
   val Fs2: List[ModuleID] = List("co.fs2" %% "fs2-core" % Fs2Version)
+
+  val JawnFs2: List[ModuleID] = List("org.http4s" %% "jawn-fs2" % JawnFs2Version)
 
   val Kafka: List[ModuleID] = List(
     "com.github.fd4s" %% "fs2-kafka" % Fs2KafkaVersion
@@ -131,11 +133,13 @@ object dependencies {
     Tofu ++
     Derevo ++
     Fs2 ++
+    JawnFs2 ++
     Circe ++
     Typing ++
     Config ++
     Kafka ++
     SttpCore ++
+    SttpClient ++
     Enums
 
   lazy val tracker: List[ModuleID] = Monix

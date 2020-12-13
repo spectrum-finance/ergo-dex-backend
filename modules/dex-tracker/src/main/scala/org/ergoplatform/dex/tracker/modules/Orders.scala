@@ -11,10 +11,10 @@ import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.models.Order._
 import org.ergoplatform.dex.domain.models.OrderMeta
+import org.ergoplatform.dex.explorer.models.{Asset, Output}
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
-import org.ergoplatform.dex.protocol.models.{Asset, Output}
 import org.ergoplatform.dex.tracker.domain.errors.{AssetNotProvided, BadParams, FeeNotSatisfied, OrderError}
-import org.ergoplatform.dex.{AssetId, constants}
+import org.ergoplatform.dex.{constants, AssetId}
 import sigmastate.Values.ErgoTree
 import tofu.higherKind.derived.representableK
 import tofu.syntax.context._

@@ -3,7 +3,7 @@ object versions {
   val ErgoWalletVersion     = "v3.3.4-62fbc4b7-SNAPSHOT"
   val ErgoContractsVertions = "0.0.0-1-c9a6de18-SNAPSHOT"
 
-  val SttpVersion            = "3.0.0-RC9"
+  val SttpVersion            = "3.0.0-RC11"
   val CirceVersion           = "0.12.3"
   val CirceDerivationVersion = "0.12.0-M7"
   val CatsVersion            = "2.1.0"
@@ -13,6 +13,7 @@ object versions {
   val CatsTaglessVersion     = "0.10"
   val MouseVersion           = "0.23"
   val Fs2Version             = "2.2.2"
+  val JawnFs2Version         = "1.0.0"
   val Fs2KafkaVersion        = "1.0.0"
   val DoobieVersion          = "0.9.2"
   val FlywayVersion          = "5.1.1"

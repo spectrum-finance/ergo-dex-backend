@@ -15,22 +15,22 @@ import tofu.syntax.monadic._
 
 trait Consumer[K, V, F[_], G[_]] {
 
-  type O
+  type Offset
 
-  def stream: F[Committable[K, V, O, G]]
+  def stream: F[Committable[K, V, Offset, G]]
 }
 
 object Consumer {
 
-  type Aux[K, V, O1, F[_], G[_]] = Consumer[K, V, F, G] { type O = O1 }
+  type Aux[K, V, O, F[_], G[_]] = Consumer[K, V, F, G] { type Offset = O }
 
   final private class ConsumerContainer[K, V, O1, F[_]: FlatMap, G[_]](
     ffa: F[Consumer.Aux[K, V, O1, F, G]]
   ) extends Consumer[K, V, F, G] {
 
-    type O = O1
+    type Offset = O1
 
-    def stream: F[Committable[K, V, O, G]] =
+    def stream: F[Committable[K, V, Offset, G]] =
       ffa.flatMap(_.stream)
   }
 
@@ -46,8 +46,8 @@ object Consumer {
 
       def mapK[F[_], G[_]](af: Consumer[K, V, F, I])(fk: F ~> G): Consumer[K, V, G, I] =
         new Consumer[K, V, G, I] {
-          type O = af.O
-          def stream: G[Committable[K, V, O, I]] = fk(af.stream)
+          type Offset = af.Offset
+          def stream: G[Committable[K, V, Offset, I]] = fk(af.stream)
         }
     }
 
@@ -59,16 +59,16 @@ object Consumer {
   ](implicit makeConsumer: MakeKafkaConsumer[G, K, V]): Consumer[K, V, F, G] =
     embed.embed(
       (context map (conf => functorK.mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF)))
-        .asInstanceOf[F[Consumer.Aux[K, V, Live[K, V, F]#O, F, G]]]
+        .asInstanceOf[F[Consumer.Aux[K, V, Live[K, V, F]#Offset, F, G]]]
     )
 
   final class Live[K, V, F[_]: Functor](config: ConsumerConfig)(implicit
     makeConsumer: MakeKafkaConsumer[F, K, V]
   ) extends Consumer[K, V, Stream[F, *], F] {
 
-    type O = (TopicPartition, OffsetAndMetadata)
+    type Offset = (TopicPartition, OffsetAndMetadata)
 
-    def stream: Stream[F, Committable[K, V, O, F]] =
+    def stream: Stream[F, Committable[K, V, Offset, F]] =
       makeConsumer(config)
         .evalTap(_.subscribeTo(config.topicId.value))
         .flatMap(_.stream)

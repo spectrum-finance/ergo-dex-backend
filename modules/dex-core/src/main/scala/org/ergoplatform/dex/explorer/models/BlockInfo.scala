@@ -1,8 +1,9 @@
 package org.ergoplatform.dex.explorer.models
 
-import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
+import derevo.circe.decoder
+import derevo.derive
 
+@derive(decoder)
 final case class BlockInfo(
   id: String,
   height: Int,
@@ -12,8 +13,3 @@ final case class BlockInfo(
   difficulty: Long,
   minerReward: Long
 )
-
-object BlockInfo {
-
-  implicit val decoder: Decoder[BlockInfo] = deriveDecoder
-}
