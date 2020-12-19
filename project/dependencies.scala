@@ -47,7 +47,8 @@ object dependencies {
   val JawnFs2: List[ModuleID] = List("org.http4s" %% "jawn-fs2" % JawnFs2Version)
 
   val Kafka: List[ModuleID] = List(
-    "com.github.fd4s" %% "fs2-kafka" % Fs2KafkaVersion
+    "com.github.fd4s"           %% "fs2-kafka"        % Fs2KafkaVersion,
+    "com.fasterxml.jackson.core" % "jackson-databind" % JacksonVersion
   )
 
   val Tofu: List[ModuleID] = List(

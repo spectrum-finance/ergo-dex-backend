@@ -2,10 +2,10 @@ package org.ergoplatform.dex.explorer.models
 
 import derevo.circe.decoder
 import derevo.derive
-import io.circe.Json
 import org.ergoplatform.dex.{Address, BoxId, HexString, TxId}
+import tofu.logging.derivation.loggable
 
-@derive(decoder)
+@derive(decoder, loggable)
 final case class Output(
   boxId: BoxId,
   transactionId: TxId,
@@ -15,7 +15,6 @@ final case class Output(
   ergoTree: HexString,
   address: Option[Address],
   assets: List[Asset],
-  additionalRegisters: Json,
   spentTransactionId: Option[TxId],
   mainChain: Boolean
 )

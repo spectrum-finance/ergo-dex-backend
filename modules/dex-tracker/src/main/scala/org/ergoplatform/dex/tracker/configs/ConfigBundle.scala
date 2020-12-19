@@ -12,10 +12,10 @@ import tofu.optics.macros.{ClassyOptics, promote}
 @ClassyOptics
 final case class ConfigBundle(
   @promote commitPolicy: CommitPolicy,
-  @promote consumer: ConsumerConfig,
   @promote producer: ProducerConfig,
   @promote protocol: ProtocolConfig,
-  @promote network: NetworkConfig
+  @promote network: NetworkConfig,
+  @promote tracker: TrackerConfig
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {

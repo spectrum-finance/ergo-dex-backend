@@ -14,14 +14,13 @@ import org.ergoplatform.dex.matcher.services.{LimitOrderBook, OrderBook}
 import org.ergoplatform.dex.matcher.streaming.StreamingBundle
 import org.ergoplatform.dex.streaming.{Consumer, MakeKafkaConsumer, MakeKafkaProducer, Producer}
 import org.ergoplatform.dex.{OrderId, TradeId}
+import tofu.doobie.instances.implicits._
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.doobie.transactor.Txr
-import tofu.doobie.instances.implicits._
 import tofu.env.Env
-import tofu.lift.IsoK
 import tofu.fs2Instances._
+import tofu.lift.IsoK
 import tofu.logging.{LoggableContext, Logs}
-import tofu.syntax.monadic._
 
 object App extends TaskApp {
 
@@ -48,7 +47,7 @@ object App extends TaskApp {
       implicit0(ordersRepo: OrdersRepo[xa.DB]) = OrdersRepo.make[xa.DB]
       implicit0(orderBook: OrderBook[AppF]) <- Resource.liftF(LimitOrderBook.make[InitF, AppF, xa.DB])
       implicit0(mc: MakeKafkaConsumer[AppF, OrderId, AnyOrder]) = MakeKafkaConsumer.make[InitF, AppF, OrderId, AnyOrder]
-      implicit0(mp: MakeKafkaProducer[AppF, TradeId, AnyTrade]) = MakeKafkaProducer.make[InitF, AppF, TradeId, AnyTrade]
+      implicit0(mp: MakeKafkaProducer[AppF, TradeId, AnyTrade]) = MakeKafkaProducer.make[AppF, TradeId, AnyTrade]
       implicit0(isoK: IsoK[StreamF, StreamF])                   = IsoK.id[StreamF]
       consumer                                                  = Consumer.make[StreamF, AppF, OrderId, AnyOrder]
       producer                                                  = Producer.make[StreamF, AppF, TradeId, AnyTrade]

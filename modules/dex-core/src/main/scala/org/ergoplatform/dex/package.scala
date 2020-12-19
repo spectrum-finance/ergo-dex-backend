@@ -11,6 +11,7 @@ import doobie._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
 import eu.timepit.refined.{refineV, W}
+import fs2.kafka.instances._
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
@@ -18,8 +19,6 @@ import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.Err.RefinementFailed
 import org.ergoplatform.dex.constraints.{AddressType, Base58Spec, HexStringType, UrlStringType}
-import fs2.kafka.instances._
-import org.ergoplatform.dex.BoxId
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import scorex.util.encode.Base16
@@ -44,6 +43,9 @@ package object dex {
   @newtype case class OrderId(value: String)
 
   object OrderId {
+
+    implicit val loggable: Loggable[OrderId] = deriving
+
     implicit val get: Get[OrderId] = deriving
     implicit val put: Put[OrderId] = deriving
 
@@ -58,6 +60,9 @@ package object dex {
   @newtype case class TradeId(value: String)
 
   object TradeId {
+
+    implicit val loggable: Loggable[TradeId] = deriving
+
     implicit val get: Get[TradeId] = deriving
     implicit val put: Put[TradeId] = deriving
 
@@ -72,6 +77,9 @@ package object dex {
   @newtype case class TxId(value: String)
 
   object TxId {
+
+    implicit val loggable: Loggable[TxId] = deriving
+
     // circe instances
     implicit val encoder: Encoder[TxId] = deriving
     implicit val decoder: Decoder[TxId] = deriving
@@ -130,6 +138,10 @@ package object dex {
   }
 
   object Address {
+
+    implicit val show: Show[Address]         = _.unwrapped
+    implicit val loggable: Loggable[Address] = Loggable.show
+
     // circe instances
     implicit val encoder: Encoder[Address] = deriving
     implicit val decoder: Decoder[Address] = deriving
@@ -159,7 +171,8 @@ package object dex {
     implicit val encoder: Encoder[HexString] = deriving
     implicit val decoder: Decoder[HexString] = deriving
 
-    implicit val show: Show[HexString] = _.unwrapped
+    implicit val show: Show[HexString]         = _.unwrapped
+    implicit val loggable: Loggable[HexString] = Loggable.show
 
     implicit val get: Get[HexString] =
       Get[String]

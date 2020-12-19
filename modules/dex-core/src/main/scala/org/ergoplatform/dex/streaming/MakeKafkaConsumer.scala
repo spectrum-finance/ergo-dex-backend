@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.streaming
 
-import cats.effect.{ConcurrentEffect, ContextShift, Timer}
+import cats.effect.{Concurrent, ConcurrentEffect, ContextShift, Timer}
 import cats.{FlatMap, Functor}
 import fs2.Stream
 import fs2.kafka._
@@ -36,7 +36,7 @@ object MakeKafkaConsumer {
 
   def make[
     I[_]: ConcurrentEffect,
-    F[_]: FlatMap: Timer: ContextShift,
+    F[_]: Concurrent: Timer: ContextShift,
     K: RecordDeserializer[F, *],
     V: RecordDeserializer[F, *]
   ](implicit U: Unlift[I, F]): MakeKafkaConsumer[F, K, V] =

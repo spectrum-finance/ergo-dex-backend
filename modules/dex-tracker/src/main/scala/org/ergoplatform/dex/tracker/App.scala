@@ -21,7 +21,6 @@ import tofu.lift.IsoK
 import tofu.logging.derivation.loggable.generate
 import tofu.logging.{LoggableContext, Logs}
 import tofu.syntax.embed._
-import tofu.syntax.monadic._
 import tofu.syntax.unlift._
 
 object App extends TaskApp {
@@ -44,7 +43,7 @@ object App extends TaskApp {
     for {
       blocker <- Blocker[InitF]
       configs <- Resource.liftF(ConfigBundle.load(configPathOpt))
-      implicit0(mp: MakeKafkaProducer[RunF, OrderId, AnyOrder]) = MakeKafkaProducer.make[InitF, RunF, OrderId, AnyOrder]
+      implicit0(mp: MakeKafkaProducer[RunF, OrderId, AnyOrder]) = MakeKafkaProducer.make[RunF, OrderId, AnyOrder]
       implicit0(isoK: IsoK[StreamF, StreamF])                   = IsoK.id[StreamF]
       implicit0(producer: Producer[OrderId, AnyOrder, StreamF]) = Producer.make[StreamF, RunF, OrderId, AnyOrder]
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
