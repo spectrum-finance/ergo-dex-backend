@@ -28,8 +28,6 @@ object dependencies {
   val Cats: List[ModuleID] = List(
     "org.typelevel" %% "cats-core"           % CatsVersion,
     "org.typelevel" %% "cats-effect"         % CatsEffectVersion,
-    "org.typelevel" %% "cats-mtl-core"       % CatsMtlVersion,
-    "com.olegpy"    %% "meow-mtl-core"       % CatsMeowMtl,
     "org.typelevel" %% "cats-tagless-macros" % CatsTaglessVersion,
     "org.typelevel" %% "cats-tagless-core"   % CatsTaglessVersion,
     "org.typelevel" %% "mouse"               % MouseVersion
@@ -105,8 +103,6 @@ object dependencies {
     "com.beachape" %% "enumeratum"       % EnumeratumVersion,
     "com.beachape" %% "enumeratum-circe" % EnumeratumCirceVersion
   )
-
-  val Redis = List("dev.profunktor" %% "redis4cats-effects" % CatsRedisV)
 
   val Config: List[ModuleID] = List(
     "com.github.pureconfig" %% "pureconfig"             % PureConfigVersion,
