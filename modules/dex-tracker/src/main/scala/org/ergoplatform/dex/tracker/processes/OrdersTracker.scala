@@ -64,7 +64,10 @@ object OrdersTracker {
         .throttled(conf.scanInterval)
         .flatMap { height =>
           eval(lastScannedHeightRef.get)
-            .evalTap(lastHeight => info"Checking height delta ($lastHeight, $height)")
+            .evalTap { lastScannedHeight =>
+              if (lastScannedHeight < height) info"Checking height delta ($lastScannedHeight, $height)"
+              else info"Waiting for new blocks. Current height is [$height]"
+            }
             .flatMap { lastScannedHeight =>
               val lastEpochs = (height - lastScannedHeight) min MaxEpochs
               if (lastEpochs > 0) client.streamUnspentOutputs(lastEpochs)
