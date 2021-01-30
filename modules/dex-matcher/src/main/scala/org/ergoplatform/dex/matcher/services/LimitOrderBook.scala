@@ -33,7 +33,7 @@ final class LimitOrderBook[F[_]: FlatMap: Logging, D[_]: Monad](implicit
       .flatTap { trades =>
         val matched   = trades.flatMap(_.orders.map(_.id).toList)
         val unmatched = orders.filterNot(o => matched.contains(o.id))
-        matched.toNel.fold(().pure[D])(repo.remove) >> unmatched.toNel.fold(().pure[D])(repo.insert)
+        matched.toNel.fold(unit[D])(repo.remove) >> unmatched.toNel.fold(unit[D])(repo.insert)
       }
       .thrushK(txr.trans)
   }

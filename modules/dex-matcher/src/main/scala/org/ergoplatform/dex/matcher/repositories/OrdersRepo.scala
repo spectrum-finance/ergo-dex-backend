@@ -1,8 +1,8 @@
 package org.ergoplatform.dex.matcher.repositories
 
-import cats.FlatMap
 import cats.data.NonEmptyList
 import cats.tagless.syntax.functorK._
+import cats.{Apply, FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
@@ -10,7 +10,11 @@ import org.ergoplatform.dex.domain.models.Order.{AnyOrder, Ask, Bid}
 import org.ergoplatform.dex.{OrderId, PairId}
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
+import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
+import tofu.logging.{Logging, Logs}
+import tofu.syntax.logging._
+import tofu.syntax.monadic._
 
 @derive(representableK)
 trait OrdersRepo[D[_]] {
@@ -26,8 +30,13 @@ trait OrdersRepo[D[_]] {
 
 object OrdersRepo {
 
-  def make[D[_]: FlatMap: LiftConnectionIO](implicit elh: EmbeddableLogHandler[D]): OrdersRepo[D] =
-    elh.embed(implicit lh => new Live().mapK(LiftConnectionIO[D].liftF))
+  def make[I[_]: Functor, D[_]: FlatMap: LiftConnectionIO](implicit
+    elh: EmbeddableLogHandler[D],
+    logs: Logs[I, D]
+  ): I[OrdersRepo[D]] =
+    logs.forService[OrdersRepo[D]].map { implicit l =>
+      elh.embed(implicit lh => new OrdersRepoTracing[D] attach new Live().mapK(LiftConnectionIO[D].liftF))
+    }
 
   final class Live(implicit lh: LogHandler) extends OrdersRepo[ConnectionIO] {
 
@@ -44,5 +53,20 @@ object OrdersRepo {
 
     def remove(ids: NonEmptyList[OrderId]): ConnectionIO[Unit] =
       sql.remove(ids).run.map(_ => ())
+  }
+
+  final class OrdersRepoTracing[F[_]: Apply: Logging] extends OrdersRepo[Mid[F, *]] {
+
+    def getBuyWall(pairId: PairId, limit: Long): Mid[F, List[Bid]] =
+      _ <* trace"getBuyWall(pairId=$pairId,limit=$limit)"
+
+    def getSellWall(pairId: PairId, limit: Long): Mid[F, List[Ask]] =
+      _ <* trace"getSellWall(pairId=$pairId,limit=$limit)"
+
+    def insert(orders: NonEmptyList[AnyOrder]): Mid[F, Unit] =
+      _ <* trace"insert(orders=$orders)"
+
+    def remove(ids: NonEmptyList[OrderId]): Mid[F, Unit] =
+      _ <* trace"remove(ids=$ids)"
   }
 }

@@ -4,13 +4,11 @@ import cats.Show
 import cats.effect.Sync
 import cats.syntax.semigroup._
 import cats.syntax.show._
-import doobie.util.Write
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
-import io.circe.syntax._
 import io.estatico.newtype.ops._
-import org.ergoplatform.dex.{AssetId, OrderId, PairId}
 import org.ergoplatform.dex.protocol.instances._
+import org.ergoplatform.dex.{AssetId, OrderId, PairId}
 import tofu.logging.{Loggable, _}
 
 /** Global market order.
@@ -44,8 +42,6 @@ object Order {
   type Ask      = Order[OrderType.Ask.type]
   type Bid      = Order[OrderType.Bid.type]
   type AnyOrder = Order[OrderType]
-
-  implicit val write: Write[AnyOrder] = Write[AnyOrder]
 
   implicit def show[T <: OrderType]: Show[Order[T]] =
     o =>

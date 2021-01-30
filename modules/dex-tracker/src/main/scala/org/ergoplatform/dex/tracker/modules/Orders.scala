@@ -67,7 +67,7 @@ object Orders {
         price       = params.tokenPrice
         feePerToken = params.dexFeePerToken
         minValue    = feePerToken * amount
-        _  <- if (output.value < minValue) FeeNotSatisfied(output.value, minValue).raise else ().pure
+        _  <- if (output.value < minValue) FeeNotSatisfied(output.value, minValue).raise else unit
         ts <- now.millis
         meta = OrderMeta(output.boxId, output.value, tree, params.sellerPk, ts)
       } yield mkAsk(quoteAsset, baseAsset, amount, price, feePerToken, meta)

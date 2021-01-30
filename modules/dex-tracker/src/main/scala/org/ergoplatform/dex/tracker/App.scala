@@ -2,36 +2,28 @@ package org.ergoplatform.dex.tracker
 
 import cats.effect.{Blocker, ExitCode, Resource}
 import fs2._
-import monix.eval.{Task, TaskApp}
+import monix.eval.Task
 import mouse.any._
-import org.ergoplatform.dex.OrderId
 import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
 import org.ergoplatform.dex.streaming.{MakeKafkaProducer, Producer}
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.processes.OrdersTracker
+import org.ergoplatform.dex.{EnvApp, OrderId}
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
 import tofu.WithRun
 import tofu.concurrent.MakeRef
-import tofu.env.Env
 import tofu.fs2Instances._
 import tofu.lift.IsoK
 import tofu.logging.derivation.loggable.generate
-import tofu.logging.{LoggableContext, Logs}
 import tofu.syntax.embed._
 import tofu.syntax.unlift._
 
-object App extends TaskApp {
+object App extends EnvApp[ConfigBundle] {
 
-  type InitF[+A]   = Task[A]
-  type RunF[+A]    = Env[ConfigBundle, A]
-  type StreamF[+A] = Stream[RunF, A]
-
-  implicit private def logs: Logs[InitF, RunF]                = Logs.withContext
-  implicit private def makeRef: MakeRef[InitF, RunF]          = MakeRef.syncInstance
-  implicit private def loggableContext: LoggableContext[RunF] = LoggableContext.of[RunF].instance[ConfigBundle]
+  implicit private def makeRef: MakeRef[InitF, RunF] = MakeRef.syncInstance
 
   def run(args: List[String]): Task[ExitCode] =
     init(args.headOption).use { case (tracker, ctx) =>

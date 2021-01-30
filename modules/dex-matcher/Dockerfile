@@ -14,5 +14,4 @@ CMD ["/usr/bin/java", "-jar", "/dex-matcher.jar"]
 
 FROM openjdk:8-jre-slim
 COPY --from=builder /dex-matcher.jar /dex-matcher.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/dex-matcher.jar"]
+ENTRYPOINT java -jar /dex-matcher.jar $0

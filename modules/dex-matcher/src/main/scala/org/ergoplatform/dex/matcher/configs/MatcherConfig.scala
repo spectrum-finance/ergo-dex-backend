@@ -6,4 +6,4 @@ import derevo.pureconfig.pureconfigReader
 import scala.concurrent.duration.FiniteDuration
 
 @derive(pureconfigReader)
-final case class MatcherConfig(batchSize: Int, interval: FiniteDuration)
+final case class MatcherConfig(batchSize: Int, batchInterval: FiniteDuration)

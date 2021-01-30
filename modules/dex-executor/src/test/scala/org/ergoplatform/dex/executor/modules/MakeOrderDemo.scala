@@ -18,7 +18,7 @@ object MakeOrderDemo extends App {
 
   implicit val e: ErgoAddressEncoder = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
 
-  val sk      = DLogProverInput(BigInt(Base16.decode(sk).get).bigInteger)
+  val sk      = DLogProverInput(BigInt(Base16.decode(secret).get).bigInteger)
   val pk      = sk.publicImage
   val address = P2PKAddress(pk)
 

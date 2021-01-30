@@ -14,7 +14,7 @@ object versions {
   val JawnFs2Version         = "1.0.0"
   val Fs2KafkaVersion        = "1.1.0+103-aa8842e2-SNAPSHOT"
   val JacksonVersion         = "2.12.0"
-  val DoobieVersion          = "0.9.2"
+  val DoobieVersion          = "0.10.0"
   val FlywayVersion          = "5.1.1"
   val MonixVersion           = "3.1.0"
   val MonocleVersion         = "2.0.0"

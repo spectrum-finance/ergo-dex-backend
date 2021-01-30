@@ -10,6 +10,7 @@ lazy val commonSettings = Seq(
     case "logback.xml"                                => MergeStrategy.first
     case "module-info.class"                          => MergeStrategy.discard
     case other if other.contains("io.netty.versions") => MergeStrategy.first
+    case other if other.contains("scala")             => MergeStrategy.first
     case other                                        => (assemblyMergeStrategy in assembly).value(other)
   },
   libraryDependencies ++= dependencies.Testing ++ dependencies.CompilerPlugins

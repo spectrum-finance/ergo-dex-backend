@@ -57,8 +57,6 @@ object OrdersTracker {
     orders: Orders[G]
   ) extends OrdersTracker[F] {
 
-    private val MaxEpochs = 100
-
     def run: F[Unit] =
       eval(client.getCurrentHeight).repeat
         .throttled(conf.scanInterval)
@@ -69,7 +67,7 @@ object OrdersTracker {
               else info"Waiting for new blocks. Current height is [$height]"
             }
             .flatMap { lastScannedHeight =>
-              val lastEpochs = (height - lastScannedHeight) min MaxEpochs
+              val lastEpochs = (height - lastScannedHeight) min conf.scanLastEpochs
               if (lastEpochs > 0) client.streamUnspentOutputs(lastEpochs)
               else MonoidK[F].empty[Output]
             }

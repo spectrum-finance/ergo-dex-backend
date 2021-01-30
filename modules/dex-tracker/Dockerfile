@@ -14,5 +14,4 @@ CMD ["/usr/bin/java", "-jar", "/dex-tracker.jar"]
 
 FROM openjdk:8-jre-slim
 COPY --from=builder /dex-tracker.jar /dex-tracker.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/dex-tracker.jar"]
+ENTRYPOINT java -jar /dex-tracker.jar $0

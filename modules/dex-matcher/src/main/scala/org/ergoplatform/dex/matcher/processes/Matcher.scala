@@ -60,7 +60,7 @@ object Matcher {
 
     def run: F[Unit] =
       streaming.consumer.stream
-        .groupWithin(config.batchSize, config.interval)
+        .groupWithin(config.batchSize, config.batchInterval)
         .flatTap { batch =>
           val pairs = batch.toList.map(_.message).groupBy(_.pairId).toList
           emits(pairs.map { case (pairId, orders) => evals(orderBook.process(pairId)(orders)) }).parFlattenUnbounded
