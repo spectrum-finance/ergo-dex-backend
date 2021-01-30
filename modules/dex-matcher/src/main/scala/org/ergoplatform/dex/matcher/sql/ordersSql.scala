@@ -61,7 +61,7 @@ object ordersSql {
     )
 
   def remove(ids: NonEmptyList[OrderId])(implicit lh: LogHandler): Update0 =
-    Fragments.in(sql"delete from orders where box_id in", ids).update
+    Fragments.in(sql"delete from orders where box_id ", ids).update
 
   val fields =
     List(
