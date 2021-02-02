@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.domain.syntax
 
-import org.ergoplatform.{ErgoAddressEncoder, ErgoBox}
 import org.ergoplatform.dex.{Address, AssetId, BoxId}
+import org.ergoplatform.{ErgoAddressEncoder, ErgoBox}
 import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16
@@ -18,6 +18,7 @@ object ergo {
 
   implicit final class AssetIdOps(private val id: AssetId) extends AnyVal {
     def toErgo: ErgoBox.TokenId = Digest32 @@ scorex.util.encode.Base16.decode(id.unwrapped).get
+    def toSigma: Coll[Byte]     = toErgo.toColl
   }
 
   implicit final class AddressOps(private val address: Address) extends AnyVal {

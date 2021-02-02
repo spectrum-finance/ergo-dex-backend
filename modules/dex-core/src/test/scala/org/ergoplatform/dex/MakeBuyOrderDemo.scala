@@ -2,25 +2,32 @@ package org.ergoplatform.dex
 
 import io.circe.syntax._
 import org.bouncycastle.util.BigIntegers
+import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4, R5, R6}
 import org.ergoplatform._
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexLimitOrderContracts}
 import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import scorex.crypto.authds.ADKey
+import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16
+import sigmastate.SType.AnyOps
+import sigmastate.Values.{Constant, EvaluatedValue}
 import sigmastate.basics.DLogProtocol.DLogProverInput
+import sigmastate.eval.Extensions._
+import sigmastate.{SByte, SCollection, SLong, SType}
 
 object MakeBuyOrderDemo extends App {
 
   val secret     = ""
-  val inputId    = "0720761aefb161f7d13be97b23291dc6f8a94d03b5aac3bb9e72cbc16da7f48d"
-  val inputValue = 1000000000L
-  val curHeight  = 415703
+  val inputId    = "f376d357e456507694c24e4c681f60c0cced324abb3f008d3d50a49593a7012d"
+  val inputValue = 559000000L
+  val curHeight  = 417097
 
   val tokenId        = "7c232b68665d233356e9abadf3820abff725105c5ccfa8618b77bc3a8bf603ce"
   val tokenAmount    = 2
-  val tokenPrice     = 210000000L
+  val tokenPrice     = 200000000L
   val dexFeePerToken = 10000000L
+  val reserveAmount  = 15000000L
 
   implicit val e: ErgoAddressEncoder = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
 
@@ -34,8 +41,16 @@ object MakeBuyOrderDemo extends App {
     DexBuyerContractParameters(pk, Base16.decode(tokenId).get, tokenPrice, dexFeePerToken)
   val contract = DexLimitOrderContracts.buyerContractInstance(orderParams)
 
-  val dexOutValue = (tokenPrice + dexFeePerToken) * tokenAmount
-  val dexOut      = new ErgoBoxCandidate(dexOutValue, contract.ergoTree, curHeight)
+  val tokenIdNative = Digest32 @@ Base16.decode(tokenId).get
+
+  val dexRegisters = Map(
+    R4 -> Constant(tokenIdNative.toColl.asWrappedType, SCollection(SByte)),
+    R5 -> Constant(tokenPrice.asWrappedType, SLong),
+    R6 -> Constant(dexFeePerToken.asWrappedType, SLong)
+  ).asInstanceOf[Map[NonMandatoryRegisterId, EvaluatedValue[SType]]]
+
+  val dexOutValue = (tokenPrice + dexFeePerToken) * tokenAmount + reserveAmount
+  val dexOut      = new ErgoBoxCandidate(dexOutValue, contract.ergoTree, curHeight, additionalRegisters = dexRegisters)
 
   val feeAddress = Pay2SAddress(ErgoScriptPredef.feeProposition())
   val feeOut     = new ErgoBoxCandidate(1000000L, feeAddress.script, curHeight)

@@ -3,12 +3,10 @@ package org.ergoplatform.dex.domain.syntax
 import cats.instances.tuple._
 import cats.syntax.bifunctor._
 import cats.syntax.list._
-import io.estatico.newtype.ops._
 import org.ergoplatform.dex.domain.OrderComparator
 import org.ergoplatform.dex.domain.models.Order.{AnyOrder, Ask, Bid}
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
-import org.ergoplatform.dex.domain.models.{Order, OrderType, Trade}
-import org.ergoplatform.dex.{OrderId, PairId}
+import org.ergoplatform.dex.domain.models.{FilledOrder, Order, OrderType, Trade}
 
 import scala.annotation.tailrec
 
@@ -29,7 +27,11 @@ object order {
             fill(rem, thatOrder +: acc, toFill - thatOrder.amount)
           case _ => acc
         }
-      fill(counterOrders, Nil, order.amount).toNel.map(Trade(order, _))
+      fill(counterOrders, Nil, order.amount).toNel.map { orders =>
+        val filledCounterOrders = orders.map(FilledOrder(_, order.price))
+        val filledOrder         = FilledOrder(order, order.price)
+        Trade(filledOrder, filledCounterOrders)
+      }
     }
   }
 

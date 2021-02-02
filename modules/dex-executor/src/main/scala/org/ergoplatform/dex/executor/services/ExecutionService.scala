@@ -5,6 +5,7 @@ import derevo.derive
 import org.ergoplatform.dex.clients.ErgoNetworkClient
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
+import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.dex.executor.config.ExchangeConfig
 import org.ergoplatform.dex.executor.context.BlockchainContext
 import org.ergoplatform.dex.executor.modules.Transactions
@@ -25,6 +26,8 @@ trait ExecutionService[F[_]] {
 
 object ExecutionService {
 
+  private val ValuePerByte = 360L // todo: fetch from explorer
+
   def make[
     I[_]: Functor,
     F[_]: Monad: WithContext[*[_], ExchangeConfig]: WithContext[*[_], ProtocolConfig]
@@ -39,15 +42,20 @@ object ExecutionService {
   /** Implements processing of trades necessarily involving ERG.
     */
   final private class ErgoToTokenExecutionService[
-    F[_]: Monad: WithContext[*[_], ExchangeConfig]: WithContext[*[_], ProtocolConfig]
+    F[_]: Monad: WithContext[*[_], ExchangeConfig]: WithContext[*[_], ProtocolConfig]: Logging
   ](implicit
     client: ErgoNetworkClient[F]
   ) extends ExecutionService[F] {
 
+    import io.circe.syntax._
+    import org.ergoplatform.dex.protocol.codecs._
+
     def execute(trade: AnyTrade): F[Unit] =
-      (client.getCurrentHeight map BlockchainContext)
+      (client.getCurrentHeight map (BlockchainContext(_, ValuePerByte)))
         .map(Context.const[F, BlockchainContext])
         .flatMap(implicit ctx => Transactions[F].translate(trade))
+        .flatTap(tx => info"Transaction assembled $tx")
+        .flatTap(tx => debug"${tx.asJson.noSpacesSortKeys}")
         .flatMap(client.submitTransaction)
         .void // todo: save and track tx id, retry if transaction failed.
   }

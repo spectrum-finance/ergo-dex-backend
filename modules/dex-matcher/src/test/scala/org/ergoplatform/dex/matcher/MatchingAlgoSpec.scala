@@ -5,9 +5,9 @@ import org.ergoplatform.dex.domain.models.Trade
 import org.ergoplatform.dex.generators._
 import org.ergoplatform.dex.matcher.modules.MatchingAlgo
 import org.scalacheck.Gen
-import org.scalatest.propspec.AnyPropSpec
 import org.scalatest._
-import matchers._
+import org.scalatest.matchers._
+import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks {
@@ -28,10 +28,10 @@ class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
       val result  = matcher(List(ask), List(bid)).value
       result.foreach { case Trade(order, counterOrders) =>
         counterOrders.toList.foreach { co =>
-          co.quoteAsset shouldBe order.quoteAsset
-          co.baseAsset shouldBe order.baseAsset
+          co.base.quoteAsset shouldBe order.base.quoteAsset
+          co.base.baseAsset shouldBe order.base.baseAsset
         }
-        order.amount shouldBe counterOrders.map(_.amount).toList.sum
+        order.base.amount shouldBe counterOrders.map(_.base.amount).toList.sum
       }
     }
   }
@@ -54,11 +54,11 @@ class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
       val result  = matcher(List(ask), List(bid)).value
       result.foreach { case Trade(order, counterOrders) =>
         counterOrders.toList.foreach { co =>
-          co.quoteAsset shouldBe order.quoteAsset
-          co.baseAsset shouldBe order.baseAsset
+          co.base.quoteAsset shouldBe order.base.quoteAsset
+          co.base.baseAsset shouldBe order.base.baseAsset
         }
-        val counterOrdersAmount = counterOrders.map(_.amount).toList.sum
-        order.amount - delta shouldBe counterOrdersAmount
+        val counterOrdersAmount = counterOrders.map(_.base.amount).toList.sum
+        order.base.amount - delta shouldBe counterOrdersAmount
       }
     }
   }
@@ -81,10 +81,10 @@ class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
       val result  = matcher(List(ask), List(bid0, bid1)).value
       result.foreach { case Trade(order, counterOrders) =>
         counterOrders.toList.foreach { co =>
-          co.quoteAsset shouldBe order.quoteAsset
-          co.baseAsset shouldBe order.baseAsset
+          co.base.quoteAsset shouldBe order.base.quoteAsset
+          co.base.baseAsset shouldBe order.base.baseAsset
         }
-        order.amount shouldBe counterOrders.map(_.amount).toList.sum
+        order.base.amount shouldBe counterOrders.map(_.base.amount).toList.sum
       }
     }
   }
@@ -109,11 +109,11 @@ class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
       val result  = matcher(List(ask), List(bid0, bid1)).value
       result.foreach { case Trade(order, counterOrders) =>
         counterOrders.toList.foreach { co =>
-          co.quoteAsset shouldBe order.quoteAsset
-          co.baseAsset shouldBe order.baseAsset
+          co.base.quoteAsset shouldBe order.base.quoteAsset
+          co.base.baseAsset shouldBe order.base.baseAsset
         }
-        val counterOrdersAmount = counterOrders.map(_.amount).toList.sum
-        order.amount - delta shouldBe counterOrdersAmount
+        val counterOrdersAmount = counterOrders.map(_.base.amount).toList.sum
+        order.base.amount - delta shouldBe counterOrdersAmount
       }
     }
   }
@@ -138,11 +138,11 @@ class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
       val result  = matcher(List(ask), List(bid0, bid1)).value
       result.foreach { case Trade(order, counterOrders) =>
         counterOrders.toList.foreach { co =>
-          co.quoteAsset shouldBe order.quoteAsset
-          co.baseAsset shouldBe order.baseAsset
+          co.base.quoteAsset shouldBe order.base.quoteAsset
+          co.base.baseAsset shouldBe order.base.baseAsset
         }
-        val counterOrdersAmount = counterOrders.map(_.amount).toList.sum
-        counterOrdersAmount - delta shouldBe order.amount
+        val counterOrdersAmount = counterOrders.map(_.base.amount).toList.sum
+        counterOrdersAmount - delta shouldBe order.base.amount
       }
     }
   }

@@ -11,7 +11,7 @@ import org.ergoplatform.dex.domain.models.Order.AnyOrder
 import org.ergoplatform.dex.explorer.models.Output
 import org.ergoplatform.dex.streaming.{Producer, Record}
 import org.ergoplatform.dex.tracker.configs.TrackerConfig
-import org.ergoplatform.dex.tracker.domain.errors.OrderError
+import org.ergoplatform.dex.tracker.domain.errors.InvalidOrder
 import org.ergoplatform.dex.tracker.modules.Orders
 import tofu.Handle
 import tofu.concurrent.MakeRef
@@ -36,7 +36,7 @@ object OrdersTracker {
   def make[
     I[_]: FlatMap,
     F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: Pace: FunctorFilter: Defer: MonoidK: TrackerConfig.Has,
-    G[_]: Monad: Handle[*[_], OrderError],
+    G[_]: Monad: Handle[*[_], InvalidOrder],
     C[_]: Foldable
   ](implicit
     client: StreamingErgoNetworkClient[F, G],
@@ -53,7 +53,7 @@ object OrdersTracker {
 
   final private class Live[
     F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: Pace: FunctorFilter: Defer: MonoidK,
-    G[_]: Monad: Handle[*[_], OrderError]: Logging,
+    G[_]: Monad: Handle[*[_], InvalidOrder]: Logging,
     C[_]: Foldable
   ](lastScannedHeightRef: Ref[G, Int], conf: TrackerConfig)(implicit
     client: StreamingErgoNetworkClient[F, G],
@@ -85,7 +85,7 @@ object OrdersTracker {
       _.evalMap { out =>
         orders
           .makeOrder(out)
-          .handleWith[OrderError] { e =>
+          .handleWith[InvalidOrder] { e =>
             warnCause"Skipping invalid order in box $out" (e) as none[AnyOrder]
           }
       }.unNone

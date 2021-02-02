@@ -4,7 +4,7 @@ import cats.Eval
 import cats.data.{NonEmptyList, ReaderT}
 import org.ergoplatform.dex.BoxId
 import org.ergoplatform.dex.configs.ProtocolConfig
-import org.ergoplatform.dex.domain.models.Trade
+import org.ergoplatform.dex.domain.models.{FilledOrder, Trade}
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.executor.config.ExchangeConfig
 import org.ergoplatform.dex.executor.context.BlockchainContext
@@ -28,27 +28,27 @@ class TransactionsSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
         feePerToken <- Gen.const(10L)
         ask         <- askGen(assetX, assetY, amount, price, feePerToken)
         bid         <- bidGen(assetX, assetY, amount, price, feePerToken)
-      } yield Trade(ask, NonEmptyList.one(bid))
+      } yield Trade(FilledOrder(ask, ask.price), NonEmptyList.one(FilledOrder(bid, bid.price)))
     forAll(tradeGen, addressGen) { case (trade, rewardAddress) =>
       val exConf            = ExchangeConfig(rewardAddress)
       val protoConf         = ProtocolConfig(Network.MainNet)
-      val blockchainContext = BlockchainContext(curHeight = 100)
+      val blockchainContext = BlockchainContext(currentHeight = 100, nanoErgsPerByte = 360L)
       val ctx               = TestCtx(exConf, protoConf, blockchainContext)
       val tx                = Transactions[ReaderT[Eval, TestCtx, *]].translate(trade).run(ctx).value
-      tx.inputs.map(i => BoxId.fromErgo(i.boxId)) should contain theSameElementsAs trade.orders.map(_.meta.boxId).toList
+      tx.inputs.map(i => BoxId.fromErgo(i.boxId)) should contain theSameElementsAs trade.orders.map(_.base.meta.boxId).toList
       trade.orders.toList.foreach {
-        case order if order.`type`.isAsk =>
+        case order if order.base.`type`.isAsk =>
           val orderReward = tx.outputCandidates.find { o =>
-            o.value == order.amount * order.price && o.ergoTree == ErgoTree.fromSigmaBoolean(order.meta.pk)
+            o.value == order.base.amount * order.executionPrice && o.ergoTree == ErgoTree.fromSigmaBoolean(order.base.meta.pk)
           }
           orderReward should not be empty
         case order =>
           val orderReward = tx.outputCandidates.find { o =>
             o.additionalTokens.toMap
-              .find { case (id, _) => java.util.Arrays.equals(id, order.quoteAsset.toErgo) }
+              .find { case (id, _) => java.util.Arrays.equals(id, order.base.quoteAsset.toErgo) }
               .map(_._2)
-              .contains(order.amount) &&
-            o.ergoTree == ErgoTree.fromSigmaBoolean(order.meta.pk)
+              .contains(order.base.amount) &&
+            o.ergoTree == ErgoTree.fromSigmaBoolean(order.base.meta.pk)
           }
           orderReward should not be empty
       }

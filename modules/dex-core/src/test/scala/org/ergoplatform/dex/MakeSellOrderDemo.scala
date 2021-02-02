@@ -2,6 +2,7 @@ package org.ergoplatform.dex
 
 import io.circe.syntax._
 import org.bouncycastle.util.BigIntegers
+import org.ergoplatform.ErgoBox._
 import org.ergoplatform._
 import org.ergoplatform.contracts.{DexLimitOrderContracts, DexSellerContractParameters}
 import org.ergoplatform.dex.protocol.codecs._
@@ -9,18 +10,22 @@ import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16
+import sigmastate.SType.AnyOps
+import sigmastate.Values.{Constant, EvaluatedValue}
 import sigmastate.basics.DLogProtocol.DLogProverInput
+import sigmastate.eval.Extensions._
 import sigmastate.eval._
+import sigmastate.{SByte, SCollection, SLong, SType}
 
 object MakeSellOrderDemo extends App {
 
   val secret     = ""
-  val inputId    = "f972e8c9b0fcca5ddfe0b950a76fc57daa304041df2a682f38c2e2a9172a4562"
-  val inputValue = 1946000000L
-  val curHeight  = 415703
+  val inputId    = "55c04d533b42321d20a9aa661f23baaa11ad996fd8ad484c4ccfebe8ded91e68"
+  val inputValue = 1925000000L
+  val curHeight  = 417097
 
   val tokenId           = "7c232b68665d233356e9abadf3820abff725105c5ccfa8618b77bc3a8bf603ce"
-  val tokenAmount       = 100L
+  val tokenAmount       = 96L
   val tokenAmountToSell = 4L
   val tokenPrice        = 200000000L
   val dexFeePerToken    = 5000000L
@@ -41,19 +46,31 @@ object MakeSellOrderDemo extends App {
 
   val tokenIdNative = Digest32 @@ Base16.decode(tokenId).get
 
+  val dexRegisters = Map(
+    R4 -> Constant(tokenIdNative.toColl.asWrappedType, SCollection(SByte)),
+    R5 -> Constant(tokenPrice.asWrappedType, SLong),
+    R6 -> Constant(dexFeePerToken.asWrappedType, SLong)
+  ).asInstanceOf[Map[NonMandatoryRegisterId, EvaluatedValue[SType]]]
+
   val dexOut = new ErgoBoxCandidate(
     dexOutValue,
     contract.ergoTree,
     curHeight,
-    additionalTokens = Colls.fromItems(tokenIdNative -> tokenAmountToSell)
+    additionalTokens    = Colls.fromItems(tokenIdNative -> tokenAmountToSell),
+    additionalRegisters = dexRegisters
   )
 
   val feeAddress = Pay2SAddress(ErgoScriptPredef.feeProposition())
   val feeOut     = new ErgoBoxCandidate(1000000L, feeAddress.script, curHeight)
 
-  val change    = inputValue - (dexOut.value + feeOut.value)
-  val changeOut = new ErgoBoxCandidate(change, address.script, curHeight,
-    additionalTokens = Colls.fromItems(tokenIdNative -> (tokenAmount - tokenAmountToSell)))
+  val change = inputValue - (dexOut.value + feeOut.value)
+
+  val changeOut = new ErgoBoxCandidate(
+    change,
+    address.script,
+    curHeight,
+    additionalTokens = Colls.fromItems(tokenIdNative -> (tokenAmount - tokenAmountToSell))
+  )
 
   val inputs = Vector(input)
   val outs   = Vector(dexOut, feeOut, changeOut)

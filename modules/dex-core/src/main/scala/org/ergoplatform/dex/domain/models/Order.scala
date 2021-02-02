@@ -56,7 +56,7 @@ object Order {
         r.addString("quoteAsset", a.quoteAsset.unwrapped, i) |+|
         r.addString("baseAsset", a.baseAsset.unwrapped, i) |+|
         r.addBigInt("amount", a.amount, i) |+|
-        r.addBigInt("quoteAsset", a.price, i) |+|
+        r.addBigInt("price", a.price, i) |+|
         r.addBigInt("feePerToken", a.feePerToken, i)
 
       override def logShow(a: Order[T]): String = a.show

@@ -11,8 +11,8 @@ object trade {
 
     def refine: Either[Trade[Bid, Ask], Trade[Ask, Bid]] =
       trade match {
-        case t: Trade[Ask, Bid] @unchecked if trade.order.`type`.isAsk => t.asRight
-        case t: Trade[Bid, Ask] @unchecked                             => t.asLeft
+        case t: Trade[Ask, Bid] @unchecked if trade.order.base.`type`.isAsk => t.asRight
+        case t: Trade[Bid, Ask] @unchecked                                  => t.asLeft
       }
   }
 }

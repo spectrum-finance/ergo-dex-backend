@@ -13,7 +13,7 @@ import org.ergoplatform.dex.domain.models.Order._
 import org.ergoplatform.dex.domain.models.OrderMeta
 import org.ergoplatform.dex.explorer.models.{Asset, Output}
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
-import org.ergoplatform.dex.tracker.domain.errors.{AssetNotProvided, BadParams, FeeNotSatisfied, OrderError}
+import org.ergoplatform.dex.tracker.domain.errors._
 import org.ergoplatform.dex.{constants, AssetId}
 import sigmastate.Values.ErgoTree
 import tofu.higherKind.derived.representableK
@@ -38,7 +38,7 @@ object Orders {
       new Live[F]: Orders[F]
     }.embed
 
-  final private class Live[F[_]: Monad: Clock: Raise[*[_], OrderError]](implicit
+  final private class Live[F[_]: Monad: Clock: Raise[*[_], InvalidOrder]](implicit
     treeSer: ErgoTreeSerializer[F],
     addressEncoder: ErgoAddressEncoder
   ) extends Orders[F] {
@@ -75,6 +75,9 @@ object Orders {
     private[tracker] def makeBid(tree: ErgoTree, output: Output): F[Bid] =
       for {
         params <- parseBuyerContractParameters(tree).orRaise(BadParams(tree))
+        _ <- if (output.value % (params.tokenPrice + params.dexFeePerToken) != 0)
+               InvalidBidValue(output.value, params.tokenPrice, params.dexFeePerToken).raise
+             else unit
         baseAsset   = constants.ErgoAssetId
         quoteAsset  = AssetId.fromBytes(params.tokenId)
         price       = params.tokenPrice

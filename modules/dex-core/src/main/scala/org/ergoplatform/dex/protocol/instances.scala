@@ -1,16 +1,16 @@
 package org.ergoplatform.dex.protocol
 
 import cats.Show
-import doobie._
 import cats.instances.either._
 import cats.instances.string._
 import cats.syntax.either._
+import doobie._
+import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.dex.HexString
 import scorex.util.encode.Base16
 import sigmastate.Values.ErgoTree
 import sigmastate.basics.DLogProtocol.ProveDlog
-import sigmastate.serialization.GroupElementSerializer
-import sigmastate.serialization.{ErgoTreeSerializer => SigmaErgoTreeSerializer}
+import sigmastate.serialization.{GroupElementSerializer, ErgoTreeSerializer => SigmaErgoTreeSerializer}
 import tofu.logging.Loggable
 import tofu.syntax.monadic._
 
@@ -43,4 +43,7 @@ object instances {
   implicit val ergoTreeLoggable: Loggable[ErgoTree] = Loggable.show
 
   implicit val proveDlogLoggable: Loggable[ProveDlog] = Loggable.show
+
+  implicit val ergoLikeTxLoggable: Loggable[ErgoLikeTransaction] =
+    Loggable.stringValue.contramap[ErgoLikeTransaction](_.toString) // todo:
 }

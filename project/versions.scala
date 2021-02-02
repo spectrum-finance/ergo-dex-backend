@@ -1,7 +1,7 @@
 object versions {
 
   val ErgoWalletVersion     = "v3.3.8-aaaab5ef-SNAPSHOT"
-  val ErgoContractsVertions = "0.0.0-1-c9a6de18-SNAPSHOT"
+  val ErgoContractsVertions = "1.0.0"
 
   val SttpVersion            = "3.0.0-RC13"
   val CirceVersion           = "0.12.3"
