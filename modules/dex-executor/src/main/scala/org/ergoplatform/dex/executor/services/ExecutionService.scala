@@ -8,13 +8,15 @@ import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.dex.executor.config.ExchangeConfig
 import org.ergoplatform.dex.executor.context.BlockchainContext
+import org.ergoplatform.dex.executor.domain.errors.ExecutionFailure
 import org.ergoplatform.dex.executor.modules.Transactions
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
-import tofu.{Context, WithContext}
+import tofu.Raise
 import tofu.syntax.monadic._
 import tofu.syntax.logging._
+import tofu.syntax.context._
 
 @derive(representableK)
 trait ExecutionService[F[_]] {
@@ -30,7 +32,7 @@ object ExecutionService {
 
   def make[
     I[_]: Functor,
-    F[_]: Monad: WithContext[*[_], ExchangeConfig]: WithContext[*[_], ProtocolConfig]
+    F[_]: Monad: Raise[*[_], ExecutionFailure]: ExchangeConfig.Has: ProtocolConfig.Has: BlockchainContext.Local
   ](implicit
     client: ErgoNetworkClient[F],
     logs: Logs[I, F]
@@ -42,22 +44,23 @@ object ExecutionService {
   /** Implements processing of trades necessarily involving ERG.
     */
   final private class ErgoToTokenExecutionService[
-    F[_]: Monad: WithContext[*[_], ExchangeConfig]: WithContext[*[_], ProtocolConfig]: Logging
+    F[_]: Monad: ExchangeConfig.Has: ProtocolConfig.Has: BlockchainContext.Local: Logging
   ](implicit
-    client: ErgoNetworkClient[F]
+    client: ErgoNetworkClient[F],
+    txs: Transactions[F]
   ) extends ExecutionService[F] {
 
     import io.circe.syntax._
     import org.ergoplatform.dex.protocol.codecs._
 
     def execute(trade: AnyTrade): F[Unit] =
-      (client.getCurrentHeight map (BlockchainContext(_, ValuePerByte)))
-        .map(Context.const[F, BlockchainContext])
-        .flatMap(implicit ctx => Transactions[F].translate(trade))
-        .flatTap(tx => info"Transaction assembled $tx")
-        .flatTap(tx => debug"${tx.asJson.noSpacesSortKeys}")
-        .flatMap(client.submitTransaction)
-        .void // todo: save and track tx id, retry if transaction failed.
+      for {
+        height <- client.getCurrentHeight
+        tx     <- txs.translate(trade).local(_ => BlockchainContext(height, ValuePerByte))
+        _      <- info"Transaction assembled $tx"
+        _      <- debug"${tx.asJson.noSpacesSortKeys}"
+        _      <- client.submitTransaction(tx)
+      } yield () // todo: save and track tx id, retry if transaction failed.
   }
 
   final private class ExecutionServiceTracing[F[_]: Apply: Logging] extends ExecutionService[Mid[F, *]] {

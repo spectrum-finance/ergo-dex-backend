@@ -5,7 +5,7 @@ import sigmastate.Values.ErgoTree
 
 object errors {
 
-  abstract class InvalidOrder(val msg: String) extends Throwable
+  abstract class InvalidOrder(val msg: String) extends Exception(msg)
 
   final case class BadParams(ergoTree: ErgoTree) extends InvalidOrder(s"Bad params: $ergoTree")
 

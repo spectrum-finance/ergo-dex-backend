@@ -18,6 +18,7 @@ import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.Err.RefinementFailed
+import org.ergoplatform.dex.TradeId
 import org.ergoplatform.dex.constraints.{AddressType, Base58Spec, HexStringType, UrlStringType}
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
@@ -162,6 +163,9 @@ package object dex {
       Address(refineV[Base58Spec].unsafeFrom(s))
   }
 
+  @derive(loggable)
+  final case class PairId(quoteId: AssetId, baseId: AssetId)
+
   @newtype case class HexString(value: HexStringType) {
     final def unwrapped: String = value.value
   }
@@ -220,6 +224,9 @@ package object dex {
         .map(UrlString.apply)
   }
 
-  @derive(loggable)
-  final case class PairId(quoteId: AssetId, baseId: AssetId)
+  @newtype case class TraceId(value: String)
+
+  object TraceId {
+    implicit val loggable: Loggable[TraceId] = deriving
+  }
 }

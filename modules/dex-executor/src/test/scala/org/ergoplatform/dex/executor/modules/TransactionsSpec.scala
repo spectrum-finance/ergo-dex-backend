@@ -2,6 +2,7 @@ package org.ergoplatform.dex.executor.modules
 
 import cats.Eval
 import cats.data.{NonEmptyList, ReaderT}
+import cats.effect.IO
 import org.ergoplatform.dex.BoxId
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.models.{FilledOrder, Trade}
@@ -23,18 +24,18 @@ class TransactionsSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
       for {
         assetX      <- assetIdGen
         assetY      <- assetIdGen
-        amount      <- Gen.const(1000L)
-        price       <- Gen.const(100L)
-        feePerToken <- Gen.const(10L)
+        amount      <- Gen.const(10000L)
+        price       <- Gen.const(1000L)
+        feePerToken <- Gen.const(100L)
         ask         <- askGen(assetX, assetY, amount, price, feePerToken)
         bid         <- bidGen(assetX, assetY, amount, price, feePerToken)
       } yield Trade(FilledOrder(ask, ask.price), NonEmptyList.one(FilledOrder(bid, bid.price)))
     forAll(tradeGen, addressGen) { case (trade, rewardAddress) =>
       val exConf            = ExchangeConfig(rewardAddress)
       val protoConf         = ProtocolConfig(Network.MainNet)
-      val blockchainContext = BlockchainContext(currentHeight = 100, nanoErgsPerByte = 360L)
+      val blockchainContext = BlockchainContext(currentHeight = 100, nanoErgsPerByte = 1L)
       val ctx               = TestCtx(exConf, protoConf, blockchainContext)
-      val tx                = Transactions[ReaderT[Eval, TestCtx, *]].translate(trade).run(ctx).value
+      val tx                = Transactions.instance[ReaderT[IO, TestCtx, *]].translate(trade).run(ctx).unsafeRunSync()
       tx.inputs.map(i => BoxId.fromErgo(i.boxId)) should contain theSameElementsAs trade.orders.map(_.base.meta.boxId).toList
       trade.orders.toList.foreach {
         case order if order.base.`type`.isAsk =>

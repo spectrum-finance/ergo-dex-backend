@@ -2,7 +2,7 @@ package org.ergoplatform.dex.executor.config
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
-import org.ergoplatform.dex.configs.{ConfigBundleCompanion, ConsumerConfig, NetworkConfig, ProtocolConfig}
+import org.ergoplatform.dex.configs.{ConfigBundleCompanion, ConsumerConfig, NetworkConfig, ProducerConfig, ProtocolConfig}
 import org.ergoplatform.dex.streaming.CommitPolicy
 import tofu.Context
 import tofu.logging.Loggable
@@ -15,6 +15,7 @@ final case class ConfigBundle(
   @promote exchange: ExchangeConfig,
   @promote protocol: ProtocolConfig,
   @promote consumer: ConsumerConfig,
+  @promote producer: ProducerConfig,
   @promote network: NetworkConfig
 )
 

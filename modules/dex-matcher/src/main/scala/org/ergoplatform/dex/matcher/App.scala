@@ -41,7 +41,6 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(orderBook: OrderBook[RunF])    <- Resource.liftF(LimitOrderBook.make[InitF, RunF, xa.DB])
       implicit0(mc: MakeKafkaConsumer[RunF, OrderId, AnyOrder]) = MakeKafkaConsumer.make[InitF, RunF, OrderId, AnyOrder]
       implicit0(mp: MakeKafkaProducer[RunF, TradeId, AnyTrade]) = MakeKafkaProducer.make[RunF, TradeId, AnyTrade]
-      implicit0(isoK: IsoK[StreamF, StreamF])                   = IsoK.id[StreamF]
       consumer                                                  = Consumer.make[StreamF, RunF, OrderId, AnyOrder]
       producer                                                  = Producer.make[StreamF, RunF, TradeId, AnyTrade]
       implicit0(bundle: StreamingBundle[StreamF, RunF])         = StreamingBundle(consumer, producer)
