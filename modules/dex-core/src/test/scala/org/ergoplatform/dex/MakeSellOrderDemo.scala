@@ -20,14 +20,14 @@ import sigmastate.{SByte, SCollection, SLong, SType}
 object MakeSellOrderDemo extends App {
 
   val secret     = ""
-  val inputId    = "55c04d533b42321d20a9aa661f23baaa11ad996fd8ad484c4ccfebe8ded91e68"
-  val inputValue = 1925000000L
-  val curHeight  = 417097
+  val inputId    = "4773ca4e728f5e0008ca8b74e610a8ba7e335629a5189ff3552cc9625aaba4ee"
+  val inputValue = 1904000000L
+  val curHeight  = 417945
 
   val tokenId           = "7c232b68665d233356e9abadf3820abff725105c5ccfa8618b77bc3a8bf603ce"
-  val tokenAmount       = 96L
+  val tokenAmount       = 92L
   val tokenAmountToSell = 4L
-  val tokenPrice        = 200000000L
+  val tokenPrice        = 20000000L
   val dexFeePerToken    = 5000000L
 
   implicit val e: ErgoAddressEncoder = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)

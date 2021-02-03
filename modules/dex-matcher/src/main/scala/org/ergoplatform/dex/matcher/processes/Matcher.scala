@@ -6,7 +6,6 @@ import cats.{Foldable, Functor, Monad}
 import derevo.derive
 import mouse.any._
 import org.ergoplatform.dex.TradeId
-import org.ergoplatform.dex.context.HasCommitPolicy
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.matcher.configs.MatcherConfig
 import org.ergoplatform.dex.matcher.services.OrderBook
@@ -35,7 +34,7 @@ object Matcher {
 
   def make[
     I[_]: Functor,
-    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: ParFlatten: HasContext[*[_], MatcherConfig]: HasCommitPolicy,
+    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: ParFlatten: HasContext[*[_], MatcherConfig]: CommitPolicy.Has,
     G[_]: Monad,
     C[_]: Foldable
   ](implicit

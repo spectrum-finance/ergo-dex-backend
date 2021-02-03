@@ -19,15 +19,14 @@ import sigmastate.{SByte, SCollection, SLong, SType}
 object MakeBuyOrderDemo extends App {
 
   val secret     = ""
-  val inputId    = "f376d357e456507694c24e4c681f60c0cced324abb3f008d3d50a49593a7012d"
-  val inputValue = 559000000L
-  val curHeight  = 417097
+  val inputId    = "4ef551c6ca686274bab754220a82c093454e79a2534cb64ec7035e7a0cce02b7"
+  val inputValue = 123000000L
+  val curHeight  = 417949
 
   val tokenId        = "7c232b68665d233356e9abadf3820abff725105c5ccfa8618b77bc3a8bf603ce"
   val tokenAmount    = 2
-  val tokenPrice     = 200000000L
+  val tokenPrice     = 20000000L
   val dexFeePerToken = 10000000L
-  val reserveAmount  = 15000000L
 
   implicit val e: ErgoAddressEncoder = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
 
@@ -49,7 +48,7 @@ object MakeBuyOrderDemo extends App {
     R6 -> Constant(dexFeePerToken.asWrappedType, SLong)
   ).asInstanceOf[Map[NonMandatoryRegisterId, EvaluatedValue[SType]]]
 
-  val dexOutValue = (tokenPrice + dexFeePerToken) * tokenAmount + reserveAmount
+  val dexOutValue = (tokenPrice + dexFeePerToken) * tokenAmount
   val dexOut      = new ErgoBoxCandidate(dexOutValue, contract.ergoTree, curHeight, additionalRegisters = dexRegisters)
 
   val feeAddress = Pay2SAddress(ErgoScriptPredef.feeProposition())
