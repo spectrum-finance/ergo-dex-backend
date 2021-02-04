@@ -50,7 +50,7 @@ object MakeKafkaConsumer {
                 .withBootstrapServers(config.bootstrapServers.mkString(","))
                 .withGroupId(config.groupId.value)
                 .withClientId(config.clientId.value)
-            consumerStream(settings)
+            KafkaConsumer.stream(settings)
           }
         }
       }

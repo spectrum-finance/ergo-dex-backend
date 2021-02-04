@@ -1,25 +1,24 @@
 package org.ergoplatform.dex.executor.modules
 
 import cats.data.NonEmptyList
+import cats.instances.list._
 import cats.syntax.option._
 import cats.syntax.traverse._
-import cats.instances.list._
-import cats.{Applicative, Functor, Monad}
+import cats.{Functor, Monad}
 import derevo.derive
 import org.ergoplatform.ErgoBox._
+import org.ergoplatform._
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexLimitOrderContracts, DexSellerContractParameters}
-import org.ergoplatform.dex.AssetId
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.models.FilledOrder._
 import org.ergoplatform.dex.domain.models.Trade
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
-import org.ergoplatform.dex.{BoxId => DexBoxId}
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.domain.syntax.trade._
 import org.ergoplatform.dex.executor.config.ExchangeConfig
 import org.ergoplatform.dex.executor.context.BlockchainContext
 import org.ergoplatform.dex.executor.domain.errors.ExecutionFailure
-import org.ergoplatform.{ErgoAddressEncoder, ErgoBoxCandidate, ErgoLikeTransaction, Input}
+import org.ergoplatform.dex.{AssetId, BoxId => DexBoxId}
 import sigmastate.SType.AnyOps
 import sigmastate.Values._
 import sigmastate.eval._
@@ -30,8 +29,8 @@ import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.syntax.context._
 import tofu.syntax.embed._
-import tofu.syntax.monadic._
 import tofu.syntax.feither._
+import tofu.syntax.monadic._
 
 @derive(representableK)
 trait Transactions[F[_]] {
@@ -48,7 +47,9 @@ object Transactions {
   ]: Transactions[F] =
     (hasContext[F, ExchangeConfig], hasContext[F, ProtocolConfig], hasContext[F, BlockchainContext]).mapN {
       (dexConf, protoConf, blockchainCtx) =>
-        new DexOutputsCompaction[F](dexConf, protoConf) attach new Live[F](dexConf, protoConf, blockchainCtx)
+        NonEmptyList
+          .of(new TransactionEnrichment[F](dexConf, protoConf), new DexOutputsCompaction[F](dexConf, protoConf))
+          .reduce attach new Live[F](dexConf, protoConf, blockchainCtx)
     }.embed
 
   final class Live[F[_]: Monad: Raise[*[_], ExecutionFailure]: BlockchainContext.Has](
@@ -140,17 +141,18 @@ object Transactions {
           val price           = bid.executionPrice
           val feePerToken     = bid.base.feePerToken
           val assetId         = bid.base.quoteAsset
-          val fee             = amount * feePerToken
-          val rem             = bid.base.meta.boxValue - fee - amount * price
+          val dexFee          = amount * feePerToken
+          val rem             = bid.base.meta.boxValue - dexFee - amount * price
           val reward          = amount
           val buyerPk         = bid.base.meta.pk
           val returnTokens    = Colls.fromItems(assetId.toErgo -> reward)
           val returnRegisters = returnBoxRegs(bid.base.meta.boxId)
-          val returnBox       = new ErgoBoxCandidate(rem, buyerPk, ctx.currentHeight, returnTokens, returnRegisters)
+          val fakeValue       = 99999L
+          val returnBox       = new ErgoBoxCandidate(fakeValue, buyerPk, ctx.currentHeight, returnTokens, returnRegisters)
           if (desiredAmount <= amountToFill) {
-            val minReturnBoxValue = returnBox.bytesWithNoRef.length * ctx.nanoErgsPerByte
+            val minReturnBoxValue = (returnBox.bytesWithNoRef.length + 33) * ctx.nanoErgsPerByte
             val missingValue      = minReturnBoxValue - rem
-            val dexFeeLeft        = fee - missingValue
+            val dexFeeLeft        = dexFee - missingValue
             val returnBoxRefilled =
               new ErgoBoxCandidate(minReturnBoxValue, buyerPk, ctx.currentHeight, returnTokens, returnRegisters)
             val dexFeeBox = new ErgoBoxCandidate(dexFeeLeft, dexRewardProp, ctx.currentHeight)
@@ -169,7 +171,7 @@ object Transactions {
             val residualRegisters = residualBoxRegs(assetId, price, feePerToken, bid.base.meta.boxId)
             val residualBox =
               new ErgoBoxCandidate(rem, residualScript, ctx.currentHeight, Colls.emptyColl, residualRegisters)
-            val dexFeeBox = new ErgoBoxCandidate(fee, dexRewardProp, ctx.currentHeight)
+            val dexFeeBox = new ErgoBoxCandidate(dexFee, dexRewardProp, ctx.currentHeight)
             val outs      = List(residualBox, returnBox, dexFeeBox)
             outs.traverse(valueValidation.validate(_).absolve) >>
             executeBids(tl)(amountToFill = 0L, outs ++ acc)
@@ -224,5 +226,37 @@ object Transactions {
           val outs = dexOutsMerged ++ otherOuts
           new ErgoLikeTransaction(tx.inputs, tx.dataInputs, outs.toVector)
       }
+  }
+
+  /** An aspect merging dex reward outputs into single one.
+    */
+  final class TransactionEnrichment[F[_]: Functor](exchangeConfig: ExchangeConfig, protocolConfig: ProtocolConfig)
+    extends Transactions[Mid[F, *]] {
+
+    implicit private val addressEncoder: ErgoAddressEncoder = protocolConfig.networkType.addressEncoder
+    private val dexRewardProp                               = exchangeConfig.rewardAddress.toErgoTree
+    private val feeAddress                                  = Pay2SAddress(ErgoScriptPredef.feeProposition())
+
+    def translate(trade: AnyTrade): Mid[F, ErgoLikeTransaction] =
+      _.map(enrich)
+
+    private def enrich(tx: ErgoLikeTransaction): ErgoLikeTransaction =
+      tx.outputCandidates
+        .find(_.ergoTree == dexRewardProp)
+        .map { out =>
+          val dexFeeOut = new ErgoBoxCandidate(
+            out.value - exchangeConfig.executionFeeAmount,
+            out.ergoTree,
+            out.creationHeight,
+            out.additionalTokens,
+            out.additionalRegisters
+          )
+          val minerFeeOut =
+            new ErgoBoxCandidate(exchangeConfig.executionFeeAmount, feeAddress.script, out.creationHeight)
+          val remOuts = tx.outputs.filterNot(_.ergoTree == dexRewardProp)
+          val outs    = dexFeeOut +: minerFeeOut +: remOuts
+          new ErgoLikeTransaction(tx.inputs, tx.dataInputs, outs.toVector)
+        }
+        .getOrElse(tx)
   }
 }

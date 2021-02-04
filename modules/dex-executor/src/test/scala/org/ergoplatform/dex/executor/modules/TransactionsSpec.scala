@@ -31,7 +31,7 @@ class TransactionsSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
         bid         <- bidGen(assetX, assetY, amount, price, feePerToken)
       } yield Trade(FilledOrder(ask, ask.price), NonEmptyList.one(FilledOrder(bid, bid.price)))
     forAll(tradeGen, addressGen) { case (trade, rewardAddress) =>
-      val exConf            = ExchangeConfig(rewardAddress)
+      val exConf            = ExchangeConfig(rewardAddress, 100000L)
       val protoConf         = ProtocolConfig(Network.MainNet)
       val blockchainContext = BlockchainContext(currentHeight = 100, nanoErgsPerByte = 1L)
       val ctx               = TestCtx(exConf, protoConf, blockchainContext)

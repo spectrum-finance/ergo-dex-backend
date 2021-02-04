@@ -12,7 +12,7 @@ object versions {
   val MouseVersion           = "0.23"
   val Fs2Version             = "2.4.6"
   val JawnFs2Version         = "1.0.0"
-  val Fs2KafkaVersion        = "1.1.0+103-aa8842e2-SNAPSHOT"
+  val Fs2KafkaVersion        = "1.3.1"
   val JacksonVersion         = "2.12.0"
   val DoobieVersion          = "0.10.0"
   val FlywayVersion          = "5.1.1"

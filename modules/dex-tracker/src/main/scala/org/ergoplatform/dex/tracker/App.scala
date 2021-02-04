@@ -6,7 +6,7 @@ import monix.eval.Task
 import mouse.any._
 import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
-import org.ergoplatform.dex.streaming.{MakeKafkaProducer, Producer}
+import org.ergoplatform.dex.streaming.Producer
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.processes.OrdersTracker
 import org.ergoplatform.dex.{EnvApp, OrderId}
@@ -35,9 +35,9 @@ object App extends EnvApp[ConfigBundle] {
     for {
       blocker <- Blocker[InitF]
       configs <- Resource.liftF(ConfigBundle.load(configPathOpt))
-      implicit0(mp: MakeKafkaProducer[RunF, OrderId, AnyOrder]) = MakeKafkaProducer.make[RunF, OrderId, AnyOrder]
-      implicit0(isoK: IsoK[StreamF, StreamF])                   = IsoK.id[StreamF]
-      implicit0(producer: Producer[OrderId, AnyOrder, StreamF]) = Producer.make[StreamF, RunF, OrderId, AnyOrder]
+      implicit0(isoKRun: IsoK[RunF, InitF]) = IsoK.byFunK(wr.runContextK(configs))(wr.liftF)
+      implicit0(producer: Producer[OrderId, AnyOrder, StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.producer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: StreamingErgoNetworkClient[StreamF, RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
       tracker <- Resource.liftF(OrdersTracker.make[InitF, StreamF, RunF, Chunk])

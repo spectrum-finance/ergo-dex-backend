@@ -12,7 +12,7 @@ import org.ergoplatform.dex.matcher.processes.Matcher
 import org.ergoplatform.dex.matcher.repositories.OrdersRepo
 import org.ergoplatform.dex.matcher.services.{LimitOrderBook, OrderBook}
 import org.ergoplatform.dex.matcher.streaming.StreamingBundle
-import org.ergoplatform.dex.streaming.{Consumer, MakeKafkaConsumer, MakeKafkaProducer, Producer}
+import org.ergoplatform.dex.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.dex.{EnvApp, OrderId, TradeId}
 import tofu.doobie.instances.implicits._
 import tofu.doobie.log.EmbeddableLogHandler
@@ -37,13 +37,13 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(elh: EmbeddableLogHandler[xa.DB]) <-
         Resource.liftF(doobieLogging.makeEmbeddableHandler[InitF, RunF, xa.DB]("matcher-db-logging"))
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
+      implicit0(isoKRun: IsoK[RunF, InitF]) = IsoK.byFunK(wr.runContextK(configs))(wr.liftF)
       implicit0(ordersRepo: OrdersRepo[xa.DB]) <- Resource.liftF(OrdersRepo.make[InitF, xa.DB])
       implicit0(orderBook: OrderBook[RunF])    <- Resource.liftF(LimitOrderBook.make[InitF, RunF, xa.DB])
-      implicit0(mc: MakeKafkaConsumer[RunF, OrderId, AnyOrder]) = MakeKafkaConsumer.make[InitF, RunF, OrderId, AnyOrder]
-      implicit0(mp: MakeKafkaProducer[RunF, TradeId, AnyTrade]) = MakeKafkaProducer.make[RunF, TradeId, AnyTrade]
-      consumer                                                  = Consumer.make[StreamF, RunF, OrderId, AnyOrder]
-      producer                                                  = Producer.make[StreamF, RunF, TradeId, AnyTrade]
-      implicit0(bundle: StreamingBundle[StreamF, RunF])         = StreamingBundle(consumer, producer)
+      implicit0(mc: MakeKafkaConsumer[RunF, OrderId, AnyOrder])  = MakeKafkaConsumer.make[InitF, RunF, OrderId, AnyOrder]
+      consumer                                                   = Consumer.make[StreamF, RunF, OrderId, AnyOrder]
+      producer <- Producer.make[InitF, StreamF, RunF, TradeId, AnyTrade](configs.producer)
+      implicit0(bundle: StreamingBundle[StreamF, RunF]) = StreamingBundle(consumer, producer)
       matcher <- Resource.liftF(Matcher.make[InitF, StreamF, RunF, Chunk])
     } yield matcher -> configs
 }

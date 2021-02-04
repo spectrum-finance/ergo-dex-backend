@@ -1,16 +1,16 @@
 package org.ergoplatform.dex.streaming
 
+import cats.effect.{Concurrent, ConcurrentEffect, ContextShift, Resource}
 import cats.tagless.InvariantK
-import cats.{~>, FlatMap}
 import cats.tagless.syntax.invariantK._
+import cats.{~>, FlatMap}
 import fs2._
-import fs2.kafka.{ProducerRecord, ProducerRecords}
+import fs2.kafka._
 import org.ergoplatform.dex.configs.ProducerConfig
-import tofu.WithContext
 import tofu.higherKind.Embed
 import tofu.lift.IsoK
-import tofu.syntax.context._
 import tofu.syntax.embed._
+import tofu.syntax.funk._
 import tofu.syntax.monadic._
 
 trait Producer[K, V, F[_]] {
@@ -41,24 +41,34 @@ object Producer {
     }
 
   def make[
-    F[_]: FlatMap: WithContext[*[_], ProducerConfig],
+    I[_]: ConcurrentEffect: ContextShift,
+    F[_]: FlatMap,
     G[_],
-    K,
-    V
-  ](implicit
-    isoK: IsoK[F, Stream[G, *]],
-    makeProducer: MakeKafkaProducer[G, K, V]
-  ): Producer[K, V, F] =
-    (context[F] map (conf => new Live(conf).imapK(isoK.fromF)(isoK.tof))).embed
+    K: RecordSerializer[I, *],
+    V: RecordSerializer[I, *]
+  ](conf: ProducerConfig)(implicit
+    isoKFG: IsoK[F, Stream[G, *]],
+    isoKGI: IsoK[G, I]
+  ): Resource[I, Producer[K, V, F]] = {
+    val producerSettings =
+      ProducerSettings[I, K, V]
+        .withBootstrapServers(conf.bootstrapServers.mkString(","))
+    KafkaProducer.resource.using(producerSettings).map { prod =>
+      new Live(conf, prod)
+        .imapK(funK[Stream[I, *], Stream[G, *]](_.translate(isoKGI.fromF)) andThen isoKFG.fromF)(
+          isoKFG.tof andThen funK[Stream[G, *], Stream[I, *]](_.translate(isoKGI.tof))
+        )
+    }
+  }
 
-  final private class Live[F[_], K, V](
-    config: ProducerConfig
-  )(implicit makeProducer: MakeKafkaProducer[F, K, V])
-    extends Producer[K, V, Stream[F, *]] {
+  final private class Live[F[_]: Concurrent, K, V](
+    conf: ProducerConfig,
+    kafkaProducer: KafkaProducer[F, K, V]
+  ) extends Producer[K, V, Stream[F, *]] {
 
     def produce: Pipe[F, Record[K, V], Unit] =
       _.map { case Record(k, v) =>
-        ProducerRecords.one(ProducerRecord(config.topicId.value, k, v))
-      }.through(makeProducer(config)).drain
+        ProducerRecords.one(ProducerRecord(conf.topicId.value, k, v))
+      }.evalMap(kafkaProducer.produce).mapAsync(conf.parallelism)(identity).drain
   }
 }
