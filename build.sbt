@@ -1,10 +1,8 @@
-import dependencies._
-
 lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
-  scalaVersion := "2.12.11",
+  scalaVersion := "2.12.12",
   organization := "org.ergoplatform",
-  version := "0.0.1",
+  version := "0.1.0",
   resolvers += Resolver.sonatypeRepo("public"),
   resolvers += Resolver.sonatypeRepo("snapshots"),
   test in assembly := {},
@@ -12,9 +10,10 @@ lazy val commonSettings = Seq(
     case "logback.xml"                                => MergeStrategy.first
     case "module-info.class"                          => MergeStrategy.discard
     case other if other.contains("io.netty.versions") => MergeStrategy.first
+    case other if other.contains("scala")             => MergeStrategy.first
     case other                                        => (assemblyMergeStrategy in assembly).value(other)
   },
-  libraryDependencies ++= CompilerPlugins
+  libraryDependencies ++= dependencies.Testing ++ dependencies.CompilerPlugins
 )
 
 lazy val commonScalacOptions = List(
@@ -29,6 +28,7 @@ lazy val commonScalacOptions = List(
   "-Xfuture",
   "-Yno-adapted-args",
   "-Ywarn-numeric-widen",
+  "-Ywarn-value-discard",
   "-Ypartial-unification"
 )
 
@@ -39,42 +39,42 @@ lazy val dexBackend = project
   .withId("ergo-dex-backend")
   .settings(commonSettings)
   .settings(moduleName := "ergo-dex-backend", name := "ErgoDexBackend")
-  .aggregate(core, watcher, matcher, executor)
+  .aggregate(core, tracker, matcher, executor)
 
 lazy val core = utils
   .mkModule("dex-core", "DexCore")
   .settings(commonSettings)
-  .settings(libraryDependencies ++= dependencies.core ++ dependencies.Testing)
+  .settings(libraryDependencies ++= dependencies.core)
 
-lazy val watcher = utils
-  .mkModule("dex-watcher", "DexWatcher")
+lazy val tracker = utils
+  .mkModule("dex-tracker", "DexTracker")
   .settings(commonSettings)
   .settings(
     mainClass in assembly := Some(
-      "org.ergoplatform.explorer.http.api.Application"
+      "org.ergoplatform.dex.tracker.App"
     ),
-    libraryDependencies ++= dependencies.watcher
+    libraryDependencies ++= dependencies.tracker
   )
-  .dependsOn(core)
+  .dependsOn(core % allConfigDependency)
 
 lazy val matcher = utils
   .mkModule("dex-matcher", "DexMatcher")
   .settings(commonSettings)
   .settings(
     mainClass in assembly := Some(
-      "org.ergoplatform.explorer.grabber.Application"
+      "org.ergoplatform.dex.matcher.App"
     ),
     libraryDependencies ++= dependencies.matcher
   )
-  .dependsOn(core)
+  .dependsOn(core % allConfigDependency)
 
 lazy val executor = utils
   .mkModule("dex-executor", "DexExecutor")
   .settings(commonSettings)
   .settings(
     mainClass in assembly := Some(
-      "org.ergoplatform.explorer.grabber.Application"
+      "org.ergoplatform.dex.executor.App"
     ),
     libraryDependencies ++= dependencies.executor
   )
-  .dependsOn(core)
+  .dependsOn(core % allConfigDependency)

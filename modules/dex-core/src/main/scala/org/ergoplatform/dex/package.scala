@@ -1,25 +1,33 @@
 package org.ergoplatform
 
-import cats.Applicative
+import cats.effect.Sync
 import cats.instances.either._
+import cats.instances.string._
 import cats.syntax.either._
 import cats.syntax.functor._
+import cats.{Applicative, Show}
+import derevo.derive
+import doobie._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{refineV, W}
+import eu.timepit.refined.{W, refineV}
+import fs2.kafka.instances._
+import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
-import org.ergoplatform.dex.Err.RefinementFailed
+import io.estatico.newtype.ops._
 import org.ergoplatform.dex.constraints.{AddressType, Base58Spec, HexStringType, UrlStringType}
+import org.ergoplatform.dex.errors.RefinementFailed
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
-import tofu.Raise.ContravariantRaise
+import scorex.util.encode.Base16
+import tofu.Raise
+import tofu.logging.Loggable
+import tofu.logging.derivation.loggable
 import tofu.syntax.raise._
 
 package object dex {
-
-  type CRaise[F[_], -E] = ContravariantRaise[F, E]
 
   object constraints {
 
@@ -31,33 +39,97 @@ package object dex {
 
     type UrlStringType = String Refined Url
   }
+
+  @newtype case class OrderId(value: String)
+
+  object OrderId {
+
+    implicit val loggable: Loggable[OrderId] = deriving
+
+    implicit val get: Get[OrderId] = deriving
+    implicit val put: Put[OrderId] = deriving
+
+    // circe instances
+    implicit val encoder: Encoder[OrderId] = deriving
+    implicit val decoder: Decoder[OrderId] = deriving
+
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OrderId]     = serializerByEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OrderId] = deserializerByDecoder
+  }
+
+  @newtype case class TradeId(value: String)
+
+  object TradeId {
+
+    implicit val loggable: Loggable[TradeId] = deriving
+
+    implicit val get: Get[TradeId] = deriving
+    implicit val put: Put[TradeId] = deriving
+
+    // circe instances
+    implicit val encoder: Encoder[TradeId] = deriving
+    implicit val decoder: Decoder[TradeId] = deriving
+
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, TradeId]     = serializerByEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TradeId] = deserializerByDecoder
+  }
+
   @newtype case class TxId(value: String)
 
   object TxId {
+
+    implicit val loggable: Loggable[TxId] = deriving
+
     // circe instances
-    implicit def encoder: Encoder[TxId] = deriving
-    implicit def decoder: Decoder[TxId] = deriving
+    implicit val encoder: Encoder[TxId] = deriving
+    implicit val decoder: Decoder[TxId] = deriving
+
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TxId] = deserializerByDecoder
   }
 
   @newtype case class BoxId(value: String)
 
   object BoxId {
+
+    implicit val show: Show[BoxId]         = deriving
+    implicit val loggable: Loggable[BoxId] = deriving
+
     // circe instances
-    implicit def encoder: Encoder[BoxId] = deriving
-    implicit def decoder: Decoder[BoxId] = deriving
+    implicit val encoder: Encoder[BoxId] = deriving
+    implicit val decoder: Decoder[BoxId] = deriving
+
+    implicit val get: Get[BoxId] = deriving
+    implicit val put: Put[BoxId] = deriving
+
+    def fromErgo(ergoBoxId: ErgoBox.BoxId): BoxId =
+      Base16.encode(ergoBoxId).coerce[BoxId]
   }
 
-  @newtype case class TokenId(value: HexString)
+  @newtype case class AssetId(value: HexString) {
+    def unwrapped: String = value.unwrapped
+  }
 
-  object TokenId {
+  object AssetId {
     // circe instances
-    implicit def encoder: Encoder[TokenId] = deriving
-    implicit def decoder: Decoder[TokenId] = deriving
+    implicit val encoder: Encoder[AssetId] = deriving
+    implicit val decoder: Decoder[AssetId] = deriving
 
-    def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
+    implicit val get: Get[AssetId] =
+      Get[HexString].map(AssetId(_))
+
+    implicit val put: Put[AssetId] =
+      Put[String].contramap[AssetId](_.unwrapped)
+
+    implicit val show: Show[AssetId]         = _.unwrapped
+    implicit val loggable: Loggable[AssetId] = Loggable.show
+
+    def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
-    ): F[TokenId] =
-      HexString.fromString(s).map(TokenId.apply)
+    ): F[AssetId] =
+      HexString.fromString(s).map(AssetId.apply)
+
+    def fromBytes(bytes: Array[Byte]): AssetId =
+      AssetId(HexString.fromBytes(bytes))
   }
 
   // Ergo Address
@@ -66,18 +138,32 @@ package object dex {
   }
 
   object Address {
-    // circe instances
-    implicit def encoder: Encoder[Address] = deriving
-    implicit def decoder: Decoder[Address] = deriving
 
-    def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
+    implicit val show: Show[Address]         = _.unwrapped
+    implicit val loggable: Loggable[Address] = Loggable.show
+
+    // circe instances
+    implicit val encoder: Encoder[Address] = deriving
+    implicit val decoder: Decoder[Address] = deriving
+
+    implicit val configReader: ConfigReader[Address] = implicitly[ConfigReader[String]].emap { raw =>
+      fromString[Either[Throwable, *]](raw).leftMap(e => CannotConvert(raw, "Address", e.getMessage))
+    }
+
+    def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
     ): F[Address] =
       refineV[Base58Spec](s)
         .leftMap(RefinementFailed)
         .toRaise[F]
         .map(Address.apply)
+
+    def fromStringUnsafe(s: String): Address =
+      Address(refineV[Base58Spec].unsafeFrom(s))
   }
+
+  @derive(loggable)
+  final case class PairId(quoteId: AssetId, baseId: AssetId)
 
   @newtype case class HexString(value: HexStringType) {
     final def unwrapped: String = value.value
@@ -85,16 +171,32 @@ package object dex {
 
   object HexString {
     // circe instances
-    implicit def encoder: Encoder[HexString] = deriving
-    implicit def decoder: Decoder[HexString] = deriving
+    implicit val encoder: Encoder[HexString] = deriving
+    implicit val decoder: Decoder[HexString] = deriving
 
-    def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
+    implicit val show: Show[HexString]         = _.unwrapped
+    implicit val loggable: Loggable[HexString] = Loggable.show
+
+    implicit val get: Get[HexString] =
+      Get[String]
+        .temap(s => refineV[HexStringSpec](s))
+        .map(rs => HexString(rs))
+
+    implicit val put: Put[HexString] =
+      Put[String].contramap[HexString](_.unwrapped)
+
+    def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
     ): F[HexString] =
       refineV[HexStringSpec](s)
         .leftMap(RefinementFailed)
         .toRaise[F]
         .map(HexString.apply)
+
+    def fromBytes(bytes: Array[Byte]): HexString =
+      unsafeFromString(scorex.util.encode.Base16.encode(bytes))
+
+    def unsafeFromString(s: String): HexString = HexString(Refined.unsafeApply(s))
   }
 
   @newtype case class UrlString(value: UrlStringType) {
@@ -103,21 +205,27 @@ package object dex {
 
   object UrlString {
     // circe instances
-    implicit def encoder: Encoder[UrlString] = deriving
-    implicit def decoder: Decoder[UrlString] = deriving
+    implicit val encoder: Encoder[UrlString] = deriving
+    implicit val decoder: Decoder[UrlString] = deriving
 
-    implicit def configReader: ConfigReader[UrlString] =
+    implicit val configReader: ConfigReader[UrlString] =
       implicitly[ConfigReader[String]].emap { s =>
         fromString[Either[RefinementFailed, *]](s)
-          .leftMap(e => CannotConvert(s, s"Refined", e.msg))
+          .leftMap(e => CannotConvert(s, s"Refined", e.getMessage))
       }
 
-    def fromString[F[_]: CRaise[*[_], RefinementFailed]: Applicative](
+    def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
     ): F[UrlString] =
       refineV[Url](s)
         .leftMap(RefinementFailed)
         .toRaise[F]
         .map(UrlString.apply)
+  }
+
+  @newtype case class TraceId(value: String)
+
+  object TraceId {
+    implicit val loggable: Loggable[TraceId] = deriving
   }
 }
