@@ -2,6 +2,6 @@ package org.ergoplatform.alg
 
 import cats.FlatMap
 
-trait ConstrainedEmbed[U[_[_]], C[_[_]]] {
+trait ConstrainedEmbed[U[f[_]], C[g[_]]] {
   def embed[F[_]: FlatMap: C](ft: F[U[F]]): U[F]
 }
