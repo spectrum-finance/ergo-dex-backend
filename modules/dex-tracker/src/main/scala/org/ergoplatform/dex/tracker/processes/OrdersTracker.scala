@@ -13,7 +13,6 @@ import org.ergoplatform.dex.streaming.{Producer, Record}
 import org.ergoplatform.dex.tracker.configs.TrackerConfig
 import org.ergoplatform.dex.tracker.domain.errors.InvalidOrder
 import org.ergoplatform.dex.tracker.modules.Orders
-import tofu.Handle
 import tofu.concurrent.MakeRef
 import tofu.higherKind.derived.representableK
 import tofu.logging._
@@ -24,6 +23,9 @@ import tofu.syntax.handle._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
+import tofu.{Catches, Handle}
+
+import scala.concurrent.duration._
 
 @derive(representableK)
 trait OrdersTracker[F[_]] {
@@ -33,9 +35,11 @@ trait OrdersTracker[F[_]] {
 
 object OrdersTracker {
 
+  private val retryDelay = 5.seconds
+
   def make[
     I[_]: FlatMap,
-    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: Pace: FunctorFilter: Defer: MonoidK: TrackerConfig.Has,
+    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: Pace: FunctorFilter: Defer: MonoidK: TrackerConfig.Has: Catches,
     G[_]: Monad: Handle[*[_], InvalidOrder],
     C[_]: Foldable
   ](implicit
@@ -52,7 +56,7 @@ object OrdersTracker {
     }
 
   final private class Live[
-    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: Pace: FunctorFilter: Defer: MonoidK,
+    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: Pace: FunctorFilter: Defer: MonoidK: Catches,
     G[_]: Monad: Handle[*[_], InvalidOrder]: Logging,
     C[_]: Foldable
   ](lastScannedHeightRef: Ref[G, Int], conf: TrackerConfig)(implicit
@@ -79,7 +83,9 @@ object OrdersTracker {
         }
         .evalTap(out => trace"Processing box $out")
         .thrush(process)
-        .void
+        .handleWith[Throwable] { e =>
+          eval(warnCause"Tracker failed. Retrying in ${retryDelay.toMillis} ms"(e)) >> run
+        }
 
     private def process: F[Output] => F[Unit] =
       _.evalMap { out =>

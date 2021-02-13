@@ -68,7 +68,7 @@ object StreamingErgoNetworkClient {
     cats.tagless.Derive.functorK[Mod]
   }
 
-  implicit def cEmbed[S[_]: FlatMap]: ConstrainedEmbed[StreamingErgoNetworkClient[S, *[_]], Evals[S, *[_]]] =
+  implicit def constEmbed[S[_]: FlatMap]: ConstrainedEmbed[StreamingErgoNetworkClient[S, *[_]], Evals[S, *[_]]] =
     new ConstrainedEmbed[StreamingErgoNetworkClient[S, *[_]], Evals[S, *[_]]] {
 
       def embed[F[_]: FlatMap: Evals[S, *[_]]](
@@ -81,7 +81,7 @@ object StreamingErgoNetworkClient {
     S[_]: FlatMap: Evals[*[_], F]: LiftStream[*[_], F],
     F[_]: MonadThrow: WithContext[*[_], NetworkConfig]
   ](implicit backend: SttpBackend[F, Fs2Streams[F]]): StreamingErgoNetworkClient[S, F] =
-    cEmbed[S].embed(
+    constEmbed[S].embed(
       context
         .map(conf => new ErgoExplorerNetworkClient[F](conf))
         .map(client => functorK.mapK(client)(LiftStream[S, F].liftF))
