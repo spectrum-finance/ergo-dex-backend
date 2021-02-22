@@ -21,9 +21,7 @@ object dependencies {
       "io.circe" %% "circe-generic",
       "io.circe" %% "circe-parser",
       "io.circe" %% "circe-refined"
-    ).map(_       % CirceVersion) ++ List(
-      "io.circe" %% "circe-derivation" % CirceDerivationVersion
-    )
+    ).map(_ % CirceVersion)
 
   val Cats: List[ModuleID] = List(
     "org.typelevel" %% "cats-core"           % CatsVersion,
@@ -50,23 +48,23 @@ object dependencies {
   )
 
   val Tofu: List[ModuleID] = List(
-    "ru.tinkoff" %% "tofu-core"         % TofuVersion,
-    "ru.tinkoff" %% "tofu-concurrent"   % TofuVersion,
-    "ru.tinkoff" %% "tofu-env"          % TofuVersion,
-    "ru.tinkoff" %% "tofu-optics-core"  % TofuVersion,
-    "ru.tinkoff" %% "tofu-optics-macro" % TofuVersion,
-    "ru.tinkoff" %% "tofu-derivation"   % TofuVersion,
-    "ru.tinkoff" %% "tofu-logging"      % TofuVersion,
-    "ru.tinkoff" %% "tofu-doobie"       % TofuVersion,
-    "ru.tinkoff" %% "tofu-streams"      % TofuVersion,
-    "ru.tinkoff" %% "tofu-fs2-interop"  % TofuVersion
+    "tf.tofu" %% "tofu-core"         % TofuVersion,
+    "tf.tofu" %% "tofu-concurrent"   % TofuVersion,
+    "tf.tofu" %% "tofu-env"          % TofuVersion,
+    "tf.tofu" %% "tofu-optics-core"  % TofuVersion,
+    "tf.tofu" %% "tofu-optics-macro" % TofuVersion,
+    "tf.tofu" %% "tofu-derivation"   % TofuVersion,
+    "tf.tofu" %% "tofu-logging"      % TofuVersion,
+    "tf.tofu" %% "tofu-doobie"       % TofuVersion,
+    "tf.tofu" %% "tofu-streams"      % TofuVersion,
+    "tf.tofu" %% "tofu-fs2-interop"  % TofuVersion
   )
 
   val Derevo: List[ModuleID] = List(
-    "org.manatki" %% "derevo-cats"         % DerevoVersion,
-    "org.manatki" %% "derevo-cats-tagless" % DerevoVersion,
-    "org.manatki" %% "derevo-circe"        % DerevoVersion,
-    "org.manatki" %% "derevo-pureconfig"   % DerevoVersion
+    "tf.tofu" %% "derevo-cats"         % DerevoVersion,
+    "tf.tofu" %% "derevo-cats-tagless" % DerevoVersion,
+    "tf.tofu" %% "derevo-circe"        % DerevoVersion,
+    "tf.tofu" %% "derevo-pureconfig"   % DerevoVersion
   )
 
   val Ergo: List[ModuleID] = List(
