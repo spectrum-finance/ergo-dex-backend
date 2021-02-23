@@ -39,7 +39,7 @@ lazy val dexBackend = project
   .withId("ergo-dex-backend")
   .settings(commonSettings)
   .settings(moduleName := "ergo-dex-backend", name := "ErgoDexBackend")
-  .aggregate(core, tracker, matcher, executor)
+  .aggregate(core, tracker, matcher, executor, marketsApi)
 
 lazy val core = utils
   .mkModule("dex-core", "DexCore")
@@ -76,5 +76,16 @@ lazy val executor = utils
       "org.ergoplatform.dex.executor.App"
     ),
     libraryDependencies ++= dependencies.executor
+  )
+  .dependsOn(core % allConfigDependency)
+
+lazy val marketsApi = utils
+  .mkModule("markets-api", "MarketsApi")
+  .settings(commonSettings)
+  .settings(
+    mainClass in assembly := Some(
+      "org.ergoplatform.dex.api.App"
+    ),
+    libraryDependencies ++= dependencies.api
   )
   .dependsOn(core % allConfigDependency)

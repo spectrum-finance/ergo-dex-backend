@@ -1,4 +1,4 @@
-create table orders (
+create table if not exists orders (
     type varchar not null,
     quote_asset varchar(64) not null,
     base_asset varchar(64) not null,
