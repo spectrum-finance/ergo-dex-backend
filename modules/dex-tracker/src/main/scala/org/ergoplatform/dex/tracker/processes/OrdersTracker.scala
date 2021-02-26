@@ -8,7 +8,7 @@ import mouse.any._
 import org.ergoplatform.dex.OrderId
 import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
-import org.ergoplatform.dex.explorer.models.Output
+import org.ergoplatform.dex.clients.explorer.models.Output
 import org.ergoplatform.dex.streaming.{Producer, Record}
 import org.ergoplatform.dex.tracker.configs.TrackerConfig
 import org.ergoplatform.dex.tracker.domain.errors.InvalidOrder

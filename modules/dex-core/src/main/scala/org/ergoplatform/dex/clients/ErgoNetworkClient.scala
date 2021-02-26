@@ -12,9 +12,9 @@ import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.alg.ConstrainedEmbed
 import org.ergoplatform.dex.clients.errors.ResponseError
 import org.ergoplatform.dex.configs.NetworkConfig
-import org.ergoplatform.dex.explorer.constants._
-import org.ergoplatform.dex.explorer.models.{BlockInfo, Items, Output, TxIdResponse}
-import org.ergoplatform.dex.{protocol, TxId}
+import org.ergoplatform.dex.clients.explorer.paths._
+import org.ergoplatform.dex.clients.explorer.models.{BlockInfo, Items, Output, Transaction, TxIdResponse}
+import org.ergoplatform.dex.{protocol, HexString, TxId}
 import org.ergoplatform.dex.protocol.codecs._
 import org.typelevel.jawn.Facade
 import sttp.capabilities.fs2.Fs2Streams
@@ -38,6 +38,10 @@ trait ErgoNetworkClient[F[_]] {
   /** Get current network height.
     */
   def getCurrentHeight: F[Int]
+
+  /** Get transactions which spend boxes with a given ErgoTree `templateHash`.
+    */
+  def getTransactionsByInputScript(templateHash: HexString, offset: Int, limit: Int): F[List[Transaction]]
 }
 
 trait StreamingErgoNetworkClient[S[_], F[_]] extends ErgoNetworkClient[F] {
@@ -58,6 +62,9 @@ object StreamingErgoNetworkClient {
 
     def getCurrentHeight: F[Int] =
       tft.flatMap(_.getCurrentHeight)
+
+    def getTransactionsByInputScript(templateHash: HexString, offset: Int, limit: Int): F[List[Transaction]] =
+      tft.flatMap(_.getTransactionsByInputScript(templateHash, offset, limit))
 
     def streamUnspentOutputs(lastEpochs: Int): S[Output] =
       evals.eval(tft.map(_.streamUnspentOutputs(lastEpochs))).flatten
@@ -83,11 +90,11 @@ object StreamingErgoNetworkClient {
   ](implicit backend: SttpBackend[F, Fs2Streams[F]]): StreamingErgoNetworkClient[S, F] =
     constEmbed[S].embed(
       context
-        .map(conf => new ErgoExplorerNetworkClient[F](conf))
+        .map(conf => new ErgoExplorerClient[F](conf))
         .map(client => functorK.mapK(client)(LiftStream[S, F].liftF))
     )
 
-  final class ErgoExplorerNetworkClient[
+  final class ErgoExplorerClient[
     F[_]: MonadThrow
   ](networkConfig: NetworkConfig)(implicit
     backend: SttpBackend[F, Fs2Streams[F]]
@@ -113,6 +120,18 @@ object StreamingErgoNetworkClient {
         .send(backend)
         .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
         .map(_.items.headOption.map(_.height).getOrElse(protocol.constants.PreGenesisHeight))
+
+    def getTransactionsByInputScript(templateHash: HexString, offset: Int, limit: Int): F[List[Transaction]] =
+      basicRequest
+        .get(
+          explorerHost
+            .withPathSegment(txsByScriptsPathSeg(templateHash))
+            .addParams("offset" -> offset.toString, "limit" -> limit.toString, "sortDirection" -> "asc")
+        )
+        .response(asJson[Items[Transaction]])
+        .send(backend)
+        .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
+        .map(_.items)
 
     def streamUnspentOutputs(lastEpochs: Int): Stream[F, Output] = {
       val req =

@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.explorer.models
+package org.ergoplatform.dex.clients.explorer.models
 
 import derevo.circe.decoder
 import derevo.derive
@@ -13,7 +13,7 @@ final case class Output(
   index: Int,
   creationHeight: Int,
   ergoTree: HexString,
-  address: Option[Address],
+  address: Address,
   assets: List[Asset],
   spentTransactionId: Option[TxId],
   mainChain: Boolean

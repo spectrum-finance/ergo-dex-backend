@@ -10,13 +10,14 @@ import derevo.derive
 import doobie._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{W, refineV}
+import eu.timepit.refined.{refineV, W}
 import fs2.kafka.instances._
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
+import org.ergoplatform.dex.{AssetId, BoxId}
 import org.ergoplatform.dex.constraints.{AddressType, Base58Spec, HexStringType, UrlStringType}
 import org.ergoplatform.dex.errors.RefinementFailed
 import pureconfig.ConfigReader
@@ -87,6 +88,20 @@ package object dex {
     implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TxId] = deserializerByDecoder
   }
 
+  @newtype case class BlockId(value: String)
+
+  object BlockId {
+
+    implicit val loggable: Loggable[BlockId] = deriving
+
+    // circe instances
+    implicit val encoder: Encoder[BlockId] = deriving
+    implicit val decoder: Decoder[BlockId] = deriving
+
+    implicit val get: Get[BlockId] = deriving
+    implicit val put: Put[BlockId] = deriving
+  }
+
   @newtype case class BoxId(value: String)
 
   object BoxId {
@@ -130,6 +145,20 @@ package object dex {
 
     def fromBytes(bytes: Array[Byte]): AssetId =
       AssetId(HexString.fromBytes(bytes))
+  }
+
+  @newtype case class TokenType(value: String)
+
+  object TokenType {
+    // circe instances
+    implicit val encoder: Encoder[TokenType] = deriving
+    implicit val decoder: Decoder[TokenType] = deriving
+
+    implicit val get: Get[TokenType] = deriving
+    implicit val put: Put[TokenType] = deriving
+
+    implicit val show: Show[AssetId]         = _.unwrapped
+    implicit val loggable: Loggable[AssetId] = Loggable.show
   }
 
   // Ergo Address

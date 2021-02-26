@@ -11,7 +11,7 @@ import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.models.Order._
 import org.ergoplatform.dex.domain.models.OrderMeta
-import org.ergoplatform.dex.explorer.models.{Asset, Output}
+import org.ergoplatform.dex.clients.explorer.models.{Asset, Output}
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.tracker.domain.errors._
 import org.ergoplatform.dex.{constants, AssetId}

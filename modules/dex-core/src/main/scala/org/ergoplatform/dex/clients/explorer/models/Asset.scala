@@ -1,8 +1,8 @@
-package org.ergoplatform.dex.explorer.models
+package org.ergoplatform.dex.clients.explorer.models
 
 import derevo.circe.decoder
 import derevo.derive
-import org.ergoplatform.dex.AssetId
+import org.ergoplatform.dex.{AssetId, TokenType}
 import tofu.logging.derivation.loggable
 
 /** A model mirroring Asset entity from Ergo node REST API.
@@ -11,5 +11,9 @@ import tofu.logging.derivation.loggable
 @derive(decoder, loggable)
 final case class Asset(
   tokenId: AssetId,
-  amount: Long
+  index: Int,
+  amount: Long,
+  name: Option[String],
+  decimals: Option[Int],
+  `type`: Option[TokenType]
 )
