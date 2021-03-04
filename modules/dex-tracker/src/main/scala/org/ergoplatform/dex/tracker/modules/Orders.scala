@@ -34,21 +34,24 @@ object Orders {
 
   implicit def instance[F[_]: Clock: MonadThrow: WithContext[*[_], ProtocolConfig]]: Orders[F] =
     context.map { conf =>
-      implicit val e: ErgoAddressEncoder = conf.networkType.addressEncoder
-      new Live[F]: Orders[F]
+      val ser     = ErgoTreeSerializer.default
+      val encoder = conf.networkType.addressEncoder
+      new Live[F](ser, encoder): Orders[F]
     }.embed
 
-  final private class Live[F[_]: Monad: Clock: Raise[*[_], InvalidOrder]](implicit
-    treeSer: ErgoTreeSerializer[F],
+  final private class Live[F[_]: Monad: Clock: Raise[*[_], InvalidOrder]](
+    treeSer: ErgoTreeSerializer,
     addressEncoder: ErgoAddressEncoder
   ) extends Orders[F] {
 
-    def makeOrder(output: Output): F[Option[AnyOrder]] =
-      treeSer.deserialize(output.ergoTree).flatMap { tree =>
-        if (isSellerScript(tree)) makeAsk(tree, output).map(_.some)
-        else if (isBuyerScript(tree)) makeBid(tree, output).map(_.some)
-        else none[AnyOrder].pure
-      }
+    implicit val e: ErgoAddressEncoder = addressEncoder
+
+    def makeOrder(output: Output): F[Option[AnyOrder]] = {
+      val tree = treeSer.deserialize(output.ergoTree)
+      if (isSellerScript(tree)) makeAsk(tree, output).map(_.some)
+      else if (isBuyerScript(tree)) makeBid(tree, output).map(_.some)
+      else none[AnyOrder].pure
+    }
 
     private[tracker] def isSellerScript(tree: ErgoTree): Boolean =
       util.Arrays.equals(tree.template, sellerContractErgoTreeTemplate)
@@ -62,7 +65,7 @@ object Orders {
         baseAsset  = constants.ErgoAssetId
         quoteAsset = AssetId.fromBytes(params.tokenId)
         amount <- output.assets
-                    .collectFirst { case Asset(tokenId, amount) if tokenId == quoteAsset => amount }
+                    .collectFirst { case a if a.tokenId == quoteAsset => a.amount }
                     .orRaise(AssetNotProvided(quoteAsset))
         price       = params.tokenPrice
         feePerToken = params.dexFeePerToken

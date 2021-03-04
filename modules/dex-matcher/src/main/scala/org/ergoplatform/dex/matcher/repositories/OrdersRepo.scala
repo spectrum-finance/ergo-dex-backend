@@ -49,7 +49,7 @@ object OrdersRepo {
       sql.getSellWall(pairId).stream.take(limit).compile.toList
 
     def insert(orders: NonEmptyList[AnyOrder]): ConnectionIO[Unit] =
-      sql.insert.updateManyWithGeneratedKeys(sql.fields: _*)(orders).compile.drain
+      sql.insert[AnyOrder].updateMany(orders).map(_ => ())
 
     def remove(ids: NonEmptyList[OrderId]): ConnectionIO[Unit] =
       sql.remove(ids).run.map(_ => ())

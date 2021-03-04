@@ -1,9 +1,7 @@
 package org.ergoplatform.dex.sql
 
-import cats.implicits._
-import doobie.implicits._
-import doobie.util.{Read, Write}
-import doobie.{ConnectionIO, Update}
+import doobie.Update
+import doobie.util.Write
 
 /** Database table access operations layer.
   */
@@ -17,22 +15,10 @@ trait QuerySet {
     */
   val fields: List[String]
 
-  def insert[M: Read: Write](m: M): ConnectionIO[M] =
-    insert.withUniqueGeneratedKeys[M](fields: _*)(m)
-
-  def insertNoConflict[M: Read: Write](m: M): ConnectionIO[Int] =
-    insertNoConflict.run(m)
-
-  def insertMany[M: Read: Write](xs: List[M]): ConnectionIO[List[M]] =
-    insert.updateManyWithGeneratedKeys[M](fields: _*)(xs).compile.to(List)
-
-  def insertManyNoConflict[M: Read: Write](xs: List[M]): ConnectionIO[Int] =
-    insertNoConflict.updateMany(xs)
-
-  private def insert[M: Write]: Update[M] =
+  final def insert[M: Write]: Update[M] =
     Update[M](s"insert into $tableName ($fieldsString) values ($holdersString)")
 
-  private def insertNoConflict[M: Write]: Update[M] =
+  final def insertNoConflict[M: Write]: Update[M] =
     Update[M](s"insert into $tableName ($fieldsString) values ($holdersString) on conflict do nothing")
 
   private def fieldsString: String =

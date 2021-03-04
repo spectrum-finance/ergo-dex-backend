@@ -2,13 +2,13 @@ package org.ergoplatform.dex.tracker.processes
 
 import cats.effect.concurrent.Ref
 import cats.syntax.option._
-import cats.{Defer, FlatMap, Foldable, FunctorFilter, Monad, MonoidK}
+import cats.{Defer, FlatMap, FunctorFilter, Monad, MonoidK}
 import derevo.derive
 import mouse.any._
 import org.ergoplatform.dex.OrderId
 import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
-import org.ergoplatform.dex.domain.models.Order.AnyOrder
 import org.ergoplatform.dex.clients.explorer.models.Output
+import org.ergoplatform.dex.domain.models.Order.AnyOrder
 import org.ergoplatform.dex.streaming.{Producer, Record}
 import org.ergoplatform.dex.tracker.configs.TrackerConfig
 import org.ergoplatform.dex.tracker.domain.errors.InvalidOrder
@@ -16,7 +16,7 @@ import org.ergoplatform.dex.tracker.modules.Orders
 import tofu.concurrent.MakeRef
 import tofu.higherKind.derived.representableK
 import tofu.logging._
-import tofu.streams.{Evals, Pace, Temporal}
+import tofu.streams.{Evals, Pace}
 import tofu.syntax.context._
 import tofu.syntax.embed._
 import tofu.syntax.handle._
@@ -39,9 +39,8 @@ object OrdersTracker {
 
   def make[
     I[_]: FlatMap,
-    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: Pace: FunctorFilter: Defer: MonoidK: TrackerConfig.Has: Catches,
-    G[_]: Monad: Handle[*[_], InvalidOrder],
-    C[_]: Foldable
+    F[_]: Monad: Evals[*[_], G]: Pace: FunctorFilter: Defer: MonoidK: TrackerConfig.Has: Catches,
+    G[_]: Monad: Handle[*[_], InvalidOrder]
   ](implicit
     client: StreamingErgoNetworkClient[F, G],
     producer: Producer[OrderId, AnyOrder, F],
@@ -51,14 +50,13 @@ object OrdersTracker {
   ): I[OrdersTracker[F]] =
     logs.forService[OrdersTracker[F]].flatMap { implicit l =>
       makeRef.refOf(0).map { ref =>
-        (context map (conf => new Live[F, G, C](ref, conf): OrdersTracker[F])).embed
+        (context map (conf => new Live[F, G](ref, conf): OrdersTracker[F])).embed
       }
     }
 
   final private class Live[
-    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: Pace: FunctorFilter: Defer: MonoidK: Catches,
-    G[_]: Monad: Handle[*[_], InvalidOrder]: Logging,
-    C[_]: Foldable
+    F[_]: Monad: Evals[*[_], G]: Pace: FunctorFilter: Defer: MonoidK: Catches,
+    G[_]: Monad: Handle[*[_], InvalidOrder]: Logging
   ](lastScannedHeightRef: Ref[G, Int], conf: TrackerConfig)(implicit
     client: StreamingErgoNetworkClient[F, G],
     producer: Producer[OrderId, AnyOrder, F],

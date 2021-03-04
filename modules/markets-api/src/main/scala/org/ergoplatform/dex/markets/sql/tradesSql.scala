@@ -9,6 +9,7 @@ object tradesSql extends QuerySet {
   val fields: List[String] =
     List(
       "tx_id",
+      "height",
       "quote_asset",
       "base_asset",
       "amount",

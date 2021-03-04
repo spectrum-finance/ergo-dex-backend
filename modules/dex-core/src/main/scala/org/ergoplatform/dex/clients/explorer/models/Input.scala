@@ -2,7 +2,7 @@ package org.ergoplatform.dex.clients.explorer.models
 
 import derevo.circe.decoder
 import derevo.derive
-import org.ergoplatform.dex.{Address, BoxId, HexString, TxId}
+import org.ergoplatform.dex.{Address, BoxId, ErgoTree, HexString, TxId}
 import tofu.logging.derivation.loggable
 
 @derive(decoder, loggable)
@@ -13,7 +13,7 @@ final case class Input(
   spendingProof: Option[HexString],
   outputTransactionId: TxId,
   outputIndex: Int,
-  ergoTree: HexString,
+  ergoTree: ErgoTree,
   address: Address,
   assets: List[Asset]
 )

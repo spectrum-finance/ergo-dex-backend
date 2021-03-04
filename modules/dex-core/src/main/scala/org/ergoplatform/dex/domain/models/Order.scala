@@ -4,12 +4,15 @@ import cats.Show
 import cats.effect.Sync
 import cats.syntax.semigroup._
 import cats.syntax.show._
+import doobie.Read
+import doobie.util.Write
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.dex.{AssetId, OrderId, PairId}
 import tofu.logging.{Loggable, _}
+import _root_.shapeless.Lazy
 
 /** Global market order.
   * @param `type` - type of the order (sell or buy)
@@ -42,6 +45,8 @@ object Order {
   type Ask      = Order[OrderType.Ask.type]
   type Bid      = Order[OrderType.Bid.type]
   type AnyOrder = Order[OrderType]
+
+  implicit def write: Write[AnyOrder] = Lazy(implicitly[Write[AnyOrder]]).value
 
   implicit def show[T <: OrderType]: Show[Order[T]] =
     o =>

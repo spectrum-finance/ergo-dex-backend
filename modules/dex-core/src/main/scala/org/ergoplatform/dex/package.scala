@@ -17,7 +17,7 @@ import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
-import org.ergoplatform.dex.{AssetId, BoxId}
+import org.ergoplatform.dex.{AssetId, BoxId, HexString}
 import org.ergoplatform.dex.constraints.{AddressType, Base58Spec, HexStringType, UrlStringType}
 import org.ergoplatform.dex.errors.RefinementFailed
 import pureconfig.ConfigReader
@@ -157,8 +157,8 @@ package object dex {
     implicit val get: Get[TokenType] = deriving
     implicit val put: Put[TokenType] = deriving
 
-    implicit val show: Show[AssetId]         = _.unwrapped
-    implicit val loggable: Loggable[AssetId] = Loggable.show
+    implicit val show: Show[TokenType]         = _.value
+    implicit val loggable: Loggable[TokenType] = Loggable.show
   }
 
   // Ergo Address
@@ -195,7 +195,8 @@ package object dex {
   final case class PairId(quoteId: AssetId, baseId: AssetId)
 
   @newtype case class HexString(value: HexStringType) {
-    final def unwrapped: String = value.value
+    final def unwrapped: String    = value.value
+    final def toBytea: Array[Byte] = Base16.decode(unwrapped).get
   }
 
   object HexString {
@@ -226,6 +227,31 @@ package object dex {
       unsafeFromString(scorex.util.encode.Base16.encode(bytes))
 
     def unsafeFromString(s: String): HexString = HexString(Refined.unsafeApply(s))
+  }
+
+  @newtype case class ErgoTree(value: HexString) {
+    final def unwrapped: String    = value.unwrapped
+    final def toBytea: Array[Byte] = value.toBytea
+  }
+
+  object ErgoTree {
+    // circe instances
+    implicit val encoder: Encoder[ErgoTree] = deriving
+    implicit val decoder: Decoder[ErgoTree] = deriving
+
+    implicit val show: Show[ErgoTree]         = deriving
+    implicit val loggable: Loggable[ErgoTree] = deriving
+
+    implicit val get: Get[ErgoTree] = deriving
+    implicit val put: Put[ErgoTree] = deriving
+
+    def fromBytes(bytes: Array[Byte]): ErgoTree = ErgoTree(HexString.fromBytes(bytes))
+
+    def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
+      s: String
+    ): F[ErgoTree] = HexString.fromString(s).map(ErgoTree.apply)
+
+    def unsafeFromString(s: String): ErgoTree = ErgoTree(HexString.unsafeFromString(s))
   }
 
   @newtype case class UrlString(value: UrlStringType) {

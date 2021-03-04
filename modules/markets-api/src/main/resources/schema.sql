@@ -1,12 +1,15 @@
-create table if not exists markets (
+create table if not exists markets
+(
     quote_asset varchar(64),
     base_asset  varchar(64),
     ticker      varchar not null,
     primary key (quote_asset, base_asset)
 );
 
-create table if not exists trades (
+create table if not exists trades
+(
     tx_id       varchar(64) primary key,
+    height      integer     not null,
     quote_asset varchar(64) not null,
     base_asset  varchar(64) not null,
     amount      bigint      not null,

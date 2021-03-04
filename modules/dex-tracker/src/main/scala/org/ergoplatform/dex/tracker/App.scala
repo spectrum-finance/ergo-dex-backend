@@ -40,7 +40,7 @@ object App extends EnvApp[ConfigBundle] {
         Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.producer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: StreamingErgoNetworkClient[StreamF, RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
-      tracker <- Resource.liftF(OrdersTracker.make[InitF, StreamF, RunF, Chunk])
+      tracker <- Resource.liftF(OrdersTracker.make[InitF, StreamF, RunF])
     } yield tracker -> configs
 
   private def makeBackend(
