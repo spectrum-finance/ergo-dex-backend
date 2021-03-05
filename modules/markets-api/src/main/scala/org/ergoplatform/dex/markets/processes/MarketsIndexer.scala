@@ -1,9 +1,9 @@
 package org.ergoplatform.dex.markets.processes
 
-import cats.{Defer, Functor, FunctorFilter, Monad, MonoidK}
 import cats.instances.list._
-import cats.syntax.traverse._
 import cats.syntax.list._
+import cats.syntax.traverse._
+import cats.{Defer, Functor, Monad, MonoidK}
 import derevo.derive
 import org.ergoplatform.dex.clients.ErgoNetworkClient
 import org.ergoplatform.dex.markets.configs.IndexerConfig
@@ -14,11 +14,11 @@ import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Evals, Pace}
-import tofu.syntax.streams.all._
-import tofu.syntax.monadic._
 import tofu.syntax.context._
 import tofu.syntax.embed._
 import tofu.syntax.logging._
+import tofu.syntax.monadic._
+import tofu.syntax.streams.all._
 
 @derive(representableK)
 trait MarketsIndexer[F[_]] {

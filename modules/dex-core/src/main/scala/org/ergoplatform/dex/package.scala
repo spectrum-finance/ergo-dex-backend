@@ -229,29 +229,29 @@ package object dex {
     def unsafeFromString(s: String): HexString = HexString(Refined.unsafeApply(s))
   }
 
-  @newtype case class ErgoTree(value: HexString) {
+  @newtype case class SErgoTree(value: HexString) {
     final def unwrapped: String    = value.unwrapped
     final def toBytea: Array[Byte] = value.toBytea
   }
 
-  object ErgoTree {
+  object SErgoTree {
     // circe instances
-    implicit val encoder: Encoder[ErgoTree] = deriving
-    implicit val decoder: Decoder[ErgoTree] = deriving
+    implicit val encoder: Encoder[SErgoTree] = deriving
+    implicit val decoder: Decoder[SErgoTree] = deriving
 
-    implicit val show: Show[ErgoTree]         = deriving
-    implicit val loggable: Loggable[ErgoTree] = deriving
+    implicit val show: Show[SErgoTree]         = deriving
+    implicit val loggable: Loggable[SErgoTree] = deriving
 
-    implicit val get: Get[ErgoTree] = deriving
-    implicit val put: Put[ErgoTree] = deriving
+    implicit val get: Get[SErgoTree] = deriving
+    implicit val put: Put[SErgoTree] = deriving
 
-    def fromBytes(bytes: Array[Byte]): ErgoTree = ErgoTree(HexString.fromBytes(bytes))
+    def fromBytes(bytes: Array[Byte]): SErgoTree = SErgoTree(HexString.fromBytes(bytes))
 
     def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
-    ): F[ErgoTree] = HexString.fromString(s).map(ErgoTree.apply)
+    ): F[SErgoTree] = HexString.fromString(s).map(SErgoTree.apply)
 
-    def unsafeFromString(s: String): ErgoTree = ErgoTree(HexString.unsafeFromString(s))
+    def unsafeFromString(s: String): SErgoTree = SErgoTree(HexString.unsafeFromString(s))
   }
 
   @newtype case class UrlString(value: UrlStringType) {

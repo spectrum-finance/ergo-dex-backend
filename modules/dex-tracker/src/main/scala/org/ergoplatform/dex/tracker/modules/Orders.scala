@@ -32,7 +32,7 @@ trait Orders[F[_]] {
 
 object Orders {
 
-  implicit def instance[F[_]: Clock: MonadThrow: WithContext[*[_], ProtocolConfig]]: Orders[F] =
+  implicit def instance[F[_]: Clock: MonadThrow: ProtocolConfig.Has]: Orders[F] =
     context.map { conf =>
       val ser     = ErgoTreeSerializer.default
       val encoder = conf.networkType.addressEncoder
