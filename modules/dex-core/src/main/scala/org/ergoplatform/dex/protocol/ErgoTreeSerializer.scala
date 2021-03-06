@@ -13,8 +13,7 @@ trait ErgoTreeSerializer {
 
 object ErgoTreeSerializer {
 
-  def default: ErgoTreeSerializer =
-    new ErgoTreeSerializer {
+  object default extends ErgoTreeSerializer {
 
       def serialize(tree: Values.ErgoTree): SErgoTree =
         SErgoTree.fromBytes(TreeSerializeer.DefaultSerializer.serializeErgoTree(tree))

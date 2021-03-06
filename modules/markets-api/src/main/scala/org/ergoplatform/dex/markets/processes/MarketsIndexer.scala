@@ -9,7 +9,7 @@ import org.ergoplatform.dex.clients.ErgoNetworkClient
 import org.ergoplatform.dex.markets.configs.IndexerConfig
 import org.ergoplatform.dex.markets.modules.Trades
 import org.ergoplatform.dex.markets.repositories.TradesRepo
-import org.ergoplatform.dex.protocol.ScriptTemplates
+import org.ergoplatform.dex.protocol.{ContractType, ScriptTemplates}
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
@@ -30,35 +30,39 @@ object MarketsIndexer {
 
   def make[
     I[_]: Functor,
-    F[_]: Monad: Evals[*[_], G]: Pace: Defer: MonoidK: Catches: IndexerConfig.Has: ScriptTemplates.Has,
-    G[_]: Monad
+    F[_]: Monad: Evals[*[_], G]: Pace: Defer: MonoidK: Catches: IndexerConfig.Has,
+    G[_]: Monad,
+    CT <: ContractType
   ](implicit
     logs: Logs[I, G],
     network: ErgoNetworkClient[G],
     tradesRepo: TradesRepo[G],
-    trades: Trades[G]
+    trades: Trades[G, CT],
+    templates: ScriptTemplates[CT]
   ): I[MarketsIndexer[F]] =
     logs.forService[MarketsIndexer[F]].map { implicit l =>
-      (hasContext[F, IndexerConfig], hasContext[F, ScriptTemplates]).mapN { (conf, templates) =>
-        new Live(conf, templates): MarketsIndexer[F]
+      context[F].map { conf =>
+        new Live[F, G, CT](conf): MarketsIndexer[F]
       }.embed
     }
 
   final class Live[
     F[_]: Monad: Evals[*[_], G]: Pace: Defer: MonoidK: Catches,
-    G[_]: Monad: Logging
-  ](conf: IndexerConfig, templates: ScriptTemplates)(implicit
+    G[_]: Monad: Logging,
+    CT <: ContractType
+  ](conf: IndexerConfig)(implicit
     network: ErgoNetworkClient[G],
     tradesRepo: TradesRepo[G],
-    trades: Trades[G]
+    trades: Trades[G, CT],
+    templates: ScriptTemplates[CT]
   ) extends MarketsIndexer[F] {
 
     def run: F[Unit] =
-      eval(tradesRepo.count).repeat
+      eval(tradesRepo.countTransactions).repeat
         .throttled(conf.scanInterval)
         .evalMap { count =>
           network
-            .getTransactionsByInputScript(templates.limitOrderAsk, count, conf.batchSize)
+            .getTransactionsByInputScript(templates.ask, count, conf.batchSize)
             .flatMap { txs =>
               txs.traverse(trades.extract).map(_.flatten) >>=
                 (ts => info"Writing ${ts.size} trades" >> ts.toNel.fold(unit[G])(tradesRepo.insert))

@@ -1,20 +1,18 @@
 package org.ergoplatform.dex.tracker.modules
 
-import java.util
-
 import cats.Monad
 import cats.effect.Clock
 import cats.syntax.option._
 import derevo.derive
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.contracts.DexLimitOrderContracts._
+import org.ergoplatform.dex.AssetId
+import org.ergoplatform.dex.clients.explorer.models.Output
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.models.Order._
 import org.ergoplatform.dex.domain.models.OrderMeta
-import org.ergoplatform.dex.clients.explorer.models.{Asset, Output}
-import org.ergoplatform.dex.protocol.ErgoTreeSerializer
+import org.ergoplatform.dex.protocol.{constants, ErgoTreeSerializer}
 import org.ergoplatform.dex.tracker.domain.errors._
-import org.ergoplatform.dex.{constants, AssetId}
 import sigmastate.Values.ErgoTree
 import tofu.higherKind.derived.representableK
 import tofu.syntax.context._
@@ -22,7 +20,9 @@ import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
 import tofu.syntax.time._
-import tofu.{MonadThrow, Raise, WithContext}
+import tofu.{MonadThrow, Raise}
+
+import java.util
 
 @derive(representableK)
 trait Orders[F[_]] {
@@ -62,7 +62,7 @@ object Orders {
     private[tracker] def makeAsk(tree: ErgoTree, output: Output): F[Ask] =
       for {
         params <- parseSellerContractParameters(tree).orRaise(BadParams(tree))
-        baseAsset  = constants.ErgoAssetId
+        baseAsset  = constants.NativeAssetId
         quoteAsset = AssetId.fromBytes(params.tokenId)
         amount <- output.assets
                     .collectFirst { case a if a.tokenId == quoteAsset => a.amount }
@@ -81,7 +81,7 @@ object Orders {
         _ <- if (output.value % (params.tokenPrice + params.dexFeePerToken) != 0)
                InvalidBidValue(output.value, params.tokenPrice, params.dexFeePerToken).raise
              else unit
-        baseAsset   = constants.ErgoAssetId
+        baseAsset   = constants.NativeAssetId
         quoteAsset  = AssetId.fromBytes(params.tokenId)
         price       = params.tokenPrice
         feePerToken = params.dexFeePerToken

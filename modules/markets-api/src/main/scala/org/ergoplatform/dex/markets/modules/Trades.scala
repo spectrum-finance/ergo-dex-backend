@@ -1,37 +1,83 @@
 package org.ergoplatform.dex.markets.modules
 
-import cats.Monad
-import cats.instances.list._
-import cats.syntax.traverse._
-import org.ergoplatform.dex.SErgoTree
-import org.ergoplatform.dex.clients.explorer.models.{Input, Transaction}
-import org.ergoplatform.dex.markets.models.Trade
-import org.ergoplatform.dex.protocol.OrderScripts
+import cats.Applicative
+import org.ergoplatform.dex.clients.explorer.models.Transaction
+import org.ergoplatform.dex.markets.models.{Side, Trade}
+import org.ergoplatform.dex.protocol.{constants, ContractType, OrderParams, OrderScripts}
 import tofu.syntax.monadic._
-import tofu.syntax.foption._
 
-trait Trades[F[_]] {
+trait Trades[F[_], CT <: ContractType] {
 
   def extract(tx: Transaction): F[List[Trade]]
 }
 
 object Trades {
 
-  final class Live[F[_]: Monad](implicit scripts: OrderScripts[F]) extends Trades[F] {
+  def make[F[_]: Applicative, CT <: ContractType](implicit scripts: OrderScripts[CT]): Trades[F, CT] =
+    new Live[F, CT]
+
+  final class Live[F[_]: Applicative, CT <: ContractType](implicit scripts: OrderScripts[CT]) extends Trades[F, CT] {
 
     def extract(tx: Transaction): F[List[Trade]] = {
-      val collectInputs: (SErgoTree => F[Boolean]) => F[List[Input]] =
-        p => tx.inputs.traverse(i => p(i.ergoTree)).map(_.zip(tx.inputs).collect { case (true, in) => in })
-      for {
-        asksIn <- collectInputs(scripts.isAsk)
-        asks <- asksIn
-                  .traverse(in => scripts.parseAsk(in.ergoTree, in.additionalRegisters).mapIn(in -> _))
-                  .map(_.flatten)
-        bidsIn <- collectInputs(scripts.isBid)
-        bids <- bidsIn
-                  .traverse(in => scripts.parseBid(in.ergoTree, in.additionalRegisters).mapIn(in -> _))
-                  .map(_.flatten)
-      } yield ???
+      val asksIn     = tx.inputs.filter(in => scripts.isAsk(in.ergoTree))
+      val asksErased = asksIn.flatMap(scripts.parseAsk)
+      val bidsIn     = tx.inputs.filter(in => scripts.isBid(in.ergoTree))
+      val bidsErased = bidsIn.flatMap(scripts.parseBid)
+      (collectSellTrades(tx, asksErased) ++ collectBuyTrades(tx, bidsErased)).pure
     }
+
+    private def collectSellTrades(tx: Transaction, asks: List[OrderParams]): List[Trade] =
+      asks.foldLeft(List.empty[Trade]) { case (acc, params) =>
+        val trades = tx.outputs
+          .find(out => out.ergoTree == params.ownerErgoTree)
+          .flatMap { output =>
+            val base = params.baseAsset
+            val rewardAmountM =
+              if (base == constants.NativeAssetId) Some(output.value)
+              else output.assets.find(_.tokenId == base).map(_.amount)
+            rewardAmountM.map { rewardAmount =>
+              val price  = params.price
+              val amount = rewardAmount / price
+              Trade(
+                Side.Sell,
+                tx.id,
+                tx.inclusionHeight,
+                params.quoteAsset,
+                params.baseAsset,
+                amount,
+                price,
+                params.feePerToken,
+                tx.timestamp
+              )
+            }
+          }
+        acc ++ trades
+      }
+
+    private def collectBuyTrades(tx: Transaction, bids: List[OrderParams]): List[Trade] =
+      bids.foldLeft(List.empty[Trade]) { case (acc, params) =>
+        val trades = tx.outputs
+          .find(out => out.ergoTree == params.ownerErgoTree)
+          .flatMap { output =>
+            val quote = params.quoteAsset
+            output.assets
+              .find(_.tokenId == quote)
+              .map(_.amount)
+              .map { purchaseAmount =>
+                Trade(
+                  Side.Buy,
+                  tx.id,
+                  tx.inclusionHeight,
+                  params.quoteAsset,
+                  params.baseAsset,
+                  purchaseAmount,
+                  params.price,
+                  params.feePerToken,
+                  tx.timestamp
+                )
+              }
+          }
+        acc ++ trades
+      }
   }
 }

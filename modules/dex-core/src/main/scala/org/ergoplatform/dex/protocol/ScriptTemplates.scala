@@ -2,17 +2,16 @@ package org.ergoplatform.dex.protocol
 
 import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.dex.HexString
-import tofu.Context
 
-final case class ScriptTemplates(
-  limitOrderAsk: HexString,
-  limitOrderBid: HexString
-)
+trait ScriptTemplates[CT <: ContractType] {
+  val ask: HexString
+  val bid: HexString
+}
 
-object ScriptTemplates extends Context.Companion[ScriptTemplates] {
+object ScriptTemplates {
 
-  def default: ScriptTemplates = ScriptTemplates(
-    HexString.fromBytes(sellerContractErgoTreeTemplate),
-    HexString.fromBytes(buyerContractErgoTreeTemplate)
-  )
+  implicit object limitOrder extends ScriptTemplates[ContractType.LimitOrder] {
+    val ask: HexString = HexString.fromBytes(sellerContractErgoTreeTemplate)
+    val bid: HexString = HexString.fromBytes(buyerContractErgoTreeTemplate)
+  }
 }

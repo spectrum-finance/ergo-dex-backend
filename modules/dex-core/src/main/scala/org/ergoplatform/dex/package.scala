@@ -10,14 +10,14 @@ import derevo.derive
 import doobie._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{refineV, W}
+import eu.timepit.refined.{W, refineV}
 import fs2.kafka.instances._
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
-import org.ergoplatform.dex.{AssetId, BoxId, HexString}
+import org.ergoplatform.dex.{AssetId, BlockId, BoxId, HexString}
 import org.ergoplatform.dex.constraints.{AddressType, Base58Spec, HexStringType, UrlStringType}
 import org.ergoplatform.dex.errors.RefinementFailed
 import pureconfig.ConfigReader
@@ -84,6 +84,9 @@ package object dex {
     // circe instances
     implicit val encoder: Encoder[TxId] = deriving
     implicit val decoder: Decoder[TxId] = deriving
+
+    implicit val get: Get[TxId] = deriving
+    implicit val put: Put[TxId] = deriving
 
     implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TxId] = deserializerByDecoder
   }

@@ -2,13 +2,12 @@ package org.ergoplatform.dex.clients.explorer.models
 
 import derevo.circe.decoder
 import derevo.derive
-import io.circe.Json
-import org.ergoplatform.dex.{Address, BoxId, HexString, SErgoTree, TxId}
+import org.ergoplatform.dex._
 import tofu.logging.derivation.loggable
 
 @derive(decoder, loggable)
 final case class Input(
-  id: BoxId,
+  boxId: BoxId,
   value: Long,
   index: Int,
   spendingProof: Option[HexString],
@@ -16,6 +15,5 @@ final case class Input(
   outputIndex: Int,
   ergoTree: SErgoTree,
   address: Address,
-  assets: List[Asset],
-  additionalRegisters: Json
-)
+  assets: List[Asset]
+) extends ErgoBox
