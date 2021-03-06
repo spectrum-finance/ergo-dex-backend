@@ -8,7 +8,7 @@ import org.scalatest.propspec.AnyPropSpec
 class TradesSpec extends AnyPropSpec with should.Matchers {
 
   property("Trades extraction") {
-    val trades = Trades.make[Id, ContractType.LimitOrder]
+    val trades = Trades.instance[Id, ContractType.LimitOrder]
     println(trades.extract(samples.TradeTx))
   }
 }

@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.matcher.configs
+package org.ergoplatform.dex.configs
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader

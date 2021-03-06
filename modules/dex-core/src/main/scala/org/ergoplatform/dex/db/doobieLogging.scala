@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.matcher.db
+package org.ergoplatform.dex.db
 
 import cats.Functor
 import cats.syntax.functor._

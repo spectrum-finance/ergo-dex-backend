@@ -1,9 +1,9 @@
-package org.ergoplatform.dex.matcher.modules
+package org.ergoplatform.dex.db
 
 import cats.effect.{Async, Blocker, ContextShift, Resource, Sync}
 import doobie.hikari.HikariTransactor
 import doobie.util.ExecutionContexts
-import org.ergoplatform.dex.matcher.configs.DbConfig
+import org.ergoplatform.dex.configs.DbConfig
 
 object PostgresTransactor {
 

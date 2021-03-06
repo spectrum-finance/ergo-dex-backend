@@ -13,7 +13,7 @@ trait Trades[F[_], CT <: ContractType] {
 
 object Trades {
 
-  def make[F[_]: Applicative, CT <: ContractType](implicit scripts: OrderScripts[CT]): Trades[F, CT] =
+  implicit def instance[F[_]: Applicative, CT <: ContractType](implicit scripts: OrderScripts[CT]): Trades[F, CT] =
     new Live[F, CT]
 
   final class Live[F[_]: Applicative, CT <: ContractType](implicit scripts: OrderScripts[CT]) extends Trades[F, CT] {

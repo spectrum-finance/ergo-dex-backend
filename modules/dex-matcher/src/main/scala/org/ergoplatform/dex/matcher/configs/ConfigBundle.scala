@@ -2,7 +2,7 @@ package org.ergoplatform.dex.matcher.configs
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
-import org.ergoplatform.dex.configs.{ConfigBundleCompanion, ConsumerConfig, ProducerConfig}
+import org.ergoplatform.dex.configs.{ConfigBundleCompanion, ConsumerConfig, DbConfig, ProducerConfig}
 import org.ergoplatform.dex.streaming.CommitPolicy
 import tofu.Context
 import tofu.logging.Loggable
