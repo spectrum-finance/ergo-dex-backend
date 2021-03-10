@@ -86,7 +86,7 @@ lazy val marketsApi = utils
   .settings(commonSettings)
   .settings(
     mainClass in assembly := Some(
-      "org.ergoplatform.dex.api.App"
+      "org.ergoplatform.dex.markets.App"
     ),
     libraryDependencies ++= dependencies.api
   )
