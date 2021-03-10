@@ -8,10 +8,10 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends sbt
 COPY . /ergo-dex-backend
 WORKDIR /ergo-dex-backend
-RUN sbt dex-matcher/assembly
-RUN mv `find . -name DexMatcher-assembly-*.jar` /dex-matcher.jar
-CMD ["/usr/bin/java", "-jar", "/dex-matcher.jar"]
+RUN sbt markets-api/assembly
+RUN mv `find . -name MarketsApi-assembly-*.jar` /markets-api.jar
+CMD ["/usr/bin/java", "-jar", "/markets-api.jar"]
 
 FROM openjdk:11-jre-slim
-COPY --from=builder /dex-matcher.jar /dex-matcher.jar
-ENTRYPOINT java -jar /dex-matcher.jar $0
+COPY --from=builder /markets-api.jar /markets-api.jar
+ENTRYPOINT java -jar /markets-api.jar $0

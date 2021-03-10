@@ -1,4 +1,4 @@
-FROM openjdk:8-jre-slim as builder
+FROM openjdk:11-jre-slim as builder
 RUN apt-get update && \
     apt-get install -y --no-install-recommends apt-transport-https apt-utils bc dirmngr gnupg && \
     echo "deb https://dl.bintray.com/sbt/debian /" | tee -a /etc/apt/sources.list.d/sbt.list && \
@@ -12,6 +12,6 @@ RUN sbt dex-executor/assembly
 RUN mv `find . -name DexExecutor-assembly-*.jar` /dex-executor.jar
 CMD ["/usr/bin/java", "-jar", "/dex-executor.jar"]
 
-FROM openjdk:8-jre-slim
+FROM openjdk:11-jre-slim
 COPY --from=builder /dex-executor.jar /dex-executor.jar
 ENTRYPOINT java -jar /dex-executor.jar $0
