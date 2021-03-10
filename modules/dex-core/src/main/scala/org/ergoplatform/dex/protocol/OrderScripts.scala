@@ -4,7 +4,7 @@ import mouse.any._
 import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.dex.clients.explorer.models.ErgoBox
 import org.ergoplatform.dex.domain.models.OrderType
-import org.ergoplatform.dex.{AssetId, HexString, SErgoTree}
+import org.ergoplatform.dex.{AssetId, ErgoTreeTemplate, HexString, SErgoTree}
 import sigmastate.Values.{ErgoTree, SigmaPropConstant}
 import sigmastate.basics.DLogProtocol.ProveDlog
 
@@ -27,11 +27,11 @@ object OrderScripts {
     new OrderScripts[ContractType.LimitOrder] {
 
       def isAsk(ergoTree: SErgoTree): Boolean =
-        HexString.fromBytes(ErgoTreeSerializer.default.deserialize(ergoTree).template) ==
+        ErgoTreeTemplate.fromBytes(ErgoTreeSerializer.default.deserialize(ergoTree).template) ==
           templates.ask
 
       def isBid(ergoTree: SErgoTree): Boolean =
-        HexString.fromBytes(ErgoTreeSerializer.default.deserialize(ergoTree).template) ==
+        ErgoTreeTemplate.fromBytes(ErgoTreeSerializer.default.deserialize(ergoTree).template) ==
           templates.bid
 
       def parseAsk(box: ErgoBox): Option[OrderParams] =

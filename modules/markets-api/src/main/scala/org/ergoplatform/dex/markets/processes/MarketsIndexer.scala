@@ -7,8 +7,8 @@ import cats.{Defer, Functor, Monad, MonoidK}
 import derevo.derive
 import org.ergoplatform.dex.clients.ErgoNetworkClient
 import org.ergoplatform.dex.markets.configs.IndexerConfig
-import org.ergoplatform.dex.markets.modules.Trades
-import org.ergoplatform.dex.markets.repositories.TradesRepo
+import org.ergoplatform.dex.markets.modules.Fills
+import org.ergoplatform.dex.markets.repositories.FillsRepo
 import org.ergoplatform.dex.protocol.{ContractType, ScriptTemplates}
 import tofu.Catches
 import tofu.higherKind.derived.representableK
@@ -36,8 +36,8 @@ object MarketsIndexer {
   ](implicit
     logs: Logs[I, G],
     network: ErgoNetworkClient[G],
-    tradesRepo: TradesRepo[G],
-    trades: Trades[G, CT],
+    tradesRepo: FillsRepo[G],
+    trades: Fills[G, CT],
     templates: ScriptTemplates[CT]
   ): I[MarketsIndexer[F]] =
     logs.forService[MarketsIndexer[F]].map { implicit l =>
@@ -51,10 +51,10 @@ object MarketsIndexer {
     G[_]: Monad: Logging,
     CT <: ContractType
   ](conf: IndexerConfig)(implicit
-    network: ErgoNetworkClient[G],
-    tradesRepo: TradesRepo[G],
-    trades: Trades[G, CT],
-    templates: ScriptTemplates[CT]
+                         network: ErgoNetworkClient[G],
+                         tradesRepo: FillsRepo[G],
+                         trades: Fills[G, CT],
+                         templates: ScriptTemplates[CT]
   ) extends MarketsIndexer[F] {
 
     def run: F[Unit] =
@@ -62,7 +62,7 @@ object MarketsIndexer {
         .throttled(conf.scanInterval)
         .evalMap { count =>
           network
-            .getTransactionsByInputScript(templates.ask, count, conf.batchSize)
+            .getTransactionsByInputScript(templates.ask.hash, count, conf.batchSize)
             .flatMap { txs =>
               txs.traverse(trades.extract).map(_.flatten) >>=
                 (ts => info"Writing ${ts.size} trades" >> ts.toNel.fold(unit[G])(tradesRepo.insert))

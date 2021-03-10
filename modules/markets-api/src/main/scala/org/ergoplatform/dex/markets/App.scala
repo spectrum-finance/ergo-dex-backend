@@ -7,7 +7,7 @@ import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
 import org.ergoplatform.dex.db.{doobieLogging, PostgresTransactor}
 import org.ergoplatform.dex.markets.configs.ConfigBundle
 import org.ergoplatform.dex.markets.processes.MarketsIndexer
-import org.ergoplatform.dex.markets.repositories.TradesRepo
+import org.ergoplatform.dex.markets.repositories.FillsRepo
 import org.ergoplatform.dex.protocol.ContractType
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
@@ -37,8 +37,8 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(elh: EmbeddableLogHandler[xa.DB]) <-
         Resource.liftF(doobieLogging.makeEmbeddableHandler[InitF, RunF, xa.DB]("matcher-db-logging"))
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
-      repos <- Resource.liftF(TradesRepo.make[InitF, xa.DB])
-      implicit0(reposF: TradesRepo[RunF]) = repos.mapK(xa.trans)
+      repos <- Resource.liftF(FillsRepo.make[InitF, xa.DB])
+      implicit0(reposF: FillsRepo[RunF]) = repos.mapK(xa.trans)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: StreamingErgoNetworkClient[StreamF, RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
       indexer <- Resource.liftF(MarketsIndexer.make[InitF, StreamF, RunF, ContractType.LimitOrder])

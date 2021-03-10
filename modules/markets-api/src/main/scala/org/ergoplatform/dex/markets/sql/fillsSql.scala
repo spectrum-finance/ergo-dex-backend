@@ -5,12 +5,13 @@ import doobie.util.log.LogHandler
 import doobie.util.query.Query0
 import org.ergoplatform.dex.sql.QuerySet
 
-object tradesSql extends QuerySet {
+object fillsSql extends QuerySet {
 
-  val tableName: String = "trades"
+  val tableName: String = "fills"
 
   val fields: List[String] =
     List(
+      "side",
       "tx_id",
       "height",
       "quote_asset",
@@ -22,5 +23,5 @@ object tradesSql extends QuerySet {
     )
 
   def countTransactions(implicit lh: LogHandler): Query0[Int] =
-    sql"select count(distinct tx_id) from trades".query
+    sql"select count(distinct tx_id) from fills".query
 }

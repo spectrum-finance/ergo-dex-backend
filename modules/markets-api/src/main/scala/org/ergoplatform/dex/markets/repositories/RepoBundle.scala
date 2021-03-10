@@ -8,7 +8,7 @@ import tofu.doobie.log.EmbeddableLogHandler
 import tofu.logging.Logs
 import tofu.syntax.monadic._
 
-final case class RepoBundle[F[_]](trades: TradesRepo[F])
+final case class RepoBundle[F[_]](trades: FillsRepo[F])
 
 object RepoBundle {
 
@@ -24,6 +24,6 @@ object RepoBundle {
     logs: Logs[I, F]
   ): I[RepoBundle[F]] =
     for {
-      trades <- TradesRepo.make[I, F]
+      trades <- FillsRepo.make[I, F]
     } yield RepoBundle(trades)
 }

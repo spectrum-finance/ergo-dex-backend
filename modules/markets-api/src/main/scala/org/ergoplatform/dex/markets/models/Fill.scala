@@ -5,7 +5,7 @@ import org.ergoplatform.dex.{AssetId, TxId}
 import tofu.logging.derivation.loggable
 
 @derive(loggable)
-final case class Trade(
+final case class Fill(
   side: Side,
   txId: TxId,
   height: Int,
