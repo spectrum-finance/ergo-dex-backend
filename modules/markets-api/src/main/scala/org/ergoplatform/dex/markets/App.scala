@@ -32,7 +32,7 @@ object App extends EnvApp[ConfigBundle] {
     for {
       blocker <- Blocker[InitF]
       configs <- Resource.liftF(ConfigBundle.load[InitF](configPathOpt))
-      trans   <- PostgresTransactor.make("matcher-pool", configs.db)
+      trans   <- PostgresTransactor.make("markets-api-pool", configs.db)
       implicit0(xa: Txr.Contextual[RunF, ConfigBundle]) = Txr.contextual[RunF](trans)
       implicit0(elh: EmbeddableLogHandler[xa.DB]) <-
         Resource.liftF(doobieLogging.makeEmbeddableHandler[InitF, RunF, xa.DB]("matcher-db-logging"))
