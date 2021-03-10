@@ -1,12 +1,12 @@
 package fs2.kafka
 
 import cats.effect.Sync
-import io.circe.{Decoder, Encoder}
-import tofu.syntax.raise._
-import tofu.syntax.monadic._
 import io.circe.syntax._
+import io.circe.{Decoder, Encoder}
+import tofu.syntax.monadic._
+import tofu.syntax.raise._
 
-object instances {
+object serde {
 
   private val charset = "UTF-8"
 

@@ -94,7 +94,6 @@ object dependencies {
   )
 
   val Typing: List[ModuleID] = List(
-    "org.scalaz"  %% "deriving-macro" % DerivingVersion,
     "io.estatico" %% "newtype"        % NewtypeVersion,
     "eu.timepit"  %% "refined"        % RefinedVersion,
     "eu.timepit"  %% "refined-cats"   % RefinedVersion

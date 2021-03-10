@@ -7,7 +7,7 @@ object versions {
   val TapirVersion       = "0.17.12"
   val CirceVersion       = "0.13.0"
   val CatsVersion        = "2.4.2"
-  val CatsEffectVersion  = "2.3.2"
+  val CatsEffectVersion  = "2.3.3"
   val CatsTaglessVersion = "0.12"
   val MouseVersion       = "0.26.2"
   val Fs2Version         = "2.5.0"
@@ -31,7 +31,6 @@ object versions {
 
   val NewtypeVersion  = "0.4.3"
   val RefinedVersion  = "0.9.10"
-  val DerivingVersion = "1.0.0"
 
   val EnumeratumVersion      = "1.5.15"
   val EnumeratumCirceVersion = "1.5.23"
