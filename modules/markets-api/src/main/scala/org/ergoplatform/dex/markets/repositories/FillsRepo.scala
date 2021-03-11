@@ -6,6 +6,7 @@ import cats.{Apply, FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
+import org.ergoplatform.dex.AssetId
 import org.ergoplatform.dex.markets.models.Fill
 import org.ergoplatform.dex.markets.sql.fillsSql
 import tofu.doobie.LiftConnectionIO
@@ -22,6 +23,8 @@ trait FillsRepo[F[_]] {
   def insert(fill: Fill): F[Unit]
 
   def insert(fills: NonEmptyList[Fill]): F[Unit]
+
+  def volumeByPair(quote: AssetId, base: AssetId)(fromTs: Long): F[Long]
 
   def countTransactions: F[Int]
 }
@@ -44,6 +47,9 @@ object FillsRepo {
     def insert(trades: NonEmptyList[Fill]): ConnectionIO[Unit] =
       fillsSql.insert[Fill].updateMany(trades).map(_ => ())
 
+    def volumeByPair(quote: AssetId, base: AssetId)(fromTs: Long): ConnectionIO[Long] =
+      fillsSql.volumeByPair(quote, base)(fromTs).unique
+
     def countTransactions: ConnectionIO[Int] =
       fillsSql.countTransactions.unique
   }
@@ -51,10 +57,13 @@ object FillsRepo {
   final class FillsRepoTracing[F[_]: Apply: Logging] extends FillsRepo[Mid[F, *]] {
 
     def insert(fill: Fill): Mid[F, Unit] =
-      _ <* trace"insert(fill=$fill)"
+      _ <* trace"insert( fill=$fill )"
 
     def insert(fills: NonEmptyList[Fill]): Mid[F, Unit] =
-      _ <* trace"insert(fills=$fills)"
+      _ <* trace"insert( fills=$fills )"
+
+    def volumeByPair(quote: AssetId, base: AssetId)(fromTs: Long): Mid[F, Long] =
+      _ <* trace"volumeByPair( quote=$quote, base=$base )( fromTs=$fromTs )"
 
     def countTransactions: Mid[F, Int] =
       _ <* trace"countTransactions"
