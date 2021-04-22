@@ -10,9 +10,8 @@ import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.matcher.configs.MatcherConfig
 import org.ergoplatform.dex.matcher.services.OrderBook
 import org.ergoplatform.dex.matcher.streaming.StreamingBundle
-import org.ergoplatform.dex.streaming.{CommitPolicy, Record}
 import org.ergoplatform.dex.streaming.syntax._
-import tofu.HasContext
+import org.ergoplatform.dex.streaming.{CommitPolicy, Record}
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Evals, ParFlatten, Temporal}
@@ -34,7 +33,7 @@ object Matcher {
 
   def make[
     I[_]: Functor,
-    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: ParFlatten: HasContext[*[_], MatcherConfig]: CommitPolicy.Has,
+    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: ParFlatten: MatcherConfig.Has: CommitPolicy.Has,
     G[_]: Monad,
     C[_]: Foldable
   ](implicit

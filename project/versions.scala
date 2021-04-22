@@ -3,11 +3,11 @@ object versions {
   val ErgoWalletVersion    = "v4.0.7-5a5356d9-SNAPSHOT"
   val ErgoContractsVersion = "1.0.0"
 
-  val SttpVersion        = "3.1.3"
+  val SttpVersion        = "3.3.0-RC4"
   val TapirVersion       = "0.17.15"
   val CirceVersion       = "0.13.0"
-  val CatsVersion        = "2.4.2"
-  val CatsEffectVersion  = "2.3.3"
+  val CatsVersion        = "2.5.0"
+  val CatsEffectVersion  = "2.5.0"
   val CatsTaglessVersion = "0.12"
   val MouseVersion       = "0.26.2"
   val Fs2Version         = "2.5.0"
@@ -18,8 +18,8 @@ object versions {
   val FlywayVersion      = "5.1.1"
   val MonixVersion       = "3.1.0"
   val MonocleVersion     = "2.0.0"
-  val TofuVersion        = "0.10.0"
-  val DerevoVersion      = "0.12.0"
+  val TofuVersion        = "0.10.1"
+  val DerevoVersion      = "0.12.1"
 
   val SimulacrumVersion = "0.19.0"
 
@@ -29,8 +29,8 @@ object versions {
 
   val PureConfigVersion = "0.12.1"
 
-  val NewtypeVersion  = "0.4.3"
-  val RefinedVersion  = "0.9.10"
+  val NewtypeVersion = "0.4.3"
+  val RefinedVersion = "0.9.10"
 
   val EnumeratumVersion      = "1.5.15"
   val EnumeratumCirceVersion = "1.5.23"
