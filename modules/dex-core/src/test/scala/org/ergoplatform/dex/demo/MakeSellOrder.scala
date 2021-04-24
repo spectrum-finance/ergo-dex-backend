@@ -1,4 +1,4 @@
-package org.ergoplatform.dex
+package org.ergoplatform.dex.demo
 
 import io.circe.syntax._
 import org.bouncycastle.util.BigIntegers
@@ -17,7 +17,7 @@ import sigmastate.eval.Extensions._
 import sigmastate.eval._
 import sigmastate.{SByte, SCollection, SLong, SType}
 
-object MakeSellOrderDemo extends App {
+object MakeSellOrder extends App {
 
   val secret     = ""
   val inputId    = "4773ca4e728f5e0008ca8b74e610a8ba7e335629a5189ff3552cc9625aaba4ee"
