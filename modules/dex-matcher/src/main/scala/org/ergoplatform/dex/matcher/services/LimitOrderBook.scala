@@ -31,7 +31,6 @@ final class LimitOrderBook[F[_]: FlatMap: Logging, D[_]: Monad](implicit
     (repo.getSellWall(pairId, buyDemand), repo.getBuyWall(pairId, sellDemand)).tupled
       .flatMap { case (oldAsks, oldBids) => matcher(oldAsks ++ asks, oldBids ++ bids) }
       .flatTap { trades =>
-        println(s"Trades: ${trades.size}")
         val matched   = trades.flatMap(_.orders.map(_.base.id).toList)
         val unmatched = orders.filterNot(o => matched.contains(o.id))
         matched.toNel.fold(unit[D])(repo.remove) >> unmatched.toNel.fold(unit[D])(repo.insert)

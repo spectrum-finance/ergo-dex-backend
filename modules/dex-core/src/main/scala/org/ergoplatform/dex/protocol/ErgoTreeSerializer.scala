@@ -1,27 +1,24 @@
 package org.ergoplatform.dex.protocol
 
-import org.ergoplatform.dex.HexString
-import scorex.util.encode.Base16
+import org.ergoplatform.dex.SErgoTree
 import sigmastate.Values
 import sigmastate.serialization.{ErgoTreeSerializer => TreeSerializeer}
-import tofu.ApplicativeThrow
 
-trait ErgoTreeSerializer[F[_]] {
+trait ErgoTreeSerializer {
 
-  def serialize(tree: sigmastate.Values.ErgoTree): HexString
+  def serialize(tree: sigmastate.Values.ErgoTree): SErgoTree
 
-  def deserialize(raw: HexString): F[sigmastate.Values.ErgoTree]
+  def deserialize(raw: SErgoTree): sigmastate.Values.ErgoTree
 }
 
 object ErgoTreeSerializer {
 
-  implicit def instance[F[_]](implicit F: ApplicativeThrow[F]): ErgoTreeSerializer[F] =
-    new ErgoTreeSerializer[F] {
+  object default extends ErgoTreeSerializer {
 
-      def serialize(tree: Values.ErgoTree): HexString =
-        HexString.fromBytes(TreeSerializeer.DefaultSerializer.serializeErgoTree(tree))
+      def serialize(tree: Values.ErgoTree): SErgoTree =
+        SErgoTree.fromBytes(TreeSerializeer.DefaultSerializer.serializeErgoTree(tree))
 
-      def deserialize(raw: HexString): F[Values.ErgoTree] =
-        F.fromTry(Base16.decode(raw.unwrapped).map(TreeSerializeer.DefaultSerializer.deserializeErgoTree))
+      def deserialize(raw: SErgoTree): Values.ErgoTree =
+        TreeSerializeer.DefaultSerializer.deserializeErgoTree(raw.toBytea)
     }
 }

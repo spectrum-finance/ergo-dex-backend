@@ -2,15 +2,17 @@ lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
   scalaVersion := "2.12.13",
   organization := "org.ergoplatform",
-  version := "0.1.2",
+  version := "0.2.0",
   resolvers += Resolver.sonatypeRepo("public"),
   resolvers += Resolver.sonatypeRepo("snapshots"),
   test in assembly := {},
   assemblyMergeStrategy in assembly := {
     case "logback.xml"                                => MergeStrategy.first
     case "module-info.class"                          => MergeStrategy.discard
+    case "META-INF/intellij-compat.json"              => MergeStrategy.last
     case other if other.contains("io.netty.versions") => MergeStrategy.first
     case other if other.contains("scala")             => MergeStrategy.first
+    case other if other.contains("derevo")            => MergeStrategy.last
     case other                                        => (assemblyMergeStrategy in assembly).value(other)
   },
   libraryDependencies ++= dependencies.Testing ++ dependencies.CompilerPlugins
@@ -39,7 +41,7 @@ lazy val dexBackend = project
   .withId("ergo-dex-backend")
   .settings(commonSettings)
   .settings(moduleName := "ergo-dex-backend", name := "ErgoDexBackend")
-  .aggregate(core, tracker, matcher, executor)
+  .aggregate(core, tracker, matcher, executor, marketsApi)
 
 lazy val core = utils
   .mkModule("dex-core", "DexCore")
@@ -76,5 +78,16 @@ lazy val executor = utils
       "org.ergoplatform.dex.executor.App"
     ),
     libraryDependencies ++= dependencies.executor
+  )
+  .dependsOn(core % allConfigDependency)
+
+lazy val marketsApi = utils
+  .mkModule("markets-api", "MarketsApi")
+  .settings(commonSettings)
+  .settings(
+    mainClass in assembly := Some(
+      "org.ergoplatform.dex.markets.App"
+    ),
+    libraryDependencies ++= dependencies.api
   )
   .dependsOn(core % allConfigDependency)

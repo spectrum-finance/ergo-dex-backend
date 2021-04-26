@@ -4,12 +4,15 @@ import cats.Show
 import cats.effect.Sync
 import cats.syntax.semigroup._
 import cats.syntax.show._
+import doobie.Read
+import doobie.util.Write
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.dex.{AssetId, OrderId, PairId}
 import tofu.logging.{Loggable, _}
+import _root_.shapeless.Lazy
 
 /** Global market order.
   * @param `type` - type of the order (sell or buy)
@@ -43,6 +46,8 @@ object Order {
   type Bid      = Order[OrderType.Bid.type]
   type AnyOrder = Order[OrderType]
 
+  implicit def write: Write[AnyOrder] = Lazy(implicitly[Write[AnyOrder]]).value
+
   implicit def show[T <: OrderType]: Show[Order[T]] =
     o =>
       s"Order[${OrderType.show.show(o.`type`)}](quoteAsset=${o.quoteAsset}, baseAsset=${o.baseAsset}, " +
@@ -69,10 +74,10 @@ object Order {
     io.circe.derivation.deriveDecoder[AnyOrder]
 
   implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, AnyOrder] =
-    fs2.kafka.instances.serializerByEncoder
+    fs2.kafka.serde.serializerByEncoder
 
   implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, AnyOrder] =
-    fs2.kafka.instances.deserializerByDecoder
+    fs2.kafka.serde.deserializerByDecoder
 
   def mkBid(
     quoteAsset: AssetId,

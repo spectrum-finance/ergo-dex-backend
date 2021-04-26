@@ -1,4 +1,4 @@
-FROM openjdk:8-jre-slim as builder
+FROM openjdk:11-jre-slim as builder
 RUN apt-get update && \
     apt-get install -y --no-install-recommends apt-transport-https apt-utils bc dirmngr gnupg && \
     echo "deb https://dl.bintray.com/sbt/debian /" | tee -a /etc/apt/sources.list.d/sbt.list && \
@@ -12,6 +12,6 @@ RUN sbt dex-tracker/assembly
 RUN mv `find . -name DexTracker-assembly-*.jar` /dex-tracker.jar
 CMD ["/usr/bin/java", "-jar", "/dex-tracker.jar"]
 
-FROM openjdk:8-jre-slim
+FROM openjdk:11-jre-slim
 COPY --from=builder /dex-tracker.jar /dex-tracker.jar
 ENTRYPOINT java -jar /dex-tracker.jar $0

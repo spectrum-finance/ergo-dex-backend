@@ -4,16 +4,19 @@ object dependencies {
 
   import versions._
 
-  val SttpCore: List[ModuleID] =
+  val SttpCore =
     List(
-      "com.softwaremill.sttp.client3" %% "core",
-      "com.softwaremill.sttp.client3" %% "circe"
-    ).map(_ % SttpVersion)
+      "com.softwaremill.sttp.client3" %% "core"  % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "circe" % SttpVersion
+    )
 
-  val SttpClient: List[ModuleID] =
-    List(
-      "com.softwaremill.sttp.client3" %% "async-http-client-backend-fs2"
-    ).map(_ % SttpVersion)
+  val SttpClient =
+    List("com.softwaremill.sttp.client3" %% "async-http-client-backend-fs2" % SttpVersion)
+
+  val Tapir = List(
+    "com.softwaremill.sttp.tapir" %% "tapir-core"          % TapirVersion,
+    "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % TapirVersion
+  )
 
   val Circe: List[ModuleID] =
     List(
@@ -91,7 +94,6 @@ object dependencies {
   )
 
   val Typing: List[ModuleID] = List(
-    "org.scalaz"  %% "deriving-macro" % DerivingVersion,
     "io.estatico" %% "newtype"        % NewtypeVersion,
     "eu.timepit"  %% "refined"        % RefinedVersion,
     "eu.timepit"  %% "refined-cats"   % RefinedVersion
@@ -133,13 +135,16 @@ object dependencies {
     Typing ++
     Config ++
     Kafka ++
+    Db ++
     SttpCore ++
     SttpClient ++
     Enums
 
   lazy val tracker: List[ModuleID] = Monix
 
-  lazy val matcher: List[ModuleID] = Monix ++ Db
+  lazy val matcher: List[ModuleID] = Monix
 
   lazy val executor: List[ModuleID] = Monix ++ SttpClient
+
+  lazy val api: List[ModuleID] = Monix ++ Tapir
 }

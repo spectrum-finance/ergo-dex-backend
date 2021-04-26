@@ -1,20 +1,18 @@
 package org.ergoplatform.dex.tracker.modules
 
-import java.util
-
 import cats.Monad
 import cats.effect.Clock
 import cats.syntax.option._
 import derevo.derive
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.contracts.DexLimitOrderContracts._
+import org.ergoplatform.dex.AssetId
+import org.ergoplatform.dex.clients.explorer.models.Output
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.models.Order._
 import org.ergoplatform.dex.domain.models.OrderMeta
-import org.ergoplatform.dex.explorer.models.{Asset, Output}
-import org.ergoplatform.dex.protocol.ErgoTreeSerializer
+import org.ergoplatform.dex.protocol.{constants, ErgoTreeSerializer}
 import org.ergoplatform.dex.tracker.domain.errors._
-import org.ergoplatform.dex.{constants, AssetId}
 import sigmastate.Values.ErgoTree
 import tofu.higherKind.derived.representableK
 import tofu.syntax.context._
@@ -22,7 +20,9 @@ import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
 import tofu.syntax.time._
-import tofu.{MonadThrow, Raise, WithContext}
+import tofu.{MonadThrow, Raise}
+
+import java.util
 
 @derive(representableK)
 trait Orders[F[_]] {
@@ -32,23 +32,26 @@ trait Orders[F[_]] {
 
 object Orders {
 
-  implicit def instance[F[_]: Clock: MonadThrow: WithContext[*[_], ProtocolConfig]]: Orders[F] =
+  implicit def instance[F[_]: Clock: MonadThrow: ProtocolConfig.Has]: Orders[F] =
     context.map { conf =>
-      implicit val e: ErgoAddressEncoder = conf.networkType.addressEncoder
-      new Live[F]: Orders[F]
+      val ser     = ErgoTreeSerializer.default
+      val encoder = conf.networkType.addressEncoder
+      new Live[F](ser, encoder): Orders[F]
     }.embed
 
-  final private class Live[F[_]: Monad: Clock: Raise[*[_], InvalidOrder]](implicit
-    treeSer: ErgoTreeSerializer[F],
+  final private class Live[F[_]: Monad: Clock: Raise[*[_], InvalidOrder]](
+    treeSer: ErgoTreeSerializer,
     addressEncoder: ErgoAddressEncoder
   ) extends Orders[F] {
 
-    def makeOrder(output: Output): F[Option[AnyOrder]] =
-      treeSer.deserialize(output.ergoTree).flatMap { tree =>
-        if (isSellerScript(tree)) makeAsk(tree, output).map(_.some)
-        else if (isBuyerScript(tree)) makeBid(tree, output).map(_.some)
-        else none[AnyOrder].pure
-      }
+    implicit val e: ErgoAddressEncoder = addressEncoder
+
+    def makeOrder(output: Output): F[Option[AnyOrder]] = {
+      val tree = treeSer.deserialize(output.ergoTree)
+      if (isSellerScript(tree)) makeAsk(tree, output).map(_.some)
+      else if (isBuyerScript(tree)) makeBid(tree, output).map(_.some)
+      else none[AnyOrder].pure
+    }
 
     private[tracker] def isSellerScript(tree: ErgoTree): Boolean =
       util.Arrays.equals(tree.template, sellerContractErgoTreeTemplate)
@@ -59,10 +62,10 @@ object Orders {
     private[tracker] def makeAsk(tree: ErgoTree, output: Output): F[Ask] =
       for {
         params <- parseSellerContractParameters(tree).orRaise(BadParams(tree))
-        baseAsset  = constants.ErgoAssetId
+        baseAsset  = constants.NativeAssetId
         quoteAsset = AssetId.fromBytes(params.tokenId)
         amount <- output.assets
-                    .collectFirst { case Asset(tokenId, amount) if tokenId == quoteAsset => amount }
+                    .collectFirst { case a if a.tokenId == quoteAsset => a.amount }
                     .orRaise(AssetNotProvided(quoteAsset))
         price       = params.tokenPrice
         feePerToken = params.dexFeePerToken
@@ -78,7 +81,7 @@ object Orders {
         _ <- if (output.value % (params.tokenPrice + params.dexFeePerToken) != 0)
                InvalidBidValue(output.value, params.tokenPrice, params.dexFeePerToken).raise
              else unit
-        baseAsset   = constants.ErgoAssetId
+        baseAsset   = constants.NativeAssetId
         quoteAsset  = AssetId.fromBytes(params.tokenId)
         price       = params.tokenPrice
         feePerToken = params.dexFeePerToken

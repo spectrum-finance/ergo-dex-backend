@@ -6,8 +6,7 @@ import monix.eval.Task
 import org.ergoplatform.dex.domain.models.Order.AnyOrder
 import org.ergoplatform.dex.domain.models.Trade.AnyTrade
 import org.ergoplatform.dex.matcher.configs.ConfigBundle
-import org.ergoplatform.dex.matcher.db.doobieLogging
-import org.ergoplatform.dex.matcher.modules.PostgresTransactor
+import org.ergoplatform.dex.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.dex.matcher.processes.Matcher
 import org.ergoplatform.dex.matcher.repositories.OrdersRepo
 import org.ergoplatform.dex.matcher.services.{LimitOrderBook, OrderBook}
