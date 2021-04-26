@@ -59,8 +59,9 @@ object MakeSwapProxy extends App {
     else (reservesTErg0 * output * 1000 / ((reservesTUsd0 - output) * 995)) + 1
 
   // Order params
-  val tergOut = 20000L
-  val tusdIn  = inputAmount(tergId, tergOut)
+  val tergOut   = 20000L
+  val tusdIn    = inputAmount(tergId, tergOut)
+  val relaxedIn = tusdIn - 1
 
   val dexFeePerTokenNErg = 50L
   val dexFeeNErg         = tergOut * dexFeePerTokenNErg
@@ -69,7 +70,7 @@ object MakeSwapProxy extends App {
 
   val minerFeeNErg = 1000000L
 
-  require(BigInt(reservesTErg0) * tusdIn * 995 >= tergOut * (BigInt(reservesTUsd0) * 1000 + tusdIn * 995))
+  require(BigInt(reservesTErg0) * relaxedIn * 995 <= tergOut * (BigInt(reservesTUsd0) * 1000 + relaxedIn * 995))
 
   val swapEnv = Map(
     "pk"             -> pk,

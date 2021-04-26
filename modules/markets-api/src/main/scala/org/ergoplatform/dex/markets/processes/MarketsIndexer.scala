@@ -51,10 +51,10 @@ object MarketsIndexer {
     G[_]: Monad: Logging,
     CT <: ContractType
   ](conf: IndexerConfig)(implicit
-                         network: ErgoNetworkClient[G],
-                         tradesRepo: FillsRepo[G],
-                         trades: Fills[G, CT],
-                         templates: ScriptTemplates[CT]
+    network: ErgoNetworkClient[G],
+    tradesRepo: FillsRepo[G],
+    trades: Fills[G, CT],
+    templates: ScriptTemplates[CT]
   ) extends MarketsIndexer[F] {
 
     def run: F[Unit] =
