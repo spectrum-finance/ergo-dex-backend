@@ -6,7 +6,7 @@ import cats.{Apply, FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
-import org.ergoplatform.dex.domain.models.Order.{AnyOrder, Ask, Bid}
+import org.ergoplatform.dex.domain.orderbook.Order.{AnyOrder, Ask, Bid}
 import org.ergoplatform.dex.{OrderId, PairId}
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler

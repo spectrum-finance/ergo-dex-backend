@@ -6,7 +6,7 @@ import doobie.util.log.LogHandler
 import doobie.util.query.Query0
 import doobie.util.update.Update0
 import doobie.{Fragments, Update}
-import org.ergoplatform.dex.domain.models.Order.{AnyOrder, Ask, Bid}
+import org.ergoplatform.dex.domain.orderbook.Order.{AnyOrder, Ask, Bid}
 import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.dex.sql.QuerySet
 import org.ergoplatform.dex.{OrderId, PairId}

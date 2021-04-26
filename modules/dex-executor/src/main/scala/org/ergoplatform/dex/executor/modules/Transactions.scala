@@ -10,9 +10,9 @@ import org.ergoplatform.ErgoBox._
 import org.ergoplatform._
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexLimitOrderContracts, DexSellerContractParameters}
 import org.ergoplatform.dex.configs.ProtocolConfig
-import org.ergoplatform.dex.domain.models.FilledOrder._
-import org.ergoplatform.dex.domain.models.Trade
-import org.ergoplatform.dex.domain.models.Trade.AnyTrade
+import org.ergoplatform.dex.domain.orderbook.FilledOrder._
+import org.ergoplatform.dex.domain.orderbook.Trade
+import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.domain.syntax.trade._
 import org.ergoplatform.dex.executor.config.ExchangeConfig

@@ -1,14 +1,15 @@
-package org.ergoplatform.dex.protocol
+package org.ergoplatform.dex.protocol.orderbook
 
 import mouse.any._
 import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.dex.clients.explorer.models.ErgoBox
-import org.ergoplatform.dex.domain.models.OrderType
-import org.ergoplatform.dex.{AssetId, ErgoTreeTemplate, HexString, SErgoTree}
+import org.ergoplatform.dex.domain.orderbook.OrderType
+import org.ergoplatform.dex.protocol.{constants, orderbook, ErgoTreeSerializer}
+import org.ergoplatform.dex.{AssetId, ErgoTreeTemplate, SErgoTree}
 import sigmastate.Values.{ErgoTree, SigmaPropConstant}
 import sigmastate.basics.DLogProtocol.ProveDlog
 
-trait OrderScripts[CT <: ContractType] {
+trait OrderContracts[CT <: OrderContractType] {
 
   def isAsk(ergoTree: SErgoTree): Boolean
 
@@ -19,12 +20,12 @@ trait OrderScripts[CT <: ContractType] {
   def parseBid(box: ErgoBox): Option[OrderParams]
 }
 
-object OrderScripts {
+object OrderContracts {
 
   implicit def limitOrderInstance(implicit
-    templates: ScriptTemplates[ContractType.LimitOrder]
-  ): OrderScripts[ContractType.LimitOrder] =
-    new OrderScripts[ContractType.LimitOrder] {
+    templates: ContractTemplates[OrderContractType.LimitOrder]
+  ): OrderContracts[OrderContractType.LimitOrder] =
+    new OrderContracts[OrderContractType.LimitOrder] {
 
       def isAsk(ergoTree: SErgoTree): Boolean =
         ErgoTreeTemplate.fromBytes(ErgoTreeSerializer.default.deserialize(ergoTree).template) ==
@@ -39,7 +40,7 @@ object OrderScripts {
           .flatMap { params =>
             val quote = AssetId.fromBytes(params.tokenId)
             box.assets.find(_.tokenId == quote).map { asset =>
-              OrderParams(
+              orderbook.OrderParams(
                 orderType     = OrderType.Ask,
                 baseAsset     = constants.NativeAssetId,
                 quoteAsset    = quote,
@@ -54,7 +55,7 @@ object OrderScripts {
       def parseBid(box: ErgoBox): Option[OrderParams] =
         (ErgoTreeSerializer.default.deserialize(box.ergoTree) |> parseBuyerContractParameters)
           .map { params =>
-            OrderParams(
+            orderbook.OrderParams(
               orderType     = OrderType.Ask,
               baseAsset     = constants.NativeAssetId,
               quoteAsset    = AssetId.fromBytes(params.tokenId),

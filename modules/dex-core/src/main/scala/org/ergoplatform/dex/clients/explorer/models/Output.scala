@@ -12,6 +12,7 @@ final case class Output(
   value: Long,
   index: Int,
   creationHeight: Int,
+  settlementHeight: Int,
   ergoTree: SErgoTree,
   address: Address,
   assets: List[Asset],

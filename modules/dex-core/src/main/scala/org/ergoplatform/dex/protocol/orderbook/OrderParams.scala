@@ -1,6 +1,6 @@
-package org.ergoplatform.dex.protocol
+package org.ergoplatform.dex.protocol.orderbook
 
-import org.ergoplatform.dex.domain.models.OrderType
+import org.ergoplatform.dex.domain.orderbook.OrderType
 import org.ergoplatform.dex.{AssetId, SErgoTree}
 
 final case class OrderParams(

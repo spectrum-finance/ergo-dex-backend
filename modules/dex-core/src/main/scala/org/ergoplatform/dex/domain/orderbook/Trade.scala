@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.domain.models
+package org.ergoplatform.dex.domain.orderbook
 
 import cats.Show
 import cats.data.NonEmptyList
@@ -7,7 +7,7 @@ import cats.syntax.show._
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.ops._
-import org.ergoplatform.dex.domain.models.FilledOrder.AnyFilledOrder
+import org.ergoplatform.dex.domain.orderbook.FilledOrder.AnyFilledOrder
 import org.ergoplatform.dex.{constants, TradeId}
 import scorex.crypto.hash.Blake2b256
 import scorex.util.encode.Base16

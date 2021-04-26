@@ -9,7 +9,7 @@ import org.ergoplatform.dex.executor.streaming.StreamingBundle
 import org.ergoplatform.dex.streaming.syntax._
 import org.ergoplatform.dex.streaming.{CommitPolicy, Record}
 import mouse.any._
-import org.ergoplatform.dex.domain.models.Order.AnyOrder
+import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 import tofu.Handle
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}

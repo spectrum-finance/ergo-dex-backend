@@ -5,7 +5,7 @@ import cats.data.{NonEmptyList, ReaderT}
 import cats.effect.IO
 import org.ergoplatform.dex.BoxId
 import org.ergoplatform.dex.configs.ProtocolConfig
-import org.ergoplatform.dex.domain.models.{FilledOrder, Trade}
+import org.ergoplatform.dex.domain.orderbook.{FilledOrder, Trade}
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.executor.config.ExchangeConfig
 import org.ergoplatform.dex.executor.context.BlockchainContext

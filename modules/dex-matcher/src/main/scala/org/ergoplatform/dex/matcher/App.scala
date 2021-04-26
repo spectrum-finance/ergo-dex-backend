@@ -3,8 +3,8 @@ package org.ergoplatform.dex.matcher
 import cats.effect.{ExitCode, Resource}
 import fs2.Chunk
 import monix.eval.Task
-import org.ergoplatform.dex.domain.models.Order.AnyOrder
-import org.ergoplatform.dex.domain.models.Trade.AnyTrade
+import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
+import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.matcher.configs.ConfigBundle
 import org.ergoplatform.dex.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.dex.matcher.processes.Matcher

@@ -4,8 +4,8 @@ import cats.effect.{Blocker, ExitCode, Resource}
 import fs2.Chunk
 import monix.eval.Task
 import org.ergoplatform.dex.clients.{ErgoNetworkClient, StreamingErgoNetworkClient}
-import org.ergoplatform.dex.domain.models.Order.AnyOrder
-import org.ergoplatform.dex.domain.models.Trade.AnyTrade
+import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
+import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.executor.config.ConfigBundle
 import org.ergoplatform.dex.executor.context.AppContext
 import org.ergoplatform.dex.executor.processes.OrdersExecutor

@@ -4,7 +4,7 @@ import cats.{Apply, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.dex.clients.ErgoNetworkClient
 import org.ergoplatform.dex.configs.ProtocolConfig
-import org.ergoplatform.dex.domain.models.Trade.AnyTrade
+import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.dex.executor.config.ExchangeConfig
 import org.ergoplatform.dex.executor.context.BlockchainContext

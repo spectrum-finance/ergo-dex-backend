@@ -5,7 +5,7 @@ import eu.timepit.refined.string.HexStringSpec
 import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.P2PKAddress
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexSellerContractParameters}
-import org.ergoplatform.dex.domain.models.{Order, OrderMeta}
+import org.ergoplatform.dex.domain.orderbook.{Order, OrderMeta}
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.scalacheck.Gen
 import scorex.crypto.hash.Blake2b256

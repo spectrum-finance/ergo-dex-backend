@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.domain.models
+package org.ergoplatform.dex.domain.orderbook
 
 import cats.Show
 import cats.instances.string._

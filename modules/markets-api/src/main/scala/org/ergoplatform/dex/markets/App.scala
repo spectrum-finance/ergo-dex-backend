@@ -4,11 +4,11 @@ import cats.effect.{Blocker, ExitCode, Resource}
 import cats.tagless.syntax.functorK._
 import org.ergoplatform.dex.EnvApp
 import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
-import org.ergoplatform.dex.db.{doobieLogging, PostgresTransactor}
+import org.ergoplatform.dex.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.dex.markets.configs.ConfigBundle
 import org.ergoplatform.dex.markets.processes.MarketsIndexer
 import org.ergoplatform.dex.markets.repositories.FillsRepo
-import org.ergoplatform.dex.protocol.ContractType
+import org.ergoplatform.dex.protocol.orderbook.OrderContractType
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
@@ -41,7 +41,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(reposF: FillsRepo[RunF]) = repos.mapK(xa.trans)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: StreamingErgoNetworkClient[StreamF, RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
-      indexer <- Resource.liftF(MarketsIndexer.make[InitF, StreamF, RunF, ContractType.LimitOrder])
+      indexer <- Resource.liftF(MarketsIndexer.make[InitF, StreamF, RunF, OrderContractType.LimitOrder])
     } yield indexer -> configs
 
   private def makeBackend(

@@ -5,7 +5,7 @@ import fs2._
 import monix.eval.Task
 import mouse.any._
 import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
-import org.ergoplatform.dex.domain.models.Order.AnyOrder
+import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 import org.ergoplatform.dex.streaming.Producer
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.processes.OrdersTracker

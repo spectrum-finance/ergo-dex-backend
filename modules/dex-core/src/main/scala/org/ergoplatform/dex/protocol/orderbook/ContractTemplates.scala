@@ -1,16 +1,16 @@
-package org.ergoplatform.dex.protocol
+package org.ergoplatform.dex.protocol.orderbook
 
 import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.dex.ErgoTreeTemplate
 
-trait ScriptTemplates[CT <: ContractType] {
+trait ContractTemplates[CT <: OrderContractType] {
   val ask: ErgoTreeTemplate
   val bid: ErgoTreeTemplate
 }
 
-object ScriptTemplates {
+object ContractTemplates {
 
-  implicit object limitOrder extends ScriptTemplates[ContractType.LimitOrder] {
+  implicit object limitOrder extends ContractTemplates[OrderContractType.LimitOrder] {
     val ask: ErgoTreeTemplate = ErgoTreeTemplate.fromBytes(sellerContractErgoTreeTemplate)
     val bid: ErgoTreeTemplate = ErgoTreeTemplate.fromBytes(buyerContractErgoTreeTemplate)
   }

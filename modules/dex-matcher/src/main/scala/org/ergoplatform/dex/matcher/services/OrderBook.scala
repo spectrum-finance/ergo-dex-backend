@@ -1,8 +1,8 @@
 package org.ergoplatform.dex.matcher.services
 
 import org.ergoplatform.dex.PairId
-import org.ergoplatform.dex.domain.models.Trade.AnyTrade
-import org.ergoplatform.dex.domain.models.Order.AnyOrder
+import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
+import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 
 trait OrderBook[F[_]] {
 
