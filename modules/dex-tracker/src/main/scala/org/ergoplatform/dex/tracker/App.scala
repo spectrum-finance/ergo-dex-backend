@@ -1,14 +1,19 @@
 package org.ergoplatform.dex.tracker
 
 import cats.effect.{Blocker, ExitCode, Resource}
+import fs2.kafka.serde._
 import monix.eval.Task
 import mouse.any._
 import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
+import org.ergoplatform.dex.domain.amm.CfmmOperation
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
+import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
+import org.ergoplatform.dex.protocol.orderbook.OrderContractType.LimitOrder
 import org.ergoplatform.dex.streaming.Producer
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
+import org.ergoplatform.dex.tracker.handlers.{AmmHandler, OrdersHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
-import org.ergoplatform.dex.{EnvApp, OrderId}
+import org.ergoplatform.dex.{EnvApp, OperationId, OrderId}
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
@@ -35,11 +40,15 @@ object App extends EnvApp[ConfigBundle] {
       blocker <- Blocker[InitF]
       configs <- Resource.eval(ConfigBundle.load(configPathOpt))
       implicit0(isoKRun: IsoK[RunF, InitF]) = IsoK.byFunK(wr.runContextK(configs))(wr.liftF)
-      implicit0(producer: Producer[OrderId, AnyOrder, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.producer)
+      implicit0(producer0: Producer[OrderId, AnyOrder, StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.topics.limitOrders, configs.producer)
+      implicit0(producer1: Producer[OperationId, CfmmOperation, StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, OperationId, CfmmOperation](configs.topics.cfmm, configs.producer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: StreamingErgoNetworkClient[StreamF, RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
-      tracker <- Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](???))
+      limitOrdersHandler <- Resource.eval(OrdersHandler.make[InitF, StreamF, RunF, LimitOrder])
+      t2tCfmmHandler     <- Resource.eval(AmmHandler.make[InitF, StreamF, RunF, T2tCfmm])
+      tracker            <- Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](limitOrdersHandler, t2tCfmmHandler))
     } yield tracker -> configs
 
   private def makeBackend(

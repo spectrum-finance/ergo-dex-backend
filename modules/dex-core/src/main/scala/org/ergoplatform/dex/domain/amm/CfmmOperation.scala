@@ -7,17 +7,17 @@ import org.ergoplatform.dex.clients.explorer.models.Output
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
-sealed trait AmmOperation {
+sealed trait CfmmOperation {
   val box: Output
 
   def id: OperationId = OperationId.fromBoxId(box.boxId)
 }
 
 @derive(encoder, decoder, loggable)
-final case class Deposit(box: Output) extends AmmOperation
+final case class Deposit(box: Output) extends CfmmOperation
 
 @derive(encoder, decoder, loggable)
-final case class Redeem(box: Output) extends AmmOperation
+final case class Redeem(box: Output) extends CfmmOperation
 
 @derive(encoder, decoder, loggable)
-final case class Swap(box: Output) extends AmmOperation
+final case class Swap(box: Output) extends CfmmOperation

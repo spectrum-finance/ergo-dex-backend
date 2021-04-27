@@ -5,6 +5,7 @@ import cats.{Defer, Functor, FunctorFilter, Monad, MonoidK}
 import mouse.any._
 import org.ergoplatform.dex.OrderId
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
+import org.ergoplatform.dex.protocol.orderbook.OrderContractType
 import org.ergoplatform.dex.streaming.{Producer, Record}
 import org.ergoplatform.dex.tracker.domain.errors.InvalidOrder
 import org.ergoplatform.dex.tracker.modules.Orders
@@ -18,7 +19,8 @@ import tofu.{Catches, Handle}
 
 final class OrdersHandler[
   F[_]: Monad: Evals[*[_], G]: Pace: FunctorFilter: Defer: MonoidK: Catches,
-  G[_]: Monad: Handle[*[_], InvalidOrder]: Logging
+  G[_]: Monad: Handle[*[_], InvalidOrder]: Logging,
+  CT <: OrderContractType
 ](implicit producer: Producer[OrderId, AnyOrder, F], orders: Orders[G]) {
 
   def handler: BoxHandler[F] =
@@ -39,7 +41,8 @@ object OrdersHandler {
   def make[
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: Pace: FunctorFilter: Defer: MonoidK: Catches,
-    G[_]: Monad: Handle[*[_], InvalidOrder]
+    G[_]: Monad: Handle[*[_], InvalidOrder],
+    CT <: OrderContractType
   ](implicit producer: Producer[OrderId, AnyOrder, F], orders: Orders[G], logs: Logs[I, G]): I[BoxHandler[F]] =
-    logs.forService[OrdersHandler[F, G]].map(implicit log => new OrdersHandler[F, G].handler)
+    logs.forService[OrdersHandler[F, G, CT]].map(implicit log => new OrdersHandler[F, G, CT].handler)
 }

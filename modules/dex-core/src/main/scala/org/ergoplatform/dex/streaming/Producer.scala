@@ -46,7 +46,7 @@ object Producer {
     G[_],
     K: RecordSerializer[I, *],
     V: RecordSerializer[I, *]
-  ](conf: ProducerConfig)(implicit
+  ](topicId: TopicId, conf: ProducerConfig)(implicit
     isoKFG: IsoK[F, Stream[G, *]],
     isoKGI: IsoK[G, I]
   ): Resource[I, Producer[K, V, F]] = {
@@ -54,7 +54,7 @@ object Producer {
       ProducerSettings[I, K, V]
         .withBootstrapServers(conf.bootstrapServers.mkString(","))
     KafkaProducer.resource.using(producerSettings).map { prod =>
-      new Live(conf, prod)
+      new Live(topicId, conf, prod)
         .imapK(funK[Stream[I, *], Stream[G, *]](_.translate(isoKGI.fromF)) andThen isoKFG.fromF)(
           isoKFG.tof andThen funK[Stream[G, *], Stream[I, *]](_.translate(isoKGI.tof))
         )
@@ -62,13 +62,14 @@ object Producer {
   }
 
   final private class Live[F[_]: Concurrent, K, V](
+    topicId: TopicId,
     conf: ProducerConfig,
     kafkaProducer: KafkaProducer[F, K, V]
   ) extends Producer[K, V, Stream[F, *]] {
 
     def produce: Pipe[F, Record[K, V], Unit] =
       _.map { case Record(k, v) =>
-        ProducerRecords.one(ProducerRecord(conf.topicId.value, k, v))
+        ProducerRecords.one(ProducerRecord(topicId.value, k, v))
       }.evalMap(kafkaProducer.produce).mapAsync(conf.parallelism)(identity).drain
   }
 }

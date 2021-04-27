@@ -41,7 +41,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(orderBook: OrderBook[RunF])    <- Resource.liftF(LimitOrderBook.make[InitF, RunF, xa.DB])
       implicit0(mc: MakeKafkaConsumer[RunF, OrderId, AnyOrder])  = MakeKafkaConsumer.make[InitF, RunF, OrderId, AnyOrder]
       consumer                                                   = Consumer.make[StreamF, RunF, OrderId, AnyOrder]
-      producer <- Producer.make[InitF, StreamF, RunF, TradeId, AnyTrade](configs.producer)
+      producer <- Producer.make[InitF, StreamF, RunF, TradeId, AnyTrade](???, configs.producer)
       implicit0(bundle: StreamingBundle[StreamF, RunF]) = StreamingBundle(consumer, producer)
       matcher <- Resource.liftF(Matcher.make[InitF, StreamF, RunF, Chunk])
     } yield matcher -> configs

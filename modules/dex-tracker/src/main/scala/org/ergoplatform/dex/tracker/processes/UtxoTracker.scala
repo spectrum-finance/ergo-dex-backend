@@ -32,14 +32,14 @@ object UtxoTracker {
     I[_]: FlatMap,
     F[_]: Monad: Evals[*[_], G]: Broadcast: Pace: Defer: MonoidK: TrackerConfig.Has: Catches,
     G[_]: Monad: Handle[*[_], InvalidOrder]
-  ](trackers: List[BoxHandler[F]])(implicit
+  ](trackers: BoxHandler[F]*)(implicit
     client: StreamingErgoNetworkClient[F, G],
     logs: Logs[I, G],
     makeRef: MakeRef[I, G]
   ): I[UtxoTracker[F]] =
     logs.forService[UtxoTracker[F]].flatMap { implicit l =>
       makeRef.refOf(0).map { ref =>
-        (context map (conf => new Live[F, G](ref, conf, trackers): UtxoTracker[F])).embed
+        (context map (conf => new Live[F, G](ref, conf, trackers.toList): UtxoTracker[F])).embed
       }
     }
 
