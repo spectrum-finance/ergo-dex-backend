@@ -41,6 +41,25 @@ package object dex {
     type UrlStringType = String Refined Url
   }
 
+  @newtype case class OperationId(value: String)
+
+  object OperationId {
+
+    def fromBoxId(boxId: BoxId): OperationId = OperationId(boxId.value)
+
+    implicit val loggable: Loggable[OperationId] = deriving
+
+    implicit val get: Get[OperationId] = deriving
+    implicit val put: Put[OperationId] = deriving
+
+    // circe instances
+    implicit val encoder: Encoder[OperationId] = deriving
+    implicit val decoder: Decoder[OperationId] = deriving
+
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OperationId]     = serializerByEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OperationId] = deserializerByDecoder
+  }
+
   @newtype case class OrderId(value: String)
 
   object OrderId {
