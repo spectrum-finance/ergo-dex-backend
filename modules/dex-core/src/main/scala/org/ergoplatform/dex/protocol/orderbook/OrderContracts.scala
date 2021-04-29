@@ -9,7 +9,7 @@ import org.ergoplatform.dex.{AssetId, ErgoTreeTemplate, SErgoTree}
 import sigmastate.Values.{ErgoTree, SigmaPropConstant}
 import sigmastate.basics.DLogProtocol.ProveDlog
 
-trait OrderContracts[CT <: OrderContractType] {
+trait OrderContracts[CT <: OrderContractFamily] {
 
   def isAsk(ergoTree: SErgoTree): Boolean
 
@@ -23,9 +23,9 @@ trait OrderContracts[CT <: OrderContractType] {
 object OrderContracts {
 
   implicit def limitOrderInstance(implicit
-    templates: ContractTemplates[OrderContractType.LimitOrder]
-  ): OrderContracts[OrderContractType.LimitOrder] =
-    new OrderContracts[OrderContractType.LimitOrder] {
+    templates: ContractTemplates[OrderContractFamily.LimitOrders]
+  ): OrderContracts[OrderContractFamily.LimitOrders] =
+    new OrderContracts[OrderContractFamily.LimitOrders] {
 
       def isAsk(ergoTree: SErgoTree): Boolean =
         ErgoTreeTemplate.fromBytes(ErgoTreeSerializer.default.deserialize(ergoTree).template) ==

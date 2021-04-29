@@ -9,7 +9,7 @@ import org.ergoplatform.dex.clients.ErgoNetworkClient
 import org.ergoplatform.dex.markets.configs.IndexerConfig
 import org.ergoplatform.dex.markets.modules.Fills
 import org.ergoplatform.dex.markets.repositories.FillsRepo
-import org.ergoplatform.dex.protocol.orderbook.{OrderContractType, ContractTemplates}
+import org.ergoplatform.dex.protocol.orderbook.{OrderContractFamily, ContractTemplates}
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
@@ -32,7 +32,7 @@ object MarketsIndexer {
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: Pace: Defer: MonoidK: Catches: IndexerConfig.Has,
     G[_]: Monad,
-    CT <: OrderContractType
+    CT <: OrderContractFamily
   ](implicit
     logs: Logs[I, G],
     network: ErgoNetworkClient[G],
@@ -49,7 +49,7 @@ object MarketsIndexer {
   final class Live[
     F[_]: Monad: Evals[*[_], G]: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging,
-    CT <: OrderContractType
+    CT <: OrderContractFamily
   ](conf: IndexerConfig)(implicit
     network: ErgoNetworkClient[G],
     tradesRepo: FillsRepo[G],

@@ -13,9 +13,9 @@ import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
 
 final class AmmHandler[
+  CT <: AmmContractType,
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,
-  G[_]: Functor: Logging,
-  CT <: AmmContractType
+  G[_]: Functor: Logging
 ](implicit
   producer: Producer[OperationId, CfmmOperation, F],
   contracts: AmmContracts[CT]
@@ -36,14 +36,14 @@ final class AmmHandler[
 object AmmHandler {
 
   def make[
+    CT <: AmmContractType,
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: FunctorFilter,
-    G[_]: Functor,
-    CT <: AmmContractType
+    G[_]: Functor
   ](implicit
     producer: Producer[OperationId, CfmmOperation, F],
     contracts: AmmContracts[CT],
     logs: Logs[I, G]
   ): I[BoxHandler[F]] =
-    logs.forService[AmmHandler[F, G, CT]].map(implicit log => new AmmHandler[F, G, CT].handler)
+    logs.forService[AmmHandler[CT, F, G]].map(implicit log => new AmmHandler[CT, F, G].handler)
 }

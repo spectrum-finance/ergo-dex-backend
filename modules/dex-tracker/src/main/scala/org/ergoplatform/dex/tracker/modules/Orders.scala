@@ -3,7 +3,6 @@ package org.ergoplatform.dex.tracker.modules
 import cats.Monad
 import cats.effect.Clock
 import cats.syntax.option._
-import derevo.derive
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.dex.AssetId
@@ -11,10 +10,12 @@ import org.ergoplatform.dex.clients.explorer.models.Output
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.orderbook.Order._
 import org.ergoplatform.dex.domain.orderbook.OrderMeta
+import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily
+import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily.LimitOrders
 import org.ergoplatform.dex.protocol.{constants, ErgoTreeSerializer}
 import org.ergoplatform.dex.tracker.domain.errors._
 import sigmastate.Values.ErgoTree
-import tofu.higherKind.derived.representableK
+import tofu.higherKind.RepresentableK
 import tofu.syntax.context._
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
@@ -24,25 +25,29 @@ import tofu.{MonadThrow, Raise}
 
 import java.util
 
-@derive(representableK)
-trait Orders[F[_]] {
+trait Orders[CT <: OrderContractFamily, F[_]] {
 
   def makeOrder(output: Output): F[Option[AnyOrder]]
 }
 
 object Orders {
 
-  implicit def instance[F[_]: Clock: MonadThrow: ProtocolConfig.Has]: Orders[F] =
+  implicit def representableK[CT <: OrderContractFamily]: RepresentableK[Orders[CT, *[_]]] = {
+    type Rep[F[_]] = Orders[CT, F]
+    tofu.higherKind.derived.genRepresentableK[Rep]
+  }
+
+  implicit def limitOrderInstance[F[_]: Clock: MonadThrow: ProtocolConfig.Has]: Orders[LimitOrders, F] =
     context.map { conf =>
       val ser     = ErgoTreeSerializer.default
       val encoder = conf.networkType.addressEncoder
-      new Live[F](ser, encoder): Orders[F]
+      new Live[F](ser, encoder): Orders[LimitOrders, F]
     }.embed
 
   final private class Live[F[_]: Monad: Clock: Raise[*[_], InvalidOrder]](
     treeSer: ErgoTreeSerializer,
     addressEncoder: ErgoAddressEncoder
-  ) extends Orders[F] {
+  ) extends Orders[LimitOrders, F] {
 
     implicit val e: ErgoAddressEncoder = addressEncoder
 
