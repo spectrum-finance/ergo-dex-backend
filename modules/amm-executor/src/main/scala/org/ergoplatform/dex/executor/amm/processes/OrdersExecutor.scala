@@ -4,7 +4,7 @@ import cats.{Foldable, Functor, Monad}
 import derevo.derive
 import mouse.any._
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailure
-import org.ergoplatform.dex.executor.amm.streaming.StreamingBundle
+import org.ergoplatform.dex.executor.amm.streaming.CfmmConsumer
 import org.ergoplatform.dex.streaming.CommitPolicy
 import tofu.Handle
 import tofu.higherKind.derived.representableK
@@ -27,7 +27,7 @@ object OrdersExecutor {
     F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: CommitPolicy.Has: Handle[*[_], ExecutionFailure],
     G[_]: Monad,
     C[_]: Foldable
-  ](implicit streaming: StreamingBundle[F, G], logs: Logs[I, G]): I[OrdersExecutor[F]] =
+  ](implicit consumer: CfmmConsumer[F, G], logs: Logs[I, G]): I[OrdersExecutor[F]] =
     logs.forService[OrdersExecutor[F]] map { implicit l =>
       (context[F] map (policy => new Live[F, G, C](policy): OrdersExecutor[F])).embed
     }
@@ -37,7 +37,7 @@ object OrdersExecutor {
     G[_]: Monad: Logging,
     C[_]: Foldable
   ](commitPolicy: CommitPolicy)(implicit
-    streaming: StreamingBundle[F, G]
+    consumer: CfmmConsumer[F, G]
   ) extends OrdersExecutor[F] {
 
     def run: F[Unit] = ???
