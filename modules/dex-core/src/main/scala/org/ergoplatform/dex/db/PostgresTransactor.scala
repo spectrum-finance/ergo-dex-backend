@@ -22,7 +22,7 @@ object PostgresTransactor {
               cp,
               blocker
             )
-      _ <- Resource.liftF(configure(xa)(poolName, config))
+      _ <- Resource.eval(configure(xa)(poolName, config))
     } yield xa
 
   private def configure[F[_]: Sync](

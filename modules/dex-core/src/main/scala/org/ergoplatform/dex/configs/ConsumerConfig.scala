@@ -3,6 +3,7 @@ package org.ergoplatform.dex.configs
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
 import org.ergoplatform.dex.streaming.{ClientId, GroupId, TopicId}
+import tofu.Context
 
 @derive(pureconfigReader)
 final case class ConsumerConfig(
@@ -11,3 +12,5 @@ final case class ConsumerConfig(
   clientId: ClientId,
   topicId: TopicId
 )
+
+object ConsumerConfig extends Context.Companion[ConsumerConfig]

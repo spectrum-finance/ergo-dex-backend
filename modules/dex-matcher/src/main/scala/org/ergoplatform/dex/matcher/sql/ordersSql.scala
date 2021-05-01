@@ -9,7 +9,8 @@ import doobie.{Fragments, Update}
 import org.ergoplatform.dex.domain.orderbook.Order.{AnyOrder, Ask, Bid}
 import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.dex.sql.QuerySet
-import org.ergoplatform.dex.{OrderId, PairId}
+import org.ergoplatform.dex.PairId
+import org.ergoplatform.dex.domain.orderbook.OrderId
 
 object ordersSql extends QuerySet {
 

@@ -8,7 +8,7 @@ import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.domain.orderbook.FilledOrder.AnyFilledOrder
-import org.ergoplatform.dex.{constants, TradeId}
+import org.ergoplatform.dex.constants
 import scorex.crypto.hash.Blake2b256
 import scorex.util.encode.Base16
 import tofu.logging.Loggable

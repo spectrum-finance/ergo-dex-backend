@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.executor.amm.modules
+package org.ergoplatform.dex.executor.orders.modules
 
 import cats.Eval
 import cats.data.{NonEmptyList, ReaderT}
@@ -7,8 +7,8 @@ import org.ergoplatform.dex.BoxId
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.orderbook.{FilledOrder, Trade}
 import org.ergoplatform.dex.domain.syntax.ergo._
-import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.dex.executor.amm.context.BlockchainContext
+import org.ergoplatform.dex.executor.orders.config.ExchangeConfig
+import org.ergoplatform.dex.executor.orders.context.BlockchainContext
 import org.ergoplatform.dex.generators._
 import org.ergoplatform.dex.protocol.Network
 import org.scalacheck.Gen

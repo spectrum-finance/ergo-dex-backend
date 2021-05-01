@@ -5,14 +5,14 @@ import cats.effect.Clock
 import cats.syntax.option._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.contracts.DexLimitOrderContracts._
-import org.ergoplatform.dex.AssetId
-import org.ergoplatform.dex.clients.explorer.models.Output
+import org.ergoplatform.dex.TokenId
 import org.ergoplatform.dex.configs.ProtocolConfig
+import org.ergoplatform.dex.domain.network.Output
 import org.ergoplatform.dex.domain.orderbook.Order._
 import org.ergoplatform.dex.domain.orderbook.OrderMeta
 import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily
 import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily.LimitOrders
-import org.ergoplatform.dex.protocol.{constants, ErgoTreeSerializer}
+import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, constants}
 import org.ergoplatform.dex.tracker.domain.errors._
 import sigmastate.Values.ErgoTree
 import tofu.higherKind.RepresentableK
@@ -68,7 +68,7 @@ object Orders {
       for {
         params <- parseSellerContractParameters(tree).orRaise(BadParams(tree))
         baseAsset  = constants.NativeAssetId
-        quoteAsset = AssetId.fromBytes(params.tokenId)
+        quoteAsset = TokenId.fromBytes(params.tokenId)
         amount <- output.assets
                     .collectFirst { case a if a.tokenId == quoteAsset => a.amount }
                     .orRaise(AssetNotProvided(quoteAsset))
@@ -87,7 +87,7 @@ object Orders {
                InvalidBidValue(output.value, params.tokenPrice, params.dexFeePerToken).raise
              else unit
         baseAsset   = constants.NativeAssetId
-        quoteAsset  = AssetId.fromBytes(params.tokenId)
+        quoteAsset  = TokenId.fromBytes(params.tokenId)
         price       = params.tokenPrice
         feePerToken = params.dexFeePerToken
         amount      = output.value / (price + feePerToken)

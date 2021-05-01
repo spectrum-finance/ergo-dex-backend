@@ -2,8 +2,7 @@ package org.ergoplatform.dex.tracker.handlers
 
 import cats.{Functor, FunctorFilter, Monad}
 import mouse.any._
-import org.ergoplatform.dex.OperationId
-import org.ergoplatform.dex.domain.amm.{CfmmOperation, Deposit, Redeem, Swap}
+import org.ergoplatform.dex.domain.amm.{CfmmOperation, Deposit, OperationId, Redeem, Swap}
 import org.ergoplatform.dex.protocol.amm.{AmmContractType, AmmContracts}
 import org.ergoplatform.dex.streaming.{Producer, Record}
 import tofu.logging.{Logging, Logs}
@@ -23,9 +22,9 @@ final class AmmHandler[
 
   def handler: BoxHandler[F] =
     _.map { out =>
-      if (contracts.isDeposit(out.ergoTree)) Some(Deposit(out))
-      else if (contracts.isRedeem(out.ergoTree)) Some(Redeem(out))
-      else if (contracts.isSwap(out.ergoTree)) Some(Swap(out))
+      if (contracts.isDeposit(out.ergoTree)) Some(Deposit(???, out))
+      else if (contracts.isRedeem(out.ergoTree)) Some(Redeem(???, out))
+      else if (contracts.isSwap(out.ergoTree)) Some(Swap(???, out))
       else Option.empty[CfmmOperation]
     }.unNone
       .evalTap(op => info"AMM operation detected $op")

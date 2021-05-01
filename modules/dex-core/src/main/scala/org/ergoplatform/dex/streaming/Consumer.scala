@@ -7,7 +7,6 @@ import fs2.kafka._
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.ergoplatform.dex.configs.ConsumerConfig
-import tofu.WithContext
 import tofu.fs2.LiftStream
 import tofu.higherKind.Embed
 import tofu.syntax.context._
@@ -52,7 +51,7 @@ object Consumer {
     }
 
   def make[
-    F[_]: Monad: LiftStream[*[_], G]: WithContext[*[_], ConsumerConfig],
+    F[_]: Monad: LiftStream[*[_], G]: ConsumerConfig.Has,
     G[_]: Functor,
     K,
     V

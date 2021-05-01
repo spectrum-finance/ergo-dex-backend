@@ -5,7 +5,7 @@ import cats.syntax.list._
 import cats.syntax.traverse._
 import cats.{Defer, Functor, Monad, MonoidK}
 import derevo.derive
-import org.ergoplatform.dex.clients.ErgoNetworkClient
+import org.ergoplatform.dex.clients.ErgoNetwork
 import org.ergoplatform.dex.markets.configs.IndexerConfig
 import org.ergoplatform.dex.markets.modules.Fills
 import org.ergoplatform.dex.markets.repositories.FillsRepo
@@ -35,7 +35,7 @@ object MarketsIndexer {
     CT <: OrderContractFamily
   ](implicit
     logs: Logs[I, G],
-    network: ErgoNetworkClient[G],
+    network: ErgoNetwork[G],
     tradesRepo: FillsRepo[G],
     trades: Fills[G, CT],
     templates: ContractTemplates[CT]
@@ -51,10 +51,10 @@ object MarketsIndexer {
     G[_]: Monad: Logging,
     CT <: OrderContractFamily
   ](conf: IndexerConfig)(implicit
-    network: ErgoNetworkClient[G],
-    tradesRepo: FillsRepo[G],
-    trades: Fills[G, CT],
-    templates: ContractTemplates[CT]
+                         network: ErgoNetwork[G],
+                         tradesRepo: FillsRepo[G],
+                         trades: Fills[G, CT],
+                         templates: ContractTemplates[CT]
   ) extends MarketsIndexer[F] {
 
     def run: F[Unit] =

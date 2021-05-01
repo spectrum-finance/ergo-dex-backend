@@ -41,59 +41,6 @@ package object dex {
     type UrlStringType = String Refined Url
   }
 
-  @newtype case class OperationId(value: String)
-
-  object OperationId {
-
-    def fromBoxId(boxId: BoxId): OperationId = OperationId(boxId.value)
-
-    implicit val loggable: Loggable[OperationId] = deriving
-
-    implicit val get: Get[OperationId] = deriving
-    implicit val put: Put[OperationId] = deriving
-
-    // circe instances
-    implicit val encoder: Encoder[OperationId] = deriving
-    implicit val decoder: Decoder[OperationId] = deriving
-
-    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OperationId]     = serializerByEncoder
-    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OperationId] = deserializerByDecoder
-  }
-
-  @newtype case class OrderId(value: String)
-
-  object OrderId {
-
-    implicit val loggable: Loggable[OrderId] = deriving
-
-    implicit val get: Get[OrderId] = deriving
-    implicit val put: Put[OrderId] = deriving
-
-    // circe instances
-    implicit val encoder: Encoder[OrderId] = deriving
-    implicit val decoder: Decoder[OrderId] = deriving
-
-    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OrderId]     = serializerByEncoder
-    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OrderId] = deserializerByDecoder
-  }
-
-  @newtype case class TradeId(value: String)
-
-  object TradeId {
-
-    implicit val loggable: Loggable[TradeId] = deriving
-
-    implicit val get: Get[TradeId] = deriving
-    implicit val put: Put[TradeId] = deriving
-
-    // circe instances
-    implicit val encoder: Encoder[TradeId] = deriving
-    implicit val decoder: Decoder[TradeId] = deriving
-
-    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, TradeId]     = serializerByEncoder
-    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TradeId] = deserializerByDecoder
-  }
-
   @newtype case class TxId(value: String)
 
   object TxId {
@@ -142,31 +89,31 @@ package object dex {
       Base16.encode(ergoBoxId).coerce[BoxId]
   }
 
-  @newtype case class AssetId(value: HexString) {
+  @newtype case class TokenId(value: HexString) {
     def unwrapped: String = value.unwrapped
   }
 
-  object AssetId {
+  object TokenId {
     // circe instances
-    implicit val encoder: Encoder[AssetId] = deriving
-    implicit val decoder: Decoder[AssetId] = deriving
+    implicit val encoder: Encoder[TokenId] = deriving
+    implicit val decoder: Decoder[TokenId] = deriving
 
-    implicit val get: Get[AssetId] =
-      Get[HexString].map(AssetId(_))
+    implicit val get: Get[TokenId] =
+      Get[HexString].map(TokenId(_))
 
-    implicit val put: Put[AssetId] =
-      Put[String].contramap[AssetId](_.unwrapped)
+    implicit val put: Put[TokenId] =
+      Put[String].contramap[TokenId](_.unwrapped)
 
-    implicit val show: Show[AssetId]         = _.unwrapped
-    implicit val loggable: Loggable[AssetId] = Loggable.show
+    implicit val show: Show[TokenId]         = _.unwrapped
+    implicit val loggable: Loggable[TokenId] = Loggable.show
 
     def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
-    ): F[AssetId] =
-      HexString.fromString(s).map(AssetId.apply)
+    ): F[TokenId] =
+      HexString.fromString(s).map(TokenId.apply)
 
-    def fromBytes(bytes: Array[Byte]): AssetId =
-      AssetId(HexString.fromBytes(bytes))
+    def fromBytes(bytes: Array[Byte]): TokenId =
+      TokenId(HexString.fromBytes(bytes))
   }
 
   @newtype case class TokenType(value: String)
@@ -214,7 +161,7 @@ package object dex {
   }
 
   @derive(loggable)
-  final case class PairId(quoteId: AssetId, baseId: AssetId)
+  final case class PairId(quoteId: TokenId, baseId: TokenId)
 
   @newtype case class HexString(value: HexStringType) {
     final def unwrapped: String    = value.value

@@ -2,10 +2,10 @@ package org.ergoplatform.dex.protocol.orderbook
 
 import mouse.any._
 import org.ergoplatform.contracts.DexLimitOrderContracts._
-import org.ergoplatform.dex.clients.explorer.models.ErgoBox
+import org.ergoplatform.dex.domain.network.ErgoBox
 import org.ergoplatform.dex.domain.orderbook.OrderType
-import org.ergoplatform.dex.protocol.{constants, orderbook, ErgoTreeSerializer}
-import org.ergoplatform.dex.{AssetId, ErgoTreeTemplate, SErgoTree}
+import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, constants, orderbook}
+import org.ergoplatform.dex.{ErgoTreeTemplate, SErgoTree, TokenId}
 import sigmastate.Values.{ErgoTree, SigmaPropConstant}
 import sigmastate.basics.DLogProtocol.ProveDlog
 
@@ -38,7 +38,7 @@ object OrderContracts {
       def parseAsk(box: ErgoBox): Option[OrderParams] =
         (ErgoTreeSerializer.default.deserialize(box.ergoTree) |> parseSellerContractParameters)
           .flatMap { params =>
-            val quote = AssetId.fromBytes(params.tokenId)
+            val quote = TokenId.fromBytes(params.tokenId)
             box.assets.find(_.tokenId == quote).map { asset =>
               orderbook.OrderParams(
                 orderType     = OrderType.Ask,
@@ -58,7 +58,7 @@ object OrderContracts {
             orderbook.OrderParams(
               orderType     = OrderType.Ask,
               baseAsset     = constants.NativeAssetId,
-              quoteAsset    = AssetId.fromBytes(params.tokenId),
+              quoteAsset    = TokenId.fromBytes(params.tokenId),
               amount        = box.value / params.tokenPrice,
               price         = params.tokenPrice,
               feePerToken   = params.dexFeePerToken,

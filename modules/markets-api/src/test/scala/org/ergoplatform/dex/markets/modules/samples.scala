@@ -1,6 +1,7 @@
 package org.ergoplatform.dex.markets.modules
 
-import org.ergoplatform.dex.clients.explorer.models.{Items, Transaction}
+import org.ergoplatform.dex.clients.explorer.models.Items
+import org.ergoplatform.dex.domain.network.Transaction
 
 object samples {
 

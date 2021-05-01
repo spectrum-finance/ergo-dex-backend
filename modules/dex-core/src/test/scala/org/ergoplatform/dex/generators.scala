@@ -26,8 +26,8 @@ object generators {
       .map(x => refineV[HexStringSpec](x).right.get)
       .map(HexString.apply)
 
-  def assetIdGen: Gen[AssetId] =
-    hexStringGen map AssetId.apply
+  def assetIdGen: Gen[TokenId] =
+    hexStringGen map TokenId.apply
 
   def boxIdGen: Gen[BoxId] =
     rawHexStringGen map BoxId.apply
@@ -46,7 +46,7 @@ object generators {
   def proveDlogGen: Gen[ProveDlog] =
     Gen.delay(DLogProverInput.random()).map(_.publicImage)
 
-  def orderMetaBuyerGen(boxValue: Long, quoteAssetId: AssetId, price: Long, feePerToken: Long): Gen[OrderMeta] =
+  def orderMetaBuyerGen(boxValue: Long, quoteAssetId: TokenId, price: Long, feePerToken: Long): Gen[OrderMeta] =
     for {
       boxId <- boxIdGen
       ts    <- Gen.choose(1601447470169L, 1603447470169L)
@@ -54,7 +54,7 @@ object generators {
       script = buyerContractInstance(DexBuyerContractParameters(pk, quoteAssetId.toErgo, price, feePerToken))
     } yield OrderMeta(boxId, boxValue, script.ergoTree, pk, ts)
 
-  def orderMetaSellerGen(boxValue: Long, quoteAssetId: AssetId, price: Long, feePerToken: Long): Gen[OrderMeta] =
+  def orderMetaSellerGen(boxValue: Long, quoteAssetId: TokenId, price: Long, feePerToken: Long): Gen[OrderMeta] =
     for {
       boxId <- boxIdGen
       ts    <- Gen.choose(1601447470169L, 1603447470169L)
@@ -63,21 +63,21 @@ object generators {
     } yield OrderMeta(boxId, boxValue, script.ergoTree, pk, ts)
 
   def bidGen(
-    quoteAsset: AssetId,
-    baseAsset: AssetId,
-    amount: Long,
-    price: Long,
-    feePerToken: Long
+              quoteAsset: TokenId,
+              baseAsset: TokenId,
+              amount: Long,
+              price: Long,
+              feePerToken: Long
   ): Gen[Order.Bid] =
     orderMetaBuyerGen(amount * (price + feePerToken), quoteAsset, price, feePerToken) flatMap
     (meta => Order.mkBid(quoteAsset, baseAsset, amount, price, feePerToken, meta))
 
   def askGen(
-    quoteAsset: AssetId,
-    baseAsset: AssetId,
-    amount: Long,
-    price: Long,
-    feePerToken: Long
+              quoteAsset: TokenId,
+              baseAsset: TokenId,
+              amount: Long,
+              price: Long,
+              feePerToken: Long
   ): Gen[Order.Ask] =
     orderMetaSellerGen(amount * feePerToken, quoteAsset, price, feePerToken) flatMap
     (meta => Order.mkAsk(quoteAsset, baseAsset, amount, price, feePerToken, meta))

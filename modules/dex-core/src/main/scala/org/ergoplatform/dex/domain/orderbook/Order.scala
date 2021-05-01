@@ -1,18 +1,17 @@
 package org.ergoplatform.dex.domain.orderbook
 
+import _root_.shapeless.Lazy
 import cats.Show
 import cats.effect.Sync
 import cats.syntax.semigroup._
 import cats.syntax.show._
-import doobie.Read
 import doobie.util.Write
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.protocol.instances._
-import org.ergoplatform.dex.{AssetId, OrderId, PairId}
+import org.ergoplatform.dex.{PairId, TokenId}
 import tofu.logging.{Loggable, _}
-import _root_.shapeless.Lazy
 
 /** Global market order.
   * @param `type` - type of the order (sell or buy)
@@ -25,8 +24,8 @@ import _root_.shapeless.Lazy
   */
 final case class Order[+T <: OrderType](
   `type`: T,
-  quoteAsset: AssetId,
-  baseAsset: AssetId,
+  quoteAsset: TokenId,
+  baseAsset: TokenId,
   amount: Long,
   price: Long,
   feePerToken: Long,
@@ -80,8 +79,8 @@ object Order {
     fs2.kafka.serde.deserializerByDecoder
 
   def mkBid(
-    quoteAsset: AssetId,
-    baseAsset: AssetId,
+    quoteAsset: TokenId,
+    baseAsset: TokenId,
     amount: Long,
     price: Long,
     feePerToken: Long,
@@ -90,8 +89,8 @@ object Order {
     Order(OrderType.Bid, quoteAsset, baseAsset, amount, price, feePerToken, meta)
 
   def mkAsk(
-    quoteAsset: AssetId,
-    baseAsset: AssetId,
+    quoteAsset: TokenId,
+    baseAsset: TokenId,
     amount: Long,
     price: Long,
     feePerToken: Long,

@@ -3,8 +3,8 @@ package org.ergoplatform.dex.tracker.handlers
 import cats.syntax.option.none
 import cats.{Defer, Functor, FunctorFilter, Monad, MonoidK}
 import mouse.any._
-import org.ergoplatform.dex.OrderId
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
+import org.ergoplatform.dex.domain.orderbook.OrderId
 import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily
 import org.ergoplatform.dex.streaming.{Producer, Record}
 import org.ergoplatform.dex.tracker.domain.errors.InvalidOrder

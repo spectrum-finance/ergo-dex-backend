@@ -3,7 +3,7 @@ package org.ergoplatform.dex.markets.sql
 import doobie.implicits._
 import doobie.util.log.LogHandler
 import doobie.util.query.Query0
-import org.ergoplatform.dex.AssetId
+import org.ergoplatform.dex.TokenId
 import org.ergoplatform.dex.sql.QuerySet
 
 object fillsSql extends QuerySet {
@@ -23,7 +23,7 @@ object fillsSql extends QuerySet {
       "ts"
     )
 
-  def volumeByPair(quote: AssetId, base: AssetId)(fromTs: Long)(implicit lh: LogHandler): Query0[Long] =
+  def volumeByPair(quote: TokenId, base: TokenId)(fromTs: Long)(implicit lh: LogHandler): Query0[Long] =
     sql"""
          |select cast((sum(amount) / 2) as bigint) from fills
          |where quote_asset = $quote and base_asset = $base and ts >= $fromTs

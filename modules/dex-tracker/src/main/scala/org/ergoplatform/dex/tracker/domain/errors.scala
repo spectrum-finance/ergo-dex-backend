@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.tracker.domain
 
-import org.ergoplatform.dex.AssetId
+import org.ergoplatform.dex.TokenId
 import sigmastate.Values.ErgoTree
 
 object errors {
@@ -9,7 +9,7 @@ object errors {
 
   final case class BadParams(ergoTree: ErgoTree) extends InvalidOrder(s"Bad params: $ergoTree")
 
-  final case class AssetNotProvided(assetId: AssetId) extends InvalidOrder(s"Declared asset not provided: $assetId")
+  final case class AssetNotProvided(assetId: TokenId) extends InvalidOrder(s"Declared asset not provided: $assetId")
 
   final case class FeeNotSatisfied(requiredAmount: Long, availableAmount: Long)
     extends InvalidOrder(s"Fee amount not satisfied. Required amount: [$requiredAmount], available: [$availableAmount]")
