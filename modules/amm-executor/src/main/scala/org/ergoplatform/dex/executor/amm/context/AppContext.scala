@@ -1,12 +1,12 @@
-package org.ergoplatform.dex.executor.orders.context
+package org.ergoplatform.dex.executor.amm.context
 
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.TraceId
-import org.ergoplatform.dex.executor.orders.config.ConfigBundle
-import org.ergoplatform.dex.executor.orders.domain.NetworkContext
+import org.ergoplatform.dex.executor.amm.config.ConfigBundle
+import org.ergoplatform.dex.executor.amm.domain.NetworkContext
 import tofu.Context
 import tofu.logging.Loggable
-import tofu.optics.macros.{promote, ClassyOptics}
+import tofu.optics.macros.{ClassyOptics, promote}
 
 @ClassyOptics
 final case class AppContext(

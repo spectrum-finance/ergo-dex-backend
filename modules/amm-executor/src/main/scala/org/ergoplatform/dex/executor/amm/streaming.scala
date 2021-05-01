@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.executor.orders
+package org.ergoplatform.dex.executor.amm
 
 import org.ergoplatform.dex.domain.amm.{CfmmOperation, OperationId}
 import org.ergoplatform.dex.streaming.Consumer

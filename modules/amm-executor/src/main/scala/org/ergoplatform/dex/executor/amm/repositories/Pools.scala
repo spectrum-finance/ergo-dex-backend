@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.executor.orders.repositories
+package org.ergoplatform.dex.executor.amm.repositories
 
 import cats.Functor
 import org.ergoplatform.dex.clients.ErgoNetwork

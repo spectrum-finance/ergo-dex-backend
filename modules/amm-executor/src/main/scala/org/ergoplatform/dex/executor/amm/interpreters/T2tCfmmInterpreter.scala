@@ -1,10 +1,10 @@
-package org.ergoplatform.dex.executor.orders.interpreters
+package org.ergoplatform.dex.executor.amm.interpreters
 
 import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.dex.clients.ErgoNetwork
 import org.ergoplatform.dex.domain.amm.{Deposit, Redeem, Swap}
-import org.ergoplatform.dex.executor.orders.domain.NetworkContext
-import org.ergoplatform.dex.executor.orders.repositories.Pools
+import org.ergoplatform.dex.executor.amm.domain.NetworkContext
+import org.ergoplatform.dex.executor.amm.repositories.Pools
 import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
 
 final class T2tCfmmInterpreter[F[_]](networkContext: NetworkContext)(implicit pools: Pools[F])

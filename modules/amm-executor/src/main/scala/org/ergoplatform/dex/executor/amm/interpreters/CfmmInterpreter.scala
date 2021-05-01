@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.executor.orders.interpreters
+package org.ergoplatform.dex.executor.amm.interpreters
 
 import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.dex.domain.amm.{Deposit, Redeem, Swap}

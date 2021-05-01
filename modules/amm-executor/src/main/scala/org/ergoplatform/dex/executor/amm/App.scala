@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.executor.orders
+package org.ergoplatform.dex.executor.amm
 
 import cats.effect.{Blocker, ExitCode, Resource}
 import fs2.Chunk
@@ -7,10 +7,10 @@ import monix.eval.Task
 import org.ergoplatform.dex.EnvApp
 import org.ergoplatform.dex.clients.{ErgoNetwork, StreamingErgoNetworkClient}
 import org.ergoplatform.dex.domain.amm.{CfmmOperation, OperationId}
-import org.ergoplatform.dex.executor.orders.config.ConfigBundle
-import org.ergoplatform.dex.executor.orders.context.AppContext
-import org.ergoplatform.dex.executor.orders.processes.OrdersExecutor
-import org.ergoplatform.dex.executor.orders.streaming.CfmmConsumer
+import org.ergoplatform.dex.executor.amm.config.ConfigBundle
+import org.ergoplatform.dex.executor.amm.context.AppContext
+import org.ergoplatform.dex.executor.amm.processes.OrdersExecutor
+import streaming.CfmmConsumer
 import org.ergoplatform.dex.streaming.{Consumer, MakeKafkaConsumer}
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend

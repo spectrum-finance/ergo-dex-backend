@@ -1,10 +1,10 @@
-package org.ergoplatform.dex.executor.orders.processes
+package org.ergoplatform.dex.executor.amm.processes
 
 import cats.{Foldable, Functor, Monad}
 import derevo.derive
 import mouse.any._
-import org.ergoplatform.dex.executor.orders.domain.errors.ExecutionFailure
-import org.ergoplatform.dex.executor.orders.streaming.CfmmConsumer
+import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailure
+import org.ergoplatform.dex.executor.amm.streaming.CfmmConsumer
 import org.ergoplatform.dex.streaming.CommitPolicy
 import tofu.Handle
 import tofu.higherKind.derived.representableK

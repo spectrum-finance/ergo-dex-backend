@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.executor.orders.config
+package org.ergoplatform.dex.executor.amm.config
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
