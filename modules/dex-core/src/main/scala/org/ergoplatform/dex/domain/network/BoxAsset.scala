@@ -9,7 +9,7 @@ import tofu.logging.derivation.loggable
   * See `Asset` in https://github.com/ergoplatform/ergo/blob/master/src/main/resources/api/openapi.yaml
   */
 @derive(encoder, decoder, loggable)
-final case class Asset(
+final case class BoxAsset(
   tokenId: TokenId,
   index: Int,
   amount: Long,

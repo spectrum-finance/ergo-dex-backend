@@ -6,5 +6,5 @@ trait ErgoBox {
   val boxId: BoxId
   val value: Long
   val ergoTree: SErgoTree
-  val assets: List[Asset]
+  val assets: List[BoxAsset]
 }

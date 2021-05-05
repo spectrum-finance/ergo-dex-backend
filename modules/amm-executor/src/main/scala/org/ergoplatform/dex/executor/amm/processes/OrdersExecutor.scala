@@ -3,7 +3,7 @@ package org.ergoplatform.dex.executor.amm.processes
 import cats.{Foldable, Functor, Monad}
 import derevo.derive
 import mouse.any._
-import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailure
+import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.streaming.CfmmConsumer
 import org.ergoplatform.dex.streaming.CommitPolicy
 import tofu.Handle
@@ -24,7 +24,7 @@ object OrdersExecutor {
 
   def make[
     I[_]: Functor,
-    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: CommitPolicy.Has: Handle[*[_], ExecutionFailure],
+    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: CommitPolicy.Has: Handle[*[_], ExecutionFailed],
     G[_]: Monad,
     C[_]: Foldable
   ](implicit consumer: CfmmConsumer[F, G], logs: Logs[I, G]): I[OrdersExecutor[F]] =
@@ -33,7 +33,7 @@ object OrdersExecutor {
     }
 
   final private class Live[
-    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: Handle[*[_], ExecutionFailure],
+    F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: Handle[*[_], ExecutionFailed],
     G[_]: Monad: Logging,
     C[_]: Foldable
   ](commitPolicy: CommitPolicy)(implicit

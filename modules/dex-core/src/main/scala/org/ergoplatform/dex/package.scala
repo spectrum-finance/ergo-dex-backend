@@ -11,8 +11,8 @@ import doobie._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
 import eu.timepit.refined.{refineV, W}
+import fs2.kafka.RecordDeserializer
 import fs2.kafka.serde._
-import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype

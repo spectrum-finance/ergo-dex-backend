@@ -3,10 +3,9 @@ package org.ergoplatform.dex.domain.syntax
 import cats.instances.tuple._
 import cats.syntax.bifunctor._
 import cats.syntax.list._
-import org.ergoplatform.dex.domain.OrderComparator
 import org.ergoplatform.dex.domain.orderbook.Order.{AnyOrder, Ask, Bid}
 import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
-import org.ergoplatform.dex.domain.orderbook.{FilledOrder, Order, OrderType, Trade}
+import org.ergoplatform.dex.domain.orderbook.{FilledOrder, Order, OrderComparator, OrderType, Trade}
 
 import scala.annotation.tailrec
 

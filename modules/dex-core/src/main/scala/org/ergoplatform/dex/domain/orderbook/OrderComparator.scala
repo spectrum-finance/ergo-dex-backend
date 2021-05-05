@@ -1,7 +1,6 @@
-package org.ergoplatform.dex.domain
+package org.ergoplatform.dex.domain.orderbook
 
-import org.ergoplatform.dex.domain.orderbook.OrderType.{Bid, Ask}
-import org.ergoplatform.dex.domain.orderbook.{Order, OrderType}
+import org.ergoplatform.dex.domain.orderbook.OrderType.{Ask, Bid}
 
 trait OrderComparator[T0 <: OrderType, T1 <: OrderType] {
   def compare(x: Order[T0], y: Order[T1]): Int

@@ -18,8 +18,8 @@ object versions {
   val FlywayVersion      = "5.1.1"
   val MonixVersion       = "3.3.0"
   val MonocleVersion     = "2.0.0"
-  val TofuVersion        = "0.10.1"
-  val DerevoVersion      = "0.12.2"
+  val TofuVersion        = "0.10.2"
+  val DerevoVersion      = "0.12.3"
 
   val SimulacrumVersion = "0.19.0"
 

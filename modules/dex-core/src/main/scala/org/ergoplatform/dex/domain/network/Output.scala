@@ -15,5 +15,5 @@ final case class Output(
   settlementHeight: Int,
   ergoTree: SErgoTree,
   address: Address,
-  assets: List[Asset]
+  assets: List[BoxAsset]
 ) extends ErgoBox

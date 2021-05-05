@@ -1,7 +1,8 @@
 package org.ergoplatform.dex.domain.syntax
 
-import org.ergoplatform.dex.{Address, TokenId, BoxId}
-import org.ergoplatform.{ErgoAddressEncoder, ErgoBox}
+import org.ergoplatform.dex.domain.network.Output
+import org.ergoplatform.dex.{Address, BoxId, TokenId}
+import org.ergoplatform.{ErgoAddressEncoder, ErgoBox, Input}
 import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16

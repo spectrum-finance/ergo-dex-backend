@@ -41,7 +41,7 @@ lazy val dexBackend = project
   .withId("ergo-dex-backend")
   .settings(commonSettings)
   .settings(moduleName := "ergo-dex-backend", name := "ErgoDexBackend")
-  .aggregate(core, tracker, matcher, ordersExecutor, marketsApi)
+  .aggregate(core, tracker, matcher, ordersExecutor, ammExecutor, marketsApi)
 
 lazy val core = utils
   .mkModule("dex-core", "DexCore")
