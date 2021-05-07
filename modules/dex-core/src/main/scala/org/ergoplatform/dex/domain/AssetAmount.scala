@@ -8,9 +8,13 @@ import org.ergoplatform.dex.domain.network.BoxAsset
 import tofu.logging.derivation.loggable
 
 @derive(show, encoder, decoder, loggable)
-final case class AssetAmount(id: TokenId, amount: Long, ticker: Option[String]) {
+final case class AssetAmount(id: TokenId, value: Long, ticker: Option[String]) {
 
-  def >= (that: AssetAmount): Boolean = amount >= that.amount
+  def >=(that: AssetAmount): Boolean = value >= that.value
+
+  def withAmount(x: Long): AssetAmount = copy(value = x)
+
+  def withAmount(x: BigInt): AssetAmount = copy(value = x.toLong)
 }
 
 object AssetAmount {
