@@ -4,8 +4,9 @@ import cats.implicits.none
 import cats.{Functor, FunctorFilter, Monad}
 import mouse.any._
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.dex.protocol.amm.{AmmContractType, AmmOps}
+import org.ergoplatform.dex.protocol.amm.AmmContractType
 import org.ergoplatform.dex.streaming.{Producer, Record}
+import org.ergoplatform.dex.tracker.modules.amm.AmmOps
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
 import tofu.syntax.logging._

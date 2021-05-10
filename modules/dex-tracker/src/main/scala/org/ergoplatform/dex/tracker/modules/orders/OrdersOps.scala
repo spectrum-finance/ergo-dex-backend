@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.tracker.modules
+package org.ergoplatform.dex.tracker.modules.orders
 
 import cats.Monad
 import cats.effect.Clock
@@ -25,33 +25,33 @@ import tofu.{MonadThrow, Raise}
 
 import java.util
 
-trait Orders[CT <: OrderContractFamily, F[_]] {
+trait OrdersOps[CT <: OrderContractFamily, F[_]] {
 
-  def makeOrder(output: Output): F[Option[AnyOrder]]
+  def parseOrder(output: Output): F[Option[AnyOrder]]
 }
 
-object Orders {
+object OrdersOps {
 
-  implicit def representableK[CT <: OrderContractFamily]: RepresentableK[Orders[CT, *[_]]] = {
-    type Rep[F[_]] = Orders[CT, F]
+  implicit def representableK[CT <: OrderContractFamily]: RepresentableK[OrdersOps[CT, *[_]]] = {
+    type Rep[F[_]] = OrdersOps[CT, F]
     tofu.higherKind.derived.genRepresentableK[Rep]
   }
 
-  implicit def limitOrderInstance[F[_]: Clock: MonadThrow: ProtocolConfig.Has]: Orders[LimitOrders, F] =
+  implicit def limitOrderInstance[F[_]: Clock: MonadThrow: ProtocolConfig.Has]: OrdersOps[LimitOrders, F] =
     context.map { conf =>
       val ser     = ErgoTreeSerializer.default
       val encoder = conf.networkType.addressEncoder
-      new Live[F](ser, encoder): Orders[LimitOrders, F]
+      new Live[F](ser, encoder): OrdersOps[LimitOrders, F]
     }.embed
 
   final private class Live[F[_]: Monad: Clock: Raise[*[_], InvalidOrder]](
     treeSer: ErgoTreeSerializer,
     addressEncoder: ErgoAddressEncoder
-  ) extends Orders[LimitOrders, F] {
+  ) extends OrdersOps[LimitOrders, F] {
 
     implicit val e: ErgoAddressEncoder = addressEncoder
 
-    def makeOrder(output: Output): F[Option[AnyOrder]] = {
+    def parseOrder(output: Output): F[Option[AnyOrder]] = {
       val tree = treeSer.deserialize(output.ergoTree)
       if (isSellerScript(tree)) makeAsk(tree, output).map(_.some)
       else if (isBuyerScript(tree)) makeBid(tree, output).map(_.some)

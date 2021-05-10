@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.protocol.amm
+package org.ergoplatform.dex.tracker.modules.amm
 
 import org.ergoplatform.dex.contracts.amm.cfmm.t2t
 import org.ergoplatform.dex.domain.AssetAmount

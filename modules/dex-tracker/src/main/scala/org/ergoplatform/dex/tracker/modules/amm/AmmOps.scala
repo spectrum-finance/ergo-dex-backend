@@ -1,8 +1,9 @@
-package org.ergoplatform.dex.protocol.amm
+package org.ergoplatform.dex.tracker.modules.amm
 
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.network.Output
+import org.ergoplatform.dex.protocol.amm.AmmContractType
 import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
 
 trait AmmOps[CT <: AmmContractType] {
