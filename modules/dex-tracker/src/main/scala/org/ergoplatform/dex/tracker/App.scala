@@ -4,6 +4,7 @@ import cats.effect.{Blocker, ExitCode, Resource}
 import fs2.kafka.serde._
 import monix.eval.Task
 import mouse.any._
+import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.EnvApp
 import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
 import org.ergoplatform.dex.domain.amm.{CfmmOperation, OperationId}
@@ -40,6 +41,7 @@ object App extends EnvApp[ConfigBundle] {
     for {
       blocker <- Blocker[InitF]
       configs <- Resource.eval(ConfigBundle.load(configPathOpt))
+      implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = IsoK.byFunK(wr.runContextK(configs))(wr.liftF)
       implicit0(producer0: Producer[OrderId, AnyOrder, StreamF]) <-
         Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.topics.limitOrders, configs.producer)

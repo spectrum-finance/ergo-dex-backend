@@ -3,13 +3,14 @@ package org.ergoplatform.dex.executor.amm.interpreters
 import cats.Monad
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
+import org.ergoplatform.dex.TokenId
 import org.ergoplatform.dex.clients.ErgoNetwork
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.NetworkContext
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, NoSuchPool, TooMuchSlippage}
-import org.ergoplatform.dex.executor.amm.repositories.T2tCfmmPools
+import org.ergoplatform.dex.executor.amm.repositories.CfmmPools
 import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
 import org.ergoplatform.dex.protocol.amm.AmmContracts
 import sigmastate.Values.LongConstant
@@ -21,10 +22,10 @@ import tofu.syntax.monadic._
 import tofu.syntax.raise._
 
 final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
-  dexConf: ExchangeConfig,
+  conf: ExchangeConfig,
   ctx: NetworkContext
 )(implicit
-  pools: T2tCfmmPools[F],
+  pools: CfmmPools[F],
   contracts: AmmContracts[T2tCfmm],
   encoder: ErgoAddressEncoder
 ) extends CfmmInterpreter[T2tCfmm, F] {
@@ -48,13 +49,14 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         ),
         additionalRegisters = mkPoolRegs(pool)
       )
-      val minerFeeBox = new ErgoBoxCandidate(deposit.params.minerFee, minerFeeProp, ctx.currentHeight)
-      val dexFeeBox   = new ErgoBoxCandidate(deposit.params.dexFee, dexFeeProp, ctx.currentHeight)
+      val minerFeeBox = new ErgoBoxCandidate(conf.minerFee, minerFeeProp, ctx.currentHeight)
+      val dexFee      = deposit.params.dexFee - conf.minerFee
+      val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
       val returnBox = new ErgoBoxCandidate(
         value            = depositBox.value - minerFeeBox.value - dexFeeBox.value,
         ergoTree         = deposit.params.p2pk.toErgoTree,
         creationHeight   = ctx.currentHeight,
-        additionalTokens = Colls.fromItems(rewardLP.id.toErgo -> rewardLP.value)
+        additionalTokens = mkTokens(rewardLP.id -> rewardLP.value)
       )
       val inputs = Vector(poolIn, redeemIn)
       val outs   = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
@@ -80,15 +82,16 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         ),
         additionalRegisters = mkPoolRegs(pool)
       )
-      val minerFeeBox = new ErgoBoxCandidate(redeem.params.minerFee, minerFeeProp, ctx.currentHeight)
-      val dexFeeBox   = new ErgoBoxCandidate(redeem.params.dexFee, dexFeeProp, ctx.currentHeight)
+      val minerFeeBox = new ErgoBoxCandidate(conf.minerFee, minerFeeProp, ctx.currentHeight)
+      val dexFee      = redeem.params.dexFee - conf.minerFee
+      val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
       val returnBox = new ErgoBoxCandidate(
         value          = redeemBox.value - minerFeeBox.value - dexFeeBox.value,
         ergoTree       = redeem.params.p2pk.toErgoTree,
         creationHeight = ctx.currentHeight,
-        additionalTokens = Colls.fromItems(
-          shareX.id.toErgo -> shareX.value,
-          shareY.id.toErgo -> shareY.value
+        additionalTokens = mkTokens(
+          shareX.id -> shareX.value,
+          shareY.id -> shareY.value
         )
       )
       val inputs = Vector(poolIn, redeemIn)
@@ -120,14 +123,14 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
           ),
           additionalRegisters = mkPoolRegs(pool)
         )
-        val minerFeeBox = new ErgoBoxCandidate(swap.params.minerFee, minerFeeProp, ctx.currentHeight)
-        val dexFee      = output.value * swap.params.dexFeePerToken
+        val minerFeeBox = new ErgoBoxCandidate(conf.minerFee, minerFeeProp, ctx.currentHeight)
+        val dexFee      = output.value * swap.params.dexFeePerToken - conf.minerFee
         val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
         val rewardBox = new ErgoBoxCandidate(
           value            = swapBox.value - minerFeeBox.value - dexFeeBox.value,
           ergoTree         = swap.params.p2pk.toErgoTree,
           creationHeight   = ctx.currentHeight,
-          additionalTokens = Colls.fromItems(swap.params.minOutput.id.toErgo -> swap.params.minOutput.value)
+          additionalTokens = mkTokens(swap.params.minOutput.id -> swap.params.minOutput.value)
         )
         val inputs = Vector(poolIn, swapIn)
         val outs   = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
@@ -136,15 +139,18 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     }
 
   private val minerFeeProp = Pay2SAddress(ErgoScriptPredef.feeProposition()).script
-  private val dexFeeProp   = dexConf.rewardAddress.toErgoTree
+  private val dexFeeProp   = conf.rewardAddress.toErgoTree
 
   private def mkPoolTokens(pool: CfmmPool, amountLP: Long, amountX: Long, amountY: Long) =
-    Colls.fromItems(
-      pool.poolId.value.toErgo -> 1L,
-      pool.lp.id.toErgo        -> amountLP,
-      pool.x.id.toErgo         -> amountX,
-      pool.y.id.toErgo         -> amountY
+    mkTokens(
+      pool.poolId.value -> 1L,
+      pool.lp.id        -> amountLP,
+      pool.x.id         -> amountX,
+      pool.y.id         -> amountY
     )
+
+  private def mkTokens(tokens: (TokenId, Long)*) =
+    Colls.fromItems(tokens.map { case (k, v) => k.toErgo -> v }: _*)
 
   private def mkPoolRegs(pool: CfmmPool) =
     scala.Predef.Map(
@@ -159,7 +165,7 @@ object T2tCfmmInterpreter {
 
   def make[F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has](implicit
     network: ErgoNetwork[F],
-    pools: T2tCfmmPools[F],
+    pools: CfmmPools[F],
     contracts: AmmContracts[T2tCfmm],
     encoder: ErgoAddressEncoder
   ): CfmmInterpreter[T2tCfmm, F] =

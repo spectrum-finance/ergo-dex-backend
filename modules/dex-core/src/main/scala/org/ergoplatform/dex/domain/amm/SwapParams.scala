@@ -11,7 +11,6 @@ final case class SwapParams(
   poolId: PoolId,
   input: AssetAmount,
   minOutput: AssetAmount,
-  minerFee: Long,
   dexFeePerToken: Long,
   p2pk: Address
 )

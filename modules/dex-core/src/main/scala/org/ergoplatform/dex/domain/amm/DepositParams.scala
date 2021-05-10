@@ -11,7 +11,6 @@ final case class DepositParams(
   poolId: PoolId,
   inX: AssetAmount,
   inY: AssetAmount,
-  minerFee: Long,
   dexFee: Long,
   p2pk: Address
 )

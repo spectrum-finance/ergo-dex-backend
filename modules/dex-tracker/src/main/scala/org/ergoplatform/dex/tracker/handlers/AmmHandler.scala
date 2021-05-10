@@ -1,9 +1,10 @@
 package org.ergoplatform.dex.tracker.handlers
 
+import cats.implicits.none
 import cats.{Functor, FunctorFilter, Monad}
 import mouse.any._
-import org.ergoplatform.dex.domain.amm.{CfmmOperation, Deposit, OperationId, Redeem, Swap}
-import org.ergoplatform.dex.protocol.amm.{AmmContractType, AmmProxyContracts}
+import org.ergoplatform.dex.domain.amm._
+import org.ergoplatform.dex.protocol.amm.{AmmContractType, AmmOps}
 import org.ergoplatform.dex.streaming.{Producer, Record}
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
@@ -17,17 +18,17 @@ final class AmmHandler[
   G[_]: Functor: Logging
 ](implicit
   producer: Producer[OperationId, CfmmOperation, F],
-  contracts: AmmProxyContracts[CT]
+  ops: AmmOps[CT]
 ) {
 
   def handler: BoxHandler[F] =
     _.map { out =>
-      if (contracts.isDeposit(out.ergoTree)) Some(Deposit(???, out))
-      else if (contracts.isRedeem(out.ergoTree)) Some(Redeem(???, out))
-      else if (contracts.isSwap(out.ergoTree)) Some(Swap(???, ???, ???, ???, out))
-      else Option.empty[CfmmOperation]
+      ops.parseDeposit(out) orElse
+      ops.parseRedeem(out) orElse
+      ops.parseSwap(out) orElse
+      none[CfmmOperation]
     }.unNone
-      .evalTap(op => info"AMM operation detected $op")
+      .evalTap(op => info"AMM operation detected [$op]")
       .map(op => Record[OperationId, CfmmOperation](op.id, op))
       .thrush(producer.produce)
 }
@@ -41,7 +42,7 @@ object AmmHandler {
     G[_]: Functor
   ](implicit
     producer: Producer[OperationId, CfmmOperation, F],
-    contracts: AmmProxyContracts[CT],
+    contracts: AmmOps[CT],
     logs: Logs[I, G]
   ): I[BoxHandler[F]] =
     logs.forService[AmmHandler[CT, F, G]].map(implicit log => new AmmHandler[CT, F, G].handler)

@@ -1,13 +1,15 @@
 package org.ergoplatform.dex.domain.syntax
 
-import org.ergoplatform.dex.domain.network.Output
 import org.ergoplatform.dex.{Address, BoxId, TokenId}
-import org.ergoplatform.{ErgoAddressEncoder, ErgoBox, Input}
+import org.ergoplatform.{ErgoAddressEncoder, ErgoBox}
 import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16
-import sigmastate.Values.ErgoTree
+import sigmastate.Values.{ByteArrayConstant, Constant, ErgoTree, SigmaPropConstant}
+import sigmastate.basics.DLogProtocol
+import sigmastate.basics.DLogProtocol.ProveDlogProp
 import sigmastate.eval.Extensions._
+import sigmastate.{SLong, SType, Values}
 import special.collection.Coll
 
 object ergo {
@@ -24,5 +26,19 @@ object ergo {
 
   implicit final class AddressOps(private val address: Address) extends AnyVal {
     def toErgoTree(implicit e: ErgoAddressEncoder): ErgoTree = e.fromString(address.unwrapped).get.script
+  }
+
+  implicit final class ConstantsOps(private val constants: IndexedSeq[Constant[SType]]) extends AnyVal {
+
+    def parseLong(idx: Int): Option[Long] =
+      constants.lift(idx).collect { case Values.ConstantNode(value, SLong) =>
+        value.asInstanceOf[Long]
+      }
+
+    def parseBytea(idx: Int): Option[Array[Byte]] =
+      constants.lift(idx).collect { case ByteArrayConstant(coll) => coll.toArray }
+
+    def parsePk(idx: Int): Option[DLogProtocol.ProveDlog] =
+      constants.lift(idx).collect { case SigmaPropConstant(ProveDlogProp(v)) => v }
   }
 }

@@ -1,24 +1,26 @@
 package org.ergoplatform.dex.executor.amm.repositories
 
+import cats.Monad
 import cats.data.OptionT
-import cats.{Functor, Monad}
 import org.ergoplatform.dex.clients.ErgoNetwork
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.dex.domain.amm.{PoolId, CfmmPool}
+import org.ergoplatform.dex.domain.amm.{CfmmPool, PoolId}
+import org.ergoplatform.dex.domain.network.RegisterId
+import org.ergoplatform.dex.domain.network.SConstant.LongConstant
 import org.ergoplatform.dex.protocol.amm.constants
 import tofu.syntax.monadic._
 
-trait T2tCfmmPools[F[_]] {
+trait CfmmPools[F[_]] {
 
   def get(id: PoolId): F[Option[CfmmPool]]
 }
 
-object T2tCfmmPools {
+object CfmmPools {
 
-  def make[F[_]: Monad](implicit network: ErgoNetwork[F]): T2tCfmmPools[F] =
+  def make[F[_]: Monad](implicit network: ErgoNetwork[F]): CfmmPools[F] =
     new Live[F]
 
-  final class Live[F[_]: Monad](implicit network: ErgoNetwork[F]) extends T2tCfmmPools[F] {
+  final class Live[F[_]: Monad](implicit network: ErgoNetwork[F]) extends CfmmPools[F] {
 
     def get(id: PoolId): F[Option[CfmmPool]] =
       (for {
@@ -26,12 +28,13 @@ object T2tCfmmPools {
         lp      <- OptionT.fromOption(poolBox.assets.lift(constants.cfmm.t2t.IndexLP))
         x       <- OptionT.fromOption(poolBox.assets.lift(constants.cfmm.t2t.IndexX))
         y       <- OptionT.fromOption(poolBox.assets.lift(constants.cfmm.t2t.IndexY))
+        fee     <- OptionT.fromOption(poolBox.registers.get(RegisterId.R4).collect { case LongConstant(x) => x })
       } yield CfmmPool(
         id,
         AssetAmount.fromBoxAsset(lp),
         AssetAmount.fromBoxAsset(x),
         AssetAmount.fromBoxAsset(y),
-        ???,
+        fee,
         poolBox
       )).value
   }

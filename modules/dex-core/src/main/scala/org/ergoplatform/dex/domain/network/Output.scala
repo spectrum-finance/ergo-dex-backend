@@ -3,6 +3,7 @@ package org.ergoplatform.dex.domain.network
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.dex.{Address, BoxId, SErgoTree, TxId}
+import tofu.logging.Loggable
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
@@ -15,5 +16,14 @@ final case class Output(
   settlementHeight: Int,
   ergoTree: SErgoTree,
   address: Address,
-  assets: List[BoxAsset]
+  assets: List[BoxAsset],
+  registers: Map[RegisterId, SConstant]
 ) extends ErgoBox
+
+object Output {
+
+  implicit val regsLoggable: Loggable[Map[RegisterId, SConstant]] =
+    Loggable.stringValue.contramap { x =>
+      x.toString()
+    }
+}

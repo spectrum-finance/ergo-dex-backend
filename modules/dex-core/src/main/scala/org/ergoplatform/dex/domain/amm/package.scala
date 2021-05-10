@@ -6,7 +6,7 @@ import fs2.kafka.serde.{deserializerByDecoder, serializerByEncoder}
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
-import org.ergoplatform.dex.{BoxId, TokenId}
+import org.ergoplatform.dex.{BoxId, HexString, TokenId}
 import tofu.logging.Loggable
 
 package object amm {
@@ -22,6 +22,9 @@ package object amm {
 
     implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, PoolId]     = serializerByEncoder
     implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, PoolId] = deserializerByDecoder
+
+    def fromBytes(bytes: Array[Byte]): PoolId =
+      PoolId(TokenId.fromBytes(bytes))
   }
 
   @newtype case class OperationId(value: String)

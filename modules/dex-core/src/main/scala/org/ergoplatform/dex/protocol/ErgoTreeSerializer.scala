@@ -2,7 +2,7 @@ package org.ergoplatform.dex.protocol
 
 import org.ergoplatform.dex.SErgoTree
 import sigmastate.Values
-import sigmastate.serialization.{ErgoTreeSerializer => TreeSerializeer}
+import sigmastate.serialization.{ErgoTreeSerializer => TreeSerializer}
 
 trait ErgoTreeSerializer {
 
@@ -16,9 +16,9 @@ object ErgoTreeSerializer {
   object default extends ErgoTreeSerializer {
 
       def serialize(tree: Values.ErgoTree): SErgoTree =
-        SErgoTree.fromBytes(TreeSerializeer.DefaultSerializer.serializeErgoTree(tree))
+        SErgoTree.fromBytes(TreeSerializer.DefaultSerializer.serializeErgoTree(tree))
 
       def deserialize(raw: SErgoTree): Values.ErgoTree =
-        TreeSerializeer.DefaultSerializer.deserializeErgoTree(raw.toBytea)
+        TreeSerializer.DefaultSerializer.deserializeErgoTree(raw.toBytea)
     }
 }
