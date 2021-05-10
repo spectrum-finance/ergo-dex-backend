@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.executor.amm.domain
+package org.ergoplatform.dex.domain
 
 import cats.FlatMap
 import org.ergoplatform.dex.clients.ErgoNetwork

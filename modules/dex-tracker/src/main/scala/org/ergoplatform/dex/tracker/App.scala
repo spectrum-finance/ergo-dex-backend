@@ -14,8 +14,9 @@ import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
 import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily.LimitOrders
 import org.ergoplatform.dex.streaming.Producer
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
-import org.ergoplatform.dex.tracker.handlers.{AmmHandler, OrdersHandler}
+import org.ergoplatform.dex.tracker.handlers.{CfmmHandler, OrdersHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
+import org.ergoplatform.dex.tracker.validation.amm.CfmmRules
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
@@ -49,8 +50,9 @@ object App extends EnvApp[ConfigBundle] {
         Producer.make[InitF, StreamF, RunF, OperationId, CfmmOperation](configs.topics.cfmm, configs.producer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: StreamingErgoNetworkClient[StreamF, RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
+      implicit0(cfmmRules: CfmmRules[RunF])                        = CfmmRules.make[RunF]
       limitOrdersHandler <- Resource.eval(OrdersHandler.make[LimitOrders, InitF, StreamF, RunF])
-      t2tCfmmHandler     <- Resource.eval(AmmHandler.make[T2tCfmm, InitF, StreamF, RunF])
+      t2tCfmmHandler     <- Resource.eval(CfmmHandler.make[T2tCfmm, InitF, StreamF, RunF])
       tracker            <- Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](limitOrdersHandler, t2tCfmmHandler))
     } yield tracker -> configs
 

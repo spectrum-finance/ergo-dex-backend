@@ -5,10 +5,10 @@ import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
 import org.ergoplatform.dex.TokenId
 import org.ergoplatform.dex.clients.ErgoNetwork
+import org.ergoplatform.dex.domain.NetworkContext
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.dex.executor.amm.domain.NetworkContext
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, NoSuchPool, TooMuchSlippage}
 import org.ergoplatform.dex.executor.amm.repositories.CfmmPools
 import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
@@ -171,8 +171,8 @@ object T2tCfmmInterpreter {
   ): CfmmInterpreter[T2tCfmm, F] =
     (
       for {
-        dexConf    <- context
+        conf       <- context
         networkCtx <- NetworkContext.make
-      } yield new T2tCfmmInterpreter(dexConf, networkCtx): CfmmInterpreter[T2tCfmm, F]
+      } yield new T2tCfmmInterpreter(conf, networkCtx): CfmmInterpreter[T2tCfmm, F]
     ).embed
 }

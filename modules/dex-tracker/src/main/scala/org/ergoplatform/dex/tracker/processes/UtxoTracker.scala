@@ -8,6 +8,7 @@ import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
 import org.ergoplatform.dex.domain.network.Output
 import org.ergoplatform.dex.tracker.configs.TrackerConfig
 import org.ergoplatform.dex.tracker.domain.errors.InvalidOrder
+import org.ergoplatform.dex.tracker.handlers.BoxHandler
 import tofu.concurrent.MakeRef
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}

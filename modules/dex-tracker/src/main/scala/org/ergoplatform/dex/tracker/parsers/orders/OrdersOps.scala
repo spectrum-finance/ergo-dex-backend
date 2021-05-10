@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.tracker.modules.orders
+package org.ergoplatform.dex.tracker.parsers.orders
 
 import cats.Monad
 import cats.effect.Clock
