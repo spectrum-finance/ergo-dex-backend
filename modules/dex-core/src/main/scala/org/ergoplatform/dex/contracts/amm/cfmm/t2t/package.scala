@@ -2,6 +2,7 @@ package org.ergoplatform.dex.contracts.amm.cfmm
 
 import org.ergoplatform.ErgoAddressEncoder.NetworkPrefix
 import org.ergoplatform.dex.ErgoTreeTemplate
+import org.ergoplatform.dex.protocol.sigmaUtils
 import sigmastate.Values.ErgoTree
 import sigmastate.basics.DLogProtocol.DLogProverInput
 import sigmastate.eval.{CompiletimeIRContext, IRContext}
@@ -18,18 +19,30 @@ package object t2t {
 
   def depositTemplate(networkPrefix: NetworkPrefix): ErgoTreeTemplate = {
     val sigma = SigmaCompiler(networkPrefix)
-    val env   = Map("Pk" -> dummyPk, "PoolNFT" -> dummyDigest32)
-    ErgoTreeTemplate.fromBytes(
-      ErgoTree.fromProposition(sigma.compile(env, DepositContract).asSigmaProp).template
+    val env = Map(
+      "InitiallyLockedLP" -> dummyLong,
+      "Pk"                -> dummyPk,
+      "PoolNFT"           -> dummyDigest32,
+      "DexFee"            -> dummyLong
     )
+    val tree = sigmaUtils.updateVersionHeader(
+      ErgoTree.fromProposition(sigma.compile(env, DepositContract).asSigmaProp)
+    )
+    ErgoTreeTemplate.fromBytes(tree.template)
   }
 
   def redeemTemplate(networkPrefix: NetworkPrefix): ErgoTreeTemplate = {
     val sigma = SigmaCompiler(networkPrefix)
-    val env   = Map("Pk" -> dummyPk, "PoolNFT" -> dummyDigest32)
-    ErgoTreeTemplate.fromBytes(
-      ErgoTree.fromProposition(sigma.compile(env, RedeemContract).asSigmaProp).template
+    val env = Map(
+      "InitiallyLockedLP" -> dummyLong,
+      "Pk"                -> dummyPk,
+      "PoolNFT"           -> dummyDigest32,
+      "DexFee"            -> dummyLong
     )
+    val tree = sigmaUtils.updateVersionHeader(
+      ErgoTree.fromProposition(sigma.compile(env, RedeemContract).asSigmaProp)
+    )
+    ErgoTreeTemplate.fromBytes(tree.template)
   }
 
   def swapTemplate(networkPrefix: NetworkPrefix): ErgoTreeTemplate = {
@@ -42,16 +55,15 @@ package object t2t {
       "QuoteId"        -> dummyDigest32,
       "FeeNum"         -> dummyLong
     )
-    ErgoTreeTemplate.fromBytes(
-      ErgoTree.fromProposition(sigma.compile(env, SwapContract).asSigmaProp).template
+    val tree = sigmaUtils.updateVersionHeader(
+      ErgoTree.fromProposition(sigma.compile(env, SwapContract).asSigmaProp)
     )
+    ErgoTreeTemplate.fromBytes(tree.template)
   }
 
   val DepositContract: String =
     """
       |{
-      |    val InitiallyLockedLP = 1000000000000000000L
-      |
       |    val selfX = SELF.tokens(0)
       |    val selfY = SELF.tokens(1)
       |
@@ -86,8 +98,6 @@ package object t2t {
   val RedeemContract: String =
     """
       |{
-      |    val InitiallyLockedLP = 1000000000000000000L
-
       |    val selfLP = SELF.tokens(0)
       |
       |    val poolIn = INPUTS(0)
@@ -100,10 +110,8 @@ package object t2t {
       |
       |    val supplyLP = InitiallyLockedLP - poolLP._2
       |
-      |    val shareLP = selfLP._2.toBigInt / supplyLP
-      |
-      |    val minReturnX = shareLP * reservesX._2
-      |    val minReturnY = shareLP * reservesY._2
+      |    val minReturnX = selfLP._2.toBigInt * reservesX._2 / supplyLP
+      |    val minReturnY = selfLP._2.toBigInt * reservesY._2 / supplyLP
       |
       |    val returnOut = OUTPUTS(1)
       |

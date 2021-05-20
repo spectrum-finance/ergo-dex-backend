@@ -184,10 +184,10 @@ object Transactions {
       Map(R4 -> Constant(orderBoxId.toSigma.asWrappedType, SCollection(SByte)))
 
     private def residualBoxRegs(
-                                 assetId: TokenId,
-                                 price: Long,
-                                 feePerToken: Long,
-                                 originBoxId: DexBoxId
+      assetId: TokenId,
+      price: Long,
+      feePerToken: Long,
+      originBoxId: DexBoxId
     ): Map[NonMandatoryRegisterId, EvaluatedValue[SType]] =
       Map(
         R4 -> Constant(assetId.toSigma.asWrappedType, SCollection(SByte)),

@@ -1,5 +1,6 @@
 object versions {
 
+  val SigmaStateVersion    = "4.0.3"
   val ErgoWalletVersion    = "v4.0.7-5a5356d9-SNAPSHOT"
   val ErgoContractsVersion = "1.0.0"
 
