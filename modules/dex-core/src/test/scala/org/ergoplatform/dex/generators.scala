@@ -4,15 +4,15 @@ import eu.timepit.refined.refineV
 import eu.timepit.refined.string.HexStringSpec
 import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.P2PKAddress
+import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexSellerContractParameters}
 import org.ergoplatform.dex.domain.orderbook.{Order, OrderMeta}
 import org.ergoplatform.dex.domain.syntax.ergo._
+import org.ergoplatform.dex.implicits._
 import org.scalacheck.Gen
 import scorex.crypto.hash.Blake2b256
 import scorex.util.encode.Base16
 import sigmastate.basics.DLogProtocol.{DLogProverInput, ProveDlog}
-import org.ergoplatform.dex.implicits._
-import org.ergoplatform.contracts.DexLimitOrderContracts._
 
 object generators {
 
@@ -63,21 +63,21 @@ object generators {
     } yield OrderMeta(boxId, boxValue, script.ergoTree, pk, ts)
 
   def bidGen(
-              quoteAsset: TokenId,
-              baseAsset: TokenId,
-              amount: Long,
-              price: Long,
-              feePerToken: Long
+    quoteAsset: TokenId,
+    baseAsset: TokenId,
+    amount: Long,
+    price: Long,
+    feePerToken: Long
   ): Gen[Order.Bid] =
     orderMetaBuyerGen(amount * (price + feePerToken), quoteAsset, price, feePerToken) flatMap
     (meta => Order.mkBid(quoteAsset, baseAsset, amount, price, feePerToken, meta))
 
   def askGen(
-              quoteAsset: TokenId,
-              baseAsset: TokenId,
-              amount: Long,
-              price: Long,
-              feePerToken: Long
+    quoteAsset: TokenId,
+    baseAsset: TokenId,
+    amount: Long,
+    price: Long,
+    feePerToken: Long
   ): Gen[Order.Ask] =
     orderMetaSellerGen(amount * feePerToken, quoteAsset, price, feePerToken) flatMap
     (meta => Order.mkAsk(quoteAsset, baseAsset, amount, price, feePerToken, meta))
