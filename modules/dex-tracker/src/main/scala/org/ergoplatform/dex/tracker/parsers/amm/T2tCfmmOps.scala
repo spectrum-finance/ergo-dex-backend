@@ -1,21 +1,24 @@
 package org.ergoplatform.dex.tracker.parsers.amm
 
-import org.ergoplatform.dex.contracts.amm.cfmm.t2t
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.network.Output
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
+import org.ergoplatform.dex.protocol.amm.ContractTemplates
 import org.ergoplatform.dex.{Address, ErgoTreeTemplate, TokenId}
 import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 
-final class T2tCfmmOps(implicit e: ErgoAddressEncoder) extends AmmOps[T2tCfmm] {
+final class T2tCfmmOps(implicit
+  templates: ContractTemplates[T2tCfmm],
+  e: ErgoAddressEncoder
+) extends AmmOps[T2tCfmm] {
 
   def parseDeposit(box: Output): Option[Deposit] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    if (template == t2t.depositTemplate(e.networkPrefix)) {
+    if (template == templates.deposit) {
       for {
         poolId <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
         inX    <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
@@ -30,7 +33,7 @@ final class T2tCfmmOps(implicit e: ErgoAddressEncoder) extends AmmOps[T2tCfmm] {
   def parseRedeem(box: Output): Option[Redeem] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    if (template == t2t.depositTemplate(e.networkPrefix)) {
+    if (template == templates.redeem) {
       for {
         poolId <- tree.constants.parseBytea(10).map(PoolId.fromBytes)
         inLP   <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
@@ -44,7 +47,7 @@ final class T2tCfmmOps(implicit e: ErgoAddressEncoder) extends AmmOps[T2tCfmm] {
   def parseSwap(box: Output): Option[Swap] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    if (template == t2t.swapTemplate(e.networkPrefix)) {
+    if (template == templates.swap) {
       for {
         poolId    <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
         in        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))

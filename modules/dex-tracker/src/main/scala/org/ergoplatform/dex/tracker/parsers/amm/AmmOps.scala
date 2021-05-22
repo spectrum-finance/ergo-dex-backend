@@ -4,6 +4,7 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.network.Output
 import org.ergoplatform.dex.protocol.amm.AmmContractType.{CfmmFamily, T2tCfmm}
+import org.ergoplatform.dex.protocol.amm.ContractTemplates
 
 trait AmmOps[CT <: CfmmFamily] {
 
@@ -16,5 +17,6 @@ trait AmmOps[CT <: CfmmFamily] {
 
 object AmmOps {
 
-  implicit def t2tCfmmOps(implicit e: ErgoAddressEncoder): AmmOps[T2tCfmm] = new T2tCfmmOps()
+  implicit def t2tCfmmOps(implicit ts: ContractTemplates[T2tCfmm], e: ErgoAddressEncoder): AmmOps[T2tCfmm] =
+    new T2tCfmmOps()
 }
