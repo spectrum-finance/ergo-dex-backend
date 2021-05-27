@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.http
+package org.ergoplatform.common.http
 
 import cats.tagless.InvariantK
 import cats.~>

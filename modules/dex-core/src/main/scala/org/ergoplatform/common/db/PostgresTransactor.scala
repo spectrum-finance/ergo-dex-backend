@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.db
+package org.ergoplatform.common.db
 
 import cats.effect.{Async, Blocker, ContextShift, Resource, Sync}
 import doobie.hikari.HikariTransactor

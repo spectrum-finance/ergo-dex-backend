@@ -5,7 +5,7 @@ import derevo.derive
 import mouse.any._
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.streaming.CfmmConsumer
-import org.ergoplatform.dex.streaming.CommitPolicy
+import org.ergoplatform.common.streaming.CommitPolicy
 import tofu.Handle
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}

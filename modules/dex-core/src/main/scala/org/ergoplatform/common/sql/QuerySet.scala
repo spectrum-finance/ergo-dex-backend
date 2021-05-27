@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.sql
+package org.ergoplatform.common.sql
 
 import doobie.Update
 import doobie.util.Write

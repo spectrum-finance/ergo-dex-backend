@@ -1,14 +1,15 @@
-package org.ergoplatform.dex.streaming
+package org.ergoplatform.common.streaming
 
 import cats.effect.{Concurrent, ConcurrentEffect, ContextShift, Resource}
 import cats.tagless.InvariantK
 import cats.tagless.syntax.invariantK._
-import cats.{~>, FlatMap}
+import cats.{~>, FlatMap, Monad}
 import fs2._
 import fs2.kafka._
-import org.ergoplatform.dex.configs.ProducerConfig
+import org.ergoplatform.dex.configs.{KafkaConfig, ProducerConfig}
 import tofu.higherKind.Embed
 import tofu.lift.IsoK
+import tofu.syntax.context._
 import tofu.syntax.embed._
 import tofu.syntax.funk._
 import tofu.syntax.monadic._
@@ -43,33 +44,33 @@ object Producer {
   def make[
     I[_]: ConcurrentEffect: ContextShift,
     F[_]: FlatMap,
-    G[_],
+    G[_]: Monad: KafkaConfig.Has,
     K: RecordSerializer[I, *],
     V: RecordSerializer[I, *]
-  ](topicId: TopicId, conf: ProducerConfig)(implicit
+  ](conf: ProducerConfig)(implicit
     isoKFG: IsoK[F, Stream[G, *]],
     isoKGI: IsoK[G, I]
-  ): Resource[I, Producer[K, V, F]] = {
-    val producerSettings =
-      ProducerSettings[I, K, V]
-        .withBootstrapServers(conf.bootstrapServers.mkString(","))
-    KafkaProducer.resource.using(producerSettings).map { prod =>
-      new Live(topicId, conf, prod)
-        .imapK(funK[Stream[I, *], Stream[G, *]](_.translate(isoKGI.fromF)) andThen isoKFG.fromF)(
-          isoKFG.tof andThen funK[Stream[G, *], Stream[I, *]](_.translate(isoKGI.tof))
-        )
+  ): Resource[I, Producer[K, V, F]] =
+    Resource.eval(context).mapK(isoKGI.tof).flatMap { kafka =>
+      val producerSettings =
+        ProducerSettings[I, K, V]
+          .withBootstrapServers(kafka.bootstrapServers.mkString(","))
+      KafkaProducer.resource.using(producerSettings).map { prod =>
+        new Live(conf, prod)
+          .imapK(funK[Stream[I, *], Stream[G, *]](_.translate(isoKGI.fromF)) andThen isoKFG.fromF)(
+            isoKFG.tof andThen funK[Stream[G, *], Stream[I, *]](_.translate(isoKGI.tof))
+          )
+      }
     }
-  }
 
   final private class Live[F[_]: Concurrent, K, V](
-    topicId: TopicId,
     conf: ProducerConfig,
     kafkaProducer: KafkaProducer[F, K, V]
   ) extends Producer[K, V, Stream[F, *]] {
 
     def produce: Pipe[F, Record[K, V], Unit] =
       _.map { case Record(k, v) =>
-        ProducerRecords.one(ProducerRecord(topicId.value, k, v))
+        ProducerRecords.one(ProducerRecord(conf.topicId.value, k, v))
       }.evalMap(kafkaProducer.produce).mapAsync(conf.parallelism)(identity).drain
   }
 }

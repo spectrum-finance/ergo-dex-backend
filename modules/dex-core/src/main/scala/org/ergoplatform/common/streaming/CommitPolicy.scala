@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.streaming
+package org.ergoplatform.common.streaming
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
 import tofu.Context

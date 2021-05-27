@@ -3,8 +3,8 @@ package org.ergoplatform.dex.matcher
 import cats.effect.{ExitCode, Resource}
 import fs2.Chunk
 import monix.eval.Task
-import org.ergoplatform.dex.EnvApp
-import org.ergoplatform.dex.db.{doobieLogging, PostgresTransactor}
+import org.ergoplatform.common.EnvApp
+import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.domain.orderbook._
@@ -13,7 +13,7 @@ import org.ergoplatform.dex.matcher.processes.Matcher
 import org.ergoplatform.dex.matcher.repositories.OrdersRepo
 import org.ergoplatform.dex.matcher.services.{LimitOrderBook, OrderBook}
 import org.ergoplatform.dex.matcher.streaming.StreamingBundle
-import org.ergoplatform.dex.streaming.{Consumer, MakeKafkaConsumer, Producer}
+import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.doobie.transactor.Txr
 import tofu.doobie.instances.implicits._
@@ -42,7 +42,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(orderBook: OrderBook[RunF])    <- Resource.eval(LimitOrderBook.make[InitF, RunF, xa.DB])
       implicit0(mc: MakeKafkaConsumer[RunF, OrderId, AnyOrder]) = MakeKafkaConsumer.make[InitF, RunF, OrderId, AnyOrder]
       consumer                                                  = Consumer.make[StreamF, RunF, OrderId, AnyOrder]
-      producer <- Producer.make[InitF, StreamF, RunF, TradeId, AnyTrade](???, configs.producer)
+      producer <- Producer.make[InitF, StreamF, RunF, TradeId, AnyTrade](configs.producer)
       implicit0(bundle: StreamingBundle[StreamF, RunF]) = StreamingBundle(consumer, producer)
       matcher <- Resource.eval(Matcher.make[InitF, StreamF, RunF, Chunk])
     } yield matcher -> configs

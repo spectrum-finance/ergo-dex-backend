@@ -1,12 +1,13 @@
-package org.ergoplatform.dex.streaming
+package org.ergoplatform.common.streaming
 
 import cats.effect.{Concurrent, ConcurrentEffect, ContextShift, Timer}
 import cats.{FlatMap, Functor}
 import fs2.Stream
 import fs2.kafka._
-import org.ergoplatform.dex.configs.ConsumerConfig
+import org.ergoplatform.dex.configs.{ConsumerConfig, KafkaConfig}
 import tofu.higherKind.Embed
 import tofu.lift.Unlift
+import tofu.syntax.context._
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.unlift._
@@ -36,21 +37,23 @@ object MakeKafkaConsumer {
 
   def make[
     I[_]: ConcurrentEffect,
-    F[_]: Concurrent: Timer: ContextShift,
+    F[_]: Concurrent: Timer: ContextShift: KafkaConfig.Has,
     K: RecordDeserializer[F, *],
     V: RecordDeserializer[F, *]
   ](implicit U: Unlift[I, F]): MakeKafkaConsumer[F, K, V] =
     embed.embed(
-      U.concurrentEffect.map { implicit ce =>
-        new MakeKafkaConsumer[F, K, V] {
-          def apply(config: ConsumerConfig): Stream[F, KafkaConsumer[F, K, V]] = {
-            val settings =
-              ConsumerSettings[F, K, V]
-                .withAutoOffsetReset(AutoOffsetReset.Earliest)
-                .withBootstrapServers(config.bootstrapServers.mkString(","))
-                .withGroupId(config.groupId.value)
-                .withClientId(config.clientId.value)
-            KafkaConsumer.stream(settings)
+      context >>= { kafka =>
+        U.concurrentEffect.map { implicit ce =>
+          new MakeKafkaConsumer[F, K, V] {
+            def apply(config: ConsumerConfig): Stream[F, KafkaConsumer[F, K, V]] = {
+              val settings =
+                ConsumerSettings[F, K, V]
+                  .withAutoOffsetReset(AutoOffsetReset.Earliest)
+                  .withBootstrapServers(kafka.bootstrapServers.mkString(","))
+                  .withGroupId(config.groupId.value)
+                  .withClientId(config.clientId.value)
+              KafkaConsumer.stream(settings)
+            }
           }
         }
       }

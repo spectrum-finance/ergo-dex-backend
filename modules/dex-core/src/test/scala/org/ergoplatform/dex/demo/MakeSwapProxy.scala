@@ -15,6 +15,8 @@ import sigmastate.eval._
 import sigmastate.lang.SigmaCompiler
 import sigmastate.lang.Terms.ValueOps
 
+import java.util
+
 object MakeSwapProxy extends App {
 
   val secret     = ""
@@ -55,8 +57,10 @@ object MakeSwapProxy extends App {
   val reservesTUsd0 = 100000000000L
 
   def inputAmount(tokenId: TokenId, output: Long) =
-    if (tokenId == tergId) (reservesTUsd0 * output * 1000 / ((reservesTErg0 - output) * 995)) + 1
-    else (reservesTErg0 * output * 1000 / ((reservesTUsd0 - output) * 995)) + 1
+    if (util.Arrays.equals(tokenId, tergId))
+      (reservesTUsd0 * output * 1000 / ((reservesTErg0 - output) * 995)) + 1
+    else
+      (reservesTErg0 * output * 1000 / ((reservesTUsd0 - output) * 995)) + 1
 
   // Order params
   val tergOut   = 20000L

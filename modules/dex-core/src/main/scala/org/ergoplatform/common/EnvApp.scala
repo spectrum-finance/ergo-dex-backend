@@ -1,4 +1,4 @@
-package org.ergoplatform.dex
+package org.ergoplatform.common
 
 import fs2.Stream
 import monix.eval.{Task, TaskApp}

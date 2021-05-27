@@ -6,7 +6,7 @@ import mouse.any._
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 import org.ergoplatform.dex.domain.orderbook.OrderId
 import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily
-import org.ergoplatform.dex.streaming.{Producer, Record}
+import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.dex.tracker.domain.errors.InvalidOrder
 import org.ergoplatform.dex.tracker.parsers.orders.OrdersOps
 import tofu.logging.{Logging, Logs}

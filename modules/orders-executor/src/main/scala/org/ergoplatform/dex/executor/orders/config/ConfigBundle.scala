@@ -2,11 +2,11 @@ package org.ergoplatform.dex.executor.orders.config
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
-import org.ergoplatform.dex.configs.{ConfigBundleCompanion, ConsumerConfig, NetworkConfig, ProducerConfig, ProtocolConfig}
-import org.ergoplatform.dex.streaming.CommitPolicy
+import org.ergoplatform.dex.configs._
+import org.ergoplatform.common.streaming.CommitPolicy
 import tofu.Context
 import tofu.logging.Loggable
-import tofu.optics.macros.{ClassyOptics, promote}
+import tofu.optics.macros.{promote, ClassyOptics}
 
 @derive(pureconfigReader)
 @ClassyOptics
@@ -15,7 +15,8 @@ final case class ConfigBundle(
   @promote exchange: ExchangeConfig,
   @promote protocol: ProtocolConfig,
   @promote consumer: ConsumerConfig,
-  @promote producer: ProducerConfig,
+  producer: ProducerConfig,
+  @promote kafka: KafkaConfig,
   @promote network: NetworkConfig
 )
 

@@ -5,8 +5,8 @@ import derevo.derive
 import org.ergoplatform.dex.executor.orders.domain.errors.ExecutionFailure
 import org.ergoplatform.dex.executor.orders.services.ExecutionService
 import org.ergoplatform.dex.executor.orders.streaming.StreamingBundle
-import org.ergoplatform.dex.streaming.syntax._
-import org.ergoplatform.dex.streaming.{CommitPolicy, Record}
+import org.ergoplatform.common.streaming.syntax._
+import org.ergoplatform.common.streaming.{CommitPolicy, Record}
 import mouse.any._
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 import org.ergoplatform.dex.domain.orderbook.OrderId

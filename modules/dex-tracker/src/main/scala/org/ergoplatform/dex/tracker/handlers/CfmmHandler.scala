@@ -5,7 +5,7 @@ import cats.{Functor, FunctorFilter, Monad}
 import mouse.any._
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AmmContractType.CfmmFamily
-import org.ergoplatform.dex.streaming.{Producer, Record}
+import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.dex.tracker.parsers.amm.AmmOps
 import org.ergoplatform.dex.tracker.validation.amm.CfmmRules
 import tofu.logging.{Logging, Logs}

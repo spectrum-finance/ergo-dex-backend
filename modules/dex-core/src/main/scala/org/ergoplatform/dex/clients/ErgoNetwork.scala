@@ -9,14 +9,14 @@ import io.circe.Json
 import io.circe.jawn.CirceSupportParser
 import jawnfs2._
 import org.ergoplatform.ErgoLikeTransaction
-import org.ergoplatform.alg.ConstrainedEmbed
+import org.ergoplatform.common.ConstrainedEmbed
 import org.ergoplatform.dex.clients.errors.ResponseError
 import org.ergoplatform.dex.clients.explorer.models._
 import org.ergoplatform.dex.clients.explorer.paths._
 import org.ergoplatform.dex.configs.NetworkConfig
 import org.ergoplatform.dex.domain.network.{NetworkParams, Output, Transaction}
 import org.ergoplatform.dex.protocol.codecs._
-import org.ergoplatform.dex.{protocol, HexString, TokenId, TxId}
+import org.ergoplatform.dex.{HexString, TokenId, TxId, protocol}
 import org.typelevel.jawn.Facade
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3._

@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.db
+package org.ergoplatform.common.db
 
 import cats.Functor
 import cats.syntax.functor._

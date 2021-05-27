@@ -1,4 +1,4 @@
-package org.ergoplatform.dex
+package org.ergoplatform.common
 
 import io.estatico.newtype.macros.newtype
 import pureconfig.ConfigReader

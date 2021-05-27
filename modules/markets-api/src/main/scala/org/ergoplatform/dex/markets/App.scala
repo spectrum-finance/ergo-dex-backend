@@ -2,9 +2,9 @@ package org.ergoplatform.dex.markets
 
 import cats.effect.{Blocker, ExitCode, Resource}
 import cats.tagless.syntax.functorK._
-import org.ergoplatform.dex.EnvApp
+import org.ergoplatform.common.EnvApp
 import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
-import org.ergoplatform.dex.db.{PostgresTransactor, doobieLogging}
+import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.dex.markets.configs.ConfigBundle
 import org.ergoplatform.dex.markets.processes.MarketsIndexer
 import org.ergoplatform.dex.markets.repositories.FillsRepo

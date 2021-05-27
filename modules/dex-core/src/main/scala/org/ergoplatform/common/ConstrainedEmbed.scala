@@ -1,4 +1,4 @@
-package org.ergoplatform.alg
+package org.ergoplatform.common
 
 import cats.FlatMap
 

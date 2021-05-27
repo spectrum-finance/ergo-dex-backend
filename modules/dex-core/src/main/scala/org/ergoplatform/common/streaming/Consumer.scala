@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.streaming
+package org.ergoplatform.common.streaming
 
 import cats.tagless.FunctorK
 import cats.{~>, FlatMap, Functor, Monad}

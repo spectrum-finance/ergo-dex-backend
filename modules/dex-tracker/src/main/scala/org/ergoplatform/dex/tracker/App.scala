@@ -5,14 +5,14 @@ import fs2.kafka.serde._
 import monix.eval.Task
 import mouse.any._
 import org.ergoplatform.ErgoAddressEncoder
-import org.ergoplatform.dex.EnvApp
+import org.ergoplatform.common.EnvApp
 import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
 import org.ergoplatform.dex.domain.amm.{CfmmOperation, OperationId}
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 import org.ergoplatform.dex.domain.orderbook.OrderId
 import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
 import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily.LimitOrders
-import org.ergoplatform.dex.streaming.Producer
+import org.ergoplatform.common.streaming.Producer
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.handlers.{CfmmHandler, OrdersHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
@@ -45,9 +45,9 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = IsoK.byFunK(wr.runContextK(configs))(wr.liftF)
       implicit0(producer0: Producer[OrderId, AnyOrder, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.topics.limitOrders, configs.producer)
+        Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.ordersProducer)
       implicit0(producer1: Producer[OperationId, CfmmOperation, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OperationId, CfmmOperation](configs.topics.cfmm, configs.producer)
+        Producer.make[InitF, StreamF, RunF, OperationId, CfmmOperation](configs.cfmmProducer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: StreamingErgoNetworkClient[StreamF, RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
       implicit0(cfmmRules: CfmmRules[RunF])                        = CfmmRules.make[RunF]

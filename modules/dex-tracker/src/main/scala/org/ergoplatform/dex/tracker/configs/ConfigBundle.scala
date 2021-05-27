@@ -2,8 +2,8 @@ package org.ergoplatform.dex.tracker.configs
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
-import org.ergoplatform.dex.configs.{ConfigBundleCompanion, NetworkConfig, ProducerConfig, ProtocolConfig}
-import org.ergoplatform.dex.streaming.CommitPolicy
+import org.ergoplatform.common.streaming.CommitPolicy
+import org.ergoplatform.dex.configs._
 import tofu.Context
 import tofu.logging.Loggable
 import tofu.optics.macros.{promote, ClassyOptics}
@@ -12,8 +12,9 @@ import tofu.optics.macros.{promote, ClassyOptics}
 @ClassyOptics
 final case class ConfigBundle(
   @promote commitPolicy: CommitPolicy,
-  @promote producer: ProducerConfig,
-  topics: Topics,
+  ordersProducer: ProducerConfig,
+  cfmmProducer: ProducerConfig,
+  @promote kafka: KafkaConfig,
   @promote protocol: ProtocolConfig,
   @promote network: NetworkConfig,
   @promote tracker: TrackerConfig,
