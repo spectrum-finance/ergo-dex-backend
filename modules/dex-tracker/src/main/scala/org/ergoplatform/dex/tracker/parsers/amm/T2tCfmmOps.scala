@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.parsers.amm
 
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.dex.network.Output
+import org.ergoplatform.network.Output
 import org.ergoplatform.dex.domain.syntax.ergo._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm

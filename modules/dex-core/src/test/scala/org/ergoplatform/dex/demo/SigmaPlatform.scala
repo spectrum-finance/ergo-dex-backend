@@ -5,7 +5,7 @@ import derevo.derive
 import io.circe.Encoder
 import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.ErgoBox.TokenId
-import org.ergoplatform.dex.network.{ErgoBox, Output}
+import org.ergoplatform.network.{ErgoBox, Output}
 import org.ergoplatform.{ErgoAddressEncoder, ErgoLikeTransaction, P2PKAddress}
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16
@@ -17,11 +17,14 @@ import sttp.client3._
 import sttp.client3.circe._
 import sttp.client3.okhttp.OkHttpSyncBackend
 
+@derive(decoder)
+case class EpochInfo(height: Int)
+
 trait SigmaPlatform {
 
-  implicit def IR: IRContext         = new CompiletimeIRContext()
-  implicit def e: ErgoAddressEncoder = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
-  def sigma: SigmaCompiler           = SigmaCompiler(ErgoAddressEncoder.MainnetNetworkPrefix)
+  implicit def IR: IRContext                      = new CompiletimeIRContext()
+  implicit def addressEncoder: ErgoAddressEncoder = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
+  def sigma: SigmaCompiler                        = SigmaCompiler(ErgoAddressEncoder.MainnetNetworkPrefix)
 
   def secretHex: String
 
@@ -33,9 +36,6 @@ trait SigmaPlatform {
     (Digest32 @@ Base16.decode(id).get, input.assets.find(_.tokenId.unwrapped == id).map(_.amount).getOrElse(0L))
 
   private lazy val backend = OkHttpSyncBackend()
-
-  @derive(decoder)
-  case class EpochInfo(height: Int)
 
   def currentHeight(): Int =
     basicRequest

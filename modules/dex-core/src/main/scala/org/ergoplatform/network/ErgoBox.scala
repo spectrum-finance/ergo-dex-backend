@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.network
+package org.ergoplatform.network
 
 import org.ergoplatform.dex.{BoxId, SErgoTree}
 

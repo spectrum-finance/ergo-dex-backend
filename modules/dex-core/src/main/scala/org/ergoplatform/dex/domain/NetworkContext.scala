@@ -2,7 +2,7 @@ package org.ergoplatform.dex.domain
 
 import cats.FlatMap
 import org.ergoplatform.dex.clients.ErgoNetwork
-import org.ergoplatform.dex.network.NetworkParams
+import org.ergoplatform.network.NetworkParams
 import tofu.syntax.monadic._
 
 final case class NetworkContext(currentHeight: Int, params: NetworkParams)

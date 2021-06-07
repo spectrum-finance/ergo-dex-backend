@@ -5,8 +5,8 @@ import cats.data.OptionT
 import org.ergoplatform.dex.clients.ErgoNetwork
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.{CfmmPool, PoolId}
-import org.ergoplatform.dex.network.RegisterId
-import org.ergoplatform.dex.network.SConstant.LongConstant
+import org.ergoplatform.network.RegisterId
+import org.ergoplatform.network.SConstant.LongConstant
 import org.ergoplatform.dex.protocol.amm.constants
 import tofu.syntax.monadic._
 

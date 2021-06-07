@@ -2,7 +2,7 @@ package org.ergoplatform.dex.domain.amm
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import org.ergoplatform.dex.network.Output
+import org.ergoplatform.network.Output
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
