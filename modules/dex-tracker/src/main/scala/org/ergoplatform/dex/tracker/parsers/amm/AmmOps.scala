@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.parsers.amm
 
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.dex.domain.network.Output
+import org.ergoplatform.dex.network.Output
 import org.ergoplatform.dex.protocol.amm.AmmContractType.{CfmmFamily, T2tCfmm}
 import org.ergoplatform.dex.protocol.amm.ContractTemplates
 

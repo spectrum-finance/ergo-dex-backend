@@ -2,20 +2,78 @@ package org.ergoplatform.dex.demo
 
 object contracts {
 
-  def swapContract: String =
+  val deposit: String =
     """
       |{
-      |    val Pk = pk
+      |    val selfX = SELF.tokens(0)
+      |    val selfY = SELF.tokens(1)
       |
-      |    val PoolScriptHash = poolScriptHash
+      |    val poolIn = INPUTS(0)
       |
-      |    val DexFeePerToken = dexFeePerToken
-      |    val MinQuoteAmount = minQuoteAmount
-      |    val QuoteId        = quoteId
+      |    val validPoolIn = poolIn.tokens(0) == (PoolNFT, 1L)
       |
-      |    val MinerFee = minerFee
+      |    val poolLP    = poolIn.tokens(1)
+      |    val reservesX = poolIn.tokens(2)
+      |    val reservesY = poolIn.tokens(2)
       |
-      |    val FeeNum   = poolFeeNum
+      |    val supplyLP = InitiallyLockedLP - poolLP._2
+      |
+      |    val minimalReward = min(
+      |        selfX._2.toBigInt * supplyLP / reservesX._2,
+      |        selfY._2.toBigInt * supplyLP / reservesY._2
+      |    )
+      |
+      |    val rewardOut = OUTPUTS(1)
+      |    val rewardLP  = rewardOut.tokens(0)
+      |
+      |    val validRewardOut =
+      |        rewardOut.propositionBytes == Pk.propBytes &&
+      |        rewardOut.value >= SELF.value - DexFee &&
+      |        rewardLP._1 == poolLP._1 &&
+      |        rewardLP._2 >= minimalReward
+      |
+      |    sigmaProp(Pk || (validPoolIn && validRewardOut))
+      |}
+      |""".stripMargin
+
+  val redeem: String =
+    """
+      |{
+      |    val selfLP = SELF.tokens(0)
+      |
+      |    val poolIn = INPUTS(0)
+      |
+      |    val validPoolIn = poolIn.tokens(0) == (PoolNFT, 1L)
+      |
+      |    val poolLP    = poolIn.tokens(1)
+      |    val reservesX = poolIn.tokens(2)
+      |    val reservesY = poolIn.tokens(2)
+      |
+      |    val supplyLP = InitiallyLockedLP - poolLP._2
+      |
+      |    val minReturnX = selfLP._2.toBigInt * reservesX._2 / supplyLP
+      |    val minReturnY = selfLP._2.toBigInt * reservesY._2 / supplyLP
+      |
+      |    val returnOut = OUTPUTS(1)
+      |
+      |    val returnX = returnOut.tokens(0)
+      |    val returnY = returnOut.tokens(1)
+      |
+      |    val validReturnOut =
+      |        returnOut.propositionBytes == Pk.propBytes &&
+      |        returnOut.value >= SELF.value - DexFee &&
+      |        returnX._1 == reservesX._1 &&
+      |        returnY._1 == reservesY._1 &&
+      |        returnX._2 >= minReturnX &&
+      |        returnY._2 >= minReturnY
+      |
+      |    sigmaProp(Pk || (validPoolIn && validReturnOut))
+      |}
+      |""".stripMargin
+
+  val swap: String =
+    """
+      |{
       |    val FeeDenom = 1000
       |
       |    val base       = SELF.tokens(0)
@@ -33,14 +91,15 @@ object contracts {
       |
       |    val validTrade =
       |        OUTPUTS.exists { (box: Box) =>
-      |            val quoteAsset  = box.tokens(0)
-      |            val quoteAmount = quoteAsset._2
-      |            val fairDexFee  = box.value >= SELF.value - MinerFee - quoteAmount * DexFeePerToken
-      |            val fairPrice   =
+      |            val quoteAsset   = box.tokens(0)
+      |            val quoteAmount  = quoteAsset._2
+      |            val fairDexFee   = box.value >= SELF.value - quoteAmount * DexFeePerToken
+      |            val relaxedInput = baseAmount - 1
+      |            val fairPrice    =
       |                if (poolAssetX._1 == QuoteId)
-      |                    poolAssetX._2.toBigInt * baseAmount * FeeNum >= quoteAmount * (poolAssetY._2.toBigInt * FeeDenom + baseAmount * FeeNum)
+      |                    poolAssetX._2.toBigInt * relaxedInput * FeeNum <= quoteAmount * (poolAssetY._2.toBigInt * FeeDenom + relaxedInput * FeeNum)
       |                else
-      |                    poolAssetY._2.toBigInt * baseAmount * FeeNum >= quoteAmount * (poolAssetX._2.toBigInt * FeeDenom + baseAmount * FeeNum)
+      |                    poolAssetY._2.toBigInt * relaxedInput * FeeNum <= quoteAmount * (poolAssetX._2.toBigInt * FeeDenom + relaxedInput * FeeNum)
       |
       |            box.propositionBytes == Pk.propBytes &&
       |            quoteAsset._1 == QuoteId &&
@@ -53,70 +112,11 @@ object contracts {
       |}
       |""".stripMargin
 
-  def bootContract: String =
+  val pool: String =
     """
       |{
-      |    val InitiallyLockedLP    = 1000000000000000000L
-      |
-      |    val poolScriptHash  = SELF.R5[Coll[Byte]].get
-      |    val desiredSharesLP = SELF.R6[Long].get
-      |    val poolFeeConfig   = SELF.R7[Long].get
-      |    val minerFeeNErgs   = SELF.R8[Long].get
-      |    val initiatorProp   = SELF.R9[Coll[Byte]].get
-      |
-      |    val selfLP = SELF.tokens(0)
-      |    val selfX  = SELF.tokens(1)
-      |    val selfY  = SELF.tokens(2)
-      |
-      |    val tokenIdLP = selfLP._1
-      |
-      |    // self checks
-      |    val validSelfLP            = selfLP._2 == InitiallyLockedLP // Correct amount of LP tokens issued
-      |    val validSelfPoolFeeConfig = poolFeeConfig <= 1000L && poolFeeConfig > 750L // Correct pool fee config
-      |
-      |    val pool           = OUTPUTS(0)
-      |    val sharesRewardLP = OUTPUTS(1)
-      |
-      |    val maybePoolLP  = pool.tokens(1)
-      |    val poolAmountLP =
-      |        if (maybePoolLP._1 == tokenIdLP) maybePoolLP._2
-      |        else 0L
-      |
-      |    val validPoolContract  = blake2b256(pool.propositionBytes) == poolScriptHash
-      |    val validPoolErgAmount = pool.value == SELF.value - sharesRewardLP.value - minerFeeNErgs
-      |    val validPoolNFT       = pool.tokens(0) == (SELF.id, 1L)
-      |    val validPoolConfig    = pool.R4[Long].get == poolFeeConfig
-      |
-      |    val validInitialDepositing = {
-      |        val tokenX     = pool.tokens(2)
-      |        val tokenY     = pool.tokens(3)
-      |        val depositedX = tokenX._2
-      |        val depositedY = tokenY._2
-      |
-      |        val validTokens  = tokenX == selfX && tokenY == selfY
-      |        val validDeposit = depositedX.toBigInt * depositedY >= desiredSharesLP.toBigInt * desiredSharesLP // S >= sqrt(X_deposited * Y_deposited) Deposits satisfy desired share
-      |        val validShares  = poolAmountLP >= (InitiallyLockedLP - desiredSharesLP)                          // valid amount of liquidity shares taken from reserves
-      |
-      |        validTokens && validDeposit && validShares
-      |    }
-      |
-      |    val validPool = validPoolContract && validPoolErgAmount && validPoolNFT && validInitialDepositing
-      |
-      |    val validSharesRewardLP =
-      |        sharesRewardLP.propositionBytes == initiatorProp &&
-      |        sharesRewardLP.tokens(0) == (tokenIdLP, desiredSharesLP)
-      |
-      |    sigmaProp(validSelfLP && validSelfPoolFeeConfig && validPool && validSharesRewardLP)
-      |}
-      |""".stripMargin
-
-  def poolContract: String =
-    """
-      |{
-      |    val InitiallyLockedLP = 1000000000000000000L
-      |
-      |    val feeNum0  = SELF.R4[Long].get
-      |    val FeeDenom = 1000
+      |    val InitiallyLockedLP = 0x7fffffffffffffffL
+      |    val FeeDenom          = 1000
       |
       |    val ergs0       = SELF.value
       |    val poolNFT0    = SELF.tokens(0)
@@ -126,6 +126,7 @@ object contracts {
       |
       |    val successor = OUTPUTS(0)
       |
+      |    val feeNum0 = SELF.R4[Long].get
       |    val feeNum1 = successor.R4[Long].get
       |
       |    val ergs1       = successor.value
@@ -158,13 +159,13 @@ object contracts {
       |            deltaReservesX.toBigInt * supplyLP0 / reservesX0,
       |            deltaReservesY.toBigInt * supplyLP0 / reservesY0
       |        )
-      |        -deltaSupplyLP <= sharesUnlocked
+      |        deltaSupplyLP <= sharesUnlocked
       |    }
       |
       |    val validRedemption = {
-      |        val shareLP = deltaSupplyLP.toBigInt / supplyLP0
-      |        // note: shareLP and deltaReservesX, deltaReservesY are negative
-      |        deltaReservesX >= shareLP * reservesX0 && deltaReservesY >= shareLP * reservesY0
+      |        val _deltaSupplyLP = deltaSupplyLP.toBigInt
+      |        // note: _deltaSupplyLP and deltaReservesX, deltaReservesY are negative
+      |        deltaReservesX.toBigInt * supplyLP0 >= _deltaSupplyLP * reservesX0 && deltaReservesY.toBigInt * supplyLP0 >= _deltaSupplyLP * reservesY0
       |    }
       |
       |    val validSwap =

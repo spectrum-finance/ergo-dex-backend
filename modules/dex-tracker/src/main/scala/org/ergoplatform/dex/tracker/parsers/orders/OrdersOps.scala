@@ -7,7 +7,7 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.dex.TokenId
 import org.ergoplatform.dex.configs.ProtocolConfig
-import org.ergoplatform.dex.domain.network.Output
+import org.ergoplatform.dex.network.Output
 import org.ergoplatform.dex.domain.orderbook.Order._
 import org.ergoplatform.dex.domain.orderbook.OrderMeta
 import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily

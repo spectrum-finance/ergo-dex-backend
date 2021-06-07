@@ -50,7 +50,7 @@ object MakeSwapProxy extends App {
   // Pool input
   val poolIn = new UnsignedInput(ADKey @@ Base16.decode(poolInId).get)
 
-  val poolProp = ErgoTree.fromProposition(sigma.compile(Map.empty, contracts.poolContract).asSigmaProp)
+  val poolProp = ErgoTree.fromProposition(sigma.compile(Map.empty, contracts.pool).asSigmaProp)
   val poolSH   = Blake2b256.hash(poolProp.bytes)
 
   val reservesTErg0 = 1000000000L
@@ -85,7 +85,7 @@ object MakeSwapProxy extends App {
     "quoteId"        -> tergId.!@@(Digest32),
     "poolFeeNum"     -> 995L
   )
-  val swapProp = ErgoTree.fromProposition(sigma.compile(swapEnv, contracts.swapContract).asSigmaProp)
+  val swapProp = ErgoTree.fromProposition(sigma.compile(swapEnv, contracts.swap).asSigmaProp)
 
   val swap = new ErgoBoxCandidate(
     SafeMinAmountNErg + dexFeeNErg + minerFeeNErg,

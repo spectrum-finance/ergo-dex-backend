@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.domain.network
+package org.ergoplatform.dex.network
 
 import derevo.circe.decoder
 import derevo.derive

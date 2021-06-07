@@ -5,8 +5,8 @@ import cats.data.OptionT
 import org.ergoplatform.dex.clients.ErgoNetwork
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.{CfmmPool, PoolId}
-import org.ergoplatform.dex.domain.network.RegisterId
-import org.ergoplatform.dex.domain.network.SConstant.LongConstant
+import org.ergoplatform.dex.network.RegisterId
+import org.ergoplatform.dex.network.SConstant.LongConstant
 import org.ergoplatform.dex.protocol.amm.constants
 import tofu.syntax.monadic._
 
@@ -28,7 +28,7 @@ object CfmmPools {
         lp      <- OptionT.fromOption(poolBox.assets.lift(constants.cfmm.t2t.IndexLP))
         x       <- OptionT.fromOption(poolBox.assets.lift(constants.cfmm.t2t.IndexX))
         y       <- OptionT.fromOption(poolBox.assets.lift(constants.cfmm.t2t.IndexY))
-        fee     <- OptionT.fromOption(poolBox.registers.get(RegisterId.R4).collect { case LongConstant(x) => x })
+        fee     <- OptionT.fromOption(poolBox.additionalRegisters.get(RegisterId.R4).collect { case LongConstant(x) => x })
       } yield CfmmPool(
         id,
         AssetAmount.fromBoxAsset(lp),

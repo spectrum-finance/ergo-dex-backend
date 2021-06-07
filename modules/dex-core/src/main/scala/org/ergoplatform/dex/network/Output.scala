@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.domain.network
+package org.ergoplatform.dex.network
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
@@ -17,7 +17,7 @@ final case class Output(
   ergoTree: SErgoTree,
   address: Address,
   assets: List[BoxAsset],
-  registers: Map[RegisterId, SConstant]
+  additionalRegisters: Map[RegisterId, SConstant]
 ) extends ErgoBox
 
 object Output {

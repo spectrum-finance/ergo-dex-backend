@@ -50,7 +50,7 @@ object ExecuteSwap extends App {
   // Pool input
   val poolIn = new Input(ADKey @@ Base16.decode(poolInId).get, ProverResult.empty)
 
-  val poolProp = ErgoTree.fromProposition(sigma.compile(Map.empty, contracts.poolContract).asSigmaProp)
+  val poolProp = ErgoTree.fromProposition(sigma.compile(Map.empty, contracts.pool).asSigmaProp)
   val poolSH   = Blake2b256.hash(poolProp.bytes)
 
   val reservesTErg0 = 1000000000L
