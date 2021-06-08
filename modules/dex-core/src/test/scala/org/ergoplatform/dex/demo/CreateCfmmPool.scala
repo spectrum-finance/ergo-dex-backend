@@ -16,8 +16,8 @@ import sigmastate.lang.Terms.ValueOps
 
 object CreateCfmmPool extends App with SigmaPlatform {
 
-  val secretHex = "c0d3331f22120fb24a1a71c66f9e3b5de68d1c20e634b862c394456199040050"
-  val inputId   = ""
+  val secretHex = ""
+  val inputId   = "7f14228a5fd5b5c5d74bfbced3491916e2dc305106dd043f78b65b4cced9c2b9"
 
   val input = getInput(inputId).get
 
