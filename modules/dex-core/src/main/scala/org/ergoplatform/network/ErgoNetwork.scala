@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.clients
+package org.ergoplatform.network
 
 import cats.FlatMap
 import cats.syntax.either._
@@ -10,13 +10,13 @@ import io.circe.jawn.CirceSupportParser
 import jawnfs2._
 import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.common.ConstrainedEmbed
-import org.ergoplatform.dex.clients.errors.ResponseError
-import org.ergoplatform.dex.clients.explorer.models._
-import org.ergoplatform.dex.clients.explorer.paths._
 import org.ergoplatform.dex.configs.NetworkConfig
-import org.ergoplatform.network.{NetworkParams, Output, Transaction}
 import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.dex.{HexString, TokenId, TxId, protocol}
+import org.ergoplatform.network.errors.ResponseError
+import org.ergoplatform.network.explorer.models._
+import org.ergoplatform.network.explorer.paths._
+import org.ergoplatform.network.models.{NetworkParams, Output, Transaction}
 import org.typelevel.jawn.Facade
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3._

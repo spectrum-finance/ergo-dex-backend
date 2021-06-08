@@ -4,7 +4,6 @@ import cats.effect.{Blocker, ExitCode, Resource}
 import fs2.Chunk
 import monix.eval.Task
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.dex.clients.{ErgoNetwork, StreamingErgoNetworkClient}
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.domain.orderbook.{OrderId, TradeId}
@@ -14,6 +13,7 @@ import org.ergoplatform.dex.executor.orders.processes.OrdersExecutor
 import org.ergoplatform.dex.executor.orders.services.ExecutionService
 import org.ergoplatform.dex.executor.orders.streaming.StreamingBundle
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
+import org.ergoplatform.network.{ErgoNetwork, StreamingErgoNetworkClient}
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend

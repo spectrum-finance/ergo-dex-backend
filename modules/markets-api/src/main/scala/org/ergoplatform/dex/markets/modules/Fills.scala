@@ -1,10 +1,10 @@
 package org.ergoplatform.dex.markets.modules
 
 import cats.Applicative
-import org.ergoplatform.network.Transaction
 import org.ergoplatform.dex.markets.models.{Fill, Side}
 import org.ergoplatform.dex.protocol.orderbook.{OrderContractFamily, OrderContracts, OrderParams}
 import org.ergoplatform.dex.protocol.constants
+import org.ergoplatform.network.models.Transaction
 import tofu.syntax.monadic._
 
 trait Fills[F[_], CT <: OrderContractFamily] {

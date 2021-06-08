@@ -5,13 +5,13 @@ import fs2.Chunk
 import fs2.kafka.serde._
 import monix.eval.Task
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.dex.clients.{ErgoNetwork, StreamingErgoNetworkClient}
 import org.ergoplatform.dex.domain.amm.{CfmmOperation, OperationId}
 import org.ergoplatform.dex.executor.amm.config.ConfigBundle
 import org.ergoplatform.dex.executor.amm.context.AppContext
 import org.ergoplatform.dex.executor.amm.processes.OrdersExecutor
 import streaming.CfmmConsumer
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer}
+import org.ergoplatform.network.{ErgoNetwork, StreamingErgoNetworkClient}
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend

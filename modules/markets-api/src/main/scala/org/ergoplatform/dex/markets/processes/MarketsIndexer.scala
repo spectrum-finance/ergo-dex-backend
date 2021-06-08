@@ -5,11 +5,11 @@ import cats.syntax.list._
 import cats.syntax.traverse._
 import cats.{Defer, Functor, Monad, MonoidK}
 import derevo.derive
-import org.ergoplatform.dex.clients.ErgoNetwork
 import org.ergoplatform.dex.markets.configs.IndexerConfig
 import org.ergoplatform.dex.markets.modules.Fills
 import org.ergoplatform.dex.markets.repositories.FillsRepo
-import org.ergoplatform.dex.protocol.orderbook.{OrderContractFamily, ContractTemplates}
+import org.ergoplatform.dex.protocol.orderbook.{ContractTemplates, OrderContractFamily}
+import org.ergoplatform.network.ErgoNetwork
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}

@@ -2,9 +2,9 @@ package org.ergoplatform.dex.tracker.parsers.amm
 
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.network.Output
 import org.ergoplatform.dex.protocol.amm.AmmContractType.{CfmmFamily, T2tCfmm}
 import org.ergoplatform.dex.protocol.amm.ContractTemplates
+import org.ergoplatform.network.models.Output
 
 trait AmmOps[CT <: CfmmFamily] {
 

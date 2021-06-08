@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.clients
+package org.ergoplatform.network
 
 object errors {
 

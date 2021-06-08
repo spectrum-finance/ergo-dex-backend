@@ -2,10 +2,10 @@ package org.ergoplatform.dex.protocol.orderbook
 
 import mouse.any._
 import org.ergoplatform.contracts.DexLimitOrderContracts._
-import org.ergoplatform.network.ErgoBox
 import org.ergoplatform.dex.domain.orderbook.OrderType
 import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, constants, orderbook}
 import org.ergoplatform.dex.{ErgoTreeTemplate, SErgoTree, TokenId}
+import org.ergoplatform.network.models.ErgoBox
 import sigmastate.Values.{ErgoTree, SigmaPropConstant}
 import sigmastate.basics.DLogProtocol.ProveDlog
 

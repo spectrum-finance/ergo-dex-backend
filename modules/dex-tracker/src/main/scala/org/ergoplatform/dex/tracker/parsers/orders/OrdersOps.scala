@@ -7,13 +7,13 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.dex.TokenId
 import org.ergoplatform.dex.configs.ProtocolConfig
-import org.ergoplatform.network.Output
 import org.ergoplatform.dex.domain.orderbook.Order._
 import org.ergoplatform.dex.domain.orderbook.OrderMeta
 import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily
 import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily.LimitOrders
 import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, constants}
 import org.ergoplatform.dex.tracker.domain.errors._
+import org.ergoplatform.network.models.Output
 import sigmastate.Values.ErgoTree
 import tofu.higherKind.RepresentableK
 import tofu.syntax.context._

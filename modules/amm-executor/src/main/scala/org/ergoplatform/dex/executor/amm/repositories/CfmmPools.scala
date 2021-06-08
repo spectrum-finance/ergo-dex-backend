@@ -2,12 +2,12 @@ package org.ergoplatform.dex.executor.amm.repositories
 
 import cats.Monad
 import cats.data.OptionT
-import org.ergoplatform.dex.clients.ErgoNetwork
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.{CfmmPool, PoolId}
-import org.ergoplatform.network.RegisterId
-import org.ergoplatform.network.SConstant.LongConstant
+import org.ergoplatform.network.ErgoNetwork
+import org.ergoplatform.network.models.SConstant.LongConstant
 import org.ergoplatform.dex.protocol.amm.constants
+import org.ergoplatform.network.models.RegisterId
 import tofu.syntax.monadic._
 
 trait CfmmPools[F[_]] {

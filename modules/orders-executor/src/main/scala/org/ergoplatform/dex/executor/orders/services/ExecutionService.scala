@@ -2,7 +2,6 @@ package org.ergoplatform.dex.executor.orders.services
 
 import cats.{Apply, Functor, Monad}
 import derevo.derive
-import org.ergoplatform.dex.clients.ErgoNetwork
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.protocol.instances._
@@ -10,6 +9,7 @@ import org.ergoplatform.dex.executor.orders.config.ExchangeConfig
 import org.ergoplatform.dex.executor.orders.context.BlockchainContext
 import org.ergoplatform.dex.executor.orders.domain.errors.ExecutionFailure
 import org.ergoplatform.dex.executor.orders.modules.Transactions
+import org.ergoplatform.network.ErgoNetwork
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}

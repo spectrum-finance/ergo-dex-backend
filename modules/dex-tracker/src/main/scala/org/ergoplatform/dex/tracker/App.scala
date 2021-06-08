@@ -6,7 +6,6 @@ import monix.eval.Task
 import mouse.any._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
 import org.ergoplatform.dex.domain.amm.{CfmmOperation, OperationId}
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 import org.ergoplatform.dex.domain.orderbook.OrderId
@@ -17,6 +16,7 @@ import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.handlers.{CfmmHandler, OrdersHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
 import org.ergoplatform.dex.tracker.validation.amm.CfmmRules
+import org.ergoplatform.network.StreamingErgoNetworkClient
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend

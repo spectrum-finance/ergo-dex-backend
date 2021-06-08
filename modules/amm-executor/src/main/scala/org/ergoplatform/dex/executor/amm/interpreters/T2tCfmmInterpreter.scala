@@ -4,7 +4,6 @@ import cats.Monad
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
 import org.ergoplatform.dex.TokenId
-import org.ergoplatform.dex.clients.ErgoNetwork
 import org.ergoplatform.dex.domain.NetworkContext
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.syntax.ergo._
@@ -13,6 +12,7 @@ import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, NoSuchP
 import org.ergoplatform.dex.executor.amm.repositories.CfmmPools
 import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
 import org.ergoplatform.dex.protocol.amm.AmmContracts
+import org.ergoplatform.network.ErgoNetwork
 import sigmastate.Values.LongConstant
 import sigmastate.eval._
 import sigmastate.interpreter.ProverResult

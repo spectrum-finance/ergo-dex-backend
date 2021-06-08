@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.clients.explorer
+package org.ergoplatform.network.explorer
 
 import org.ergoplatform.dex.{HexString, TokenId}
 import sttp.model.Uri.Segment

@@ -1,8 +1,8 @@
 package org.ergoplatform.dex.domain.amm
 
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.network.Output
 import org.ergoplatform.dex.protocol.amm.constants
+import org.ergoplatform.network.models.Output
 
 final case class CfmmPool(
   poolId: PoolId,

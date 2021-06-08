@@ -4,7 +4,7 @@ import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.dex.TokenId
-import org.ergoplatform.network.BoxAsset
+import org.ergoplatform.network.models.BoxAsset
 import tofu.logging.derivation.loggable
 
 @derive(show, encoder, decoder, loggable)

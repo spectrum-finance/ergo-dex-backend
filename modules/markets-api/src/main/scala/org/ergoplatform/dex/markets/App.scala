@@ -3,12 +3,12 @@ package org.ergoplatform.dex.markets
 import cats.effect.{Blocker, ExitCode, Resource}
 import cats.tagless.syntax.functorK._
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.dex.clients.StreamingErgoNetworkClient
 import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.dex.markets.configs.ConfigBundle
 import org.ergoplatform.dex.markets.processes.MarketsIndexer
 import org.ergoplatform.dex.markets.repositories.FillsRepo
 import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily
+import org.ergoplatform.network.StreamingErgoNetworkClient
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
