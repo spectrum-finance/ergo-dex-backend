@@ -4,19 +4,20 @@ import org.ergoplatform.ErgoBox._
 import org.ergoplatform._
 import org.ergoplatform.dex.domain.syntax.ergo.BoxIdOps
 import org.ergoplatform.dex.protocol.codecs._
+import org.ergoplatform.dex.protocol.sigmaUtils
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16
 import sigmastate.SType
-import sigmastate.Values.{ByteArrayConstant, EvaluatedValue, LongConstant}
+import sigmastate.Values.{ByteArrayConstant, ErgoTree, EvaluatedValue, IntConstant}
 import sigmastate.eval._
 import sigmastate.lang.Terms.ValueOps
 
 object CreateCfmmPool extends App with SigmaPlatform {
 
-  val secretHex = ""
-  val inputId   = "84d07e33f4ba4923b6d9dfc1d9362cfa782d10efe62b94adc2a14190ff0f0f60"
+  val secretHex = "c0d3331f22120fb24a1a71c66f9e3b5de68d1c20e634b862c394456199040050"
+  val inputId   = ""
 
   val input = getInput(inputId).get
 
@@ -93,17 +94,20 @@ object CreateCfmmPool extends App with SigmaPlatform {
 
   val bootBox = tx0.outputs(0)
 
-  val poolFeeNum = 995L
+  val poolFeeNum = 995
   val poolNFT    = Digest32 @@ (ADKey !@@ bootBox.id)
 
   val poolRegisters: Map[NonMandatoryRegisterId, _ <: EvaluatedValue[_ <: SType]] =
     scala.Predef.Map(
-      R4 -> LongConstant(poolFeeNum)
+      R4 -> IntConstant(poolFeeNum)
     )
+
+  val poolTree =
+    sigmaUtils.updateVersionHeader(ErgoTree.fromProposition(sigma.compile(Map.empty, contracts.pool).asSigmaProp))
 
   val poolOut = new ErgoBoxCandidate(
     value          = lockNErgs,
-    ergoTree       = sigma.compile(Map.empty, contracts.pool).asSigmaProp,
+    ergoTree       = poolTree,
     creationHeight = height,
     additionalTokens = Colls.fromItems(
       poolNFT -> 1L,

@@ -5,6 +5,8 @@ object contracts {
   val deposit: String =
     """
       |{
+      |    val InitiallyLockedLP = 0x7fffffffffffffffL
+      |
       |    val selfX = SELF.tokens(0)
       |    val selfY = SELF.tokens(1)
       |
@@ -39,6 +41,8 @@ object contracts {
   val redeem: String =
     """
       |{
+      |    val InitiallyLockedLP = 0x7fffffffffffffffL
+      |
       |    val selfLP = SELF.tokens(0)
       |
       |    val poolIn = INPUTS(0)

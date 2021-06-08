@@ -2,7 +2,8 @@ package org.ergoplatform.dex.demo
 
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.ErgoTreeTemplate
-import org.ergoplatform.dex.protocol.{sigmaUtils, ErgoTreeSerializer}
+import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, sigmaUtils}
+import scorex.crypto.hash.Sha256
 import sigmastate.Values.ErgoTree
 import sigmastate.basics.DLogProtocol.DLogProverInput
 import sigmastate.eval.{CompiletimeIRContext, IRContext}
@@ -22,7 +23,6 @@ object TreePrinter extends App {
 
   val depositEnv = Map(
     "Pk"                -> dummyPk,
-    "InitiallyLockedLP" -> 1000000000000000000L,
     "PoolNFT"           -> dummyDigest32,
     "DexFee"            -> dummyLong
   )
@@ -30,7 +30,7 @@ object TreePrinter extends App {
   val depositTree =
     sigmaUtils.updateVersionHeader(ErgoTree.fromProposition(sigma.compile(depositEnv, deposit).asSigmaProp))
 
-  //depositTree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
+  depositTree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
   println("[Deposit] ErgoTree:         " + ErgoTreeSerializer.default.serialize(depositTree))
   println("[Deposit] ErgoTreeTemplate: " + ErgoTreeTemplate.fromBytes(depositTree.template))
 
@@ -38,6 +38,7 @@ object TreePrinter extends App {
     sigmaUtils.updateVersionHeader(ErgoTree.fromProposition(sigma.compile(depositEnv, redeem).asSigmaProp))
 
   println()
+  redeemTree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
   println("[Redeem] ErgoTree:         " + ErgoTreeSerializer.default.serialize(redeemTree))
   println("[Redeem] ErgoTreeTemplate: " + ErgoTreeTemplate.fromBytes(redeemTree.template))
 
@@ -54,6 +55,7 @@ object TreePrinter extends App {
     sigmaUtils.updateVersionHeader(ErgoTree.fromProposition(sigma.compile(swapEnv, swap).asSigmaProp))
 
   println()
+  swapTree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
   println("[Swap] ErgoTree:         " + ErgoTreeSerializer.default.serialize(swapTree))
   println("[Swap] ErgoTreeTemplate: " + ErgoTreeTemplate.fromBytes(swapTree.template))
 
@@ -66,4 +68,6 @@ object TreePrinter extends App {
   poolTree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
   println("[Pool] ErgoTree:         " + ErgoTreeSerializer.default.serialize(poolTree))
   println("[Pool] ErgoTreeTemplate: " + ErgoTreeTemplate.fromBytes(poolTree.template))
+  println("[Pool] ErgoTreeTemplateHash: " + ErgoTreeTemplate.fromBytes(Sha256.hash(poolTree.template)))
+  println("[Pool] Address: " + new ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix).fromProposition(poolTree))
 }
