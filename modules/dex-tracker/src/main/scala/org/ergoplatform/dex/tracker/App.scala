@@ -16,7 +16,7 @@ import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.handlers.{CfmmHandler, OrdersHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
 import org.ergoplatform.dex.tracker.validation.amm.CfmmRules
-import org.ergoplatform.network.StreamingErgoNetworkClient
+import org.ergoplatform.ergo.StreamingErgoNetworkClient
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend

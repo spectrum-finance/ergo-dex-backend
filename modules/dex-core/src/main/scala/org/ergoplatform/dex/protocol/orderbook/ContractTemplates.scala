@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.protocol.orderbook
 
 import org.ergoplatform.contracts.DexLimitOrderContracts._
-import org.ergoplatform.dex.ErgoTreeTemplate
+import org.ergoplatform.ergo.ErgoTreeTemplate
 
 trait ContractTemplates[CT <: OrderContractFamily] {
   val ask: ErgoTreeTemplate

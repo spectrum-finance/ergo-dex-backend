@@ -1,8 +1,8 @@
-package org.ergoplatform.network.models
+package org.ergoplatform.ergo.models
 
 import derevo.circe.decoder
 import derevo.derive
-import org.ergoplatform.dex.{BlockId, TxId}
+import org.ergoplatform.ergo.{BlockId, TxId}
 import tofu.logging.derivation.loggable
 
 @derive(decoder, loggable)

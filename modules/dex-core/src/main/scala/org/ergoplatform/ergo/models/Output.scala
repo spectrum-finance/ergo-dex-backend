@@ -1,8 +1,8 @@
-package org.ergoplatform.network.models
+package org.ergoplatform.ergo.models
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import org.ergoplatform.dex.{Address, BoxId, SErgoTree, TxId}
+import org.ergoplatform.ergo.{Address, BoxId, SErgoTree, TxId}
 import tofu.logging.Loggable
 import tofu.logging.derivation.loggable
 

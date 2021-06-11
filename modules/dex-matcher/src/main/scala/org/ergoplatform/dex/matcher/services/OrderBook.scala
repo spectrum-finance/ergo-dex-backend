@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.matcher.services
 
-import org.ergoplatform.dex.PairId
+import org.ergoplatform.dex.domain.PairId
 import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 

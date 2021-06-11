@@ -1,6 +1,5 @@
 package org.ergoplatform.dex.domain.syntax
 
-import cats.instances.tuple._
 import cats.syntax.bifunctor._
 import cats.syntax.list._
 import org.ergoplatform.dex.domain.orderbook.Order.{AnyOrder, Ask, Bid}

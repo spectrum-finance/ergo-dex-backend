@@ -1,8 +1,9 @@
-package org.ergoplatform.network.models
+package org.ergoplatform.ergo.models
 
 import derevo.circe.decoder
 import derevo.derive
-import org.ergoplatform.dex._
+import org.ergoplatform.common.HexString
+import org.ergoplatform.ergo._
 import tofu.logging.derivation.loggable
 
 @derive(decoder, loggable)

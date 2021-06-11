@@ -2,7 +2,7 @@ package org.ergoplatform.dex.demo
 
 import org.ergoplatform.ErgoBox._
 import org.ergoplatform._
-import org.ergoplatform.dex.domain.syntax.ergo.BoxIdOps
+import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.dex.protocol.sigmaUtils
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver

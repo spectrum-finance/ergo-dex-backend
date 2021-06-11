@@ -1,4 +1,4 @@
-package org.ergoplatform.network.models
+package org.ergoplatform.ergo.models
 
 import cats.syntax.either._
 import doobie.util.{Get, Put}

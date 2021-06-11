@@ -1,6 +1,5 @@
-package org.ergoplatform.dex.domain.syntax
+package org.ergoplatform.ergo
 
-import org.ergoplatform.dex.{Address, BoxId, TokenId}
 import org.ergoplatform.{ErgoAddressEncoder, ErgoBox}
 import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Digest32
@@ -8,11 +7,11 @@ import scorex.util.encode.Base16
 import sigmastate.Values.{ByteArrayConstant, Constant, ErgoTree, SigmaPropConstant}
 import sigmastate.basics.DLogProtocol
 import sigmastate.basics.DLogProtocol.ProveDlogProp
-import sigmastate.eval.Extensions._
 import sigmastate.{SLong, SType, Values}
 import special.collection.Coll
+import sigmastate.eval.Extensions._
 
-object ergo {
+object syntax {
 
   implicit final class BoxIdOps(private val id: BoxId) extends AnyVal {
     def toErgo: ErgoBox.BoxId = ADKey @@ Base16.decode(id.value).get

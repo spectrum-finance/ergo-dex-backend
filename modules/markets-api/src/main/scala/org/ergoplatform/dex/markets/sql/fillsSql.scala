@@ -3,7 +3,7 @@ package org.ergoplatform.dex.markets.sql
 import doobie.implicits._
 import doobie.util.log.LogHandler
 import doobie.util.query.Query0
-import org.ergoplatform.dex.TokenId
+import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.common.sql.QuerySet
 
 object fillsSql extends QuerySet {

@@ -4,7 +4,7 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AmmContractType.{CfmmFamily, T2tCfmm}
 import org.ergoplatform.dex.protocol.amm.ContractTemplates
-import org.ergoplatform.network.models.Output
+import org.ergoplatform.ergo.models.Output
 
 trait AmmOps[CT <: CfmmFamily] {
 

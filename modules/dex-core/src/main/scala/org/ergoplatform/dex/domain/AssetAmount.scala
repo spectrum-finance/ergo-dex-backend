@@ -3,8 +3,8 @@ package org.ergoplatform.dex.domain
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import org.ergoplatform.dex.TokenId
-import org.ergoplatform.network.models.BoxAsset
+import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.models.BoxAsset
 import tofu.logging.derivation.loggable
 
 @derive(show, encoder, decoder, loggable)

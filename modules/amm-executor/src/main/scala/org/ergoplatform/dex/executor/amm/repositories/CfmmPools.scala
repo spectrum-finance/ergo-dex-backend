@@ -4,10 +4,10 @@ import cats.Monad
 import cats.data.OptionT
 import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}
 import org.ergoplatform.dex.domain.amm.{CfmmPool, PoolId}
-import org.ergoplatform.network.ErgoNetwork
-import org.ergoplatform.network.models.SConstant.LongConstant
+import org.ergoplatform.ergo.ErgoNetwork
+import org.ergoplatform.ergo.models.SConstant.LongConstant
 import org.ergoplatform.dex.protocol.amm.constants
-import org.ergoplatform.network.models.RegisterId
+import org.ergoplatform.ergo.models.RegisterId
 import sigmastate.Values.IntConstant
 import tofu.syntax.monadic._
 

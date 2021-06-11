@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.protocol
 
-import org.ergoplatform.dex.SErgoTree
+import org.ergoplatform.ergo.SErgoTree
 import sigmastate.Values
 import sigmastate.serialization.{ErgoTreeSerializer => TreeSerializer}
 

@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.protocol.amm
 
-import org.ergoplatform.dex.ErgoTreeTemplate
+import org.ergoplatform.ergo.ErgoTreeTemplate
 import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
 
 object T2tCfmmTemplates extends ContractTemplates[T2tCfmm] {

@@ -4,15 +4,15 @@ import cats.Monad
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.dex.domain.syntax.ergo._
+import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, TooMuchSlippage}
 import org.ergoplatform.dex.executor.amm.repositories.CfmmPools
 import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
 import org.ergoplatform.dex.protocol.amm.AmmContracts
-import org.ergoplatform.dex.{BoxId, TokenId}
-import org.ergoplatform.network.ErgoNetwork
+import org.ergoplatform.ergo.{BoxId, TokenId}
+import org.ergoplatform.ergo.ErgoNetwork
 import sigmastate.Values.IntConstant
 import sigmastate.eval._
 import sigmastate.interpreter.ProverResult

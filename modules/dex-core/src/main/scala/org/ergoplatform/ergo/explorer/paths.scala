@@ -1,6 +1,7 @@
-package org.ergoplatform.network.explorer
+package org.ergoplatform.ergo.explorer
 
-import org.ergoplatform.dex.{HexString, TokenId}
+import org.ergoplatform.common.HexString
+import org.ergoplatform.ergo.TokenId
 import sttp.model.Uri.Segment
 
 object paths {

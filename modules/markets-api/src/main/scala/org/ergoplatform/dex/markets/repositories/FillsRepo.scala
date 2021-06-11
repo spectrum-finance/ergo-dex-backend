@@ -6,7 +6,7 @@ import cats.{Apply, FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
-import org.ergoplatform.dex.TokenId
+import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.dex.markets.models.Fill
 import org.ergoplatform.dex.markets.sql.fillsSql
 import tofu.doobie.LiftConnectionIO

@@ -1,6 +1,6 @@
-package org.ergoplatform.network.models
+package org.ergoplatform.ergo.models
 
-import org.ergoplatform.dex.{BoxId, SErgoTree}
+import org.ergoplatform.ergo.{BoxId, SErgoTree}
 
 trait ErgoBox {
   val boxId: BoxId

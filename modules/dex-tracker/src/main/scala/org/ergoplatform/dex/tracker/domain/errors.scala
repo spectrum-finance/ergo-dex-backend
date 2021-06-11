@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.tracker.domain
 
-import org.ergoplatform.dex.TokenId
+import org.ergoplatform.ergo.TokenId
 import sigmastate.Values.ErgoTree
 
 object errors {

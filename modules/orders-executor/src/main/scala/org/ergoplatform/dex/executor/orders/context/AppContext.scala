@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.executor.orders.context
 
 import io.estatico.newtype.ops._
-import org.ergoplatform.dex.TraceId
+import org.ergoplatform.common.TraceId
 import org.ergoplatform.dex.executor.orders.config.ConfigBundle
 import tofu.Context
 import tofu.logging.Loggable

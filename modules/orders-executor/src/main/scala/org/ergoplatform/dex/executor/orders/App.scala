@@ -13,7 +13,7 @@ import org.ergoplatform.dex.executor.orders.processes.OrdersExecutor
 import org.ergoplatform.dex.executor.orders.services.ExecutionService
 import org.ergoplatform.dex.executor.orders.streaming.StreamingBundle
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
-import org.ergoplatform.network.{ErgoNetwork, StreamingErgoNetworkClient}
+import org.ergoplatform.ergo.{ErgoNetwork, StreamingErgoNetworkClient}
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend

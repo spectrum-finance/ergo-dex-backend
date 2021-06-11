@@ -9,7 +9,7 @@ import org.ergoplatform.dex.markets.configs.IndexerConfig
 import org.ergoplatform.dex.markets.modules.Fills
 import org.ergoplatform.dex.markets.repositories.FillsRepo
 import org.ergoplatform.dex.protocol.orderbook.{ContractTemplates, OrderContractFamily}
-import org.ergoplatform.network.ErgoNetwork
+import org.ergoplatform.ergo.ErgoNetwork
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}

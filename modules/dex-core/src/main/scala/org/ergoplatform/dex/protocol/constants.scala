@@ -1,6 +1,7 @@
 package org.ergoplatform.dex.protocol
 
-import org.ergoplatform.dex.{HexString, TokenId}
+import org.ergoplatform.common.HexString
+import org.ergoplatform.ergo.TokenId
 
 object constants {
 

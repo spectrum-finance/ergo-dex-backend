@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.demo
 
 import org.ergoplatform.ErgoAddressEncoder
-import org.ergoplatform.dex.ErgoTreeTemplate
+import org.ergoplatform.ergo.ErgoTreeTemplate
 import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, sigmaUtils}
 import scorex.crypto.hash.Sha256
 import sigmastate.Values.ErgoTree

@@ -1,4 +1,4 @@
-package org.ergoplatform.network
+package org.ergoplatform.ergo
 
 import cats.FlatMap
 import cats.syntax.either._
@@ -9,14 +9,14 @@ import io.circe.Json
 import io.circe.jawn.CirceSupportParser
 import jawnfs2._
 import org.ergoplatform.ErgoLikeTransaction
-import org.ergoplatform.common.ConstrainedEmbed
+import org.ergoplatform.common.{ConstrainedEmbed, HexString}
 import org.ergoplatform.dex.configs.NetworkConfig
 import org.ergoplatform.dex.protocol.codecs._
-import org.ergoplatform.dex.{HexString, TokenId, TxId, protocol}
-import org.ergoplatform.network.errors.ResponseError
-import org.ergoplatform.network.explorer.models._
-import org.ergoplatform.network.explorer.paths._
-import org.ergoplatform.network.models.{NetworkParams, Output, Transaction}
+import org.ergoplatform.dex.protocol
+import org.ergoplatform.ergo.errors.ResponseError
+import org.ergoplatform.ergo.explorer.models._
+import org.ergoplatform.ergo.explorer.paths._
+import org.ergoplatform.ergo.models.{NetworkParams, Output, Transaction}
 import org.typelevel.jawn.Facade
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3._

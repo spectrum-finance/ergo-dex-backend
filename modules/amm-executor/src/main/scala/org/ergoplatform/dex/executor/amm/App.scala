@@ -11,7 +11,7 @@ import org.ergoplatform.dex.executor.amm.context.AppContext
 import org.ergoplatform.dex.executor.amm.processes.OrdersExecutor
 import streaming.CfmmConsumer
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer}
-import org.ergoplatform.network.{ErgoNetwork, StreamingErgoNetworkClient}
+import org.ergoplatform.ergo.{ErgoNetwork, StreamingErgoNetworkClient}
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend

@@ -5,7 +5,7 @@ import cats.syntax.list._
 import cats.syntax.traverse._
 import cats.instances.option._
 import mouse.anyf._
-import org.ergoplatform.dex.PairId
+import org.ergoplatform.dex.domain.PairId
 import org.ergoplatform.dex.domain.orderbook.Order._
 import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.domain.syntax.order._

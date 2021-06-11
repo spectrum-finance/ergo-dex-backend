@@ -6,7 +6,7 @@ import fs2.kafka.serde.{deserializerByDecoder, serializerByEncoder}
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
-import org.ergoplatform.dex.{BoxId, HexString, TokenId}
+import org.ergoplatform.ergo.{BoxId, TokenId}
 import tofu.logging.Loggable
 
 package object amm {

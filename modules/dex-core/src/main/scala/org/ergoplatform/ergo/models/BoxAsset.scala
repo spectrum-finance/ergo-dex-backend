@@ -1,8 +1,8 @@
-package org.ergoplatform.network.models
+package org.ergoplatform.ergo.models
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import org.ergoplatform.dex.{TokenId, TokenType}
+import org.ergoplatform.ergo.{TokenId, TokenType}
 import tofu.logging.derivation.loggable
 
 /** A model mirroring Asset entity from Ergo node REST API.

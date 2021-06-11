@@ -9,7 +9,7 @@ import org.ergoplatform.dex.executor.orders.config.ExchangeConfig
 import org.ergoplatform.dex.executor.orders.context.BlockchainContext
 import org.ergoplatform.dex.executor.orders.domain.errors.ExecutionFailure
 import org.ergoplatform.dex.executor.orders.modules.Transactions
-import org.ergoplatform.network.ErgoNetwork
+import org.ergoplatform.ergo.ErgoNetwork
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}

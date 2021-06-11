@@ -13,12 +13,12 @@ import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.orderbook.FilledOrder._
 import org.ergoplatform.dex.domain.orderbook.Trade
 import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
-import org.ergoplatform.dex.domain.syntax.ergo._
+import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.dex.domain.syntax.trade._
 import org.ergoplatform.dex.executor.orders.config.ExchangeConfig
 import org.ergoplatform.dex.executor.orders.context.BlockchainContext
 import org.ergoplatform.dex.executor.orders.domain.errors.ExecutionFailure
-import org.ergoplatform.dex.{TokenId, BoxId => DexBoxId}
+import org.ergoplatform.ergo.{TokenId, BoxId => DexBoxId}
 import sigmastate.SType.AnyOps
 import sigmastate.Values._
 import sigmastate.eval._

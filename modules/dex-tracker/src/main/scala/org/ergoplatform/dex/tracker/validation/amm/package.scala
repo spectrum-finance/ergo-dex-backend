@@ -4,7 +4,7 @@ import cats.{FlatMap, Monad}
 import org.ergoplatform.dex.domain.NetworkContext
 import org.ergoplatform.dex.domain.amm.CfmmOperation
 import org.ergoplatform.dex.tracker.configs.Fees
-import org.ergoplatform.network.ErgoNetwork
+import org.ergoplatform.ergo.ErgoNetwork
 import tofu.higherKind.Embed
 import tofu.syntax.context._
 import tofu.syntax.embed._

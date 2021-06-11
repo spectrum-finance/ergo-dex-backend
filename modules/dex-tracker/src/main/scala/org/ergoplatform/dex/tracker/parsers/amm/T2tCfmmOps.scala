@@ -2,12 +2,12 @@ package org.ergoplatform.dex.tracker.parsers.amm
 
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.dex.domain.syntax.ergo._
+import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
 import org.ergoplatform.dex.protocol.amm.ContractTemplates
-import org.ergoplatform.dex.{Address, ErgoTreeTemplate, TokenId}
-import org.ergoplatform.network.models.Output
+import org.ergoplatform.ergo.{Address, ErgoTreeTemplate, TokenId}
+import org.ergoplatform.ergo.models.Output
 import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 
 final class T2tCfmmOps(implicit

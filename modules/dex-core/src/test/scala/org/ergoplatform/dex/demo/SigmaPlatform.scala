@@ -5,7 +5,7 @@ import derevo.derive
 import io.circe.Encoder
 import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.ErgoBox.TokenId
-import org.ergoplatform.network.models.{ErgoBox, Output}
+import org.ergoplatform.ergo.models.{ErgoBox, Output}
 import org.ergoplatform.{ErgoAddressEncoder, ErgoLikeTransaction, P2PKAddress}
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16

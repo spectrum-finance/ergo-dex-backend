@@ -4,11 +4,13 @@ import eu.timepit.refined.refineV
 import eu.timepit.refined.string.HexStringSpec
 import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.P2PKAddress
+import org.ergoplatform.common.HexString
 import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexSellerContractParameters}
 import org.ergoplatform.dex.domain.orderbook.{Order, OrderMeta}
-import org.ergoplatform.dex.domain.syntax.ergo._
+import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.dex.implicits._
+import org.ergoplatform.ergo.{Address, BoxId, TokenId}
 import org.scalacheck.Gen
 import scorex.crypto.hash.Blake2b256
 import scorex.util.encode.Base16

@@ -4,11 +4,11 @@ import cats.effect.concurrent.Ref
 import cats.{Defer, FlatMap, Monad, MonoidK}
 import derevo.derive
 import mouse.any._
-import org.ergoplatform.network.StreamingErgoNetworkClient
+import org.ergoplatform.ergo.StreamingErgoNetworkClient
 import org.ergoplatform.dex.tracker.configs.TrackerConfig
 import org.ergoplatform.dex.tracker.domain.errors.InvalidOrder
 import org.ergoplatform.dex.tracker.handlers.BoxHandler
-import org.ergoplatform.network.models.Output
+import org.ergoplatform.ergo.models.Output
 import tofu.concurrent.MakeRef
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}

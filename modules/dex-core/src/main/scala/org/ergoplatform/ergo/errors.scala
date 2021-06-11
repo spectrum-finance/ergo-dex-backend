@@ -1,4 +1,4 @@
-package org.ergoplatform.network
+package org.ergoplatform.ergo
 
 object errors {
 

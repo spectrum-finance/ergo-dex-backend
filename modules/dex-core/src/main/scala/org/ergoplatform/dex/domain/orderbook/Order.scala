@@ -9,8 +9,9 @@ import doobie.util.Write
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.ops._
+import org.ergoplatform.dex.domain.PairId
 import org.ergoplatform.dex.protocol.instances._
-import org.ergoplatform.dex.{PairId, TokenId}
+import org.ergoplatform.ergo.TokenId
 import tofu.logging.{Loggable, _}
 
 /** Global market order.
