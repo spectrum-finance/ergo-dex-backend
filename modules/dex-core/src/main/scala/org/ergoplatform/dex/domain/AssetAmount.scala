@@ -15,6 +15,12 @@ final case class AssetAmount(id: TokenId, value: Long, ticker: Option[String]) {
   def withAmount(x: Long): AssetAmount = copy(value = x)
 
   def withAmount(x: BigInt): AssetAmount = copy(value = x.toLong)
+
+  def -(that: Long): AssetAmount = withAmount(value - that)
+  def +(that: Long): AssetAmount = withAmount(value + that)
+
+  def -(that: AssetAmount): AssetAmount = withAmount(value - that.value)
+  def +(that: AssetAmount): AssetAmount = withAmount(value + that.value)
 }
 
 object AssetAmount {
