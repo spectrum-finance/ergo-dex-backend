@@ -25,8 +25,8 @@ final class T2tCfmmOps(implicit
         inY    <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount, a.name))
         dexFee <- tree.constants.parseLong(10)
         p2pk   <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
-        params = DepositParams(poolId, inX, inY, dexFee, p2pk)
-      } yield Deposit(params, box)
+        params = DepositParams(inX, inY, dexFee, p2pk)
+      } yield Deposit(poolId, params, box)
     } else None
   }
 
@@ -39,8 +39,8 @@ final class T2tCfmmOps(implicit
         inLP   <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
         dexFee <- tree.constants.parseLong(12)
         p2pk   <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
-        params = RedeemParams(poolId, inLP, dexFee, p2pk)
-      } yield Redeem(params, box)
+        params = RedeemParams(inLP, dexFee, p2pk)
+      } yield Redeem(poolId, params, box)
     } else None
   }
 
@@ -56,8 +56,8 @@ final class T2tCfmmOps(implicit
         out = AssetAmount(outId, outAmount, None)
         dexFeePerToken <- tree.constants.parseLong(12)
         p2pk           <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
-        params = SwapParams(poolId, in, out, dexFeePerToken, p2pk)
-      } yield Swap(params, box)
+        params = SwapParams(in, out, dexFeePerToken, p2pk)
+      } yield Swap(poolId, params, box)
     } else None
   }
 }

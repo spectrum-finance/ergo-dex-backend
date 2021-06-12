@@ -8,7 +8,6 @@ import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
 final case class DepositParams(
-  poolId: PoolId,
   inX: AssetAmount,
   inY: AssetAmount,
   dexFee: Long,

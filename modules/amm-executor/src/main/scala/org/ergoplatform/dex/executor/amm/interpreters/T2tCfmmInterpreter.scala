@@ -146,7 +146,7 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
       val nextPool    = pool.swap(input, boxInfo)
       (tx, nextPool).pure
-    } else TooMuchSlippage(swap.params.poolId, swap.params.minOutput, outputAmount).raise
+    } else TooMuchSlippage(swap.poolId, swap.params.minOutput, outputAmount).raise
   }
 
   private val minerFeeProp = Pay2SAddress(ErgoScriptPredef.feeProposition()).script

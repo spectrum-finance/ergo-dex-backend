@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.protocol.amm.parsers
+package org.ergoplatform.dex.tracker.parsers
 
 import org.ergoplatform.dex.domain.OnChain
 import org.ergoplatform.dex.domain.amm.CfmmPool
