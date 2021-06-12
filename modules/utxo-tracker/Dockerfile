@@ -6,12 +6,12 @@ RUN apt-get update && \
     apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends sbt
-COPY . /ergo-dex-backend
+COPY ../dex-tracker /ergo-dex-backend
 WORKDIR /ergo-dex-backend
 RUN sbt dex-tracker/assembly
-RUN mv `find . -name DexTracker-assembly-*.jar` /dex-tracker.jar
-CMD ["/usr/bin/java", "-jar", "/dex-tracker.jar"]
+RUN mv `find . -name UtxoTracker-assembly-*.jar` /dex-tracker.jar
+CMD ["/usr/bin/java", "-jar", "/utxo-tracker.jar"]
 
 FROM openjdk:11-jre-slim
-COPY --from=builder /dex-tracker.jar /dex-tracker.jar
-ENTRYPOINT java -jar /dex-tracker.jar $0
+COPY --from=builder /utxo-tracker.jar /utxo-tracker.jar
+ENTRYPOINT java -jar /utxo-tracker.jar $0
