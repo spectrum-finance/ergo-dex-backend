@@ -1,19 +1,27 @@
 package org.ergoplatform.dex.executor.amm.repositories
 
 import cats.Monad
-import cats.data.OptionT
-import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}
+import org.ergoplatform.dex.domain.{OnChain, Predicted}
 import org.ergoplatform.dex.domain.amm.{CfmmPool, PoolId}
 import org.ergoplatform.ergo.ErgoNetwork
-import org.ergoplatform.ergo.models.SConstant.LongConstant
-import org.ergoplatform.dex.protocol.amm.constants
-import org.ergoplatform.ergo.models.RegisterId
-import sigmastate.Values.IntConstant
-import tofu.syntax.monadic._
 
 trait CfmmPools[F[_]] {
 
-  def get(id: PoolId): F[Option[CfmmPool]]
+  /** Get actual pool state by pool id.
+    */
+  def getOnChain(id: PoolId): F[Option[OnChain[CfmmPool]]]
+
+  /** Put actual pool state.
+    */
+  def putOnChain(pool: OnChain[CfmmPool]): F[Unit]
+
+  /** Get latest predicted pool state by pool id.
+    */
+  def getPredicted(id: PoolId): F[Option[Predicted[CfmmPool]]]
+
+  /** Put predicted pool state.
+    */
+  def putPredicted(pool: Predicted[CfmmPool]): F[Unit]
 }
 
 object CfmmPools {
@@ -23,20 +31,12 @@ object CfmmPools {
 
   final class Live[F[_]: Monad](implicit network: ErgoNetwork[F]) extends CfmmPools[F] {
 
-    def get(id: PoolId): F[Option[CfmmPool]] =
-      (for {
-        poolBox <- OptionT(network.getUtxoByToken(id.value, offset = 0, limit = 1).map(_.headOption))
-        lp      <- OptionT.fromOption(poolBox.assets.lift(constants.cfmm.t2t.IndexLP))
-        x       <- OptionT.fromOption(poolBox.assets.lift(constants.cfmm.t2t.IndexX))
-        y       <- OptionT.fromOption(poolBox.assets.lift(constants.cfmm.t2t.IndexY))
-        fee     <- OptionT.fromOption(poolBox.additionalRegisters.get(RegisterId.R4).collect { case IntConstant(x) => x })
-      } yield CfmmPool(
-        id,
-        AssetAmount.fromBoxAsset(lp),
-        AssetAmount.fromBoxAsset(x),
-        AssetAmount.fromBoxAsset(y),
-        fee,
-        BoxInfo.fromBox(poolBox)
-      )).value
+    def getOnChain(id: PoolId): F[Option[OnChain[CfmmPool]]] = ???
+
+    def putOnChain(pool: OnChain[CfmmPool]): F[Unit] = ???
+
+    def getPredicted(id: PoolId): F[Option[Predicted[CfmmPool]]] = ???
+
+    def putPredicted(pool: Predicted[CfmmPool]): F[Unit] = ???
   }
 }

@@ -3,7 +3,7 @@ package org.ergoplatform.dex.executor.orders.processes
 import cats.{Foldable, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.dex.executor.orders.domain.errors.ExecutionFailure
-import org.ergoplatform.dex.executor.orders.services.ExecutionService
+import org.ergoplatform.dex.executor.orders.services.Execution
 import org.ergoplatform.dex.executor.orders.streaming.StreamingBundle
 import org.ergoplatform.common.streaming.syntax._
 import org.ergoplatform.common.streaming.{CommitPolicy, Record}
@@ -22,21 +22,21 @@ import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
 
 @derive(representableK)
-trait OrdersExecutor[F[_]] {
+trait Executor[F[_]] {
 
   def run: F[Unit]
 }
 
-object OrdersExecutor {
+object Executor {
 
   def make[
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: CommitPolicy.Has: Handle[*[_], ExecutionFailure],
     G[_]: Monad,
     C[_]: Foldable
-  ](implicit streaming: StreamingBundle[F, G], executor: ExecutionService[G], logs: Logs[I, G]): I[OrdersExecutor[F]] =
-    logs.forService[OrdersExecutor[F]] map { implicit l =>
-      (context[F] map (policy => new Live[F, G, C](policy): OrdersExecutor[F])).embed
+  ](implicit streaming: StreamingBundle[F, G], executor: Execution[G], logs: Logs[I, G]): I[Executor[F]] =
+    logs.forService[Executor[F]] map { implicit l =>
+      (context[F] map (policy => new Live[F, G, C](policy): Executor[F])).embed
     }
 
   final private class Live[
@@ -45,8 +45,8 @@ object OrdersExecutor {
     C[_]: Foldable
   ](commitPolicy: CommitPolicy)(implicit
     streaming: StreamingBundle[F, G],
-    executor: ExecutionService[G]
-  ) extends OrdersExecutor[F] {
+    executor: Execution[G]
+  ) extends Executor[F] {
 
     def run: F[Unit] =
       streaming.consumer.stream

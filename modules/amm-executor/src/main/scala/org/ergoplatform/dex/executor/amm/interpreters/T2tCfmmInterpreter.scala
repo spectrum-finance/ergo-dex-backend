@@ -5,7 +5,7 @@ import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
+import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext, Predicted}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, TooMuchSlippage}
 import org.ergoplatform.dex.executor.amm.repositories.CfmmPools
@@ -29,7 +29,7 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   encoder: ErgoAddressEncoder
 ) extends CfmmInterpreter[T2tCfmm, F] {
 
-  def deposit(deposit: Deposit, pool: CfmmPool): F[(ErgoLikeTransaction, CfmmPool)] = {
+  def deposit(deposit: Deposit, pool: CfmmPool): F[(ErgoLikeTransaction, Predicted[CfmmPool])] = {
     val poolBox0   = pool.box
     val depositBox = deposit.box
     val redeemIn   = new Input(depositBox.boxId.toErgo, ProverResult.empty)
@@ -66,7 +66,7 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     (tx, nextPool).pure
   }
 
-  def redeem(redeem: Redeem, pool: CfmmPool): F[(ErgoLikeTransaction, CfmmPool)] = {
+  def redeem(redeem: Redeem, pool: CfmmPool): F[(ErgoLikeTransaction, Predicted[CfmmPool])] = {
     val poolBox0         = pool.box
     val redeemBox        = redeem.box
     val redeemIn         = new Input(redeemBox.boxId.toErgo, ProverResult.empty)
@@ -106,7 +106,7 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     (tx, nextPool).pure
   }
 
-  def swap(swap: Swap, pool: CfmmPool): F[(ErgoLikeTransaction, CfmmPool)] = {
+  def swap(swap: Swap, pool: CfmmPool): F[(ErgoLikeTransaction, Predicted[CfmmPool])] = {
     val outputAmount = pool.outputAmount(swap.params.input)
     if (outputAmount >= swap.params.minOutput) {
       val poolBox0 = pool.box

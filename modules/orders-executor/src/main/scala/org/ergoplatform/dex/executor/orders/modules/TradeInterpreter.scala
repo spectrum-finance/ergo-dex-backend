@@ -33,18 +33,18 @@ import tofu.syntax.feither._
 import tofu.syntax.monadic._
 
 @derive(representableK)
-trait Transactions[F[_]] {
+trait TradeInterpreter[F[_]] {
 
-  /** Translate a given `trade` to executing transaction.
+  /** Interpret a given `trade` to a transaction.
     */
-  def translate(trade: AnyTrade): F[ErgoLikeTransaction]
+  def trade(trade: AnyTrade): F[ErgoLikeTransaction]
 }
 
-object Transactions {
+object TradeInterpreter {
 
   implicit def instance[
     F[_]: Monad: Raise[*[_], ExecutionFailure]: ExchangeConfig.Has: ProtocolConfig.Has: BlockchainContext.Has
-  ]: Transactions[F] =
+  ]: TradeInterpreter[F] =
     (hasContext[F, ExchangeConfig], hasContext[F, ProtocolConfig], hasContext[F, BlockchainContext]).mapN {
       (dexConf, protoConf, blockchainCtx) =>
         NonEmptyList
@@ -57,12 +57,12 @@ object Transactions {
     protocolConfig: ProtocolConfig,
     ctx: BlockchainContext
   )(implicit valueValidation: OutputValueValidation[F])
-    extends Transactions[F] {
+    extends TradeInterpreter[F] {
 
     implicit private val addressEncoder: ErgoAddressEncoder = protocolConfig.networkType.addressEncoder
     private val dexRewardProp                               = exchangeConfig.rewardAddress.toErgoTree
 
-    def translate(trade: AnyTrade): F[ErgoLikeTransaction] = {
+    def trade(trade: AnyTrade): F[ErgoLikeTransaction] = {
       val outsF =
         trade.refine match {
           case Right(Trade(order, counterOrders)) =>
@@ -200,12 +200,12 @@ object Transactions {
   /** An aspect merging dex reward outputs into single one.
     */
   final class DexOutputsCompaction[F[_]: Functor](exchangeConfig: ExchangeConfig, protocolConfig: ProtocolConfig)
-    extends Transactions[Mid[F, *]] {
+    extends TradeInterpreter[Mid[F, *]] {
 
     implicit private val addressEncoder: ErgoAddressEncoder = protocolConfig.networkType.addressEncoder
     private val dexRewardProp                               = exchangeConfig.rewardAddress.toErgoTree
 
-    def translate(trade: AnyTrade): Mid[F, ErgoLikeTransaction] =
+    def trade(trade: AnyTrade): Mid[F, ErgoLikeTransaction] =
       _.map(compact)
 
     private def compact(tx: ErgoLikeTransaction): ErgoLikeTransaction =
@@ -231,13 +231,13 @@ object Transactions {
   /** An aspect merging dex reward outputs into single one.
     */
   final class TransactionEnrichment[F[_]: Functor](exchangeConfig: ExchangeConfig, protocolConfig: ProtocolConfig)
-    extends Transactions[Mid[F, *]] {
+    extends TradeInterpreter[Mid[F, *]] {
 
     implicit private val addressEncoder: ErgoAddressEncoder = protocolConfig.networkType.addressEncoder
     private val dexRewardProp                               = exchangeConfig.rewardAddress.toErgoTree
     private val feeAddress                                  = Pay2SAddress(ErgoScriptPredef.feeProposition())
 
-    def translate(trade: AnyTrade): Mid[F, ErgoLikeTransaction] =
+    def trade(trade: AnyTrade): Mid[F, ErgoLikeTransaction] =
       _.map(enrich)
 
     private def enrich(tx: ErgoLikeTransaction): ErgoLikeTransaction =

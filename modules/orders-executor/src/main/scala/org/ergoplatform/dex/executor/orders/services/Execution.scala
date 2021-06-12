@@ -4,29 +4,29 @@ import cats.{Apply, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
-import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.dex.executor.orders.config.ExchangeConfig
 import org.ergoplatform.dex.executor.orders.context.BlockchainContext
 import org.ergoplatform.dex.executor.orders.domain.errors.ExecutionFailure
-import org.ergoplatform.dex.executor.orders.modules.Transactions
+import org.ergoplatform.dex.executor.orders.modules.TradeInterpreter
+import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.ergo.ErgoNetwork
+import tofu.Raise
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
-import tofu.Raise
-import tofu.syntax.monadic._
-import tofu.syntax.logging._
 import tofu.syntax.context._
+import tofu.syntax.logging._
+import tofu.syntax.monadic._
 
 @derive(representableK)
-trait ExecutionService[F[_]] {
+trait Execution[F[_]] {
 
-  /** Assembly Ergo transaction from a given `match`.
+  /** Execute a given trade.
     */
   def execute(trade: AnyTrade): F[Unit]
 }
 
-object ExecutionService {
+object Execution {
 
   private val ValuePerByte = 360L // todo: fetch from explorer
 
@@ -36,19 +36,19 @@ object ExecutionService {
   ](implicit
     client: ErgoNetwork[F],
     logs: Logs[I, F]
-  ): I[ExecutionService[F]] =
-    logs.forService[ExecutionService[F]].map { implicit l =>
-      new ExecutionServiceTracing[F] attach new ErgoToTokenExecutionService[F]
+  ): I[Execution[F]] =
+    logs.forService[Execution[F]].map { implicit l =>
+      new ExecutionTracing[F] attach new ErgoToTokenExecution[F]
     }
 
   /** Implements processing of trades necessarily involving ERG.
     */
-  final private class ErgoToTokenExecutionService[
+  final private class ErgoToTokenExecution[
     F[_]: Monad: ExchangeConfig.Has: ProtocolConfig.Has: BlockchainContext.Local: Logging
   ](implicit
     client: ErgoNetwork[F],
-    txs: Transactions[F]
-  ) extends ExecutionService[F] {
+    interpreter: TradeInterpreter[F]
+  ) extends Execution[F] {
 
     import io.circe.syntax._
     import org.ergoplatform.dex.protocol.codecs._
@@ -56,14 +56,14 @@ object ExecutionService {
     def execute(trade: AnyTrade): F[Unit] =
       for {
         height <- client.getCurrentHeight
-        tx     <- txs.translate(trade).local(_ => BlockchainContext(height, ValuePerByte))
+        tx     <- interpreter.trade(trade).local(_ => BlockchainContext(height, ValuePerByte))
         _      <- info"Transaction assembled $tx"
         _      <- debug"${tx.asJson.noSpacesSortKeys}"
         _      <- client.submitTransaction(tx)
       } yield () // todo: save and track tx id, retry if transaction failed.
   }
 
-  final private class ExecutionServiceTracing[F[_]: Apply: Logging] extends ExecutionService[Mid[F, *]] {
+  final private class ExecutionTracing[F[_]: Apply: Logging] extends Execution[Mid[F, *]] {
 
     def execute(trade: AnyTrade): Mid[F, Unit] =
       _ <* trace"Executing trade [$trade]"
