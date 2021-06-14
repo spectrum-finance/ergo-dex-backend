@@ -19,7 +19,7 @@ object Execution {
 
   final class Live[F[_]: Monad: Logging](implicit
     pools: CfmmPools[F],
-    t2tInterpreter: CfmmInterpreter[T2tCfmm, F],
+    tokenToToken: CfmmInterpreter[T2tCfmm, F],
     network: ErgoNetwork[F]
   ) extends Execution[F] {
 
@@ -28,9 +28,9 @@ object Execution {
         case Some(pool) =>
           val interpretF =
             op match {
-              case deposit: Deposit => t2tInterpreter.deposit(deposit, pool)
-              case redeem: Redeem   => t2tInterpreter.redeem(redeem, pool)
-              case swap: Swap       => t2tInterpreter.swap(swap, pool)
+              case deposit: Deposit => tokenToToken.deposit(deposit, pool)
+              case redeem: Redeem   => tokenToToken.redeem(redeem, pool)
+              case swap: Swap       => tokenToToken.swap(swap, pool)
             }
           interpretF >>= { case (transaction, nextPool) =>
             network.submitTransaction(transaction) >> pools.put(nextPool)
