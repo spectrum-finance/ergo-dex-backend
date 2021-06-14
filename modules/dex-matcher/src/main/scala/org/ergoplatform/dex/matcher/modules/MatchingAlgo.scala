@@ -2,8 +2,8 @@ package org.ergoplatform.dex.matcher.modules
 
 import cats.Applicative
 import cats.syntax.applicative._
-import org.ergoplatform.dex.domain.models.Order.{Ask, Bid}
-import org.ergoplatform.dex.domain.models.Trade.AnyTrade
+import org.ergoplatform.dex.domain.orderbook.Order.{Ask, Bid}
+import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.domain.syntax.order._
 
 import scala.annotation.tailrec

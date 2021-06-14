@@ -6,7 +6,8 @@ import cats.instances.string._
 import cats.syntax.either._
 import doobie._
 import org.ergoplatform.ErgoLikeTransaction
-import org.ergoplatform.dex.{HexString, SErgoTree}
+import org.ergoplatform.ergo.SErgoTree
+import org.ergoplatform.common.HexString
 import scorex.util.encode.Base16
 import sigmastate.Values.ErgoTree
 import sigmastate.basics.DLogProtocol.ProveDlog

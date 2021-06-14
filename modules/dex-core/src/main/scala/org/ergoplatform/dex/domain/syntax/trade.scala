@@ -1,9 +1,9 @@
 package org.ergoplatform.dex.domain.syntax
 
 import cats.syntax.either._
-import org.ergoplatform.dex.domain.models.OrderType.{Ask, Bid}
-import org.ergoplatform.dex.domain.models.Trade
-import org.ergoplatform.dex.domain.models.Trade.AnyTrade
+import org.ergoplatform.dex.domain.orderbook.OrderType.{Ask, Bid}
+import org.ergoplatform.dex.domain.orderbook.Trade
+import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 
 object trade {
 

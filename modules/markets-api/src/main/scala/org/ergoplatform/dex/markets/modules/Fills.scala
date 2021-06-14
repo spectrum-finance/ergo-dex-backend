@@ -1,22 +1,23 @@
 package org.ergoplatform.dex.markets.modules
 
 import cats.Applicative
-import org.ergoplatform.dex.clients.explorer.models.Transaction
 import org.ergoplatform.dex.markets.models.{Fill, Side}
-import org.ergoplatform.dex.protocol.{constants, ContractType, OrderParams, OrderScripts}
+import org.ergoplatform.dex.protocol.orderbook.{OrderContractFamily, OrderContracts, OrderParams}
+import org.ergoplatform.dex.protocol.constants
+import org.ergoplatform.ergo.models.Transaction
 import tofu.syntax.monadic._
 
-trait Fills[F[_], CT <: ContractType] {
+trait Fills[F[_], CT <: OrderContractFamily] {
 
   def extract(tx: Transaction): F[List[Fill]]
 }
 
 object Fills {
 
-  implicit def instance[F[_]: Applicative, CT <: ContractType](implicit scripts: OrderScripts[CT]): Fills[F, CT] =
+  implicit def instance[F[_]: Applicative, CT <: OrderContractFamily](implicit scripts: OrderContracts[CT]): Fills[F, CT] =
     new Live[F, CT]
 
-  final class Live[F[_]: Applicative, CT <: ContractType](implicit scripts: OrderScripts[CT]) extends Fills[F, CT] {
+  final class Live[F[_]: Applicative, CT <: OrderContractFamily](implicit scripts: OrderContracts[CT]) extends Fills[F, CT] {
 
     def extract(tx: Transaction): F[List[Fill]] = {
       val asksIn     = tx.inputs.filter(in => scripts.isAsk(in.ergoTree))

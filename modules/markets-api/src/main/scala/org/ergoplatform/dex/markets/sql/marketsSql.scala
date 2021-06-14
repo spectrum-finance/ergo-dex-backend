@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.markets.sql
 
-import org.ergoplatform.dex.sql.QuerySet
+import org.ergoplatform.common.sql.QuerySet
 
 object marketsSql extends QuerySet {
 

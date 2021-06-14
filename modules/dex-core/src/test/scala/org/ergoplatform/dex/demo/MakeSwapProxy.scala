@@ -15,6 +15,8 @@ import sigmastate.eval._
 import sigmastate.lang.SigmaCompiler
 import sigmastate.lang.Terms.ValueOps
 
+import java.util
+
 object MakeSwapProxy extends App {
 
   val secret     = ""
@@ -48,15 +50,17 @@ object MakeSwapProxy extends App {
   // Pool input
   val poolIn = new UnsignedInput(ADKey @@ Base16.decode(poolInId).get)
 
-  val poolProp = ErgoTree.fromProposition(sigma.compile(Map.empty, contracts.poolContract).asSigmaProp)
+  val poolProp = ErgoTree.fromProposition(sigma.compile(Map.empty, contracts.pool).asSigmaProp)
   val poolSH   = Blake2b256.hash(poolProp.bytes)
 
   val reservesTErg0 = 1000000000L
   val reservesTUsd0 = 100000000000L
 
   def inputAmount(tokenId: TokenId, output: Long) =
-    if (tokenId == tergId) (reservesTUsd0 * output * 1000 / ((reservesTErg0 - output) * 995)) + 1
-    else (reservesTErg0 * output * 1000 / ((reservesTUsd0 - output) * 995)) + 1
+    if (util.Arrays.equals(tokenId, tergId))
+      (reservesTUsd0 * output * 1000 / ((reservesTErg0 - output) * 995)) + 1
+    else
+      (reservesTErg0 * output * 1000 / ((reservesTUsd0 - output) * 995)) + 1
 
   // Order params
   val tergOut   = 20000L
@@ -81,7 +85,7 @@ object MakeSwapProxy extends App {
     "quoteId"        -> tergId.!@@(Digest32),
     "poolFeeNum"     -> 995L
   )
-  val swapProp = ErgoTree.fromProposition(sigma.compile(swapEnv, contracts.swapContract).asSigmaProp)
+  val swapProp = ErgoTree.fromProposition(sigma.compile(swapEnv, contracts.swap).asSigmaProp)
 
   val swap = new ErgoBoxCandidate(
     SafeMinAmountNErg + dexFeeNErg + minerFeeNErg,

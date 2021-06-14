@@ -3,7 +3,7 @@ package fs2.kafka
 import cats.data.Chain
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.ergoplatform.dex.streaming.Committable
+import org.ergoplatform.common.streaming.Committable
 
 object KafkaCommittable {
 

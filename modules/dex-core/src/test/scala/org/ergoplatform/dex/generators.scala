@@ -4,15 +4,17 @@ import eu.timepit.refined.refineV
 import eu.timepit.refined.string.HexStringSpec
 import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.P2PKAddress
+import org.ergoplatform.common.HexString
+import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexSellerContractParameters}
-import org.ergoplatform.dex.domain.models.{Order, OrderMeta}
-import org.ergoplatform.dex.domain.syntax.ergo._
+import org.ergoplatform.dex.domain.orderbook.{Order, OrderMeta}
+import org.ergoplatform.ergo.syntax._
+import org.ergoplatform.dex.implicits._
+import org.ergoplatform.ergo.{Address, BoxId, TokenId}
 import org.scalacheck.Gen
 import scorex.crypto.hash.Blake2b256
 import scorex.util.encode.Base16
 import sigmastate.basics.DLogProtocol.{DLogProverInput, ProveDlog}
-import org.ergoplatform.dex.implicits._
-import org.ergoplatform.contracts.DexLimitOrderContracts._
 
 object generators {
 
@@ -26,8 +28,8 @@ object generators {
       .map(x => refineV[HexStringSpec](x).right.get)
       .map(HexString.apply)
 
-  def assetIdGen: Gen[AssetId] =
-    hexStringGen map AssetId.apply
+  def assetIdGen: Gen[TokenId] =
+    hexStringGen map TokenId.apply
 
   def boxIdGen: Gen[BoxId] =
     rawHexStringGen map BoxId.apply
@@ -46,7 +48,7 @@ object generators {
   def proveDlogGen: Gen[ProveDlog] =
     Gen.delay(DLogProverInput.random()).map(_.publicImage)
 
-  def orderMetaBuyerGen(boxValue: Long, quoteAssetId: AssetId, price: Long, feePerToken: Long): Gen[OrderMeta] =
+  def orderMetaBuyerGen(boxValue: Long, quoteAssetId: TokenId, price: Long, feePerToken: Long): Gen[OrderMeta] =
     for {
       boxId <- boxIdGen
       ts    <- Gen.choose(1601447470169L, 1603447470169L)
@@ -54,7 +56,7 @@ object generators {
       script = buyerContractInstance(DexBuyerContractParameters(pk, quoteAssetId.toErgo, price, feePerToken))
     } yield OrderMeta(boxId, boxValue, script.ergoTree, pk, ts)
 
-  def orderMetaSellerGen(boxValue: Long, quoteAssetId: AssetId, price: Long, feePerToken: Long): Gen[OrderMeta] =
+  def orderMetaSellerGen(boxValue: Long, quoteAssetId: TokenId, price: Long, feePerToken: Long): Gen[OrderMeta] =
     for {
       boxId <- boxIdGen
       ts    <- Gen.choose(1601447470169L, 1603447470169L)
@@ -63,8 +65,8 @@ object generators {
     } yield OrderMeta(boxId, boxValue, script.ergoTree, pk, ts)
 
   def bidGen(
-    quoteAsset: AssetId,
-    baseAsset: AssetId,
+    quoteAsset: TokenId,
+    baseAsset: TokenId,
     amount: Long,
     price: Long,
     feePerToken: Long
@@ -73,8 +75,8 @@ object generators {
     (meta => Order.mkBid(quoteAsset, baseAsset, amount, price, feePerToken, meta))
 
   def askGen(
-    quoteAsset: AssetId,
-    baseAsset: AssetId,
+    quoteAsset: TokenId,
+    baseAsset: TokenId,
     amount: Long,
     price: Long,
     feePerToken: Long

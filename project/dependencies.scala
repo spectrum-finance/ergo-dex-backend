@@ -11,7 +11,10 @@ object dependencies {
     )
 
   val SttpClient =
-    List("com.softwaremill.sttp.client3" %% "async-http-client-backend-fs2" % SttpVersion)
+    List(
+      "com.softwaremill.sttp.client3" %% "async-http-client-backend-fs2" % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "okhttp-backend" % SttpVersion % Test
+    )
 
   val Tapir = List(
     "com.softwaremill.sttp.tapir" %% "tapir-core"          % TapirVersion,
@@ -71,8 +74,9 @@ object dependencies {
   )
 
   val Ergo: List[ModuleID] = List(
-    "org.ergoplatform" %% "ergo-wallet" % ErgoWalletVersion,
-    "org.ergoplatform" %% "contracts"   % ErgoContractsVersion
+    "org.scorexfoundation" %% "sigma-state" % SigmaStateVersion,
+    "org.ergoplatform"     %% "ergo-wallet" % ErgoWalletVersion,
+    "org.ergoplatform"     %% "contracts"   % ErgoContractsVersion
   )
 
   val Db: List[ModuleID] = List(
@@ -94,9 +98,9 @@ object dependencies {
   )
 
   val Typing: List[ModuleID] = List(
-    "io.estatico" %% "newtype"        % NewtypeVersion,
-    "eu.timepit"  %% "refined"        % RefinedVersion,
-    "eu.timepit"  %% "refined-cats"   % RefinedVersion
+    "io.estatico" %% "newtype"      % NewtypeVersion,
+    "eu.timepit"  %% "refined"      % RefinedVersion,
+    "eu.timepit"  %% "refined-cats" % RefinedVersion
   )
 
   val Enums: List[ModuleID] = List(

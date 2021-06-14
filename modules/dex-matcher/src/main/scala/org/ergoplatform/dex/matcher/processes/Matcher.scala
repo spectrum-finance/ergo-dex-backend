@@ -5,13 +5,13 @@ import cats.syntax.foldable._
 import cats.{Foldable, Functor, Monad}
 import derevo.derive
 import mouse.any._
-import org.ergoplatform.dex.TradeId
-import org.ergoplatform.dex.domain.models.Trade.AnyTrade
+import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
+import org.ergoplatform.dex.domain.orderbook.TradeId
 import org.ergoplatform.dex.matcher.configs.MatcherConfig
 import org.ergoplatform.dex.matcher.services.OrderBook
 import org.ergoplatform.dex.matcher.streaming.StreamingBundle
-import org.ergoplatform.dex.streaming.syntax._
-import org.ergoplatform.dex.streaming.{CommitPolicy, Record}
+import org.ergoplatform.common.streaming.syntax._
+import org.ergoplatform.common.streaming.{CommitPolicy, Record}
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Evals, ParFlatten, Temporal}
