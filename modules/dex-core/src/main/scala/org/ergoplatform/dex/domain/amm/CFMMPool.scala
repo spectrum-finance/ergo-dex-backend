@@ -1,9 +1,13 @@
 package org.ergoplatform.dex.domain.amm
 
+import derevo.circe.{decoder, encoder}
+import derevo.derive
 import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo, Predicted}
 import org.ergoplatform.dex.protocol.amm.constants
+import tofu.logging.derivation.loggable
 
-final case class CfmmPool(
+@derive(encoder, decoder, loggable)
+final case class CFMMPool(
   poolId: PoolId,
   lp: AssetAmount,
   x: AssetAmount,
@@ -14,7 +18,7 @@ final case class CfmmPool(
 
   def supplyLP: Long = constants.cfmm.TotalEmissionLP - lp.value
 
-  def deposit(inX: AssetAmount, inY: AssetAmount, nextBox: BoxInfo): Predicted[CfmmPool] = {
+  def deposit(inX: AssetAmount, inY: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
     val unlocked = math.min(
       inX.value * supplyLP / x.value,
       inY.value * supplyLP / y.value
@@ -22,13 +26,13 @@ final case class CfmmPool(
     Predicted(copy(lp = lp - unlocked, x = x + inX, y = y + inY, box = nextBox))
   }
 
-  def redeem(inLp: AssetAmount, nextBox: BoxInfo): Predicted[CfmmPool] = {
+  def redeem(inLp: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
     val redeemedX = inLp.value * x.value / supplyLP
     val redeemedY = inLp.value * y.value / supplyLP
     Predicted(copy(lp = lp + inLp, x = x - redeemedX, y = y - redeemedY, box = nextBox))
   }
 
-  def swap(in: AssetAmount, nextBox: BoxInfo): Predicted[CfmmPool] = {
+  def swap(in: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
     val (deltaX, deltaY) =
       if (in.id == x.id)
         (in.value, -y.value * in.value * feeNum / (x.value * constants.cfmm.FeeDenominator + in.value * feeNum))

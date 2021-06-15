@@ -6,7 +6,7 @@ import org.ergoplatform.ergo.models.Output
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
-sealed trait CfmmOperation {
+sealed trait CFMMOperationRequest {
   val poolId: PoolId
   val box: Output
 
@@ -14,10 +14,10 @@ sealed trait CfmmOperation {
 }
 
 @derive(encoder, decoder, loggable)
-final case class Deposit(poolId: PoolId, params: DepositParams, box: Output) extends CfmmOperation
+final case class Deposit(poolId: PoolId, params: DepositParams, box: Output) extends CFMMOperationRequest
 
 @derive(encoder, decoder, loggable)
-final case class Redeem(poolId: PoolId, params: RedeemParams, box: Output) extends CfmmOperation
+final case class Redeem(poolId: PoolId, params: RedeemParams, box: Output) extends CFMMOperationRequest
 
 @derive(encoder, decoder, loggable)
-final case class Swap(poolId: PoolId, params: SwapParams, box: Output) extends CfmmOperation
+final case class Swap(poolId: PoolId, params: SwapParams, box: Output) extends CFMMOperationRequest

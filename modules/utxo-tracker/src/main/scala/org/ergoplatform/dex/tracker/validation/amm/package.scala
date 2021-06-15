@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.validation
 
 import cats.{FlatMap, Monad}
 import org.ergoplatform.dex.domain.NetworkContext
-import org.ergoplatform.dex.domain.amm.CfmmOperation
+import org.ergoplatform.dex.domain.amm.CFMMOperationRequest
 import org.ergoplatform.dex.tracker.configs.Fees
 import org.ergoplatform.ergo.ErgoNetwork
 import tofu.higherKind.Embed
@@ -12,18 +12,18 @@ import tofu.syntax.monadic._
 
 package object amm {
 
-  type CfmmRules[F[_]] = CfmmOperation => F[Boolean]
+  type CFMMRules[F[_]] = CFMMOperationRequest => F[Boolean]
 
-  implicit def embed: Embed[CfmmRules] =
-    new Embed[CfmmRules] {
+  implicit def embed: Embed[CFMMRules] =
+    new Embed[CFMMRules] {
 
-      def embed[F[_]: FlatMap](ft: F[CfmmRules[F]]): CfmmRules[F] =
+      def embed[F[_]: FlatMap](ft: F[CFMMRules[F]]): CFMMRules[F] =
         op => ft >>= (rules => rules(op))
     }
 
-  object CfmmRules {
+  object CFMMRules {
 
-    def make[F[_]: Monad: Fees.Has](implicit network: ErgoNetwork[F]): CfmmRules[F] =
+    def make[F[_]: Monad: Fees.Has](implicit network: ErgoNetwork[F]): CFMMRules[F] =
       (
         for {
           conf       <- context

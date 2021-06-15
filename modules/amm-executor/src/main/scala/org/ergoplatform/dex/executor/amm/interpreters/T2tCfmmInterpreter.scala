@@ -9,7 +9,7 @@ import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext, Predicted}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, TooMuchSlippage}
 import org.ergoplatform.dex.executor.amm.repositories.CfmmPools
-import org.ergoplatform.dex.protocol.amm.AmmContractType.T2tCfmm
+import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.dex.protocol.amm.AmmContracts
 import org.ergoplatform.ergo.{BoxId, TokenId}
 import org.ergoplatform.ergo.ErgoNetwork
@@ -25,11 +25,11 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   conf: ExchangeConfig,
   ctx: NetworkContext
 )(implicit
-  contracts: AmmContracts[T2tCfmm],
+  contracts: AmmContracts[T2TCFMM],
   encoder: ErgoAddressEncoder
-) extends CfmmInterpreter[T2tCfmm, F] {
+) extends CfmmInterpreter[T2TCFMM, F] {
 
-  def deposit(deposit: Deposit, pool: CfmmPool): F[(ErgoLikeTransaction, Predicted[CfmmPool])] = {
+  def deposit(deposit: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
     val poolBox0   = pool.box
     val depositBox = deposit.box
     val redeemIn   = new Input(depositBox.boxId.toErgo, ProverResult.empty)
@@ -66,7 +66,7 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     (tx, nextPool).pure
   }
 
-  def redeem(redeem: Redeem, pool: CfmmPool): F[(ErgoLikeTransaction, Predicted[CfmmPool])] = {
+  def redeem(redeem: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
     val poolBox0         = pool.box
     val redeemBox        = redeem.box
     val redeemIn         = new Input(redeemBox.boxId.toErgo, ProverResult.empty)
@@ -106,7 +106,7 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     (tx, nextPool).pure
   }
 
-  def swap(swap: Swap, pool: CfmmPool): F[(ErgoLikeTransaction, Predicted[CfmmPool])] = {
+  def swap(swap: Swap, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
     val outputAmount = pool.outputAmount(swap.params.input)
     if (outputAmount >= swap.params.minOutput) {
       val poolBox0 = pool.box
@@ -152,7 +152,7 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   private val minerFeeProp = Pay2SAddress(ErgoScriptPredef.feeProposition()).script
   private val dexFeeProp   = conf.rewardAddress.toErgoTree
 
-  private def mkPoolTokens(pool: CfmmPool, amountLP: Long, amountX: Long, amountY: Long) =
+  private def mkPoolTokens(pool: CFMMPool, amountLP: Long, amountX: Long, amountY: Long) =
     mkTokens(
       pool.poolId.value -> 1L,
       pool.lp.id        -> amountLP,
@@ -163,7 +163,7 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   private def mkTokens(tokens: (TokenId, Long)*) =
     Colls.fromItems(tokens.map { case (k, v) => k.toErgo -> v }: _*)
 
-  private def mkPoolRegs(pool: CfmmPool) =
+  private def mkPoolRegs(pool: CFMMPool) =
     scala.Predef.Map(
       (R4: NonMandatoryRegisterId) -> IntConstant(pool.feeNum)
     )
@@ -172,15 +172,15 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 object T2tCfmmInterpreter {
 
   def make[F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has](implicit
-    network: ErgoNetwork[F],
-    pools: CfmmPools[F],
-    contracts: AmmContracts[T2tCfmm],
-    encoder: ErgoAddressEncoder
-  ): CfmmInterpreter[T2tCfmm, F] =
+                                                                   network: ErgoNetwork[F],
+                                                                   pools: CfmmPools[F],
+                                                                   contracts: AmmContracts[T2TCFMM],
+                                                                   encoder: ErgoAddressEncoder
+  ): CfmmInterpreter[T2TCFMM, F] =
     (
       for {
         conf       <- context
         networkCtx <- NetworkContext.make
-      } yield new T2tCfmmInterpreter(conf, networkCtx): CfmmInterpreter[T2tCfmm, F]
+      } yield new T2tCfmmInterpreter(conf, networkCtx): CfmmInterpreter[T2TCFMM, F]
     ).embed
 }

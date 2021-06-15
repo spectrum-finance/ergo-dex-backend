@@ -5,7 +5,7 @@ import fs2.Chunk
 import fs2.kafka.serde._
 import monix.eval.Task
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.dex.domain.amm.{CfmmOperation, OperationId}
+import org.ergoplatform.dex.domain.amm.{CFMMOperationRequest, OperationId}
 import org.ergoplatform.dex.executor.amm.config.ConfigBundle
 import org.ergoplatform.dex.executor.amm.context.AppContext
 import org.ergoplatform.dex.executor.amm.processes.Executor
@@ -33,10 +33,10 @@ object App extends EnvApp[AppContext] {
       blocker <- Blocker[InitF]
       configs <- Resource.eval(ConfigBundle.load(configPathOpt))
       ctx = AppContext.init(configs)
-      implicit0(mc: MakeKafkaConsumer[RunF, OperationId, CfmmOperation]) =
-        MakeKafkaConsumer.make[InitF, RunF, OperationId, CfmmOperation]
+      implicit0(mc: MakeKafkaConsumer[RunF, OperationId, CFMMOperationRequest]) =
+        MakeKafkaConsumer.make[InitF, RunF, OperationId, CFMMOperationRequest]
       implicit0(isoKRun: IsoK[RunF, InitF])            = IsoK.byFunK(wr.runContextK(ctx))(wr.liftF)
-      implicit0(consumer: CfmmConsumer[StreamF, RunF]) = Consumer.make[StreamF, RunF, OperationId, CfmmOperation]
+      implicit0(consumer: CfmmConsumer[StreamF, RunF]) = Consumer.make[StreamF, RunF, OperationId, CFMMOperationRequest]
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
       implicit0(client: ErgoNetwork[RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
       executor <- Resource.eval(Executor.make[InitF, StreamF, RunF, Chunk])
