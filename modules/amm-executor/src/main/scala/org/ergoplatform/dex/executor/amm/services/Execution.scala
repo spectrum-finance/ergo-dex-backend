@@ -1,12 +1,12 @@
 package org.ergoplatform.dex.executor.amm.services
 
-import cats.Monad
+import cats.{Functor, Monad}
 import org.ergoplatform.dex.domain.amm.{CFMMOperationRequest, Deposit, Redeem, Swap}
-import org.ergoplatform.dex.executor.amm.interpreters.CfmmInterpreter
-import org.ergoplatform.dex.executor.amm.repositories.CfmmPools
+import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
+import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.ergo.ErgoNetwork
-import tofu.logging.Logging
+import tofu.logging.{Logging, Logs}
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 
@@ -17,10 +17,18 @@ trait Execution[F[_]] {
 
 object Execution {
 
+  def make[I[_]: Functor, F[_]: Monad](implicit
+    pools: CFMMPools[F],
+    tokenToToken: CFMMInterpreter[T2TCFMM, F],
+    network: ErgoNetwork[F],
+    logs: Logs[I, F]
+  ): I[Execution[F]] =
+    logs.forService[Execution[F]].map(implicit l => new Live[F])
+
   final class Live[F[_]: Monad: Logging](implicit
-                                         pools: CfmmPools[F],
-                                         tokenToToken: CfmmInterpreter[T2TCFMM, F],
-                                         network: ErgoNetwork[F]
+    pools: CFMMPools[F],
+    tokenToToken: CFMMInterpreter[T2TCFMM, F],
+    network: ErgoNetwork[F]
   ) extends Execution[F] {
 
     def execute(op: CFMMOperationRequest): F[Unit] =

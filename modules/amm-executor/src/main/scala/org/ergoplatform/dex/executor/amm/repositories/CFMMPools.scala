@@ -5,7 +5,7 @@ import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.ergo.ErgoNetwork
 
-trait CfmmPools[F[_]] {
+trait CFMMPools[F[_]] {
 
   /** Get pool state by pool id.
     */
@@ -16,12 +16,12 @@ trait CfmmPools[F[_]] {
   def put(pool: Predicted[CFMMPool]): F[Unit]
 }
 
-object CfmmPools {
+object CFMMPools {
 
-  def make[F[_]: Monad](implicit network: ErgoNetwork[F]): CfmmPools[F] =
+  def make[F[_]: Monad](implicit network: ErgoNetwork[F]): CFMMPools[F] =
     new Live[F]
 
-  final class Live[F[_]: Monad](implicit network: ErgoNetwork[F]) extends CfmmPools[F] {
+  final class Live[F[_]: Monad](implicit network: ErgoNetwork[F]) extends CFMMPools[F] {
 
     def get(id: PoolId): F[Option[CFMMPool]] = ???
 

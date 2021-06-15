@@ -8,7 +8,7 @@ import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, TooMuchSlippage}
-import org.ergoplatform.dex.executor.amm.repositories.CfmmPools
+import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.dex.protocol.amm.AmmContracts
 import org.ergoplatform.ergo.syntax._
@@ -21,13 +21,13 @@ import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
 
-final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
+final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   conf: ExchangeConfig,
   ctx: NetworkContext
 )(implicit
   contracts: AmmContracts[T2TCFMM],
   encoder: ErgoAddressEncoder
-) extends CfmmInterpreter[T2TCFMM, F] {
+) extends CFMMInterpreter[T2TCFMM, F] {
 
   def deposit(deposit: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
     val poolBox0   = pool.box
@@ -169,18 +169,18 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     )
 }
 
-object T2tCfmmInterpreter {
+object T2TCFMMInterpreter {
 
   def make[F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has](implicit
     network: ErgoNetwork[F],
-    pools: CfmmPools[F],
+    pools: CFMMPools[F],
     contracts: AmmContracts[T2TCFMM],
     encoder: ErgoAddressEncoder
-  ): CfmmInterpreter[T2TCFMM, F] =
+  ): CFMMInterpreter[T2TCFMM, F] =
     (
       for {
         conf       <- context
         networkCtx <- NetworkContext.make
-      } yield new T2tCfmmInterpreter(conf, networkCtx): CfmmInterpreter[T2TCFMM, F]
+      } yield new T2TCFMMInterpreter(conf, networkCtx): CFMMInterpreter[T2TCFMM, F]
     ).embed
 }

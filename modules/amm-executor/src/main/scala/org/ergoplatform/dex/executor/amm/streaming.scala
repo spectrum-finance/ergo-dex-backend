@@ -5,5 +5,5 @@ import org.ergoplatform.common.streaming.Consumer
 
 object streaming {
 
-  type CfmmConsumer[F[_], G[_]] = Consumer[OperationId, CFMMOperationRequest, F, G]
+  type CFMMConsumer[F[_], G[_]] = Consumer[OperationId, CFMMOperationRequest, F, G]
 }

@@ -8,7 +8,7 @@ import tofu.higherKind.Embed
 
 /** Interprets CFMM operations to a transaction
   */
-trait CfmmInterpreter[CT <: CFMMFamily, F[_]] {
+trait CFMMInterpreter[CT <: CFMMFamily, F[_]] {
 
   def deposit(in: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])]
 
@@ -17,10 +17,10 @@ trait CfmmInterpreter[CT <: CFMMFamily, F[_]] {
   def swap(in: Swap, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])]
 }
 
-object CfmmInterpreter {
+object CFMMInterpreter {
 
-  implicit def embed[CT <: CFMMFamily]: Embed[CfmmInterpreter[CT, *[_]]] = {
-    type Rep[F[_]] = CfmmInterpreter[CT, F]
+  implicit def embed[CT <: CFMMFamily]: Embed[CFMMInterpreter[CT, *[_]]] = {
+    type Rep[F[_]] = CFMMInterpreter[CT, F]
     tofu.higherKind.derived.genEmbed[Rep]
   }
 }
