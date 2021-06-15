@@ -4,15 +4,14 @@ import cats.Monad
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext, Predicted}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, TooMuchSlippage}
 import org.ergoplatform.dex.executor.amm.repositories.CfmmPools
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.dex.protocol.amm.AmmContracts
-import org.ergoplatform.ergo.{BoxId, TokenId}
-import org.ergoplatform.ergo.ErgoNetwork
+import org.ergoplatform.ergo.syntax._
+import org.ergoplatform.ergo.{BoxId, ErgoNetwork, TokenId}
 import sigmastate.Values.IntConstant
 import sigmastate.eval._
 import sigmastate.interpreter.ProverResult
@@ -33,11 +32,11 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val poolBox0   = pool.box
     val depositBox = deposit.box
     val redeemIn   = new Input(depositBox.boxId.toErgo, ProverResult.empty)
-    val poolIn     = new Input(poolBox0.boxId.toErgo, ProverResult.empty)
+    val poolIn     = new Input(poolBox0.currentBoxId.toErgo, ProverResult.empty)
     val (inX, inY) = (deposit.params.inX, deposit.params.inY)
     val rewardLP   = pool.rewardLP(inX, inY)
     val poolBox1 = new ErgoBoxCandidate(
-      value          = poolBox0.value,
+      value          = poolBox0.currentBoxValue,
       ergoTree       = contracts.pool,
       creationHeight = ctx.currentHeight,
       additionalTokens = mkPoolTokens(
@@ -61,7 +60,7 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
     val tx          = ErgoLikeTransaction(inputs, outs)
     val nextPoolBox = poolBox1.toBox(tx.id, 0)
-    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
+    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value, poolBox0.lastConfirmedBoxGix)
     val nextPool    = pool.deposit(inX, inY, boxInfo)
     (tx, nextPool).pure
   }
@@ -70,11 +69,11 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val poolBox0         = pool.box
     val redeemBox        = redeem.box
     val redeemIn         = new Input(redeemBox.boxId.toErgo, ProverResult.empty)
-    val poolIn           = new Input(poolBox0.boxId.toErgo, ProverResult.empty)
+    val poolIn           = new Input(poolBox0.currentBoxId.toErgo, ProverResult.empty)
     val inLP             = redeem.params.lp
     val (shareX, shareY) = pool.shares(inLP)
     val poolBox1 = new ErgoBoxCandidate(
-      value          = poolBox0.value,
+      value          = poolBox0.currentBoxValue,
       ergoTree       = contracts.pool,
       creationHeight = ctx.currentHeight,
       additionalTokens = mkPoolTokens(
@@ -101,7 +100,7 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
     val tx          = ErgoLikeTransaction(inputs, outs)
     val nextPoolBox = poolBox1.toBox(tx.id, 0)
-    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
+    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value, poolBox0.lastConfirmedBoxGix)
     val nextPool    = pool.redeem(inLP, boxInfo)
     (tx, nextPool).pure
   }
@@ -112,14 +111,14 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       val poolBox0 = pool.box
       val swapBox  = swap.box
       val swapIn   = new Input(swapBox.boxId.toErgo, ProverResult.empty)
-      val poolIn   = new Input(poolBox0.boxId.toErgo, ProverResult.empty)
+      val poolIn   = new Input(poolBox0.currentBoxId.toErgo, ProverResult.empty)
       val input    = swap.params.input
       val output   = pool.outputAmount(input)
       val (deltaX, deltaY) =
         if (input.id == pool.x.id) input.value -> -output.value
         else -output.value                     -> input.value
       val poolBox1 = new ErgoBoxCandidate(
-        value          = poolBox0.value,
+        value          = poolBox0.currentBoxValue,
         ergoTree       = contracts.pool,
         creationHeight = ctx.currentHeight,
         additionalTokens = mkPoolTokens(
@@ -143,7 +142,7 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       val outs        = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
       val tx          = ErgoLikeTransaction(inputs, outs)
       val nextPoolBox = poolBox1.toBox(tx.id, 0)
-      val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
+      val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value, poolBox0.lastConfirmedBoxGix)
       val nextPool    = pool.swap(input, boxInfo)
       (tx, nextPool).pure
     } else TooMuchSlippage(swap.poolId, swap.params.minOutput, outputAmount).raise
@@ -172,10 +171,10 @@ final class T2tCfmmInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 object T2tCfmmInterpreter {
 
   def make[F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has](implicit
-                                                                   network: ErgoNetwork[F],
-                                                                   pools: CfmmPools[F],
-                                                                   contracts: AmmContracts[T2TCFMM],
-                                                                   encoder: ErgoAddressEncoder
+    network: ErgoNetwork[F],
+    pools: CfmmPools[F],
+    contracts: AmmContracts[T2TCFMM],
+    encoder: ErgoAddressEncoder
   ): CfmmInterpreter[T2TCFMM, F] =
     (
       for {

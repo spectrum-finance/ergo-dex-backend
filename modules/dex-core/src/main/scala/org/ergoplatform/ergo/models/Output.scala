@@ -12,6 +12,7 @@ final case class Output(
   transactionId: TxId,
   value: Long,
   index: Int,
+  globalIndex: Long,
   creationHeight: Int,
   settlementHeight: Int,
   ergoTree: SErgoTree,

@@ -3,7 +3,7 @@ package org.ergoplatform.dex.domain
 import derevo.derive
 import tofu.logging.derivation.loggable
 
-/** Predicted entity state.
-  */
+/** Resolved entity state.
+ */
 @derive(loggable)
-final case class Predicted[T](entity: T)
+final case class Resolved[T](entity: T)

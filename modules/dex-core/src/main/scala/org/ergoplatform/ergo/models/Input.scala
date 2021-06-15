@@ -14,6 +14,7 @@ final case class Input(
   spendingProof: Option[HexString],
   outputTransactionId: TxId,
   outputIndex: Int,
+  outputGlobalIndex: Long,
   ergoTree: SErgoTree,
   address: Address,
   assets: List[BoxAsset]
