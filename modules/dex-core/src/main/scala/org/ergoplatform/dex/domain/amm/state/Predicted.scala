@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.domain
+package org.ergoplatform.dex.domain.amm.state
 
 import derevo.derive
 import tofu.logging.derivation.loggable

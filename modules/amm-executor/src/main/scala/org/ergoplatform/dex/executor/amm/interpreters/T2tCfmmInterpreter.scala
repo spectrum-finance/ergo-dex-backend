@@ -4,7 +4,8 @@ import cats.Monad
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext, Predicted}
+import org.ergoplatform.dex.domain.amm.state.Predicted
+import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, TooMuchSlippage}
 import org.ergoplatform.dex.executor.amm.repositories.CfmmPools

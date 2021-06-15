@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.executor.amm.repositories
 
 import cats.Monad
-import org.ergoplatform.dex.domain.Predicted
+import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.ergo.ErgoNetwork
 

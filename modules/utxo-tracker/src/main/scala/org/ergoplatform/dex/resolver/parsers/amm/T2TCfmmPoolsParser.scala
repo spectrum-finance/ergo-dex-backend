@@ -1,7 +1,8 @@
 package org.ergoplatform.dex.resolver.parsers.amm
 
+import org.ergoplatform.dex.domain.amm.state.OnChain
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
-import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo, OnChain}
+import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.dex.protocol.amm.constants
 import org.ergoplatform.ergo.models.SConstant.IntConstant

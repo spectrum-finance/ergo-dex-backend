@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.resolver.parsers.amm
 
-import org.ergoplatform.dex.domain.OnChain
 import org.ergoplatform.dex.domain.amm.CFMMPool
+import org.ergoplatform.dex.domain.amm.state.OnChain
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMFamily, T2TCFMM}
 import org.ergoplatform.ergo.models.Output
 

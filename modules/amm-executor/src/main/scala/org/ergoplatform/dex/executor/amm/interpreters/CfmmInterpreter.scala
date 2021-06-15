@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.executor.amm.interpreters
 
 import org.ergoplatform.ErgoLikeTransaction
-import org.ergoplatform.dex.domain.Predicted
+import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.amm.{CFMMPool, Deposit, Redeem, Swap}
 import org.ergoplatform.dex.protocol.amm.AMMType.CFMMFamily
 import tofu.higherKind.Embed

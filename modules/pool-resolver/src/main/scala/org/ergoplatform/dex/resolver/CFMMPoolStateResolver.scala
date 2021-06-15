@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.resolver
 
-import org.ergoplatform.dex.domain.{OnChain, Resolved}
 import org.ergoplatform.dex.domain.amm.CFMMPool
+import org.ergoplatform.dex.domain.amm.state.{OnChain, Resolved}
 
 trait CFMMPoolStateResolver[F[_]] {
 

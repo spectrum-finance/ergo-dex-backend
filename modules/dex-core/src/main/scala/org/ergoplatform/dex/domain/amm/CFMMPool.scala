@@ -2,7 +2,8 @@ package org.ergoplatform.dex.domain.amm
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo, Predicted}
+import org.ergoplatform.dex.domain.amm.state.Predicted
+import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}
 import org.ergoplatform.dex.protocol.amm.constants
 import tofu.logging.derivation.loggable
 
