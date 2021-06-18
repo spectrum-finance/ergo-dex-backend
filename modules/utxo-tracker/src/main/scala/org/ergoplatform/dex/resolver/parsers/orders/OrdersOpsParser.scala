@@ -25,29 +25,29 @@ import tofu.{MonadThrow, Raise}
 
 import java.util
 
-trait OrdersOps[CT <: OrderContractFamily, F[_]] {
+trait OrdersOpsParser[CT <: OrderContractFamily, F[_]] {
 
   def parseOrder(output: Output): F[Option[AnyOrder]]
 }
 
-object OrdersOps {
+object OrdersOpsParser {
 
-  implicit def representableK[CT <: OrderContractFamily]: RepresentableK[OrdersOps[CT, *[_]]] = {
-    type Rep[F[_]] = OrdersOps[CT, F]
+  implicit def representableK[CT <: OrderContractFamily]: RepresentableK[OrdersOpsParser[CT, *[_]]] = {
+    type Rep[F[_]] = OrdersOpsParser[CT, F]
     tofu.higherKind.derived.genRepresentableK[Rep]
   }
 
-  implicit def limitOrderInstance[F[_]: Clock: MonadThrow: ProtocolConfig.Has]: OrdersOps[LimitOrders, F] =
+  implicit def limitOrderInstance[F[_]: Clock: MonadThrow: ProtocolConfig.Has]: OrdersOpsParser[LimitOrders, F] =
     context.map { conf =>
       val ser     = ErgoTreeSerializer.default
       val encoder = conf.networkType.addressEncoder
-      new Live[F](ser, encoder): OrdersOps[LimitOrders, F]
+      new Live[F](ser, encoder): OrdersOpsParser[LimitOrders, F]
     }.embed
 
   final private class Live[F[_]: Monad: Clock: Raise[*[_], InvalidOrder]](
     treeSer: ErgoTreeSerializer,
     addressEncoder: ErgoAddressEncoder
-  ) extends OrdersOps[LimitOrders, F] {
+  ) extends OrdersOpsParser[LimitOrders, F] {
 
     implicit val e: ErgoAddressEncoder = addressEncoder
 

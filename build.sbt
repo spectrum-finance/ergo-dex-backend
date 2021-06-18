@@ -1,6 +1,8 @@
+import dependencies._
+
 lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
-  scalaVersion := "2.12.13",
+  scalaVersion := "2.12.14",
   organization := "org.ergoplatform",
   version := "0.2.0",
   resolvers += Resolver.sonatypeRepo("public"),
@@ -41,12 +43,28 @@ lazy val dexBackend = project
   .withId("ergo-dex-backend")
   .settings(commonSettings)
   .settings(moduleName := "ergo-dex-backend", name := "ErgoDexBackend")
-  .aggregate(core, utxoTracker, poolResolver, matcher, ordersExecutor, ammExecutor, marketsApi)
+  .aggregate(core, utxoTracker, matcher, ordersExecutor, ammExecutor, marketsApi)
 
 lazy val core = utils
   .mkModule("dex-core", "DexCore")
   .settings(commonSettings)
-  .settings(libraryDependencies ++= dependencies.core)
+  .settings(
+    libraryDependencies ++=
+      Ergo ++
+      Cats ++
+      Tofu ++
+      Derevo ++
+      Fs2 ++
+      JawnFs2 ++
+      Circe ++
+      Typing ++
+      Config ++
+      Kafka ++
+      Db ++
+      SttpCore ++
+      SttpClient ++
+      Enums
+  )
 
 lazy val utxoTracker = utils
   .mkModule("utxo-tracker", "UtxoTracker")
@@ -55,18 +73,7 @@ lazy val utxoTracker = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.tracker.App"
     ),
-    libraryDependencies ++= dependencies.tracker
-  )
-  .dependsOn(core % allConfigDependency)
-
-lazy val poolResolver = utils
-  .mkModule("pool-resolver", "PoolResolver")
-  .settings(commonSettings)
-  .settings(
-    mainClass in assembly := Some(
-      "org.ergoplatform.dex.resolver.App"
-    ),
-    libraryDependencies ++= dependencies.tracker
+    libraryDependencies ++= Monix
   )
   .dependsOn(core % allConfigDependency)
 
@@ -77,7 +84,7 @@ lazy val matcher = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.matcher.App"
     ),
-    libraryDependencies ++= dependencies.matcher
+    libraryDependencies ++= Monix
   )
   .dependsOn(core % allConfigDependency)
 
@@ -88,7 +95,7 @@ lazy val ordersExecutor = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.executor.orders.App"
     ),
-    libraryDependencies ++= dependencies.executor
+    libraryDependencies ++= Monix ++ SttpClient
   )
   .dependsOn(core % allConfigDependency)
 
@@ -99,7 +106,7 @@ lazy val ammExecutor = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.executor.amm.App"
     ),
-    libraryDependencies ++= dependencies.executor
+    libraryDependencies ++= Monix ++ SttpClient ++ Redis4Cats
   )
   .dependsOn(core % allConfigDependency)
 
@@ -110,6 +117,6 @@ lazy val marketsApi = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.markets.App"
     ),
-    libraryDependencies ++= dependencies.api
+    libraryDependencies ++= Monix ++ Tapir
   )
   .dependsOn(core % allConfigDependency)

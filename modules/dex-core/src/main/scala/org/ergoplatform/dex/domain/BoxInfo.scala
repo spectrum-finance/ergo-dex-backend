@@ -7,7 +7,7 @@ import org.ergoplatform.ergo.models.Output
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
-final case class BoxInfo(currentBoxId: BoxId, currentBoxValue: Long, lastConfirmedBoxGix: Long)
+final case class BoxInfo(boxId: BoxId, value: Long, lastConfirmedBoxGix: Long)
 
 object BoxInfo {
   def fromBox(box: Output): BoxInfo =

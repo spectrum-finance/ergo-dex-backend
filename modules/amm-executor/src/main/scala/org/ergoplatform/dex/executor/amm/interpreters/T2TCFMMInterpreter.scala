@@ -33,11 +33,11 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val poolBox0   = pool.box
     val depositBox = deposit.box
     val redeemIn   = new Input(depositBox.boxId.toErgo, ProverResult.empty)
-    val poolIn     = new Input(poolBox0.currentBoxId.toErgo, ProverResult.empty)
+    val poolIn     = new Input(poolBox0.boxId.toErgo, ProverResult.empty)
     val (inX, inY) = (deposit.params.inX, deposit.params.inY)
     val rewardLP   = pool.rewardLP(inX, inY)
     val poolBox1 = new ErgoBoxCandidate(
-      value          = poolBox0.currentBoxValue,
+      value          = poolBox0.value,
       ergoTree       = contracts.pool,
       creationHeight = ctx.currentHeight,
       additionalTokens = mkPoolTokens(
@@ -70,11 +70,11 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val poolBox0         = pool.box
     val redeemBox        = redeem.box
     val redeemIn         = new Input(redeemBox.boxId.toErgo, ProverResult.empty)
-    val poolIn           = new Input(poolBox0.currentBoxId.toErgo, ProverResult.empty)
+    val poolIn           = new Input(poolBox0.boxId.toErgo, ProverResult.empty)
     val inLP             = redeem.params.lp
     val (shareX, shareY) = pool.shares(inLP)
     val poolBox1 = new ErgoBoxCandidate(
-      value          = poolBox0.currentBoxValue,
+      value          = poolBox0.value,
       ergoTree       = contracts.pool,
       creationHeight = ctx.currentHeight,
       additionalTokens = mkPoolTokens(
@@ -112,14 +112,14 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       val poolBox0 = pool.box
       val swapBox  = swap.box
       val swapIn   = new Input(swapBox.boxId.toErgo, ProverResult.empty)
-      val poolIn   = new Input(poolBox0.currentBoxId.toErgo, ProverResult.empty)
+      val poolIn   = new Input(poolBox0.boxId.toErgo, ProverResult.empty)
       val input    = swap.params.input
       val output   = pool.outputAmount(input)
       val (deltaX, deltaY) =
         if (input.id == pool.x.id) input.value -> -output.value
         else -output.value                     -> input.value
       val poolBox1 = new ErgoBoxCandidate(
-        value          = poolBox0.currentBoxValue,
+        value          = poolBox0.value,
         ergoTree       = contracts.pool,
         creationHeight = ctx.currentHeight,
         additionalTokens = mkPoolTokens(
