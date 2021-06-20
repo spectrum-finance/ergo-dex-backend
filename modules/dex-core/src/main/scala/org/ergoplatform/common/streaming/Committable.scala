@@ -12,7 +12,9 @@ trait Committable[K, V, O, F[_]] {
 
   def offset: O
 
-  def commit: O => F[Unit]
+  def commit1: O => F[Unit]
 
-  def batchCommit: Chain[O] => F[Unit]
+  def commitBatch: Chain[O] => F[Unit]
+
+  final def commit: F[Unit] = commit1(offset)
 }

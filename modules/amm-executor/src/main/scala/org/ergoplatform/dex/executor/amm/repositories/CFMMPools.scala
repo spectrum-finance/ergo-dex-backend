@@ -1,11 +1,22 @@
 package org.ergoplatform.dex.executor.amm.repositories
 
 import cats.Monad
-import dev.profunktor.redis4cats.RedisCommands
+import cats.syntax.either._
+import derevo.derive
 import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
-import org.ergoplatform.ergo.ErgoNetwork
+import org.ergoplatform.dex.executor.amm.config.ResolverConfig
+import org.ergoplatform.ergo.errors.ResponseError
+import sttp.client3._
+import sttp.client3.circe.asJson
+import sttp.model.StatusCode
+import tofu.higherKind.derived.embed
+import tofu.syntax.context._
+import tofu.syntax.embed._
+import tofu.syntax.monadic._
+import tofu.syntax.raise._
 
+@derive(embed)
 trait CFMMPools[F[_]] {
 
   /** Get pool state by pool id.
@@ -19,25 +30,31 @@ trait CFMMPools[F[_]] {
 
 object CFMMPools {
 
-  def make[F[_]: Monad](implicit network: ErgoNetwork[F]): CFMMPools[F] =
-    new Live[F]
+  def make[F[_]: Monad: ResponseError.Raise: ResolverConfig.Has](implicit
+    backend: SttpBackend[F, Any]
+  ): CFMMPools[F] =
+    (context map (conf => new Live[F](conf): CFMMPools[F])).embed
 
-  final class Live[F[_]: Monad](implicit
-    network: ErgoNetwork[F],
-    redis: RedisCommands[F, String, String]
+  final class Live[F[_]: Monad: ResponseError.Raise](conf: ResolverConfig)(implicit
+    backend: SttpBackend[F, Any]
   ) extends CFMMPools[F] {
 
-    /** predicted:poolId:boxId -> pool
-      * onchain:poolId:boxId -> pool
-     *
-     * 1. Get(onchain:poolId:last) 2. Get(predicted:poolId:last)
-     * -> (A. [2] is based on [1] => Use [2]),
-     *    (B. [2] is behind [1]
-     *      => (B.1. [1] belongs to [2] chain        => Update [2]; Use [2])
-     *         (B.2. [1] doesn't belong to [2] chain => Use [1] ))
-      */
-    def get(id: PoolId): F[Option[CFMMPool]] = ???
+    private val basePrefix = "/resolve/cfmm"
 
-    def put(pool: Predicted[CFMMPool]): F[Unit] = ???
+    def get(id: PoolId): F[Option[CFMMPool]] =
+      basicRequest
+        .get(conf.uri.withWholePath(s"$basePrefix/$id"))
+        .response(asJson[CFMMPool])
+        .send(backend)
+        .flatMap { r =>
+          if (r.code == StatusCode.NotFound) Option.empty[CFMMPool].pure
+          else r.body.leftMap(e => ResponseError(e.getMessage)).map(Option(_)).toRaise[F]
+        }
+
+    def put(pool: Predicted[CFMMPool]): F[Unit] =
+      basicRequest
+        .post(conf.uri.withWholePath(basePrefix))
+        .send(backend)
+        .void
   }
 }

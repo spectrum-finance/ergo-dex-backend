@@ -43,7 +43,7 @@ lazy val dexBackend = project
   .withId("ergo-dex-backend")
   .settings(commonSettings)
   .settings(moduleName := "ergo-dex-backend", name := "ErgoDexBackend")
-  .aggregate(core, utxoTracker, matcher, ordersExecutor, ammExecutor, marketsApi)
+  .aggregate(core, utxoTracker, matcher, ordersExecutor, ammExecutor, poolResolver, marketsApi)
 
 lazy val core = utils
   .mkModule("dex-core", "DexCore")
@@ -63,6 +63,7 @@ lazy val core = utils
       Db ++
       SttpCore ++
       SttpClient ++
+      TapirCore ++
       Enums
   )
 
@@ -106,7 +107,18 @@ lazy val ammExecutor = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.executor.amm.App"
     ),
-    libraryDependencies ++= Monix ++ SttpClient ++ Redis4Cats
+    libraryDependencies ++= Monix ++ SttpClient
+  )
+  .dependsOn(core % allConfigDependency)
+
+lazy val poolResolver = utils
+  .mkModule("pool-resolver", "PoolResolver")
+  .settings(commonSettings)
+  .settings(
+    mainClass in assembly := Some(
+      "org.ergoplatform.dex.resolver.App"
+    ),
+    libraryDependencies ++= Monix ++ Tapir
   )
   .dependsOn(core % allConfigDependency)
 

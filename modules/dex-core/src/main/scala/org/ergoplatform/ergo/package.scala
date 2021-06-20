@@ -6,11 +6,10 @@ import cats.instances.string._
 import cats.syntax.either._
 import cats.syntax.functor._
 import cats.{Applicative, Show}
-import derevo.derive
 import doobie._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{W, refineV}
+import eu.timepit.refined.{refineV, W}
 import fs2.kafka.RecordDeserializer
 import fs2.kafka.serde._
 import io.circe.refined._
@@ -23,9 +22,9 @@ import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import scorex.crypto.hash.Sha256
 import scorex.util.encode.Base16
+import sttp.tapir.{Codec, Schema, Validator}
 import tofu.Raise
 import tofu.logging.Loggable
-import tofu.logging.derivation.loggable
 import tofu.syntax.raise._
 
 package object ergo {
@@ -84,6 +83,11 @@ package object ergo {
     implicit val encoder: Encoder[BoxId] = deriving
     implicit val decoder: Decoder[BoxId] = deriving
 
+    implicit def schema: Schema[BoxId] =
+      Schema.schemaForString.description("Box ID").asInstanceOf[Schema[BoxId]]
+
+    implicit def validator: Validator[BoxId] = Validator.pass
+
     implicit val get: Get[BoxId] = deriving
     implicit val put: Put[BoxId] = deriving
 
@@ -105,6 +109,14 @@ package object ergo {
 
     implicit val put: Put[TokenId] =
       Put[String].contramap[TokenId](_.unwrapped)
+
+    implicit def plainCodec: Codec.PlainCodec[TokenId] = deriving
+
+    implicit def schema: Schema[TokenId] =
+      Schema.schemaForString.description("Token ID").asInstanceOf[Schema[TokenId]]
+
+    implicit def validator: Validator[TokenId] =
+      implicitly[Validator[HexString]].contramap[TokenId](_.value)
 
     implicit val show: Show[TokenId]         = _.unwrapped
     implicit val loggable: Loggable[TokenId] = Loggable.show

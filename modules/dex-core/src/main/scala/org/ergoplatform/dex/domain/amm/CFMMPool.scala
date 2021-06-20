@@ -5,6 +5,7 @@ import derevo.derive
 import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}
 import org.ergoplatform.dex.protocol.amm.constants
+import sttp.tapir.{Schema, Validator}
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
@@ -62,4 +63,9 @@ final case class CFMMPool(
       )
     if (input.id == x.id) out(x, y) else out(y, x)
   }
+}
+
+object CFMMPool {
+  implicit val schema: Schema[CFMMPool]       = Schema.derived[CFMMPool]
+  implicit val validator: Validator[CFMMPool] = schema.validator
 }
