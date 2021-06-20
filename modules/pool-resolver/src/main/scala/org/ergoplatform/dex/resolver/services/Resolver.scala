@@ -46,7 +46,7 @@ object Resolver {
                   case (Some(Confirmed(confirmed)), None) =>
                     debug"No predictions found for Pool{id='$id'}" as Some(confirmed)
                   case _ =>
-                    None.pure
+                    warn"Got resolve request for an unknown Pool{id='$id'}" as None
                 }
       } yield pool
   }
