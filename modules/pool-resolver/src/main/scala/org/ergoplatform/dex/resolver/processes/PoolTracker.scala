@@ -1,9 +1,9 @@
 package org.ergoplatform.dex.resolver.processes
 
-import cats.{Foldable, Functor, Monad}
-import org.ergoplatform.common.streaming.syntax._
+import cats.{Functor, Monad}
 import org.ergoplatform.common.streaming.Consumer
-import org.ergoplatform.dex.domain.amm.state.OnChain
+import org.ergoplatform.common.streaming.syntax._
+import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.resolver.repositories.Pools
 import tofu.streams.Evals
@@ -16,12 +16,19 @@ trait PoolTracker[F[_]] {
 
 object PoolTracker {
 
+  def make[
+    F[_]: Monad: Evals[*[_], G],
+    G[_]: Functor
+  ](implicit
+    consumer: Consumer[PoolId, Confirmed[CFMMPool], F, G],
+    pools: Pools[G]
+  ): PoolTracker[F] = new Live[F, G]
+
   final class Live[
     F[_]: Monad: Evals[*[_], G],
-    G[_]: Functor,
-    C[_]: Foldable
+    G[_]: Functor
   ](implicit
-    consumer: Consumer[PoolId, OnChain[CFMMPool], F, G],
+    consumer: Consumer[PoolId, Confirmed[CFMMPool], F, G],
     pools: Pools[G]
   ) extends PoolTracker[F] {
 

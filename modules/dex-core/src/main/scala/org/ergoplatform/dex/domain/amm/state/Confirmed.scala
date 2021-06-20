@@ -4,7 +4,7 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import tofu.logging.derivation.loggable
 
-/** On-chain entity state.
+/** Confirmed on-chain entity state.
   */
 @derive(loggable, encoder, decoder)
-final case class OnChain[T](onChain: T)
+final case class Confirmed[T](confirmed: T)

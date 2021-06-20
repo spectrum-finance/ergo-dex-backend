@@ -18,7 +18,7 @@ object versions {
   val DoobieVersion      = "0.10.0"
   val FlywayVersion      = "5.1.1"
   val MonixVersion       = "3.3.0"
-  val MonocleVersion     = "2.0.0"
+  val MonocleVersion     = "2.0.3"
   val TofuVersion        = "0.10.2"
   val DerevoVersion      = "0.12.3"
   val Redis4CatsVersion  = "0.13.1"

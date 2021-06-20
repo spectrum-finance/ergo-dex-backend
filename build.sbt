@@ -64,6 +64,7 @@ lazy val core = utils
       SttpCore ++
       SttpClient ++
       TapirCore ++
+      Monocle ++
       Enums
   )
 
