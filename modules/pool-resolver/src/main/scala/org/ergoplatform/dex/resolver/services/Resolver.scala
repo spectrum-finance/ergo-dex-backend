@@ -14,6 +14,10 @@ trait Resolver[F[_]] {
   /** Get pool state by pool id.
     */
   def resolve(id: PoolId): F[Option[CFMMPool]]
+
+  /** Persist predicted pool.
+    */
+  def put(pool: Predicted[CFMMPool]): F[Unit]
 }
 
 object Resolver {
@@ -49,5 +53,9 @@ object Resolver {
                     warn"Got resolve request for an unknown Pool{id='$id'}" as None
                 }
       } yield pool
+
+    def put(pool: Predicted[CFMMPool]): F[Unit] =
+      debug"New prediction for Pool{id='${pool.predicted.poolId}'}, $pool" >>
+      pools.put(pool)
   }
 }

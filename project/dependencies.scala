@@ -16,14 +16,13 @@ object dependencies {
       "com.softwaremill.sttp.client3" %% "okhttp-backend"                    % SttpVersion % Test
     )
 
-  val TapirCore = List(
-    "com.softwaremill.sttp.tapir" %% "tapir-core"          % TapirVersion
+  val Tapir = List(
+    "com.softwaremill.sttp.tapir" %% "tapir-core"       % TapirVersion,
+    "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % TapirVersion
   )
 
-  val Tapir = List(
-    "com.softwaremill.sttp.tapir" %% "tapir-core"          % TapirVersion,
-    "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % TapirVersion,
-    "com.softwaremill.sttp.tapir" %% "tapir-json-circe"    % TapirVersion
+  val TapirHttp4s = List(
+    "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % TapirVersion
   )
 
   val Circe: List[ModuleID] =
