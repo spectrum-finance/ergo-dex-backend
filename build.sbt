@@ -64,6 +64,7 @@ lazy val core = utils
       SttpCore ++
       SttpClient ++
       Tapir ++
+      TapirHttp4s ++
       Monocle ++
       Enums
   )
@@ -119,7 +120,7 @@ lazy val poolResolver = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.resolver.App"
     ),
-    libraryDependencies ++= Monix ++ TapirHttp4s
+    libraryDependencies ++= Monix
   )
   .dependsOn(core % allConfigDependency)
 

@@ -10,10 +10,10 @@ package object http {
 
   val baseEndpoint: Endpoint[Unit, HttpError, Unit, Any] = endpoint.errorOut(
     oneOf[HttpError](
-      oneOfMapping(StatusCode.NotFound, jsonBody[NotFound].description("not found")),
-      oneOfMapping(StatusCode.Unauthorized, jsonBody[Unauthorized].description("unauthorized")),
-      oneOfMapping(StatusCode.NoContent, emptyOutputAs(NoContent)),
-      oneOfDefaultMapping(jsonBody[Unknown].description("unknown"))
+      oneOfMapping(StatusCode.NotFound, jsonBody[HttpError.NotFound].description("not found")),
+      oneOfMapping(StatusCode.Unauthorized, jsonBody[HttpError.Unauthorized].description("unauthorized")),
+      oneOfMapping(StatusCode.NoContent, emptyOutputAs(HttpError.NoContent)),
+      oneOfDefaultMapping(jsonBody[HttpError.Unknown].description("unknown"))
     )
   )
 }
