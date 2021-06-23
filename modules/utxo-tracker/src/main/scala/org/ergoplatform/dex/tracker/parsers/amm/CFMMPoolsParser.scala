@@ -11,5 +11,5 @@ trait CFMMPoolsParser[CF <: CFMMFamily] {
 }
 
 object CFMMPoolsParser {
-  implicit val t2tCfmmPoolParser: CFMMPoolsParser[T2TCFMM] = T2TCfmmPoolsParser
+  implicit val t2tCfmmPoolParser: CFMMPoolsParser[T2TCFMM] = T2TCFMMPoolsParser
 }

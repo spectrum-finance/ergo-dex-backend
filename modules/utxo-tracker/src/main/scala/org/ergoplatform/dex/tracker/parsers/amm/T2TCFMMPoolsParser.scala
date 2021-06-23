@@ -8,7 +8,7 @@ import org.ergoplatform.dex.protocol.amm.constants
 import org.ergoplatform.ergo.models.SConstant.IntConstant
 import org.ergoplatform.ergo.models.{Output, RegisterId}
 
-object T2TCfmmPoolsParser extends CFMMPoolsParser[T2TCFMM] {
+object T2TCFMMPoolsParser extends CFMMPoolsParser[T2TCFMM] {
 
   def pool(box: Output): Option[Confirmed[CFMMPool]] =
     for {

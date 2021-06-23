@@ -18,5 +18,5 @@ trait AMMOpsParser[CT <: CFMMFamily] {
 object AMMOpsParser {
 
   implicit def t2tCfmmOps(implicit ts: ContractTemplates[T2TCFMM], e: ErgoAddressEncoder): AMMOpsParser[T2TCFMM] =
-    new T2TCfmmOpsParser()
+    new T2TCFMMOpsParser()
 }

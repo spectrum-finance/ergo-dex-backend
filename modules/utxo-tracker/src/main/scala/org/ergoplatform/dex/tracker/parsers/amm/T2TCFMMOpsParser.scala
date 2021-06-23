@@ -10,9 +10,9 @@ import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{Address, ErgoTreeTemplate, TokenId}
 import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 
-final class T2TCfmmOpsParser(implicit
-                             templates: ContractTemplates[T2TCFMM],
-                             e: ErgoAddressEncoder
+final class T2TCFMMOpsParser(implicit
+  templates: ContractTemplates[T2TCFMM],
+  e: ErgoAddressEncoder
 ) extends AMMOpsParser[T2TCFMM] {
 
   def deposit(box: Output): Option[Deposit] = {
