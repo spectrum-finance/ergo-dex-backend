@@ -37,7 +37,7 @@ object Resolver {
                   case (Some(Confirmed(confirmed)), Some(pps @ Predicted(predicted))) =>
                     val upToDate = confirmed.box.lastConfirmedBoxGix <= predicted.box.lastConfirmedBoxGix
                     for {
-                      consistentChain <- pools.existsPredicted(confirmed.poolId)
+                      consistentChain <- pools.existsPredicted(confirmed.box.boxId)
                       pessimistic =
                         if (consistentChain) {
                           val updatedPool =

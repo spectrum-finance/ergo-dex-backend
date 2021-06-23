@@ -6,6 +6,7 @@ import io.circe.Json
 import io.circe.syntax._
 import org.ergoplatform.dex.domain.amm.state.{Confirmed, Predicted}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
+import org.ergoplatform.ergo.BoxId
 import tofu.concurrent.MakeRef
 import tofu.syntax.monadic._
 
@@ -29,7 +30,7 @@ trait Pools[F[_]] {
 
   /** Check whether a pool state prediction with the given `id` exists.
     */
-  def existsPredicted(id: PoolId): F[Boolean]
+  def existsPredicted(id: BoxId): F[Boolean]
 }
 
 object Pools {
@@ -37,7 +38,7 @@ object Pools {
   def make[I[_]: Functor, F[_]: Functor](implicit makeRef: MakeRef[I, F]): I[Pools[F]] =
     makeRef.refOf(Map.empty[String, Json]).map(store => new InMemory[F](store))
 
-  private def PredictedKey(id: PoolId) = s"predicted:$id"
+  private def PredictedKey(id: BoxId) = s"predicted:$id"
   private def LastPredictedKey(id: PoolId) = s"predicted:last:$id"
   private def LastConfirmedKey(id: PoolId) = s"confirmed:last:$id"
 
@@ -55,7 +56,7 @@ object Pools {
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
       store.update(_.updated(LastConfirmedKey(pool.confirmed.poolId), pool.asJson))
 
-    def existsPredicted(id: PoolId): F[Boolean] =
+    def existsPredicted(id: BoxId): F[Boolean] =
       store.get.map(_.contains(PredictedKey(id)))
   }
 }

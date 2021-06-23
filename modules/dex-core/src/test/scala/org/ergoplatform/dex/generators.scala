@@ -7,9 +7,11 @@ import org.ergoplatform.P2PKAddress
 import org.ergoplatform.common.HexString
 import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexSellerContractParameters}
+import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.domain.orderbook.{Order, OrderMeta}
-import org.ergoplatform.ergo.syntax._
+import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}
 import org.ergoplatform.dex.implicits._
+import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{Address, BoxId, TokenId}
 import org.scalacheck.Gen
 import scorex.crypto.hash.Blake2b256
@@ -28,7 +30,7 @@ object generators {
       .map(x => refineV[HexStringSpec](x).right.get)
       .map(HexString.apply)
 
-  def assetIdGen: Gen[TokenId] =
+  def tokenIdGen: Gen[TokenId] =
     hexStringGen map TokenId.apply
 
   def boxIdGen: Gen[BoxId] =
@@ -89,4 +91,45 @@ object generators {
 
   def feeGen: Gen[Long] =
     Gen.chooseNum(1000L, 1000000000L)
+
+  def assetAmountGen(value: Long): Gen[AssetAmount] =
+    for {
+      id     <- tokenIdGen
+      ticker <- Gen.alphaNumStr.map(_.take(3).map(_.toUpper))
+    } yield AssetAmount(id, value, Some(ticker))
+
+  def assetAmountGen: Gen[AssetAmount] =
+    Gen.posNum[Long].flatMap(assetAmountGen)
+
+  def cfmmPoolGen(gix: Long, reservesX: Long, reservesY: Long): Gen[CFMMPool] =
+    for {
+      poolId <- hexStringGen.map(PoolId.fromHex)
+      lp     <- assetAmountGen
+      x      <- assetAmountGen(reservesX)
+      y      <- assetAmountGen(reservesY)
+      feeNum <- Gen.const(995)
+      boxId  <- boxIdGen
+      box = BoxInfo(boxId, 1000000, gix)
+    } yield CFMMPool(poolId, lp, x, y, feeNum, box)
+
+  def cfmmPoolGen(gix: Long): Gen[CFMMPool] =
+    for {
+      x    <- Gen.posNum[Long]
+      y    <- Gen.posNum[Long]
+      pool <- cfmmPoolGen(gix, x, y)
+    } yield pool
+
+  def cfmmPoolGen: Gen[CFMMPool] =
+    for {
+      gix  <- Gen.posNum[Int].map(_.toLong)
+      x    <- Gen.posNum[Long]
+      y    <- Gen.posNum[Long]
+      pool <- cfmmPoolGen(gix, x, y)
+    } yield pool
+
+  def cfmmPoolPredictionsGen(len: Int): Gen[List[CFMMPool]] =
+    for {
+      root  <- cfmmPoolGen
+      pools <- Gen.listOfN(len, cfmmPoolGen(root.box.lastConfirmedBoxGix)).map(_.map(_.copy(poolId = root.poolId)))
+    } yield root :: pools
 }

@@ -15,8 +15,8 @@ class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
   property("1 to 1 match, full") {
     val gen =
       for {
-        assetX      <- assetIdGen
-        assetY      <- assetIdGen
+        assetX      <- tokenIdGen
+        assetY      <- tokenIdGen
         amount      <- Gen.posNum[Long]
         price       <- priceGen
         feePerToken <- feeGen
@@ -39,8 +39,8 @@ class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
   property("1 to 1 match, partial") {
     val gen =
       for {
-        assetX    <- assetIdGen
-        assetY    <- assetIdGen
+        assetX    <- tokenIdGen
+        assetY    <- tokenIdGen
         bidAmount <- Gen.posNum[Long]
         delta     <- Gen.posNum[Long]
         askAmount = bidAmount + delta
@@ -66,8 +66,8 @@ class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
   property("1 to many match, full") {
     val gen =
       for {
-        assetX      <- assetIdGen
-        assetY      <- assetIdGen
+        assetX      <- tokenIdGen
+        assetY      <- tokenIdGen
         askAmount   <- Gen.chooseNum(1000L, 10000000L)
         bidAmount   <- Gen.chooseNum(100L, 900L)
         price       <- priceGen
@@ -92,8 +92,8 @@ class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
   property("1 to many match, partial, one overlaps many") {
     val gen =
       for {
-        assetX      <- assetIdGen
-        assetY      <- assetIdGen
+        assetX      <- tokenIdGen
+        assetY      <- tokenIdGen
         askAmount   <- Gen.chooseNum(4000L, 10000000L)
         bidAmount0  <- Gen.chooseNum(1L, 1000L)
         bidAmount1  <- Gen.chooseNum(1L, 1000L)
@@ -121,8 +121,8 @@ class MatchingAlgoSpec extends AnyPropSpec with should.Matchers with ScalaCheckP
   property("1 to many match, partial, many overlaps one") {
     val gen =
       for {
-        assetX      <- assetIdGen
-        assetY      <- assetIdGen
+        assetX      <- tokenIdGen
+        assetY      <- tokenIdGen
         askAmount   <- Gen.const(1000L)
         bidAmount0  <- Gen.const(500L)
         bidAmount1  <- Gen.const(600L)

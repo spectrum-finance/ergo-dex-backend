@@ -6,6 +6,7 @@ import fs2.kafka.serde.{deserializerByDecoder, serializerByEncoder}
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
+import org.ergoplatform.common.HexString
 import org.ergoplatform.ergo.{BoxId, TokenId}
 import sttp.tapir.{Codec, Schema, Validator}
 import tofu.logging.Loggable
@@ -36,6 +37,8 @@ package object amm {
 
     def fromBytes(bytes: Array[Byte]): PoolId =
       PoolId(TokenId.fromBytes(bytes))
+
+    def fromHex(s: HexString): PoolId = PoolId(TokenId(s))
   }
 
   @newtype case class OperationId(value: String)
