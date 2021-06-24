@@ -38,7 +38,7 @@ object Pools {
   def make[I[_]: Functor, F[_]: Functor](implicit makeRef: MakeRef[I, F]): I[Pools[F]] =
     makeRef.refOf(Map.empty[String, Json]).map(store => new InMemory[F](store))
 
-  private def PredictedKey(id: BoxId) = s"predicted:$id"
+  private def PredictedKey(id: BoxId)      = s"predicted:$id"
   private def LastPredictedKey(id: PoolId) = s"predicted:last:$id"
   private def LastConfirmedKey(id: PoolId) = s"confirmed:last:$id"
 
@@ -51,7 +51,10 @@ object Pools {
       store.get.map(_.get(LastConfirmedKey(id)) >>= (_.as[Confirmed[CFMMPool]].toOption))
 
     def put(pool: Predicted[CFMMPool]): F[Unit] =
-      store.update(_.updated(LastPredictedKey(pool.predicted.poolId), pool.asJson))
+      store.update {
+        _.updated(LastPredictedKey(pool.predicted.poolId), pool.asJson)
+          .updated(PredictedKey(pool.predicted.box.boxId), Json.Null)
+      }
 
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
       store.update(_.updated(LastConfirmedKey(pool.confirmed.poolId), pool.asJson))

@@ -3,6 +3,7 @@ package org.ergoplatform.dex.resolver.services
 import cats.effect.IO
 import cats.instances.list._
 import cats.syntax.foldable._
+import monocle.macros.syntax.lens._
 import org.ergoplatform.dex.domain.amm.state.{Confirmed, Predicted}
 import org.ergoplatform.dex.generators._
 import org.ergoplatform.dex.resolver.repositories.Pools
@@ -47,6 +48,45 @@ class ResolverSpec extends AnyPropSpec with should.Matchers with ScalaCheckPrope
       }
       val testResult = testResultF.unsafeRunSync()
       testResult shouldBe Some(last)
+    }
+  }
+
+  property("Predictions chain resolving (blockchain view diverging)") {
+    forAll(cfmmPoolPredictionsGen(10), boxIdGen) { case (predictions, divergingBoxId) =>
+      whenever(predictions.nonEmpty) {
+        val root = predictions.head
+          .lens(_.box.boxId)
+          .set(divergingBoxId)
+          .lens(_.box.lastConfirmedBoxGix)
+          .modify(_ + 1)
+        val last = predictions.last
+        val testResultF = make.flatMap { case (pools, resolver) =>
+          pools.put(Confirmed(root)) >>
+            predictions.traverse_(p => pools.put(Predicted(p))) >>
+            resolver.resolve(last.poolId)
+        }
+        val testResult = testResultF.unsafeRunSync()
+        testResult shouldBe Some(root)
+      }
+    }
+  }
+
+  property("Predictions chain resolving (blockchain view outdated)") {
+    forAll(cfmmPoolPredictionsGen(10), boxIdGen) { case (predictions, divergingBoxId) =>
+      whenever(predictions.nonEmpty) {
+        val root = predictions.head
+          .lens(_.box.lastConfirmedBoxGix)
+          .modify(_ + 1)
+        val last = predictions.last
+        val testResultF = make.flatMap { case (pools, resolver) =>
+          pools.put(Confirmed(root)) >>
+            predictions.traverse_(p => pools.put(Predicted(p))) >>
+            resolver.resolve(last.poolId)
+        }
+        val testResult = testResultF.unsafeRunSync()
+        val expected = last.lens(_.box.lastConfirmedBoxGix).set(root.box.lastConfirmedBoxGix)
+        testResult shouldBe Some(expected)
+      }
     }
   }
 }
