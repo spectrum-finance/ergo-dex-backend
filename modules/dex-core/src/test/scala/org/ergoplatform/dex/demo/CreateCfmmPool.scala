@@ -27,7 +27,7 @@ object CreateCfmmPool extends App with SigmaPlatform {
 
   val lockNErgs = 4000000L
   val feeNErgs  = 1000000L
-  val minValue  = 500000
+  val minValue  = 500000L
 
   val bootInputNErg = feeNErgs + lockNErgs + minValue
 
@@ -81,7 +81,7 @@ object CreateCfmmPool extends App with SigmaPlatform {
 
   // Pool TX
 
-  val shareLP = math.sqrt(depositTErg * depositTUsd).toLong
+  val shareLP = math.sqrt((depositTErg * depositTUsd).toDouble).toLong
 
   require(shareLP * shareLP <= depositTErg * depositTUsd)
 

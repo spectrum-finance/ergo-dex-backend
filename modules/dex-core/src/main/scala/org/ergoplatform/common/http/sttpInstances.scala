@@ -1,12 +1,16 @@
 package org.ergoplatform.common.http
 
 import cats.tagless.InvariantK
+import cats.syntax.either._
 import cats.~>
+import pureconfig.ConfigReader
+import pureconfig.error.CannotConvert
 import sttp.capabilities
 import sttp.client3.{Request, Response, SttpBackend}
+import sttp.model.Uri
 import sttp.monad.MonadError
 
-object instances {
+object sttpInstances {
 
   implicit def sttpInvK[P]: InvariantK[SttpBackend[*[_], P]] =
     new InvariantK[SttpBackend[*[_], P]] {
@@ -36,4 +40,7 @@ object instances {
             fk(af.handleError(gK(rt))({ case t => gK(h(t)) }))
         }
     }
+
+  implicit val configReader: ConfigReader[Uri] =
+    ConfigReader.fromString(s => Uri.parse(s).leftMap(r => CannotConvert(s, "Uri", r)))
 }

@@ -39,11 +39,11 @@ object CFMMPools {
     backend: SttpBackend[F, Any]
   ) extends CFMMPools[F] {
 
-    private val basePrefix = "/resolve/cfmm"
+    private val basePrefix = "/cfmm"
 
     def get(id: PoolId): F[Option[CFMMPool]] =
       basicRequest
-        .get(conf.uri.withWholePath(s"$basePrefix/$id"))
+        .get(conf.uri.withWholePath(s"$basePrefix/resolve/$id"))
         .response(asJson[CFMMPool])
         .send(backend)
         .flatMap { r =>
@@ -53,7 +53,7 @@ object CFMMPools {
 
     def put(pool: Predicted[CFMMPool]): F[Unit] =
       basicRequest
-        .post(conf.uri.withWholePath(basePrefix))
+        .post(conf.uri.withWholePath(s"$basePrefix/predicted"))
         .send(backend)
         .void
   }

@@ -173,7 +173,6 @@ object T2TCFMMInterpreter {
 
   def make[F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has](implicit
     network: ErgoNetwork[F],
-    pools: CFMMPools[F],
     contracts: AmmContracts[T2TCFMM],
     encoder: ErgoAddressEncoder
   ): CFMMInterpreter[T2TCFMM, F] =
