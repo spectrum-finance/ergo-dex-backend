@@ -25,8 +25,8 @@ class TradeInterpreterSpec extends AnyPropSpec with should.Matchers with ScalaCh
   property("transaction assembly") {
     val tradeGen =
       for {
-        assetX      <- assetIdGen
-        assetY      <- assetIdGen
+        assetX      <- tokenIdGen
+        assetY      <- tokenIdGen
         amount      <- Gen.const(10000L)
         price       <- Gen.const(1000L)
         feePerToken <- Gen.const(100L)

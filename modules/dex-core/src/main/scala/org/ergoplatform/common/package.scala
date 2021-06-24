@@ -16,6 +16,7 @@ import org.ergoplatform.ergo.constraints.{HexStringType, UrlStringType}
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import scorex.util.encode.Base16
+import sttp.tapir.{Codec, CodecFormat, DecodeResult, Schema, Validator}
 import tofu.Raise
 import tofu.logging.Loggable
 import tofu.syntax.raise._
@@ -34,6 +35,18 @@ package object common {
 
     implicit val show: Show[HexString]         = _.unwrapped
     implicit val loggable: Loggable[HexString] = Loggable.show
+
+    implicit def plainCodec: Codec.PlainCodec[HexString] =
+      deriveCodec[String, CodecFormat.TextPlain, HexString](
+        fromString[Either[Throwable, *]](_),
+        _.unwrapped
+      )
+
+    implicit def schema: Schema[HexString] =
+      Schema.schemaForString.description("Hex-encoded string").asInstanceOf[Schema[HexString]]
+
+    implicit def validator: Validator[HexString] =
+      Schema.schemaForString.validator.contramap[HexString](_.unwrapped)
 
     implicit val get: Get[HexString] =
       Get[String]
@@ -86,4 +99,12 @@ package object common {
   object TraceId {
     implicit val loggable: Loggable[TraceId] = deriving
   }
+
+  private def deriveCodec[A, CF <: CodecFormat, T](
+    at: A => Either[Throwable, T],
+    ta: T => A
+  )(implicit c: Codec[String, A, CF]): Codec[String, T, CF] =
+    c.mapDecode { x =>
+      at(x).fold(DecodeResult.Error(x.toString, _), DecodeResult.Value(_))
+    }(ta)
 }

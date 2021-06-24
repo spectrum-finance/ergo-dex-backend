@@ -5,6 +5,7 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.models.BoxAsset
+import sttp.tapir.{Schema, Validator}
 import tofu.logging.derivation.loggable
 
 @derive(show, encoder, decoder, loggable)
@@ -27,4 +28,7 @@ object AssetAmount {
 
   def fromBoxAsset(boxAsset: BoxAsset): AssetAmount =
     AssetAmount(boxAsset.tokenId, boxAsset.amount, boxAsset.name)
+
+  implicit val schema: Schema[AssetAmount]       = Schema.derived[AssetAmount]
+  implicit val validator: Validator[AssetAmount] = schema.validator
 }

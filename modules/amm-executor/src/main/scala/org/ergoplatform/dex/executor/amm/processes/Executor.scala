@@ -5,7 +5,7 @@ import derevo.derive
 import mouse.any._
 import org.ergoplatform.common.streaming.CommitPolicy
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
-import org.ergoplatform.dex.executor.amm.streaming.CfmmConsumer
+import org.ergoplatform.dex.executor.amm.streaming.CFMMConsumer
 import tofu.Handle
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
@@ -15,6 +15,7 @@ import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
 import org.ergoplatform.common.streaming.syntax._
+import org.ergoplatform.dex.executor.amm.services.Execution
 
 @derive(representableK)
 trait Executor[F[_]] {
@@ -29,7 +30,11 @@ object Executor {
     F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: CommitPolicy.Has: Handle[*[_], ExecutionFailed],
     G[_]: Monad,
     C[_]: Foldable
-  ](implicit consumer: CfmmConsumer[F, G], logs: Logs[I, G]): I[Executor[F]] =
+  ](implicit
+    consumer: CFMMConsumer[F, G],
+    service: Execution[G],
+    logs: Logs[I, G]
+  ): I[Executor[F]] =
     logs.forService[Executor[F]] map { implicit l =>
       (context[F] map (policy => new Live[F, G, C](policy): Executor[F])).embed
     }
@@ -39,15 +44,13 @@ object Executor {
     G[_]: Monad: Logging,
     C[_]: Foldable
   ](commitPolicy: CommitPolicy)(implicit
-    consumer: CfmmConsumer[F, G]
+    consumer: CFMMConsumer[F, G],
+    service: Execution[G]
   ) extends Executor[F] {
 
     def run: F[Unit] =
       consumer.stream
-        .flatTap { rec =>
-          val op = rec.message
-          ???
-        }
+        .evalTap(rec => service.execute(rec.message))
         .commitBatchWithin[C](commitPolicy.maxBatchSize, commitPolicy.commitTimeout)
   }
 }

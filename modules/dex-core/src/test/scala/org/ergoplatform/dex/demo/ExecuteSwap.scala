@@ -15,6 +15,8 @@ import sigmastate.interpreter.ProverResult
 import sigmastate.lang.SigmaCompiler
 import sigmastate.lang.Terms.ValueOps
 
+import java.util
+
 object ExecuteSwap extends App {
 
   val secret     = ""
@@ -59,7 +61,7 @@ object ExecuteSwap extends App {
   val poolLP0 = 999999997213195445L
 
   def inputAmount(tokenId: TokenId, output: Long) =
-    if (tokenId == tergId) (reservesTUsd0 * output * 1000 / ((reservesTErg0 - output) * 995)) + 1
+    if (util.Arrays.equals(tokenId, tergId)) (reservesTUsd0 * output * 1000 / ((reservesTErg0 - output) * 995)) + 1
     else (reservesTErg0 * output * 1000 / ((reservesTUsd0 - output) * 995)) + 1
 
   // Order params

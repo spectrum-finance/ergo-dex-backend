@@ -20,7 +20,7 @@ object syntax {
       F: Applicative[F]
     ): S[Unit] =
       fa.groupWithin(n, d).evalMap { batch =>
-        val commit = batch.get(0).map(_.batchCommit)
+        val commit = batch.get(0).map(_.commitBatch)
         commit.traverse_(_(batch.foldLeft(Chain.empty[O])(_ append _.offset)))
       }
   }

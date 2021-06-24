@@ -12,12 +12,16 @@ object dependencies {
 
   val SttpClient =
     List(
-      "com.softwaremill.sttp.client3" %% "async-http-client-backend-fs2" % SttpVersion,
-      "com.softwaremill.sttp.client3" %% "okhttp-backend" % SttpVersion % Test
+      "com.softwaremill.sttp.client3" %% "async-http-client-backend-fs2-ce2" % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "okhttp-backend"                    % SttpVersion % Test
     )
 
   val Tapir = List(
-    "com.softwaremill.sttp.tapir" %% "tapir-core"          % TapirVersion,
+    "com.softwaremill.sttp.tapir" %% "tapir-core"       % TapirVersion,
+    "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % TapirVersion
+  )
+
+  val TapirHttp4s = List(
     "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % TapirVersion
   )
 
@@ -35,6 +39,10 @@ object dependencies {
     "org.typelevel" %% "cats-tagless-macros" % CatsTaglessVersion,
     "org.typelevel" %% "cats-tagless-core"   % CatsTaglessVersion,
     "org.typelevel" %% "mouse"               % MouseVersion
+  )
+
+  val Redis4Cats = List(
+    "dev.profunktor" %% "redis4cats-effects" % Redis4CatsVersion
   )
 
   val Monix: List[ModuleID] = List("io.monix" %% "monix" % MonixVersion)
@@ -120,35 +128,11 @@ object dependencies {
   val CompilerPlugins: List[ModuleID] =
     List(
       compilerPlugin(
-        "org.typelevel" %% "kind-projector" % KindProjector cross CrossVersion.full
+        "org.typelevel" %% "kind-projector" % KindProjectorVersion cross CrossVersion.full
       ),
       compilerPlugin(
-        "org.scalamacros" % "paradise" % MacroParadise cross CrossVersion.full
+        "org.scalamacros" % "paradise" % MacroParadiseVersion cross CrossVersion.full
       ),
       compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
     )
-
-  lazy val core: List[ModuleID] =
-    Ergo ++
-    Cats ++
-    Tofu ++
-    Derevo ++
-    Fs2 ++
-    JawnFs2 ++
-    Circe ++
-    Typing ++
-    Config ++
-    Kafka ++
-    Db ++
-    SttpCore ++
-    SttpClient ++
-    Enums
-
-  lazy val tracker: List[ModuleID] = Monix
-
-  lazy val matcher: List[ModuleID] = Monix
-
-  lazy val executor: List[ModuleID] = Monix ++ SttpClient
-
-  lazy val api: List[ModuleID] = Monix ++ Tapir
 }
