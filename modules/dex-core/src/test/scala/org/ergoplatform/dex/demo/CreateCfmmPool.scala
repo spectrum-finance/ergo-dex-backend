@@ -26,12 +26,11 @@ object CreateCfmmPool extends App with SigmaPlatform {
   val lpName     = "TERG_TUSD_LP"
 
   val lockNErgs = 4000000L
-  val feeNErgs  = 1000000L
   val minValue  = 500000L
 
-  val bootInputNErg = feeNErgs + lockNErgs + minValue
+  val bootInputNErg = minerFeeNErg + lockNErgs + minValue
 
-  require(input.value >= bootInputNErg + feeNErgs)
+  require(input.value >= bootInputNErg + minerFeeNErg)
 
   val depositTErg = 10000000000L
   val depositTUsd = 1000000000000L
@@ -59,21 +58,15 @@ object CreateCfmmPool extends App with SigmaPlatform {
     additionalRegisters = bootRegisters
   )
 
-  val feeOut0 = new ErgoBoxCandidate(
-    value          = feeNErgs,
-    ergoTree       = feeAddress.script,
-    creationHeight = height
-  )
-
   val change0 = new ErgoBoxCandidate(
-    value            = input.value - bootInputNErg - feeNErgs,
+    value            = input.value - bootInputNErg - minerFeeNErg,
     ergoTree         = selfAddress.script,
     creationHeight   = height,
     additionalTokens = Colls.fromItems(TERG._1 -> (TERG._2 - depositTErg), TUSD._1 -> (TUSD._2 - depositTUsd))
   )
 
   val inputs0 = Vector(new UnsignedInput(ADKey @@ Base16.decode(inputId).get))
-  val outs0   = Vector(boot, change0, feeOut0)
+  val outs0   = Vector(boot, change0, minerFeeBox)
   val utx0    = UnsignedErgoLikeTransaction(inputs0, outs0)
   val tx0     = ErgoUnsafeProver.prove(utx0, sk)
 
@@ -117,7 +110,7 @@ object CreateCfmmPool extends App with SigmaPlatform {
   )
 
   val inputs1 = Vector(new UnsignedInput(bootBox.id))
-  val outs1   = Vector(poolOut, lpOut, feeOut0)
+  val outs1   = Vector(poolOut, lpOut, minerFeeBox)
   val utx1    = UnsignedErgoLikeTransaction(inputs1, outs1)
   val tx1     = ErgoUnsafeProver.prove(utx1, sk)
 
