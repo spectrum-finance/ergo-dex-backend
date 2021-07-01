@@ -41,7 +41,7 @@ object App extends EnvApp[AppContext] {
       implicit0(e: ErgoAddressEncoder) = ErgoAddressEncoder(configs.protocol.networkType.prefix)
       implicit0(mc: MakeKafkaConsumer[RunF, OperationId, CFMMOperationRequest]) =
         MakeKafkaConsumer.make[InitF, RunF, OperationId, CFMMOperationRequest]
-      implicit0(isoKRun: IsoK[RunF, InitF])            = IsoK.byFunK(wr.runContextK(ctx))(wr.liftF)
+      //implicit0(isoKRun: IsoK[RunF, InitF])            = IsoK.byFunK(wr.runContextK(ctx))(wr.liftF)
       implicit0(consumer: CFMMConsumer[StreamF, RunF]) = Consumer.make[StreamF, RunF, OperationId, CFMMOperationRequest]
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
       implicit0(client: ErgoNetwork[RunF])                   = StreamingErgoNetworkClient.make[StreamF, RunF]

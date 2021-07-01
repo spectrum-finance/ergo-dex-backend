@@ -7,6 +7,7 @@ import mouse.any._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.streaming.Producer
+import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMOperationRequest, CFMMPool, OperationId, PoolId}
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 import org.ergoplatform.dex.domain.orderbook.OrderId
@@ -44,20 +45,20 @@ object App extends EnvApp[ConfigBundle] {
       configs <- Resource.eval(ConfigBundle.load(configPathOpt))
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = IsoK.byFunK(wr.runContextK(configs))(wr.liftF)
-      implicit0(producer0: Producer[OrderId, AnyOrder, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.ordersProducer)
+//      implicit0(producer0: Producer[OrderId, AnyOrder, StreamF]) <-
+//        Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.ordersProducer)
       implicit0(producer1: Producer[OperationId, CFMMOperationRequest, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OperationId, CFMMOperationRequest](configs.cfmmProducer)
-      implicit0(producer2: Producer[PoolId, CFMMPool, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, PoolId, CFMMPool](configs.cfmmProducer)
+        Producer.make[InitF, StreamF, RunF, OperationId, CFMMOperationRequest](configs.cfmmOpsProducer)
+      implicit0(producer2: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.cfmmPoolsProducer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: StreamingErgoNetworkClient[StreamF, RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
       implicit0(cfmmRules: CFMMRules[RunF])                        = CFMMRules.make[RunF]
-      limitOrdersHandler <- Resource.eval(OrdersHandler.make[LimitOrders, InitF, StreamF, RunF])
+      //limitOrdersHandler <- Resource.eval(OrdersHandler.make[LimitOrders, InitF, StreamF, RunF])
       t2tCfmmHandler     <- Resource.eval(CFMMOpsHandler.make[T2TCFMM, InitF, StreamF, RunF])
       cfmmPoolsHandler   <- Resource.eval(CFMMPoolsHandler.make[T2TCFMM, InitF, StreamF, RunF])
       tracker <-
-        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](limitOrdersHandler, t2tCfmmHandler, cfmmPoolsHandler))
+        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](/*limitOrdersHandler,*/ t2tCfmmHandler, cfmmPoolsHandler))
     } yield tracker -> configs
 
   private def makeBackend(

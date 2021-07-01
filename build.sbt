@@ -4,7 +4,7 @@ lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
   scalaVersion := "2.12.14",
   organization := "org.ergoplatform",
-  version := "0.2.0",
+  version := "0.3.0",
   resolvers += Resolver.sonatypeRepo("public"),
   resolvers += Resolver.sonatypeRepo("snapshots"),
   test in assembly := {},
@@ -78,6 +78,17 @@ lazy val utxoTracker = utils
     ),
     libraryDependencies ++= Monix
   )
+  .settings(
+    name in Universal := name.value,
+    name in UniversalDocs := (name in Universal).value,
+    name in UniversalSrc := (name in Universal).value,
+    packageName in Universal := packageName.value,
+    mappings in Universal += (packageBin in Compile map { p =>
+      p -> "lib/utxo-tracker.jar"
+    }).value,
+    dockerExposedVolumes := Seq("/var/lib/utxo-tracker", "/opt/docker/logs/")
+  )
+  .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(core % allConfigDependency)
 
 lazy val matcher = utils
@@ -89,6 +100,17 @@ lazy val matcher = utils
     ),
     libraryDependencies ++= Monix
   )
+  .settings(
+    name in Universal := name.value,
+    name in UniversalDocs := (name in Universal).value,
+    name in UniversalSrc := (name in Universal).value,
+    packageName in Universal := packageName.value,
+    mappings in Universal += (packageBin in Compile map { p =>
+      p -> "lib/dex-matcher.jar"
+    }).value,
+    dockerExposedVolumes := Seq("/var/lib/dex-matcher", "/opt/docker/logs/")
+  )
+  .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(core % allConfigDependency)
 
 lazy val ordersExecutor = utils
@@ -100,6 +122,17 @@ lazy val ordersExecutor = utils
     ),
     libraryDependencies ++= Monix ++ SttpClient
   )
+  .settings(
+    name in Universal := name.value,
+    name in UniversalDocs := (name in Universal).value,
+    name in UniversalSrc := (name in Universal).value,
+    packageName in Universal := packageName.value,
+    mappings in Universal += (packageBin in Compile map { p =>
+      p -> "lib/orders-executor.jar"
+    }).value,
+    dockerExposedVolumes := Seq("/var/lib/orders-executor", "/opt/docker/logs/")
+  )
+  .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(core % allConfigDependency)
 
 lazy val ammExecutor = utils
@@ -111,6 +144,17 @@ lazy val ammExecutor = utils
     ),
     libraryDependencies ++= Monix ++ SttpClient
   )
+  .settings(
+    name in Universal := name.value,
+    name in UniversalDocs := (name in Universal).value,
+    name in UniversalSrc := (name in Universal).value,
+    packageName in Universal := packageName.value,
+    mappings in Universal += (packageBin in Compile map { p =>
+      p -> "lib/amm-executor.jar"
+    }).value,
+    dockerExposedVolumes := Seq("/var/lib/amm-executor", "/opt/docker/logs/")
+  )
+  .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(core % allConfigDependency)
 
 lazy val poolResolver = utils
@@ -122,6 +166,17 @@ lazy val poolResolver = utils
     ),
     libraryDependencies ++= Monix
   )
+  .settings(
+    name in Universal := name.value,
+    name in UniversalDocs := (name in Universal).value,
+    name in UniversalSrc := (name in Universal).value,
+    packageName in Universal := packageName.value,
+    mappings in Universal += (packageBin in Compile map { p =>
+      p -> "lib/pool-resolver.jar"
+    }).value,
+    dockerExposedVolumes := Seq("/var/lib/pool-resolver", "/opt/docker/logs/")
+  )
+  .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(core % allConfigDependency)
 
 lazy val marketsApi = utils
@@ -133,4 +188,15 @@ lazy val marketsApi = utils
     ),
     libraryDependencies ++= Monix ++ Tapir
   )
+  .settings(
+    name in Universal := name.value,
+    name in UniversalDocs := (name in Universal).value,
+    name in UniversalSrc := (name in Universal).value,
+    packageName in Universal := packageName.value,
+    mappings in Universal += (packageBin in Compile map { p =>
+      p -> "lib/markets-api.jar"
+    }).value,
+    dockerExposedVolumes := Seq("/var/lib/markets-api", "/opt/docker/logs/")
+  )
+  .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(core % allConfigDependency)
