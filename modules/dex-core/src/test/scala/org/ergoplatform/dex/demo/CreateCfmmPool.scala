@@ -59,8 +59,6 @@ object CreateCfmmPool extends App with SigmaPlatform {
     additionalRegisters = bootRegisters
   )
 
-  val feeAddress = Pay2SAddress(ErgoScriptPredef.feeProposition())
-
   val feeOut0 = new ErgoBoxCandidate(
     value          = feeNErgs,
     ergoTree       = feeAddress.script,

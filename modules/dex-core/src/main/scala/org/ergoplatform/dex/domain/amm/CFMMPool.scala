@@ -51,9 +51,9 @@ final case class CFMMPool(
       )
     )
 
-  def shares(lp: AssetAmount): (AssetAmount, AssetAmount) =
-    x.withAmount(BigInt(lp.value) * x.value / supplyLP) ->
-    y.withAmount(BigInt(lp.value) * y.value / supplyLP)
+  def shares(lpIn: AssetAmount): (AssetAmount, AssetAmount) =
+    x.withAmount(BigInt(lpIn.value) * x.value / supplyLP) ->
+    y.withAmount(BigInt(lpIn.value) * y.value / supplyLP)
 
   def outputAmount(input: AssetAmount): AssetAmount = {
     def out(in: AssetAmount, out: AssetAmount) =

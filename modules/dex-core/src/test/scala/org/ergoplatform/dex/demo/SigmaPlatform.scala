@@ -5,8 +5,8 @@ import derevo.derive
 import io.circe.Encoder
 import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.ErgoBox.TokenId
+import org.ergoplatform._
 import org.ergoplatform.ergo.models.{ErgoBox, Output}
-import org.ergoplatform.{ErgoAddressEncoder, ErgoLikeTransaction, P2PKAddress}
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16
 import sigmastate.basics.DLogProtocol
@@ -31,6 +31,11 @@ trait SigmaPlatform {
   def sk: DLogProverInput            = DLogProverInput(BigIntegers.fromUnsignedByteArray(Base16.decode(secretHex).get))
   def selfPk: DLogProtocol.ProveDlog = sk.publicImage
   def selfAddress: P2PKAddress       = P2PKAddress(selfPk)
+
+  val minerFeeNErg = 1000000L
+
+  def feeAddress: Pay2SAddress = Pay2SAddress(ErgoScriptPredef.feeProposition())
+  def minerFeeBox              = new ErgoBoxCandidate(minerFeeNErg, feeAddress.script, currentHeight())
 
   def getToken(id: String, input: ErgoBox): (TokenId, Long) =
     (Digest32 @@ Base16.decode(id).get, input.assets.find(_.tokenId.unwrapped == id).map(_.amount).getOrElse(0L))

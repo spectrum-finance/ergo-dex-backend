@@ -80,6 +80,8 @@ object contracts {
       |{
       |    val FeeDenom = 1000
       |    val FeeNum   = 995
+      |    val DexFeePerTokenNum   = 10
+      |    val DexFeePerTokenDenom = 1
       |
       |    val base       = SELF.tokens(0)
       |    val baseId     = base._1
@@ -99,7 +101,7 @@ object contracts {
       |        OUTPUTS.exists { (box: Box) =>
       |            val quoteAsset   = box.tokens(0)
       |            val quoteAmount  = quoteAsset._2
-      |            val fairDexFee   = box.value >= SELF.value - quoteAmount * DexFeePerToken
+      |            val fairDexFee   = box.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom
       |            val relaxedInput = baseAmount - 1
       |            val fairPrice    =
       |                if (poolAssetX._1 == QuoteId)
