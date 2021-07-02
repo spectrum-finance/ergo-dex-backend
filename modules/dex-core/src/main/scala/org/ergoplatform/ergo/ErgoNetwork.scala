@@ -10,7 +10,7 @@ import io.circe.jawn.CirceSupportParser
 import jawnfs2._
 import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.common.{ConstrainedEmbed, HexString}
-import org.ergoplatform.dex.configs.NetworkConfig
+import org.ergoplatform.dex.configs.ExplorerConfig
 import org.ergoplatform.dex.protocol
 import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.ergo.errors.ResponseError
@@ -101,7 +101,7 @@ object StreamingErgoNetworkClient {
 
   def make[
     S[_]: FlatMap: Evals[*[_], F]: LiftStream[*[_], F],
-    F[_]: MonadThrow: WithContext[*[_], NetworkConfig]
+    F[_]: MonadThrow: WithContext[*[_], ExplorerConfig]
   ](implicit backend: SttpBackend[F, Fs2Streams[F]]): StreamingErgoNetworkClient[S, F] =
     constEmbed[S].embed(
       context
@@ -111,11 +111,11 @@ object StreamingErgoNetworkClient {
 
   final class ErgoExplorerClient[
     F[_]: MonadThrow
-  ](config: NetworkConfig)(implicit
-    backend: SttpBackend[F, Fs2Streams[F]]
+  ](config: ExplorerConfig)(implicit
+                            backend: SttpBackend[F, Fs2Streams[F]]
   ) extends StreamingErgoNetworkClient[Stream[F, *], F] {
 
-    private val uri                           = config.explorerUri
+    private val uri                           = config.uri
     implicit private val facade: Facade[Json] = new CirceSupportParser(None, allowDuplicateKeys = false).facade
 
     def submitTransaction(tx: ErgoLikeTransaction): F[TxId] =

@@ -6,4 +6,4 @@ import org.ergoplatform.common.http.sttpInstances._
 import sttp.model.Uri
 
 @derive(pureconfigReader)
-final case class NetworkConfig(explorerUri: Uri)
+final case class ExplorerConfig(uri: Uri)

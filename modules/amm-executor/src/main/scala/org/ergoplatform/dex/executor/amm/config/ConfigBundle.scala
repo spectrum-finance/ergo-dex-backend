@@ -15,9 +15,8 @@ final case class ConfigBundle(
   @promote exchange: ExchangeConfig,
   @promote protocol: ProtocolConfig,
   @promote consumer: ConsumerConfig,
-  producer: ProducerConfig,
   @promote kafka: KafkaConfig,
-  @promote network: NetworkConfig,
+  @promote explorer: ExplorerConfig,
   @promote resolver: ResolverConfig
 )
 

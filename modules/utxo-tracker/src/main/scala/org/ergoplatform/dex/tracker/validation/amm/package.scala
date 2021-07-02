@@ -3,7 +3,7 @@ package org.ergoplatform.dex.tracker.validation
 import cats.{FlatMap, Monad}
 import org.ergoplatform.dex.domain.NetworkContext
 import org.ergoplatform.dex.domain.amm.CFMMOperationRequest
-import org.ergoplatform.dex.tracker.configs.Fees
+import org.ergoplatform.dex.tracker.configs.ExecutionConfig
 import org.ergoplatform.ergo.ErgoNetwork
 import tofu.higherKind.Embed
 import tofu.syntax.context._
@@ -23,7 +23,7 @@ package object amm {
 
   object CFMMRules {
 
-    def make[F[_]: Monad: Fees.Has](implicit network: ErgoNetwork[F]): CFMMRules[F] =
+    def make[F[_]: Monad: ExecutionConfig.Has](implicit network: ErgoNetwork[F]): CFMMRules[F] =
       (
         for {
           conf       <- context

@@ -7,7 +7,7 @@ import org.ergoplatform.common.streaming.CommitPolicy
 import org.ergoplatform.dex.configs._
 import tofu.Context
 import tofu.logging.Loggable
-import tofu.optics.macros.{ClassyOptics, promote}
+import tofu.optics.macros.{promote, ClassyOptics}
 
 @derive(pureconfigReader)
 @ClassyOptics
@@ -18,9 +18,9 @@ final case class ConfigBundle(
   cfmmPoolsProducer: ProducerConfig,
   @promote kafka: KafkaConfig,
   @promote protocol: ProtocolConfig,
-  @promote network: NetworkConfig,
+  @promote explorer: ExplorerConfig,
   @promote tracker: TrackerConfig,
-  @promote fees: Fees,
+  @promote execution: ExecutionConfig,
   redis: RedisConfig
 )
 
