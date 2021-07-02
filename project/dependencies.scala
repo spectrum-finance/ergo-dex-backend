@@ -16,6 +16,10 @@ object dependencies {
       "com.softwaremill.sttp.client3" %% "okhttp-backend"                    % SttpVersion % Test
     )
 
+  val TapirCore = List(
+    "com.softwaremill.sttp.tapir" %% "tapir-core" % TapirVersion
+  )
+
   val Tapir = List(
     "com.softwaremill.sttp.tapir" %% "tapir-core"       % TapirVersion,
     "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % TapirVersion
@@ -41,8 +45,13 @@ object dependencies {
     "org.typelevel" %% "mouse"               % MouseVersion
   )
 
-  val Redis4Cats = List(
+  val Redis = List(
     "dev.profunktor" %% "redis4cats-effects" % Redis4CatsVersion
+  )
+
+  val Scodec = List(
+    "org.scodec" %% "scodec-core" % ScodecCore,
+    "org.scodec" %% "scodec-bits" % ScodecBits
   )
 
   val Monix: List[ModuleID] = List("io.monix" %% "monix" % MonixVersion)

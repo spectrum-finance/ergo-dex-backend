@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.configs
+package org.ergoplatform.common.db
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
@@ -6,7 +6,7 @@ import derevo.pureconfig.pureconfigReader
 import scala.concurrent.duration.FiniteDuration
 
 @derive(pureconfigReader)
-final case class DbConfig(
+final case class PgConfig(
   url: String,
   user: String,
   pass: String,

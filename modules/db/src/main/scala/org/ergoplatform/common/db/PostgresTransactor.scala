@@ -3,13 +3,12 @@ package org.ergoplatform.common.db
 import cats.effect.{Async, Blocker, ContextShift, Resource, Sync}
 import doobie.hikari.HikariTransactor
 import doobie.util.ExecutionContexts
-import org.ergoplatform.dex.configs.DbConfig
 
 object PostgresTransactor {
 
   def make[F[_]: Async: ContextShift](
     poolName: String,
-    config: DbConfig
+    config: PgConfig
   ): Resource[F, HikariTransactor[F]] =
     for {
       cp      <- ExecutionContexts.fixedThreadPool(size = 16)
@@ -27,7 +26,7 @@ object PostgresTransactor {
 
   private def configure[F[_]: Sync](
     xa: HikariTransactor[F]
-  )(name: String, config: DbConfig): F[Unit] =
+  )(name: String, config: PgConfig): F[Unit] =
     xa.configure { c =>
       Sync[F].delay {
         c.setAutoCommit(false)

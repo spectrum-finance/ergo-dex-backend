@@ -1,15 +1,13 @@
 package org.ergoplatform.dex.tracker.processes
 
-import cats.effect.concurrent.Ref
 import cats.{Defer, FlatMap, Monad, MonoidK}
 import derevo.derive
 import mouse.any._
-import org.ergoplatform.ergo.StreamingErgoNetworkClient
 import org.ergoplatform.dex.tracker.configs.TrackerConfig
-import org.ergoplatform.dex.tracker.domain.errors.InvalidOrder
 import org.ergoplatform.dex.tracker.handlers.BoxHandler
-import org.ergoplatform.ergo.models.Output
-import tofu.concurrent.MakeRef
+import org.ergoplatform.dex.tracker.repositories.TrackerCache
+import org.ergoplatform.ergo.StreamingErgoNetworkClient
+import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Broadcast, Evals, Pace}
@@ -19,7 +17,6 @@ import tofu.syntax.handle._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
-import tofu.{Catches, Handle}
 
 @derive(representableK)
 trait UtxoTracker[F[_]] {
@@ -32,40 +29,32 @@ object UtxoTracker {
   def make[
     I[_]: FlatMap,
     F[_]: Monad: Evals[*[_], G]: Broadcast: Pace: Defer: MonoidK: TrackerConfig.Has: Catches,
-    G[_]: Monad: Handle[*[_], InvalidOrder]
+    G[_]: Monad
   ](trackers: BoxHandler[F]*)(implicit
     client: StreamingErgoNetworkClient[F, G],
-    logs: Logs[I, G],
-    makeRef: MakeRef[I, G]
+    cache: TrackerCache[G],
+    logs: Logs[I, G]
   ): I[UtxoTracker[F]] =
-    logs.forService[UtxoTracker[F]].flatMap { implicit l =>
-      makeRef.refOf(0).map { ref =>
-        (context map (conf => new Live[F, G](ref, conf, trackers.toList): UtxoTracker[F])).embed
-      }
+    logs.forService[UtxoTracker[F]].map { implicit l =>
+      (context map (conf => new Live[F, G](cache, conf, trackers.toList): UtxoTracker[F])).embed
     }
 
   final private class Live[
     F[_]: Monad: Evals[*[_], G]: Broadcast: Pace: Defer: MonoidK: Catches,
-    G[_]: Monad: Handle[*[_], InvalidOrder]: Logging
-  ](lastScannedHeightRef: Ref[G, Int], conf: TrackerConfig, handlers: List[BoxHandler[F]])(implicit
+    G[_]: Monad: Logging
+  ](cache: TrackerCache[G], conf: TrackerConfig, handlers: List[BoxHandler[F]])(implicit
     client: StreamingErgoNetworkClient[F, G]
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =
-      eval(client.getCurrentHeight).repeat
-        .throttled(conf.scanInterval)
-        .flatMap { height =>
-          eval(lastScannedHeightRef.get)
-            .evalTap { lastScannedHeight =>
-              if (lastScannedHeight < height) info"Checking height delta ($lastScannedHeight, $height)"
-              else info"Waiting for new blocks. Current height is [$height]"
+      unit[F].repeat
+        .flatMap { _ =>
+          eval(cache.lastScannedBoxOffset)
+            .flatMap { lastOffset =>
+              val offset = lastOffset max conf.initialOffset
+              client.streamUnspentOutputs(offset, conf.batchSize)
             }
-            .flatMap { lastScannedHeight =>
-              val lastEpochs = (height - lastScannedHeight) min conf.scanLastEpochs
-              if (lastEpochs > 0) client.streamUnspentOutputs(lastEpochs)
-              else MonoidK[F].empty[Output]
-            }
-            .flatTap(_ => eval(lastScannedHeightRef.set(height)))
+            .flatTap(o => eval(cache.setLastScannedBoxOffset(o.globalIndex)))
         }
         .evalTap(out => trace"Scanning box $out")
         .broadcast(handlers: _*)

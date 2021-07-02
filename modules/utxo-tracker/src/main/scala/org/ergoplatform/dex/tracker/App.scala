@@ -6,16 +6,15 @@ import monix.eval.Task
 import mouse.any._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
+import org.ergoplatform.common.cache.Redis
 import org.ergoplatform.common.streaming.Producer
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMOperationRequest, CFMMPool, OperationId, PoolId}
-import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
-import org.ergoplatform.dex.domain.orderbook.OrderId
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
-import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily.LimitOrders
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
-import org.ergoplatform.dex.tracker.handlers.{CFMMOpsHandler, CFMMPoolsHandler, OrdersHandler}
+import org.ergoplatform.dex.tracker.handlers.{CFMMOpsHandler, CFMMPoolsHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
+import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
 import org.ergoplatform.ergo.StreamingErgoNetworkClient
 import sttp.capabilities.fs2.Fs2Streams
@@ -55,10 +54,12 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(client: StreamingErgoNetworkClient[StreamF, RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
       implicit0(cfmmRules: CFMMRules[RunF])                        = CFMMRules.make[RunF]
       //limitOrdersHandler <- Resource.eval(OrdersHandler.make[LimitOrders, InitF, StreamF, RunF])
-      t2tCfmmHandler     <- Resource.eval(CFMMOpsHandler.make[T2TCFMM, InitF, StreamF, RunF])
-      cfmmPoolsHandler   <- Resource.eval(CFMMPoolsHandler.make[T2TCFMM, InitF, StreamF, RunF])
+      t2tCfmmHandler                      <- Resource.eval(CFMMOpsHandler.make[T2TCFMM, InitF, StreamF, RunF])
+      cfmmPoolsHandler                    <- Resource.eval(CFMMPoolsHandler.make[T2TCFMM, InitF, StreamF, RunF])
+      implicit0(redis: Redis.Plain[RunF]) <- Redis.make[InitF, RunF](configs.redis)
+      implicit0(cache: TrackerCache[RunF]) = TrackerCache.make[RunF]
       tracker <-
-        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](/*limitOrdersHandler,*/ t2tCfmmHandler, cfmmPoolsHandler))
+        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF]( /*limitOrdersHandler,*/ t2tCfmmHandler, cfmmPoolsHandler))
     } yield tracker -> configs
 
   private def makeBackend(

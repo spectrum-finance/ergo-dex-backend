@@ -1,7 +1,7 @@
 package org.ergoplatform.common.http
 
-import cats.tagless.InvariantK
 import cats.syntax.either._
+import cats.tagless.InvariantK
 import cats.~>
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert

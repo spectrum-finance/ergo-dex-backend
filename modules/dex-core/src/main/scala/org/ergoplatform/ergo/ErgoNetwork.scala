@@ -55,9 +55,9 @@ trait ErgoNetwork[F[_]] {
 
 trait StreamingErgoNetworkClient[S[_], F[_]] extends ErgoNetwork[F] {
 
-  /** Get a stream of unspent outputs appeared in the network after `lastEpochs`.
+  /** Get a stream of unspent outputs at the given global offset.
     */
-  def streamUnspentOutputs(lastEpochs: Int): S[Output]
+  def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output]
 }
 
 object StreamingErgoNetworkClient {
@@ -81,8 +81,8 @@ object StreamingErgoNetworkClient {
     def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]] =
       tft.flatMap(_.getUtxoByToken(tokenId, offset, limit))
 
-    def streamUnspentOutputs(lastEpochs: Int): S[Output] =
-      evals.eval(tft.map(_.streamUnspentOutputs(lastEpochs))).flatten
+    def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output] =
+      evals.eval(tft.map(_.streamUnspentOutputs(boxGixOffset, limit))).flatten
   }
 
   implicit def functorK[F[_]]: FunctorK[StreamingErgoNetworkClient[*[_], F]] = {
@@ -115,12 +115,12 @@ object StreamingErgoNetworkClient {
     backend: SttpBackend[F, Fs2Streams[F]]
   ) extends StreamingErgoNetworkClient[Stream[F, *], F] {
 
-    private val explorerUri                   = config.explorerUri
+    private val uri                           = config.explorerUri
     implicit private val facade: Facade[Json] = new CirceSupportParser(None, allowDuplicateKeys = false).facade
 
     def submitTransaction(tx: ErgoLikeTransaction): F[TxId] =
       basicRequest
-        .post(explorerUri withPathSegment submitTransactionPathSeg)
+        .post(uri withPathSegment submitTransactionPathSeg)
         .contentType(MediaType.ApplicationJson)
         .body(tx)
         .response(asJson[TxIdResponse])
@@ -130,7 +130,7 @@ object StreamingErgoNetworkClient {
 
     def getCurrentHeight: F[Int] =
       basicRequest
-        .get(explorerUri.withPathSegment(blocksPathSeg).addParams("limit" -> "1", "order" -> "desc"))
+        .get(uri.withPathSegment(blocksPathSeg).addParams("limit" -> "1", "order" -> "desc"))
         .response(asJson[Items[BlockInfo]])
         .send(backend)
         .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
@@ -138,7 +138,7 @@ object StreamingErgoNetworkClient {
 
     def getNetworkParams: F[NetworkParams] =
       basicRequest
-        .get(explorerUri.withPathSegment(paramsPathSeg))
+        .get(uri.withPathSegment(paramsPathSeg))
         .response(asJson[NetworkParams])
         .send(backend)
         .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
@@ -146,7 +146,7 @@ object StreamingErgoNetworkClient {
     def getTransactionsByInputScript(templateHash: HexString, offset: Int, limit: Int): F[List[Transaction]] =
       basicRequest
         .get(
-          explorerUri
+          uri
             .withPathSegment(txsByScriptsPathSeg(templateHash))
             .addParams("offset" -> offset.toString, "limit" -> limit.toString, "sortDirection" -> "asc")
         )
@@ -158,7 +158,7 @@ object StreamingErgoNetworkClient {
     def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]] =
       basicRequest
         .get(
-          explorerUri
+          uri
             .withPathSegment(utxoByTokenIdPathSeg(tokenId))
             .addParams("offset" -> offset.toString, "limit" -> limit.toString)
         )
@@ -167,10 +167,10 @@ object StreamingErgoNetworkClient {
         .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
         .map(_.items)
 
-    def streamUnspentOutputs(lastEpochs: Int): Stream[F, Output] = {
+    def streamUnspentOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] = {
       val req =
         basicRequest
-          .get(explorerUri.withPathSegment(utxoPathSeg).addParams("lastEpochs" -> lastEpochs.toString))
+          .get(uri.withPathSegment(utxoPathSeg).addParams("minGix" -> boxGixOffset.toString, "limit" -> limit.toString))
           .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
           .send(backend)
           .map(_.body)
