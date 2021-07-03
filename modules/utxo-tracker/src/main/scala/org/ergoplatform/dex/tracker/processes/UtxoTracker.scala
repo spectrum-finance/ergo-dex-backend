@@ -1,5 +1,6 @@
 package org.ergoplatform.dex.tracker.processes
 
+import cats.effect.concurrent.Ref
 import cats.{Defer, FlatMap, Monad, MonoidK}
 import derevo.derive
 import mouse.any._
@@ -10,7 +11,7 @@ import org.ergoplatform.ergo.StreamingErgoNetworkClient
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
-import tofu.streams.{Broadcast, Evals, Pace}
+import tofu.streams.{Evals, Pace, ParFlatten}
 import tofu.syntax.context._
 import tofu.syntax.embed._
 import tofu.syntax.handle._
@@ -28,7 +29,7 @@ object UtxoTracker {
 
   def make[
     I[_]: FlatMap,
-    F[_]: Monad: Evals[*[_], G]: Broadcast: Pace: Defer: MonoidK: TrackerConfig.Has: Catches,
+    F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: TrackerConfig.Has: Catches,
     G[_]: Monad
   ](trackers: BoxHandler[F]*)(implicit
     client: StreamingErgoNetworkClient[F, G],
@@ -40,22 +41,25 @@ object UtxoTracker {
     }
 
   final private class Live[
-    F[_]: Monad: Evals[*[_], G]: Broadcast: Pace: Defer: MonoidK: Catches,
+    F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging
-  ](cache: TrackerCache[G], conf: TrackerConfig, handlers: List[BoxHandler[F]])(implicit
-    client: StreamingErgoNetworkClient[F, G]
+  ](cache: TrackerCache[G], conf: TrackerConfig, handlers: List[BoxHandler[F]])(
+    implicit client: StreamingErgoNetworkClient[F, G]
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =
-      //eval(info"Starting tracking ..") >>
+      eval(info"Starting tracking ..") >>
       eval(cache.lastScannedBoxOffset).repeat
         .flatMap { lastOffset =>
           val offset = lastOffset max conf.initialOffset
+          val finalizeOffset = cache.setLastScannedBoxOffset(offset + conf.batchSize)
           eval(info"Requesting UTXO batch {offset=$offset, batchSize=${conf.batchSize} ..") >>
-          client.streamUnspentOutputs(offset, conf.batchSize)
+          client
+            .streamUnspentOutputs(offset, conf.batchSize)
+            .evalTap(out => trace"Scanning box $out")
+            .flatTap(out => emits(handlers.map(_(out.pure[F]))).parFlattenUnbounded)
+            .evalMap(out => cache.setLastScannedBoxOffset(out.globalIndex)) <* eval(finalizeOffset)
         }
-        .evalTap(out => trace"Scanning box $out" >> cache.setLastScannedBoxOffset(out.globalIndex))
-        .broadcast(handlers: _*)
         .handleWith[Throwable] { e =>
           val delay = conf.retryDelay
           eval(warnCause"Tracker failed. Retrying in $delay ms" (e)) >> run.delay(delay)
