@@ -47,7 +47,7 @@ object UtxoTracker {
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =
-      eval(info"Starting tracking ..") >>
+      //eval(info"Starting tracking ..") >>
       eval(cache.lastScannedBoxOffset).repeat
         .flatMap { lastOffset =>
           val offset = lastOffset max conf.initialOffset
