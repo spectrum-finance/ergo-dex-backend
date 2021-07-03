@@ -57,9 +57,9 @@ object UtxoTracker {
               .evalTap(out => trace"Scanning box $out")
               .flatTap(out => emits(handlers.map(_(out.pure[F]))).parFlattenUnbounded)
               .evalMap(out => cache.setLastScannedBoxOffset(out.globalIndex))
-          val finalizeOffset = cache.setLastScannedBoxOffset(offset + conf.batchSize)
+          val finalizeOffset = eval(cache.setLastScannedBoxOffset(offset + conf.batchSize))
           eval(info"Requesting UTXO batch {offset=$offset, batchSize=${conf.batchSize} ..") >>
-          (process <* eval(finalizeOffset))
+          emits(List(process, finalizeOffset)).flatten
         }
         .handleWith[Throwable] { e =>
           val delay = conf.retryDelay
