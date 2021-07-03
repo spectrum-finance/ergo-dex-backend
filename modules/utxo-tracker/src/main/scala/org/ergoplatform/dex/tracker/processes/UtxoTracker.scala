@@ -47,16 +47,13 @@ object UtxoTracker {
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =
-      unit[F].repeat
-        .flatMap { _ =>
-          eval(cache.lastScannedBoxOffset)
-            .flatMap { lastOffset =>
-              val offset = lastOffset max conf.initialOffset
-              client.streamUnspentOutputs(offset, conf.batchSize)
-            }
-            .flatTap(o => eval(cache.setLastScannedBoxOffset(o.globalIndex)))
+      info"Starting tracking .." >>
+      eval(cache.lastScannedBoxOffset).repeat
+        .flatMap { lastOffset =>
+          val offset = lastOffset max conf.initialOffset
+          client.streamUnspentOutputs(offset, conf.batchSize)
         }
-        .evalTap(out => trace"Scanning box $out")
+        .evalTap(out => trace"Scanning box $out" >> cache.setLastScannedBoxOffset(out.globalIndex))
         .broadcast(handlers: _*)
         .handleWith[Throwable] { e =>
           val delay = conf.retryDelay

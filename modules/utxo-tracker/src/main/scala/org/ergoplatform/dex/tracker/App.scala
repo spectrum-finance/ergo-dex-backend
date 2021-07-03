@@ -54,10 +54,10 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(client: StreamingErgoNetworkClient[StreamF, RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
       implicit0(cfmmRules: CFMMRules[RunF])                        = CFMMRules.make[RunF]
       //limitOrdersHandler <- Resource.eval(OrdersHandler.make[LimitOrders, InitF, StreamF, RunF])
-      t2tCfmmHandler                      <- Resource.eval(CFMMOpsHandler.make[T2TCFMM, InitF, StreamF, RunF])
-      cfmmPoolsHandler                    <- Resource.eval(CFMMPoolsHandler.make[T2TCFMM, InitF, StreamF, RunF])
-      implicit0(redis: Redis.Plain[RunF]) <- Redis.make[InitF, RunF](configs.redis)
-      implicit0(cache: TrackerCache[RunF]) = TrackerCache.make[RunF]
+      t2tCfmmHandler                       <- Resource.eval(CFMMOpsHandler.make[T2TCFMM, InitF, StreamF, RunF])
+      cfmmPoolsHandler                     <- Resource.eval(CFMMPoolsHandler.make[T2TCFMM, InitF, StreamF, RunF])
+      implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
+      implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       tracker <-
         Resource.eval(UtxoTracker.make[InitF, StreamF, RunF]( /*limitOrdersHandler,*/ t2tCfmmHandler, cfmmPoolsHandler))
     } yield tracker -> configs
