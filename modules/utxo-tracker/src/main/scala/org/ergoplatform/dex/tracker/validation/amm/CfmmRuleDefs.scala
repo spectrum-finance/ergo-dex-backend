@@ -1,11 +1,12 @@
 package org.ergoplatform.dex.tracker.validation.amm
 
 import cats.Applicative
+import org.ergoplatform.dex.configs.ExecutionConfig
 import org.ergoplatform.dex.domain.NetworkContext
 import org.ergoplatform.dex.domain.amm.{CFMMOperationRequest, Deposit, Redeem, Swap}
-import org.ergoplatform.dex.tracker.configs.ExecutionConfig
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
+
 import scala.{PartialFunction => ?=>}
 
 final class CfmmRuleDefs[F[_]: Applicative](constraints: ExecutionConfig, network: NetworkContext) {

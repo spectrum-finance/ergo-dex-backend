@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.tracker.configs
+package org.ergoplatform.dex.configs
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader

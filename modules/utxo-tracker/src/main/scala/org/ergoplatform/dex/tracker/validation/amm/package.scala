@@ -1,9 +1,9 @@
 package org.ergoplatform.dex.tracker.validation
 
 import cats.{FlatMap, Monad}
+import org.ergoplatform.dex.configs.ExecutionConfig
 import org.ergoplatform.dex.domain.NetworkContext
 import org.ergoplatform.dex.domain.amm.CFMMOperationRequest
-import org.ergoplatform.dex.tracker.configs.ExecutionConfig
 import org.ergoplatform.ergo.ErgoNetwork
 import tofu.higherKind.Embed
 import tofu.syntax.context._

@@ -6,6 +6,6 @@ import org.ergoplatform.ergo.Address
 import tofu.Context
 
 @derive(pureconfigReader)
-final case class ExchangeConfig(rewardAddress: Address, minerFee: Long)
+final case class ExchangeConfig(rewardAddress: Address)
 
 object ExchangeConfig extends Context.Companion[ExchangeConfig]
