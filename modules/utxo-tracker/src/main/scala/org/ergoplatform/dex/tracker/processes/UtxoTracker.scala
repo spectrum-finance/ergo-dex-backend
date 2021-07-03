@@ -48,9 +48,10 @@ object UtxoTracker {
 
     def run: F[Unit] =
       eval(info"Starting tracking ..") >>
-      eval(cache.lastScannedBoxOffset)
+      eval(cache.lastScannedBoxOffset).repeat
         .flatMap { lastOffset =>
           val offset = lastOffset max conf.initialOffset
+          eval(info"Requesting UTXO batch {offset=$offset, batchSize=${conf.batchSize} ..") >>
           client.streamUnspentOutputs(offset, conf.batchSize)
         }
         .evalTap(out => trace"Scanning box $out" >> cache.setLastScannedBoxOffset(out.globalIndex))
@@ -59,6 +60,5 @@ object UtxoTracker {
           val delay = conf.retryDelay
           eval(warnCause"Tracker failed. Retrying in $delay ms" (e)) >> run.delay(delay)
         }
-        .repeat
   }
 }
