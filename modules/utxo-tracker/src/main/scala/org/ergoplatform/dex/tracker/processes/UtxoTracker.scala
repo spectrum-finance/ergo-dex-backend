@@ -48,7 +48,7 @@ object UtxoTracker {
 
     def run: F[Unit] =
       eval(info"Starting tracking ..") >>
-      eval(cache.lastScannedBoxOffset).repeat
+      eval(cache.lastScannedBoxOffset)
         .flatMap { lastOffset =>
           val offset = lastOffset max conf.initialOffset
           client.streamUnspentOutputs(offset, conf.batchSize)
@@ -59,5 +59,6 @@ object UtxoTracker {
           val delay = conf.retryDelay
           eval(warnCause"Tracker failed. Retrying in $delay ms" (e)) >> run.delay(delay)
         }
+        .repeat
   }
 }
