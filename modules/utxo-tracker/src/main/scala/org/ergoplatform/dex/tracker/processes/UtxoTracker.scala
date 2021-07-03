@@ -1,6 +1,5 @@
 package org.ergoplatform.dex.tracker.processes
 
-import cats.effect.concurrent.Ref
 import cats.{Defer, FlatMap, Monad, MonoidK}
 import derevo.derive
 import mouse.any._
@@ -43,8 +42,8 @@ object UtxoTracker {
   final private class Live[
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging
-  ](cache: TrackerCache[G], conf: TrackerConfig, handlers: List[BoxHandler[F]])(
-    implicit client: StreamingErgoNetworkClient[F, G]
+  ](cache: TrackerCache[G], conf: TrackerConfig, handlers: List[BoxHandler[F]])(implicit
+    client: StreamingErgoNetworkClient[F, G]
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =
@@ -52,13 +51,15 @@ object UtxoTracker {
       eval(cache.lastScannedBoxOffset).repeat
         .flatMap { lastOffset =>
           val offset = lastOffset max conf.initialOffset
+          val process =
+            client
+              .streamUnspentOutputs(offset, conf.batchSize)
+              .evalTap(out => trace"Scanning box $out")
+              .flatTap(out => emits(handlers.map(_(out.pure[F]))).parFlattenUnbounded)
+              .evalMap(out => cache.setLastScannedBoxOffset(out.globalIndex))
           val finalizeOffset = cache.setLastScannedBoxOffset(offset + conf.batchSize)
           eval(info"Requesting UTXO batch {offset=$offset, batchSize=${conf.batchSize} ..") >>
-          client
-            .streamUnspentOutputs(offset, conf.batchSize)
-            .evalTap(out => trace"Scanning box $out")
-            .flatTap(out => emits(handlers.map(_(out.pure[F]))).parFlattenUnbounded)
-            .evalMap(out => cache.setLastScannedBoxOffset(out.globalIndex)) <* eval(finalizeOffset)
+          (process <* eval(finalizeOffset))
         }
         .handleWith[Throwable] { e =>
           val delay = conf.retryDelay
