@@ -88,8 +88,7 @@ lazy val utxoTracker = utils
   .settings(
     mainClass in assembly := Some(
       "org.ergoplatform.dex.tracker.App"
-    ),
-    libraryDependencies ++= Monix
+    )
   )
   .settings(
     name in Universal := name.value,
@@ -110,8 +109,7 @@ lazy val matcher = utils
   .settings(
     mainClass in assembly := Some(
       "org.ergoplatform.dex.matcher.App"
-    ),
-    libraryDependencies ++= Monix
+    )
   )
   .settings(
     name in Universal := name.value,
@@ -133,7 +131,7 @@ lazy val ordersExecutor = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.executor.orders.App"
     ),
-    libraryDependencies ++= Monix ++ SttpClient
+    libraryDependencies ++= SttpClient
   )
   .settings(
     name in Universal := name.value,
@@ -155,7 +153,7 @@ lazy val ammExecutor = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.executor.amm.App"
     ),
-    libraryDependencies ++= Monix ++ SttpClient
+    libraryDependencies ++= SttpClient
   )
   .settings(
     name in Universal := name.value,
@@ -176,8 +174,7 @@ lazy val poolResolver = utils
   .settings(
     mainClass in assembly := Some(
       "org.ergoplatform.dex.resolver.App"
-    ),
-    libraryDependencies ++= Monix
+    )
   )
   .settings(
     name in Universal := name.value,
@@ -199,7 +196,7 @@ lazy val marketsApi = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.markets.App"
     ),
-    libraryDependencies ++= Monix ++ Tapir
+    libraryDependencies ++= Tapir
   )
   .settings(
     name in Universal := name.value,

@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.tracker
 
-import cats.effect.{Blocker, ExitCode, Resource}
+import cats.effect.{Blocker, Resource}
 import fs2.kafka.serde._
 import monix.eval.Task
 import mouse.any._
@@ -27,21 +27,23 @@ import tofu.lift.IsoK
 import tofu.logging.derivation.loggable.generate
 import tofu.syntax.embed._
 import tofu.syntax.unlift._
+import zio.{ExitCode, URIO, ZEnv}
+import zio.interop.catz._
 
 object App extends EnvApp[ConfigBundle] {
 
   implicit private def makeRef: MakeRef[InitF, RunF] = MakeRef.syncInstance
 
-  def run(args: List[String]): Task[ExitCode] =
+  def run(args: List[String]): URIO[ZEnv, ExitCode] =
     init(args.headOption).use { case (tracker, ctx) =>
       val appF = tracker.run.compile.drain
-      appF.run(ctx) as ExitCode.Success
-    }
+      appF.run(ctx) as ExitCode.success
+    }.orDie
 
   private def init(configPathOpt: Option[String]): Resource[InitF, (UtxoTracker[StreamF], ConfigBundle)] =
     for {
       blocker <- Blocker[InitF]
-      configs <- Resource.eval(ConfigBundle.load(configPathOpt, blocker))
+      configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = IsoK.byFunK(wr.runContextK(configs))(wr.liftF)
 //      implicit0(producer0: Producer[OrderId, AnyOrder, StreamF]) <-

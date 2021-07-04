@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.resolver
 
-import cats.effect.{Blocker, ExitCode, Resource}
+import cats.effect.{Blocker, Resource}
 import fs2.Stream
 import fs2.kafka.serde._
 import org.ergoplatform.common.EnvApp
@@ -15,19 +15,21 @@ import org.ergoplatform.dex.resolver.services.Resolver
 import tofu.fs2Instances._
 import tofu.lift.{IsoK, Unlift}
 import tofu.syntax.context._
+import zio.interop.catz._
+import zio.{ExitCode, URIO, ZEnv}
 
 object App extends EnvApp[AppContext] {
 
-  def run(args: List[String]): InitF[ExitCode] =
+  def run(args: List[String]): URIO[ZEnv, ExitCode] =
     init(args.headOption).use { case (tracker, server, ctx) =>
       Stream(tracker.run.translate(runContextK[RunF][AppContext, InitF](ctx)), server).parJoinUnbounded.compile.drain
-        .as(ExitCode.Success)
-    }
+        .as(ExitCode.success)
+    }.orDie
 
   private def init(configPathOpt: Option[String]) =
     for {
       blocker <- Blocker[InitF]
-      configs <- Resource.eval(ConfigBundle.load(configPathOpt, blocker))
+      configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       ctx = AppContext.init(configs)
       implicit0(mc: MakeKafkaConsumer[RunF, PoolId, Confirmed[CFMMPool]]) =
         MakeKafkaConsumer.make[InitF, RunF, PoolId, Confirmed[CFMMPool]]
@@ -37,6 +39,6 @@ object App extends EnvApp[AppContext] {
       implicit0(pools: Pools[RunF])       <- Resource.eval(Pools.make[InitF, RunF])
       implicit0(resolver: Resolver[RunF]) <- Resource.eval(Resolver.make[InitF, RunF])
       tracker = PoolTracker.make[StreamF, RunF]
-      server  = HttpServer.make[InitF, RunF](configs.http, scheduler)
+      server  = HttpServer.make[InitF, RunF](configs.http, runtime.platform.executor.asEC)
     } yield (tracker, server, ctx)
 }

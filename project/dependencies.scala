@@ -54,8 +54,6 @@ object dependencies {
     "org.scodec" %% "scodec-bits" % ScodecBits
   )
 
-  val Monix: List[ModuleID] = List("io.monix" %% "monix" % MonixVersion)
-
   val Monocle: List[ModuleID] = List(
     "com.github.julien-truffaut" %% "monocle-core"  % MonocleVersion,
     "com.github.julien-truffaut" %% "monocle-macro" % MonocleVersion
@@ -80,7 +78,8 @@ object dependencies {
     "tf.tofu" %% "tofu-logging"      % TofuVersion,
     "tf.tofu" %% "tofu-doobie"       % TofuVersion,
     "tf.tofu" %% "tofu-streams"      % TofuVersion,
-    "tf.tofu" %% "tofu-fs2-interop"  % TofuVersion
+    "tf.tofu" %% "tofu-fs2-interop"  % TofuVersion,
+    "tf.tofu" %% "tofu-zio-interop" % TofuVersion
   )
 
   val Derevo: List[ModuleID] = List(

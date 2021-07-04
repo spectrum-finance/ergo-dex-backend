@@ -1,16 +1,17 @@
 package org.ergoplatform.common
 
+import cats.data.ReaderT
 import fs2.Stream
-import monix.eval.{Task, TaskApp}
 import tofu.WithRun
-import tofu.env.Env
 import tofu.lift.{IsoK, Unlift}
 import tofu.logging.{Loggable, LoggableContext, Logs}
+import zio.interop.catz._
+import zio.{RIO, ZEnv}
 
-abstract class EnvApp[C: Loggable] extends TaskApp {
+abstract class EnvApp[C: Loggable] extends CatsApp {
 
-  type InitF[+A]   = Task[A]
-  type RunF[+A]    = Env[C, A]
+  type InitF[+A]   = RIO[ZEnv, A]
+  type RunF[A]     = ReaderT[InitF, C, A]
   type StreamF[+A] = Stream[RunF, A]
 
   implicit def logs: Logs[InitF, RunF]                = Logs.withContext[InitF, RunF]

@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.matcher
 
-import cats.effect.{Blocker, ExitCode, Resource}
+import cats.effect.{Blocker, Resource}
 import fs2.Chunk
 import monix.eval.Task
 import org.ergoplatform.common.EnvApp
@@ -20,14 +20,16 @@ import tofu.doobie.instances.implicits._
 import tofu.fs2Instances._
 import tofu.lift.IsoK
 import tofu.logging.Logs
+import zio.interop.catz._
+import zio.{ExitCode, URIO, ZEnv}
 
 object App extends EnvApp[ConfigBundle] {
 
-  def run(args: List[String]): Task[ExitCode] =
+  def run(args: List[String]): URIO[ZEnv, ExitCode] =
     resources(args.headOption).use { case (matcher, ctx) =>
       val appF = matcher.run.compile.drain
-      appF.run(ctx) as ExitCode.Success
-    }
+      appF.run(ctx) as ExitCode.success
+    }.orDie
 
   private def resources(configPathOpt: Option[String]): Resource[InitF, (Matcher[StreamF], ConfigBundle)] =
     for {
