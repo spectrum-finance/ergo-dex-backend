@@ -52,22 +52,21 @@ object UtxoTracker {
         .flatMap { lastOffset =>
           eval(client.getNetworkInfo).flatMap { networkParams =>
             val offset     = lastOffset max conf.initialOffset
-            val nextOffset = offset + conf.batchSize
             val maxOffset  = networkParams.maxBoxGix
-            val process =
+            val nextOffset = (offset + conf.batchSize) min maxOffset
+            val scan =
+              eval(info"Requesting UTXO batch {offset=$offset, maxOffset=$maxOffset, batchSize=${conf.batchSize} ..") >>
               client
                 .streamUnspentOutputs(offset, conf.batchSize)
                 .evalTap(out => trace"Scanning box $out")
                 .flatTap(out => emits(handlers.map(_(out.pure[F]))).parFlattenUnbounded)
                 .evalMap(out => cache.setLastScannedBoxOffset(out.globalIndex))
-            val finalizeOffset =
-              if (nextOffset < maxOffset)
-                eval(cache.setLastScannedBoxOffset(nextOffset))
-              else
-                eval(info"Upper limit {maxOffset=$maxOffset} reached. Retrying in ${conf.retryDelay.toSeconds}s") >>
-                unit[F].delay(conf.retryDelay)
-            eval(info"Requesting UTXO batch {offset=$offset, maxOffset=$maxOffset, batchSize=${conf.batchSize} ..") >>
-            emits(List(process, finalizeOffset)).flatten
+            val finalizeOffset = eval(cache.setLastScannedBoxOffset(nextOffset))
+            val pause =
+              eval(info"Upper limit {maxOffset=$maxOffset} was reached. Retrying in ${conf.retryDelay.toSeconds}s") >>
+              unit[F].delay(conf.retryDelay)
+
+            emits(if (offset != maxOffset) List(scan, finalizeOffset) else List(pause)).flatten
           }
         }
         .handleWith[Throwable] { e =>
