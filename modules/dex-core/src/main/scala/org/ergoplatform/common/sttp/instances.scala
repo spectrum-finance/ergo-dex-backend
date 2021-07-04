@@ -1,4 +1,4 @@
-package org.ergoplatform.common.http
+package org.ergoplatform.common.sttp
 
 import cats.syntax.either._
 import cats.tagless.InvariantK
@@ -10,7 +10,7 @@ import sttp.client3.{Request, Response, SttpBackend}
 import sttp.model.Uri
 import sttp.monad.MonadError
 
-object sttpInstances {
+object instances {
 
   implicit def sttpInvK[P]: InvariantK[SttpBackend[*[_], P]] =
     new InvariantK[SttpBackend[*[_], P]] {

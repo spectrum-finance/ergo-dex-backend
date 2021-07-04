@@ -2,7 +2,7 @@ package org.ergoplatform.dex.executor.amm.config
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
-import org.ergoplatform.common.http.sttpInstances._
+import org.ergoplatform.common.sttp.instances._
 import sttp.model.Uri
 import tofu.Context
 

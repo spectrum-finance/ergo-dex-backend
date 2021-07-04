@@ -1,10 +1,10 @@
 package org.ergoplatform.common
 
 import io.circe.generic.auto._
-import sttp.model.StatusCode
-import sttp.tapir._
-import sttp.tapir.generic.auto._
-import sttp.tapir.json.circe._
+import _root_.sttp.model.StatusCode
+import _root_.sttp.tapir._
+import _root_.sttp.tapir.generic.auto._
+import _root_.sttp.tapir.json.circe._
 
 package object http {
 
