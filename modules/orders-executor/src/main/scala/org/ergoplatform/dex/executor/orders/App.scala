@@ -33,7 +33,7 @@ object App extends EnvApp[AppContext] {
   private def init(configPathOpt: Option[String]): Resource[InitF, (Executor[StreamF], AppContext)] =
     for {
       blocker <- Blocker[InitF]
-      configs <- Resource.eval(ConfigBundle.load(configPathOpt))
+      configs <- Resource.eval(ConfigBundle.load(configPathOpt, blocker))
       ctx                                                       = AppContext.init(configs)
       implicit0(mc: MakeKafkaConsumer[RunF, TradeId, AnyTrade]) = MakeKafkaConsumer.make[InitF, RunF, TradeId, AnyTrade]
       implicit0(isoKRun: IsoK[RunF, InitF])                     = IsoK.byFunK(wr.runContextK(ctx))(wr.liftF)

@@ -36,7 +36,7 @@ object App extends EnvApp[AppContext] {
   private def init(configPathOpt: Option[String]): Resource[InitF, (Executor[StreamF], AppContext)] =
     for {
       blocker <- Blocker[InitF]
-      configs <- Resource.eval(ConfigBundle.load(configPathOpt))
+      configs <- Resource.eval(ConfigBundle.load(configPathOpt, blocker))
       ctx                              = AppContext.init(configs)
       implicit0(e: ErgoAddressEncoder) = ErgoAddressEncoder(configs.protocol.networkType.prefix)
       implicit0(mc: MakeKafkaConsumer[RunF, OperationId, CFMMOperationRequest]) =

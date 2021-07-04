@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.matcher
 
-import cats.effect.{ExitCode, Resource}
+import cats.effect.{Blocker, ExitCode, Resource}
 import fs2.Chunk
 import monix.eval.Task
 import org.ergoplatform.common.EnvApp
@@ -31,7 +31,8 @@ object App extends EnvApp[ConfigBundle] {
 
   private def resources(configPathOpt: Option[String]): Resource[InitF, (Matcher[StreamF], ConfigBundle)] =
     for {
-      configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt))
+      blocker <- Blocker[InitF]
+      configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       trans   <- PostgresTransactor.make("matcher-pool", configs.db)
       implicit0(xa: Txr.Contextual[RunF, ConfigBundle]) = Txr.contextual[RunF](trans)
       implicit0(elh: EmbeddableLogHandler[xa.DB]) <-

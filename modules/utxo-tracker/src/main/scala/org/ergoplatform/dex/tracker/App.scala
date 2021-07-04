@@ -41,7 +41,7 @@ object App extends EnvApp[ConfigBundle] {
   private def init(configPathOpt: Option[String]): Resource[InitF, (UtxoTracker[StreamF], ConfigBundle)] =
     for {
       blocker <- Blocker[InitF]
-      configs <- Resource.eval(ConfigBundle.load(configPathOpt))
+      configs <- Resource.eval(ConfigBundle.load(configPathOpt, blocker))
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = IsoK.byFunK(wr.runContextK(configs))(wr.liftF)
 //      implicit0(producer0: Producer[OrderId, AnyOrder, StreamF]) <-

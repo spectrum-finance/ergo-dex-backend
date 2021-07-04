@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.resolver
 
-import cats.effect.{ExitCode, Resource}
+import cats.effect.{Blocker, ExitCode, Resource}
 import fs2.Stream
 import fs2.kafka.serde._
 import org.ergoplatform.common.EnvApp
@@ -26,7 +26,8 @@ object App extends EnvApp[AppContext] {
 
   private def init(configPathOpt: Option[String]) =
     for {
-      configs <- Resource.eval(ConfigBundle.load(configPathOpt))
+      blocker <- Blocker[InitF]
+      configs <- Resource.eval(ConfigBundle.load(configPathOpt, blocker))
       ctx = AppContext.init(configs)
       implicit0(mc: MakeKafkaConsumer[RunF, PoolId, Confirmed[CFMMPool]]) =
         MakeKafkaConsumer.make[InitF, RunF, PoolId, Confirmed[CFMMPool]]

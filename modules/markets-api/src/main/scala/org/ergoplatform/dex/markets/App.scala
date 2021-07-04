@@ -31,7 +31,7 @@ object App extends EnvApp[ConfigBundle] {
   private def resources(configPathOpt: Option[String]): Resource[InitF, (MarketsIndexer[StreamF], ConfigBundle)] =
     for {
       blocker <- Blocker[InitF]
-      configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt))
+      configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       trans   <- PostgresTransactor.make("markets-api-pool", configs.pg)
       implicit0(xa: Txr.Contextual[RunF, ConfigBundle]) = Txr.contextual[RunF](trans)
       implicit0(elh: EmbeddableLogHandler[xa.DB]) <-

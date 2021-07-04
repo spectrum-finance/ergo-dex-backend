@@ -9,7 +9,7 @@ object versions {
   val CirceVersion       = "0.13.0"
   val CatsVersion        = "2.5.0"
   val CatsEffectVersion  = "2.4.1"
-  val CatsTaglessVersion = "0.12"
+  val CatsTaglessVersion = "0.14.0"
   val MouseVersion       = "0.26.2"
   val Fs2Version         = "2.5.6"
   val JawnFs2Version     = "1.0.0"
@@ -32,7 +32,7 @@ object versions {
   val LogbackVersion  = "1.2.3"
   val Slf4jVersion    = "1.7.25"
 
-  val PureConfigVersion = "0.12.1"
+  val PureConfigVersion = "0.14.1"
 
   val NewtypeVersion = "0.4.3"
   val RefinedVersion = "0.9.10"

@@ -84,10 +84,10 @@ object dependencies {
   )
 
   val Derevo: List[ModuleID] = List(
-    "tf.tofu" %% "derevo-cats"         % DerevoVersion,
-    "tf.tofu" %% "derevo-cats-tagless" % DerevoVersion,
-    "tf.tofu" %% "derevo-circe"        % DerevoVersion,
-    "tf.tofu" %% "derevo-pureconfig"   % DerevoVersion
+    "tf.tofu" %% "derevo-cats"              % DerevoVersion,
+    "tf.tofu" %% "derevo-cats-tagless"      % DerevoVersion,
+    "tf.tofu" %% "derevo-circe"             % DerevoVersion,
+    "tf.tofu" %% "derevo-pureconfig-legacy" % DerevoVersion
   )
 
   val Ergo: List[ModuleID] = List(
