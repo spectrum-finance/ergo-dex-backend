@@ -2,7 +2,6 @@ package org.ergoplatform.dex.matcher
 
 import cats.effect.{Blocker, Resource}
 import fs2.Chunk
-import monix.eval.Task
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder

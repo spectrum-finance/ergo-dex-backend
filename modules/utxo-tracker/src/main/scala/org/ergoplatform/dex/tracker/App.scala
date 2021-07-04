@@ -2,7 +2,6 @@ package org.ergoplatform.dex.tracker
 
 import cats.effect.{Blocker, Resource}
 import fs2.kafka.serde._
-import monix.eval.Task
 import mouse.any._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp

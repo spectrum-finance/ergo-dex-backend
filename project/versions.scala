@@ -21,6 +21,7 @@ object versions {
   val MonocleVersion     = "2.0.3"
   val TofuVersion        = "0.10.2"
   val DerevoVersion      = "0.12.5"
+  val MagnoliaVersion    = "0.17.0"
   val Redis4CatsVersion  = "0.14.0"
 
   val ScodecCore = "1.11.7"

@@ -54,6 +54,7 @@ lazy val core = utils
       Cats ++
       Tofu ++
       Derevo ++
+      Magnolia ++
       Fs2 ++
       JawnFs2 ++
       Circe ++

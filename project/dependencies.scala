@@ -71,7 +71,6 @@ object dependencies {
   val Tofu: List[ModuleID] = List(
     "tf.tofu" %% "tofu-core"         % TofuVersion,
     "tf.tofu" %% "tofu-concurrent"   % TofuVersion,
-    "tf.tofu" %% "tofu-env"          % TofuVersion,
     "tf.tofu" %% "tofu-optics-core"  % TofuVersion,
     "tf.tofu" %% "tofu-optics-macro" % TofuVersion,
     "tf.tofu" %% "tofu-derivation"   % TofuVersion,
@@ -81,6 +80,8 @@ object dependencies {
     "tf.tofu" %% "tofu-fs2-interop"  % TofuVersion,
     "tf.tofu" %% "tofu-zio-interop" % TofuVersion
   )
+
+  val Magnolia = List("com.propensive" %% "magnolia" % MagnoliaVersion)
 
   val Derevo: List[ModuleID] = List(
     "tf.tofu" %% "derevo-cats"              % DerevoVersion,
