@@ -13,11 +13,11 @@ import tofu.optics.macros.{promote, ClassyOptics}
 final case class ConfigBundle(
   @promote commitPolicy: CommitPolicy,
   @promote exchange: ExchangeConfig,
+  @promote execution: ExecutionConfig,
   @promote protocol: ProtocolConfig,
   @promote consumer: ConsumerConfig,
-  producer: ProducerConfig,
   @promote kafka: KafkaConfig,
-  @promote network: NetworkConfig,
+  @promote explorer: ExplorerConfig,
   @promote resolver: ResolverConfig
 )
 

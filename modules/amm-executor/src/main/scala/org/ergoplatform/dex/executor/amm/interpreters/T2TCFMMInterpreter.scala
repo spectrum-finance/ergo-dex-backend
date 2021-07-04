@@ -3,12 +3,12 @@ package org.ergoplatform.dex.executor.amm.interpreters
 import cats.Monad
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
+import org.ergoplatform.dex.configs.ExecutionConfig
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, TooMuchSlippage}
-import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.dex.protocol.amm.AmmContracts
 import org.ergoplatform.ergo.syntax._
@@ -22,7 +22,8 @@ import tofu.syntax.monadic._
 import tofu.syntax.raise._
 
 final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
-  conf: ExchangeConfig,
+  exchange: ExchangeConfig,
+  execution: ExecutionConfig,
   ctx: NetworkContext
 )(implicit
   contracts: AmmContracts[T2TCFMM],
@@ -48,8 +49,8 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       ),
       additionalRegisters = mkPoolRegs(pool)
     )
-    val minerFeeBox = new ErgoBoxCandidate(conf.minerFee, minerFeeProp, ctx.currentHeight)
-    val dexFee      = deposit.params.dexFee - conf.minerFee
+    val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
+    val dexFee      = deposit.params.dexFee - execution.minerFee
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
     val returnBox = new ErgoBoxCandidate(
       value            = depositBox.value - minerFeeBox.value - dexFeeBox.value,
@@ -85,8 +86,8 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       ),
       additionalRegisters = mkPoolRegs(pool)
     )
-    val minerFeeBox = new ErgoBoxCandidate(conf.minerFee, minerFeeProp, ctx.currentHeight)
-    val dexFee      = redeem.params.dexFee - conf.minerFee
+    val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
+    val dexFee      = redeem.params.dexFee - execution.minerFee
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
     val returnBox = new ErgoBoxCandidate(
       value          = redeemBox.value - minerFeeBox.value - dexFeeBox.value,
@@ -130,8 +131,8 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         ),
         additionalRegisters = mkPoolRegs(pool)
       )
-      val minerFeeBox = new ErgoBoxCandidate(conf.minerFee, minerFeeProp, ctx.currentHeight)
-      val dexFee      = output.value * swap.params.dexFeePerToken - conf.minerFee
+      val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
+      val dexFee      = output.value * swap.params.dexFeePerToken - execution.minerFee
       val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
       val rewardBox = new ErgoBoxCandidate(
         value            = swapBox.value - minerFeeBox.value - dexFeeBox.value,
@@ -150,7 +151,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   }
 
   private val minerFeeProp = Pay2SAddress(ErgoScriptPredef.feeProposition()).script
-  private val dexFeeProp   = conf.rewardAddress.toErgoTree
+  private val dexFeeProp   = exchange.rewardAddress.toErgoTree
 
   private def mkPoolTokens(pool: CFMMPool, amountLP: Long, amountX: Long, amountY: Long) =
     mkTokens(
@@ -171,15 +172,16 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
 object T2TCFMMInterpreter {
 
-  def make[F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has](implicit
+  def make[F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has: ExecutionConfig.Has](implicit
     network: ErgoNetwork[F],
     contracts: AmmContracts[T2TCFMM],
     encoder: ErgoAddressEncoder
   ): CFMMInterpreter[T2TCFMM, F] =
     (
       for {
-        conf       <- context
+        exchange   <- hasContext[F, ExchangeConfig]
+        execution  <- hasContext[F, ExecutionConfig]
         networkCtx <- NetworkContext.make
-      } yield new T2TCFMMInterpreter(conf, networkCtx): CFMMInterpreter[T2TCFMM, F]
+      } yield new T2TCFMMInterpreter(exchange, execution, networkCtx): CFMMInterpreter[T2TCFMM, F]
     ).embed
 }

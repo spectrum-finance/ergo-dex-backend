@@ -2,6 +2,7 @@ package org.ergoplatform.dex.tracker.configs
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
+import org.ergoplatform.common.cache.RedisConfig
 import org.ergoplatform.common.streaming.CommitPolicy
 import org.ergoplatform.dex.configs._
 import tofu.Context
@@ -17,9 +18,10 @@ final case class ConfigBundle(
   cfmmPoolsProducer: ProducerConfig,
   @promote kafka: KafkaConfig,
   @promote protocol: ProtocolConfig,
-  @promote network: NetworkConfig,
+  @promote explorer: ExplorerConfig,
   @promote tracker: TrackerConfig,
-  @promote fees: Fees
+  @promote execution: ExecutionConfig,
+  redis: RedisConfig
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {

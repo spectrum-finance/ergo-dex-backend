@@ -43,7 +43,7 @@ lazy val dexBackend = project
   .withId("ergo-dex-backend")
   .settings(commonSettings)
   .settings(moduleName := "ergo-dex-backend", name := "ErgoDexBackend")
-  .aggregate(core, utxoTracker, matcher, ordersExecutor, ammExecutor, poolResolver, marketsApi)
+  .aggregate(core, cache, db, http, utxoTracker, matcher, ordersExecutor, ammExecutor, poolResolver, marketsApi)
 
 lazy val core = utils
   .mkModule("dex-core", "DexCore")
@@ -60,14 +60,27 @@ lazy val core = utils
       Typing ++
       Config ++
       Kafka ++
-      Db ++
+      TapirCore ++
       SttpCore ++
       SttpClient ++
-      Tapir ++
-      TapirHttp4s ++
       Monocle ++
       Enums
   )
+
+lazy val cache = utils
+  .mkModule("cache", "Cache")
+  .settings(commonSettings, libraryDependencies ++= Redis ++ Scodec)
+  .dependsOn(core % allConfigDependency)
+
+lazy val db = utils
+  .mkModule("db", "Db")
+  .settings(commonSettings, libraryDependencies ++= Db)
+  .dependsOn(core % allConfigDependency)
+
+lazy val http = utils
+  .mkModule("http", "Http")
+  .settings(commonSettings, libraryDependencies ++= Tapir ++ TapirHttp4s)
+  .dependsOn(core % allConfigDependency)
 
 lazy val utxoTracker = utils
   .mkModule("utxo-tracker", "UtxoTracker")
@@ -89,7 +102,7 @@ lazy val utxoTracker = utils
     dockerExposedVolumes := Seq("/var/lib/utxo-tracker", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency)
+  .dependsOn(core % allConfigDependency, cache % allConfigDependency)
 
 lazy val matcher = utils
   .mkModule("dex-matcher", "DexMatcher")
@@ -111,7 +124,7 @@ lazy val matcher = utils
     dockerExposedVolumes := Seq("/var/lib/dex-matcher", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency)
+  .dependsOn(core % allConfigDependency, db % allConfigDependency)
 
 lazy val ordersExecutor = utils
   .mkModule("orders-executor", "OrdersExecutor")
@@ -177,7 +190,7 @@ lazy val poolResolver = utils
     dockerExposedVolumes := Seq("/var/lib/pool-resolver", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency)
+  .dependsOn(core % allConfigDependency, http % allConfigDependency)
 
 lazy val marketsApi = utils
   .mkModule("markets-api", "MarketsApi")
@@ -199,4 +212,4 @@ lazy val marketsApi = utils
     dockerExposedVolumes := Seq("/var/lib/markets-api", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency)
+  .dependsOn(core % allConfigDependency, db % allConfigDependency, http % allConfigDependency)
