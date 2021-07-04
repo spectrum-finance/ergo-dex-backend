@@ -16,7 +16,7 @@ import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.ergo.errors.ResponseError
 import org.ergoplatform.ergo.explorer.models._
 import org.ergoplatform.ergo.explorer.paths._
-import org.ergoplatform.ergo.models.{NetworkParams, Output, Transaction}
+import org.ergoplatform.ergo.models.{EpochParams, NetworkInfo, Output, Transaction}
 import org.typelevel.jawn.Facade
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3._
@@ -40,9 +40,13 @@ trait ErgoNetwork[F[_]] {
     */
   def getCurrentHeight: F[Int]
 
-  /** Get actual network params.
+  /** Get latest epoch params.
     */
-  def getNetworkParams: F[NetworkParams]
+  def getEpochParams: F[EpochParams]
+
+  /** Get latest network info.
+   */
+  def getNetworkInfo: F[NetworkInfo]
 
   /** Get transactions which spend boxes with a given ErgoTree `templateHash`.
     */
@@ -53,18 +57,18 @@ trait ErgoNetwork[F[_]] {
   def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]]
 }
 
-trait StreamingErgoNetworkClient[S[_], F[_]] extends ErgoNetwork[F] {
+trait ErgoNetworkStreaming[S[_], F[_]] extends ErgoNetwork[F] {
 
   /** Get a stream of unspent outputs at the given global offset.
     */
   def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output]
 }
 
-object StreamingErgoNetworkClient {
+object ErgoNetworkStreaming {
 
-  final private class ClientContainer[S[_]: FlatMap, F[_]: FlatMap](tft: F[StreamingErgoNetworkClient[S, F]])(implicit
+  final private class StreamingContainer[S[_]: FlatMap, F[_]: FlatMap](tft: F[ErgoNetworkStreaming[S, F]])(implicit
     evals: Evals[S, F]
-  ) extends StreamingErgoNetworkClient[S, F] {
+  ) extends ErgoNetworkStreaming[S, F] {
 
     def submitTransaction(tx: ErgoLikeTransaction): F[TxId] =
       tft.flatMap(_.submitTransaction(tx))
@@ -72,8 +76,11 @@ object StreamingErgoNetworkClient {
     def getCurrentHeight: F[Int] =
       tft.flatMap(_.getCurrentHeight)
 
-    def getNetworkParams: F[NetworkParams] =
-      tft.flatMap(_.getNetworkParams)
+    def getEpochParams: F[EpochParams] =
+      tft.flatMap(_.getEpochParams)
+
+    def getNetworkInfo: F[NetworkInfo] =
+      tft.flatMap(_.getNetworkInfo)
 
     def getTransactionsByInputScript(templateHash: HexString, offset: Int, limit: Int): F[List[Transaction]] =
       tft.flatMap(_.getTransactionsByInputScript(templateHash, offset, limit))
@@ -85,35 +92,35 @@ object StreamingErgoNetworkClient {
       evals.eval(tft.map(_.streamUnspentOutputs(boxGixOffset, limit))).flatten
   }
 
-  implicit def functorK[F[_]]: FunctorK[StreamingErgoNetworkClient[*[_], F]] = {
-    type Mod[S[_]] = StreamingErgoNetworkClient[S, F]
+  implicit def functorK[F[_]]: FunctorK[ErgoNetworkStreaming[*[_], F]] = {
+    type Mod[S[_]] = ErgoNetworkStreaming[S, F]
     cats.tagless.Derive.functorK[Mod]
   }
 
-  implicit def constEmbed[S[_]: FlatMap]: ConstrainedEmbed[StreamingErgoNetworkClient[S, *[_]], Evals[S, *[_]]] =
-    new ConstrainedEmbed[StreamingErgoNetworkClient[S, *[_]], Evals[S, *[_]]] {
+  implicit def constEmbed[S[_]: FlatMap]: ConstrainedEmbed[ErgoNetworkStreaming[S, *[_]], Evals[S, *[_]]] =
+    new ConstrainedEmbed[ErgoNetworkStreaming[S, *[_]], Evals[S, *[_]]] {
 
       def embed[F[_]: FlatMap: Evals[S, *[_]]](
-        ft: F[StreamingErgoNetworkClient[S, F]]
-      ): StreamingErgoNetworkClient[S, F] =
-        new ClientContainer[S, F](ft)
+        ft: F[ErgoNetworkStreaming[S, F]]
+      ): ErgoNetworkStreaming[S, F] =
+        new StreamingContainer[S, F](ft)
     }
 
   def make[
     S[_]: FlatMap: Evals[*[_], F]: LiftStream[*[_], F],
     F[_]: MonadThrow: WithContext[*[_], ExplorerConfig]
-  ](implicit backend: SttpBackend[F, Fs2Streams[F]]): StreamingErgoNetworkClient[S, F] =
+  ](implicit backend: SttpBackend[F, Fs2Streams[F]]): ErgoNetworkStreaming[S, F] =
     constEmbed[S].embed(
       context
-        .map(conf => new ErgoExplorerClient[F](conf))
+        .map(conf => new ErgoExplorerStreaming[F](conf))
         .map(client => functorK.mapK(client)(LiftStream[S, F].liftF))
     )
 
-  final class ErgoExplorerClient[
+  final class ErgoExplorerStreaming[
     F[_]: MonadThrow
   ](config: ExplorerConfig)(implicit
-                            backend: SttpBackend[F, Fs2Streams[F]]
-  ) extends StreamingErgoNetworkClient[Stream[F, *], F] {
+    backend: SttpBackend[F, Fs2Streams[F]]
+  ) extends ErgoNetworkStreaming[Stream[F, *], F] {
 
     private val uri                           = config.uri
     implicit private val facade: Facade[Json] = new CirceSupportParser(None, allowDuplicateKeys = false).facade
@@ -136,10 +143,17 @@ object StreamingErgoNetworkClient {
         .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
         .map(_.items.headOption.map(_.height).getOrElse(protocol.constants.PreGenesisHeight))
 
-    def getNetworkParams: F[NetworkParams] =
+    def getEpochParams: F[EpochParams] =
       basicRequest
         .get(uri.withPathSegment(paramsPathSeg))
-        .response(asJson[NetworkParams])
+        .response(asJson[EpochParams])
+        .send(backend)
+        .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
+
+    def getNetworkInfo: F[NetworkInfo] =
+      basicRequest
+        .get(uri.withPathSegment(infoPathSeg))
+        .response(asJson[NetworkInfo])
         .send(backend)
         .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
 

@@ -16,7 +16,7 @@ import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.executor.amm.services.Execution
 import org.ergoplatform.dex.executor.amm.streaming.CFMMConsumer
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
-import org.ergoplatform.ergo.{ErgoNetwork, StreamingErgoNetworkClient}
+import org.ergoplatform.ergo.{ErgoNetwork, ErgoNetworkStreaming}
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
@@ -44,7 +44,7 @@ object App extends EnvApp[AppContext] {
       //implicit0(isoKRun: IsoK[RunF, InitF])            = IsoK.byFunK(wr.runContextK(ctx))(wr.liftF)
       implicit0(consumer: CFMMConsumer[StreamF, RunF]) = Consumer.make[StreamF, RunF, OperationId, CFMMOperationRequest]
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
-      implicit0(client: ErgoNetwork[RunF])                   = StreamingErgoNetworkClient.make[StreamF, RunF]
+      implicit0(client: ErgoNetwork[RunF])                   = ErgoNetworkStreaming.make[StreamF, RunF]
       implicit0(pools: CFMMPools[RunF])                      = CFMMPools.make[RunF]
       implicit0(interpreter: CFMMInterpreter[T2TCFMM, RunF]) = T2TCFMMInterpreter.make[RunF]
       implicit0(execution: Execution[RunF]) <- Resource.eval(Execution.make[InitF, RunF])

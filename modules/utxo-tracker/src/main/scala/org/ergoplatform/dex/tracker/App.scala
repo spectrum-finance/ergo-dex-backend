@@ -16,7 +16,7 @@ import org.ergoplatform.dex.tracker.handlers.{CFMMOpsHandler, CFMMPoolsHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
-import org.ergoplatform.ergo.StreamingErgoNetworkClient
+import org.ergoplatform.ergo.ErgoNetworkStreaming
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
@@ -51,7 +51,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(producer2: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.cfmmPoolsProducer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
-      implicit0(client: StreamingErgoNetworkClient[StreamF, RunF]) = StreamingErgoNetworkClient.make[StreamF, RunF]
+      implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
       implicit0(cfmmRules: CFMMRules[RunF])                        = CFMMRules.make[RunF]
       //limitOrdersHandler <- Resource.eval(OrdersHandler.make[LimitOrders, InitF, StreamF, RunF])
       t2tCfmmHandler                       <- Resource.eval(CFMMOpsHandler.make[T2TCFMM, InitF, StreamF, RunF])
