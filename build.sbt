@@ -4,7 +4,7 @@ lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
   scalaVersion := "2.12.14",
   organization := "org.ergoplatform",
-  version := "0.3.0",
+  version := "0.4.0",
   resolvers += Resolver.sonatypeRepo("public"),
   resolvers += Resolver.sonatypeRepo("snapshots"),
   test in assembly := {},
@@ -54,6 +54,7 @@ lazy val core = utils
       Cats ++
       Tofu ++
       Derevo ++
+      Magnolia ++
       Fs2 ++
       JawnFs2 ++
       Circe ++
@@ -88,8 +89,7 @@ lazy val utxoTracker = utils
   .settings(
     mainClass in assembly := Some(
       "org.ergoplatform.dex.tracker.App"
-    ),
-    libraryDependencies ++= Monix
+    )
   )
   .settings(
     name in Universal := name.value,
@@ -110,8 +110,7 @@ lazy val matcher = utils
   .settings(
     mainClass in assembly := Some(
       "org.ergoplatform.dex.matcher.App"
-    ),
-    libraryDependencies ++= Monix
+    )
   )
   .settings(
     name in Universal := name.value,
@@ -133,7 +132,7 @@ lazy val ordersExecutor = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.executor.orders.App"
     ),
-    libraryDependencies ++= Monix ++ SttpClient
+    libraryDependencies ++= SttpClient
   )
   .settings(
     name in Universal := name.value,
@@ -155,7 +154,7 @@ lazy val ammExecutor = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.executor.amm.App"
     ),
-    libraryDependencies ++= Monix ++ SttpClient
+    libraryDependencies ++= SttpClient
   )
   .settings(
     name in Universal := name.value,
@@ -176,8 +175,7 @@ lazy val poolResolver = utils
   .settings(
     mainClass in assembly := Some(
       "org.ergoplatform.dex.resolver.App"
-    ),
-    libraryDependencies ++= Monix
+    )
   )
   .settings(
     name in Universal := name.value,
@@ -199,7 +197,7 @@ lazy val marketsApi = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.markets.App"
     ),
-    libraryDependencies ++= Monix ++ Tapir
+    libraryDependencies ++= Tapir
   )
   .settings(
     name in Universal := name.value,

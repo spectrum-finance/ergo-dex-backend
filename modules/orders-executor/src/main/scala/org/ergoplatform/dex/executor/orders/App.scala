@@ -1,9 +1,9 @@
 package org.ergoplatform.dex.executor.orders
 
-import cats.effect.{Blocker, ExitCode, Resource}
+import cats.effect.{Blocker, Resource}
 import fs2.Chunk
-import monix.eval.Task
 import org.ergoplatform.common.EnvApp
+import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.domain.orderbook.{OrderId, TradeId}
@@ -12,7 +12,6 @@ import org.ergoplatform.dex.executor.orders.context.AppContext
 import org.ergoplatform.dex.executor.orders.processes.Executor
 import org.ergoplatform.dex.executor.orders.services.Execution
 import org.ergoplatform.dex.executor.orders.streaming.StreamingBundle
-import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.ergo.{ErgoNetwork, ErgoNetworkStreaming}
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
@@ -21,19 +20,21 @@ import tofu.WithRun
 import tofu.fs2Instances._
 import tofu.lift.IsoK
 import tofu.syntax.unlift._
+import zio.interop.catz._
+import zio.{ExitCode, URIO, ZEnv}
 
 object App extends EnvApp[AppContext] {
 
-  def run(args: List[String]): Task[ExitCode] =
+  def run(args: List[String]): URIO[ZEnv, ExitCode] =
     init(args.headOption).use { case (executor, ctx) =>
       val appF = executor.run.compile.drain
-      appF.run(ctx) as ExitCode.Success
-    }
+      appF.run(ctx) as ExitCode.success
+    }.orDie
 
   private def init(configPathOpt: Option[String]): Resource[InitF, (Executor[StreamF], AppContext)] =
     for {
       blocker <- Blocker[InitF]
-      configs <- Resource.eval(ConfigBundle.load(configPathOpt, blocker))
+      configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       ctx                                                       = AppContext.init(configs)
       implicit0(mc: MakeKafkaConsumer[RunF, TradeId, AnyTrade]) = MakeKafkaConsumer.make[InitF, RunF, TradeId, AnyTrade]
       implicit0(isoKRun: IsoK[RunF, InitF])                     = IsoK.byFunK(wr.runContextK(ctx))(wr.liftF)
@@ -43,7 +44,7 @@ object App extends EnvApp[AppContext] {
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
       implicit0(client: ErgoNetwork[RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
       implicit0(service: Execution[RunF]) <- Resource.eval(Execution.make[InitF, RunF])
-      executor                                   <- Resource.eval(Executor.make[InitF, StreamF, RunF, Chunk])
+      executor                            <- Resource.eval(Executor.make[InitF, StreamF, RunF, Chunk])
     } yield executor -> ctx
 
   private def makeBackend(
