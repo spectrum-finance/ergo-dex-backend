@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.executor.amm.interpreters
 
-import cats.Monad
+import cats.{Functor, Monad}
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
 import org.ergoplatform.dex.configs.ExecutionConfig
@@ -9,6 +9,7 @@ import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, TooMuchSlippage}
+import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterpreterTracing
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.dex.protocol.amm.AmmContracts
 import org.ergoplatform.ergo.syntax._
@@ -16,6 +17,7 @@ import org.ergoplatform.ergo.{BoxId, ErgoNetwork, TokenId}
 import sigmastate.Values.IntConstant
 import sigmastate.eval._
 import sigmastate.interpreter.ProverResult
+import tofu.logging.Logs
 import tofu.syntax.context._
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
@@ -172,16 +174,19 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
 object T2TCFMMInterpreter {
 
-  def make[F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has: ExecutionConfig.Has](implicit
+  def make[I[_]: Functor, F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has: ExecutionConfig.Has](implicit
     network: ErgoNetwork[F],
     contracts: AmmContracts[T2TCFMM],
-    encoder: ErgoAddressEncoder
-  ): CFMMInterpreter[T2TCFMM, F] =
-    (
-      for {
-        exchange   <- hasContext[F, ExchangeConfig]
-        execution  <- hasContext[F, ExecutionConfig]
-        networkCtx <- NetworkContext.make
-      } yield new T2TCFMMInterpreter(exchange, execution, networkCtx): CFMMInterpreter[T2TCFMM, F]
-    ).embed
+    encoder: ErgoAddressEncoder,
+    logs: Logs[I, F]
+  ): I[CFMMInterpreter[T2TCFMM, F]] =
+    logs.forService[CFMMInterpreter[T2TCFMM, F]].map { implicit l =>
+      (
+        for {
+          exchange   <- hasContext[F, ExchangeConfig]
+          execution  <- hasContext[F, ExecutionConfig]
+          networkCtx <- NetworkContext.make
+        } yield new CFMMInterpreterTracing[T2TCFMM, F] attach new T2TCFMMInterpreter(exchange, execution, networkCtx)
+      ).embed
+    }
 }

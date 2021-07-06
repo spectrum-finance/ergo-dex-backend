@@ -45,7 +45,7 @@ object App extends EnvApp[AppContext] {
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
       implicit0(client: ErgoNetwork[RunF])                   = ErgoNetworkStreaming.make[StreamF, RunF]
       implicit0(pools: CFMMPools[RunF])                      = CFMMPools.make[RunF]
-      implicit0(interpreter: CFMMInterpreter[T2TCFMM, RunF]) = T2TCFMMInterpreter.make[RunF]
+      implicit0(interpreter: CFMMInterpreter[T2TCFMM, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
       implicit0(execution: Execution[RunF]) <- Resource.eval(Execution.make[InitF, RunF])
       executor                              <- Resource.eval(Executor.make[InitF, StreamF, RunF, Chunk])
     } yield executor -> ctx

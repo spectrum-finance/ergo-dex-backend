@@ -1,8 +1,6 @@
 package org.ergoplatform.dex.resolver.http
 
 import cats.effect.{Concurrent, ConcurrentEffect, ContextShift, ExitCode, Timer}
-import org.ergoplatform.common.http.AdaptThrowable.AdaptThrowableEitherT
-import org.ergoplatform.common.http.HttpError
 import org.ergoplatform.common.http.routes.unliftRoutes
 import org.ergoplatform.dex.resolver.config.HttpConfig
 import org.ergoplatform.dex.resolver.services.Resolver
