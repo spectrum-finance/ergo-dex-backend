@@ -25,6 +25,6 @@ final class CfmmRuleDefs[F[_]: Applicative](constraints: ExecutionConfig, networ
   }
 
   private def sufficientValueSwap: CFMMRule = { case Swap(_, params, _) =>
-    params.dexFeePerToken * params.minOutput.value - constraints.minerFee >= safeMinValue
+    params.dexFeePerTokenNum * params.minOutput.value / params.dexFeePerTokenDenom - constraints.minerFee >= safeMinValue
   }
 }

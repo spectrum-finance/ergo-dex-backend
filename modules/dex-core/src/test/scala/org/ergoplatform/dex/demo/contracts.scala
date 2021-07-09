@@ -80,8 +80,8 @@ object contracts {
       |{
       |    val FeeDenom = 1000
       |    val FeeNum   = 995
-      |    val DexFeePerTokenNum   = 10
-      |    val DexFeePerTokenDenom = 1
+      |    val DexFeePerTokenNum   = 10L
+      |    val DexFeePerTokenDenom = 1L
       |
       |    val base       = SELF.tokens(0)
       |    val baseId     = base._1
@@ -99,15 +99,15 @@ object contracts {
       |
       |    val validTrade =
       |        OUTPUTS.exists { (box: Box) =>
-      |            val quoteAsset   = box.tokens(0)
-      |            val quoteAmount  = quoteAsset._2
-      |            val fairDexFee   = box.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom
-      |            val relaxedInput = baseAmount - 1
-      |            val fairPrice    =
+      |            val quoteAsset    = box.tokens(0)
+      |            val quoteAmount   = quoteAsset._2
+      |            val fairDexFee    = box.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom
+      |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
+      |            val fairPrice     =
       |                if (poolAssetX._1 == QuoteId)
-      |                    poolAssetX._2.toBigInt * relaxedInput * FeeNum <= quoteAmount * (poolAssetY._2.toBigInt * FeeDenom + relaxedInput * FeeNum)
+      |                    poolAssetX._2.toBigInt * baseAmount * FeeNum <= relaxedOutput * (poolAssetY._2.toBigInt * FeeDenom + baseAmount * FeeNum)
       |                else
-      |                    poolAssetY._2.toBigInt * relaxedInput * FeeNum <= quoteAmount * (poolAssetX._2.toBigInt * FeeDenom + relaxedInput * FeeNum)
+      |                    poolAssetY._2.toBigInt * baseAmount * FeeNum <= relaxedOutput * (poolAssetX._2.toBigInt * FeeDenom + baseAmount * FeeNum)
       |
       |            box.propositionBytes == Pk.propBytes &&
       |            quoteAsset._1 == QuoteId &&

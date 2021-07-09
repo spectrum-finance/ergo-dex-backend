@@ -49,14 +49,15 @@ final class T2TCFMMOpsParser(implicit
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     if (template == templates.swap) {
       for {
-        poolId    <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
-        in        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
-        outId     <- tree.constants.parseBytea(3).map(TokenId.fromBytes)
-        outAmount <- tree.constants.parseLong(11)
-        out = AssetAmount(outId, outAmount, None)
-        dexFeePerToken <- tree.constants.parseLong(12)
-        p2pk           <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
-        params = SwapParams(in, out, dexFeePerToken, p2pk)
+        poolId       <- tree.constants.parseBytea(10).map(PoolId.fromBytes)
+        inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
+        outId        <- tree.constants.parseBytea(3).map(TokenId.fromBytes)
+        minOutAmount <- tree.constants.parseLong(13)
+        out = AssetAmount(outId, minOutAmount, None)
+        dexFeePerTokenNum   <- tree.constants.parseLong(14)
+        dexFeePerTokenDenom <- tree.constants.parseLong(15)
+        p2pk                <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
+        params = SwapParams(inAmount, out, dexFeePerTokenNum, dexFeePerTokenDenom, p2pk)
       } yield Swap(poolId, params, box)
     } else None
   }

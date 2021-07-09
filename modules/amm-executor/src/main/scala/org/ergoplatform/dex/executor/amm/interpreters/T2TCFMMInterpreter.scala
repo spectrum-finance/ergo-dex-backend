@@ -134,7 +134,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         additionalRegisters = mkPoolRegs(pool)
       )
       val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
-      val dexFee      = output.value * swap.params.dexFeePerToken - execution.minerFee
+      val dexFee      = output.value * swap.params.dexFeePerTokenNum / swap.params.dexFeePerTokenDenom - execution.minerFee
       val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
       val rewardBox = new ErgoBoxCandidate(
         value            = swapBox.value - minerFeeBox.value - dexFeeBox.value,
