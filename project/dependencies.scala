@@ -6,8 +6,8 @@ object dependencies {
 
   val SttpCore =
     List(
-      "com.softwaremill.sttp.client3" %% "core"  % SttpVersion,
-      "com.softwaremill.sttp.client3" %% "circe" % SttpVersion
+      "com.softwaremill.sttp.client3" %% "core"  % versions.SttpVersion,
+      "com.softwaremill.sttp.client3" %% "circe" % versions.SttpVersion
     )
 
   val SttpClient =
@@ -49,9 +49,13 @@ object dependencies {
     "dev.profunktor" %% "redis4cats-effects" % Redis4CatsVersion
   )
 
+  val ScodecCore = List(
+    "org.scodec" %% "scodec-core" % ScodecCoreVersion
+  )
+
   val Scodec = List(
-    "org.scodec" %% "scodec-core" % ScodecCore,
-    "org.scodec" %% "scodec-bits" % ScodecBits
+    "org.scodec" %% "scodec-core" % ScodecCoreVersion,
+    "org.scodec" %% "scodec-bits" % ScodecBitsVersion
   )
 
   val Monocle: List[ModuleID] = List(
@@ -78,7 +82,7 @@ object dependencies {
     "tf.tofu" %% "tofu-doobie"       % TofuVersion,
     "tf.tofu" %% "tofu-streams"      % TofuVersion,
     "tf.tofu" %% "tofu-fs2-interop"  % TofuVersion,
-    "tf.tofu" %% "tofu-zio-interop" % TofuVersion
+    "tf.tofu" %% "tofu-zio-interop"  % TofuVersion
   )
 
   val Magnolia = List("com.propensive" %% "magnolia" % MagnoliaVersion)

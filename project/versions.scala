@@ -24,8 +24,8 @@ object versions {
   val MagnoliaVersion    = "0.17.0"
   val Redis4CatsVersion  = "0.14.0"
 
-  val ScodecCore = "1.11.7"
-  val ScodecBits = "1.1.21"
+  val ScodecCoreVersion = "1.11.7"
+  val ScodecBitsVersion = "1.1.21"
 
   val SimulacrumVersion = "0.19.0"
 

@@ -30,9 +30,7 @@ object Resolver {
     def resolve(id: PoolId): F[Option[CFMMPool]] =
       for {
         confirmedOpt <- pools.getLastConfirmed(id)
-        _            <- debug"Confirmed Pool{id='$id'} = $confirmedOpt"
         predictedOpt <- pools.getLastPredicted(id)
-        _            <- debug"Predicted Pool{id='$id'} = $predictedOpt"
         pool <- (confirmedOpt, predictedOpt) match {
                   case (Some(Confirmed(confirmed)), Some(pps @ Predicted(predicted))) =>
                     val upToDate = confirmed.box.lastConfirmedBoxGix <= predicted.box.lastConfirmedBoxGix

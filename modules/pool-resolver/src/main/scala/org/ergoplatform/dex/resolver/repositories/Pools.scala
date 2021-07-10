@@ -1,13 +1,18 @@
 package org.ergoplatform.dex.resolver.repositories
 
 import cats.effect.concurrent.Ref
-import cats.{FlatMap, Functor}
+import cats.effect.{Concurrent, Timer}
+import cats.{FlatMap, Functor, Parallel}
 import derevo.derive
+import dev.profunktor.redis4cats.hlist._
 import io.circe.Json
 import io.circe.syntax._
+import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis}
 import org.ergoplatform.dex.domain.amm.state.{Confirmed, Predicted}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.ergo.BoxId
+import scodec.Codec
+import scodec.codecs.{bool, utf8}
 import tofu.concurrent.MakeRef
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
@@ -41,7 +46,15 @@ trait Pools[F[_]] {
 
 object Pools {
 
-  def make[I[_]: FlatMap, F[_]: FlatMap](implicit makeRef: MakeRef[I, F], logs: Logs[I, F]): I[Pools[F]] =
+  def make[I[_]: FlatMap, F[_]: Parallel: Concurrent: Timer](implicit
+    redis: Redis.Plain[F],
+    logs: Logs[I, F]
+  ): I[Pools[F]] =
+    MakeRedisTransaction.make[I, F].flatMap { implicit mtx =>
+      logs.forService[Pools[F]] map (implicit l => new PoolTracing[F] attach new PoolsCache[F](Cache.make))
+    }
+
+  def ephemeral[I[_]: FlatMap, F[_]: FlatMap](implicit makeRef: MakeRef[I, F], logs: Logs[I, F]): I[Pools[F]] =
     for {
       store                      <- makeRef.refOf(Map.empty[String, Json])
       implicit0(log: Logging[F]) <- logs.forService[Pools[F]]
@@ -50,6 +63,33 @@ object Pools {
   private def PredictedKey(id: BoxId)      = s"predicted:$id"
   private def LastPredictedKey(id: PoolId) = s"predicted:last:$id"
   private def LastConfirmedKey(id: PoolId) = s"confirmed:last:$id"
+
+  final class PoolsCache[F[_]: Functor](cache: Cache[F]) extends Pools[F] {
+
+    implicit val codecString: Codec[String] = utf8
+    implicit val codecBool: Codec[Boolean]  = bool
+
+    def getLastPredicted(id: PoolId): F[Option[Predicted[CFMMPool]]] =
+      cache.get[String, Predicted[CFMMPool]](LastPredictedKey(id))
+
+    def getLastConfirmed(id: PoolId): F[Option[Confirmed[CFMMPool]]] =
+      cache.get[String, Confirmed[CFMMPool]](LastConfirmedKey(id))
+
+    def put(pool: Predicted[CFMMPool]): F[Unit] =
+      cache
+        .transaction(
+          cache.set(LastPredictedKey(pool.predicted.poolId), pool) ::
+          cache.set(PredictedKey(pool.predicted.box.boxId), true) ::
+          HNil
+        )
+        .void
+
+    def put(pool: Confirmed[CFMMPool]): F[Unit] =
+      cache.set(LastConfirmedKey(pool.confirmed.poolId), pool)
+
+    def existsPredicted(id: BoxId): F[Boolean] =
+      cache.get[String, Boolean](PredictedKey(id)).map(_.isDefined)
+  }
 
   final class InMemory[F[_]: Functor](store: Ref[F, Map[String, Json]]) extends Pools[F] {
 

@@ -43,7 +43,7 @@ object Execution {
           interpretF >>= { case (transaction, nextPool) =>
             network.submitTransaction(transaction) >> pools.put(nextPool)
           }
-        case None => warn"Operation request references unknown pool [poolId=${op.poolId}]"
+        case None => warn"Operation request references an unknown pool [poolId=${op.poolId}]"
       }
   }
 }

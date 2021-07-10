@@ -21,7 +21,7 @@ class ResolverSpec extends AnyPropSpec with should.Matchers with ScalaCheckPrope
 
   def make: IO[(Pools[IO], Resolver[IO])] =
     for {
-      implicit0(pools: Pools[IO]) <- Pools.make[IO, IO]
+      implicit0(pools: Pools[IO]) <- Pools.ephemeral[IO, IO]
       resolver                    <- Resolver.make[IO, IO]
     } yield pools -> resolver
 

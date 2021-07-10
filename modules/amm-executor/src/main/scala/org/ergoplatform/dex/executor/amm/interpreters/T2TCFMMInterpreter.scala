@@ -11,7 +11,7 @@ import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, TooMuchSlippage}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterpreterTracing
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
-import org.ergoplatform.dex.protocol.amm.AmmContracts
+import org.ergoplatform.dex.protocol.amm.AMMContracts
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{BoxId, ErgoNetwork, TokenId}
 import sigmastate.Values.IntConstant
@@ -28,7 +28,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   execution: ExecutionConfig,
   ctx: NetworkContext
 )(implicit
-  contracts: AmmContracts[T2TCFMM],
+  contracts: AMMContracts[T2TCFMM],
   encoder: ErgoAddressEncoder
 ) extends CFMMInterpreter[T2TCFMM, F] {
 
@@ -175,10 +175,10 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 object T2TCFMMInterpreter {
 
   def make[I[_]: Functor, F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has: ExecutionConfig.Has](implicit
-    network: ErgoNetwork[F],
-    contracts: AmmContracts[T2TCFMM],
-    encoder: ErgoAddressEncoder,
-    logs: Logs[I, F]
+                                                                                                       network: ErgoNetwork[F],
+                                                                                                       contracts: AMMContracts[T2TCFMM],
+                                                                                                       encoder: ErgoAddressEncoder,
+                                                                                                       logs: Logs[I, F]
   ): I[CFMMInterpreter[T2TCFMM, F]] =
     logs.forService[CFMMInterpreter[T2TCFMM, F]].map { implicit l =>
       (

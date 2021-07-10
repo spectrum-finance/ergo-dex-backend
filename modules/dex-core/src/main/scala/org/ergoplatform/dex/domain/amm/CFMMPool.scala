@@ -1,14 +1,17 @@
 package org.ergoplatform.dex.domain.amm
 
+import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}
 import org.ergoplatform.dex.protocol.amm.constants
+import scodec.Codec
+import scodec.codecs._
 import sttp.tapir.{Schema, Validator}
 import tofu.logging.derivation.loggable
 
-@derive(encoder, decoder, loggable)
+@derive(encoder, decoder, loggable, show)
 final case class CFMMPool(
   poolId: PoolId,
   lp: AssetAmount,
@@ -68,4 +71,14 @@ final case class CFMMPool(
 object CFMMPool {
   implicit val schema: Schema[CFMMPool]       = Schema.derived[CFMMPool]
   implicit val validator: Validator[CFMMPool] = schema.validator
+
+  implicit val codec: Codec[CFMMPool] =
+    (
+      implicitly[Codec[PoolId]] ::
+      implicitly[Codec[AssetAmount]] ::
+      implicitly[Codec[AssetAmount]] ::
+      implicitly[Codec[AssetAmount]] ::
+      int32 ::
+      implicitly[Codec[BoxInfo]]
+    ).as[CFMMPool]
 }

@@ -4,6 +4,7 @@ import cats.effect.{Blocker, Resource}
 import fs2.Stream
 import fs2.kafka.serde._
 import org.ergoplatform.common.EnvApp
+import org.ergoplatform.common.cache.Redis
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer}
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
@@ -36,6 +37,7 @@ object App extends EnvApp[AppContext] {
       implicit0(ul: Unlift[RunF, InitF]) = Unlift.byIso(IsoK.byFunK(wr.runContextK(ctx))(wr.liftF))
       implicit0(consumer: Consumer[PoolId, Confirmed[CFMMPool], StreamF, RunF]) =
         Consumer.make[StreamF, RunF, PoolId, Confirmed[CFMMPool]]
+      implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(pools: Pools[RunF])       <- Resource.eval(Pools.make[InitF, RunF])
       implicit0(resolver: Resolver[RunF]) <- Resource.eval(Resolver.make[InitF, RunF])
       tracker = PoolTracker.make[StreamF, RunF]

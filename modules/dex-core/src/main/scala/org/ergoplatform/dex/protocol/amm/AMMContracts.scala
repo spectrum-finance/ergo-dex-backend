@@ -5,15 +5,15 @@ import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.ergo.SErgoTree
 import sigmastate.Values.ErgoTree
 
-trait AmmContracts[CT <: AMMType] {
+trait AMMContracts[CT <: AMMType] {
 
   def pool: ErgoTree
 }
 
-object AmmContracts {
+object AMMContracts {
 
-  implicit val T2TCFMMContracts: AmmContracts[T2TCFMM] =
-    new AmmContracts[T2TCFMM] {
+  implicit val T2TCFMMContracts: AMMContracts[T2TCFMM] =
+    new AMMContracts[T2TCFMM] {
 
       def pool: ErgoTree =
         ErgoTreeSerializer.default.deserialize(

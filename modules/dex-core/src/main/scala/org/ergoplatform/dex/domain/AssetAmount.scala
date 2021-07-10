@@ -5,6 +5,8 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.models.BoxAsset
+import scodec._
+import scodec.codecs._
 import sttp.tapir.{Schema, Validator}
 import tofu.logging.derivation.loggable
 
@@ -31,4 +33,7 @@ object AssetAmount {
 
   implicit val schema: Schema[AssetAmount]       = Schema.derived[AssetAmount]
   implicit val validator: Validator[AssetAmount] = schema.validator
+
+  implicit val codec: Codec[AssetAmount] =
+    (implicitly[Codec[TokenId]] :: int64 :: optional(bool, variableSizeBits(uint16, utf8))).as[AssetAmount]
 }
