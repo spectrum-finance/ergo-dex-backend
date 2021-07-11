@@ -14,6 +14,7 @@ import tofu.logging.derivation.loggable
 final case class AssetAmount(id: TokenId, value: Long, ticker: Option[String]) {
 
   def >=(that: AssetAmount): Boolean = value >= that.value
+  def <(that: AssetAmount): Boolean = value < that.value
 
   def withAmount(x: Long): AssetAmount = copy(value = x)
 

@@ -6,12 +6,12 @@ import org.ergoplatform._
 import org.ergoplatform.dex.configs.ExecutionConfig
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.amm.state.Predicted
-import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
+import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, TooMuchSlippage}
+import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, PriceTooHigh, PriceTooLow}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterpreterTracing
-import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.dex.protocol.amm.AMMContracts
+import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{BoxId, ErgoNetwork, TokenId}
 import sigmastate.Values.IntConstant
@@ -109,15 +109,12 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     (tx, nextPool).pure
   }
 
-  def swap(swap: Swap, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
-    val outputAmount = pool.outputAmount(swap.params.input)
-    if (outputAmount >= swap.params.minOutput) {
+  def swap(swap: Swap, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] =
+    swapParams(swap, pool).toRaise.map { case (input, output, dexFee) =>
       val poolBox0 = pool.box
       val swapBox  = swap.box
       val swapIn   = new Input(swapBox.boxId.toErgo, ProverResult.empty)
       val poolIn   = new Input(poolBox0.boxId.toErgo, ProverResult.empty)
-      val input    = swap.params.input
-      val output   = pool.outputAmount(input)
       val (deltaX, deltaY) =
         if (input.id == pool.x.id) input.value -> -output.value
         else -output.value                     -> input.value
@@ -134,7 +131,6 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         additionalRegisters = mkPoolRegs(pool)
       )
       val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
-      val dexFee      = output.value * swap.params.dexFeePerTokenNum / swap.params.dexFeePerTokenDenom - execution.minerFee
       val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
       val rewardBox = new ErgoBoxCandidate(
         value            = swapBox.value - minerFeeBox.value - dexFeeBox.value,
@@ -148,12 +144,21 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       val nextPoolBox = poolBox1.toBox(tx.id, 0)
       val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value, poolBox0.lastConfirmedBoxGix)
       val nextPool    = pool.swap(input, boxInfo)
-      (tx, nextPool).pure
-    } else TooMuchSlippage(swap.poolId, swap.params.minOutput, outputAmount).raise
-  }
+      tx -> nextPool
+    }
 
   private val minerFeeProp = Pay2SAddress(ErgoScriptPredef.feeProposition()).script
   private val dexFeeProp   = exchange.rewardAddress.toErgoTree
+
+  private def swapParams(swap: Swap, pool: CFMMPool): Either[ExecutionFailed, (AssetAmount, AssetAmount, Long)] = {
+    val input     = swap.params.input
+    val output    = pool.outputAmount(input)
+    val dexFee    = output.value * swap.params.dexFeePerTokenNum / swap.params.dexFeePerTokenDenom - execution.minerFee
+    val maxDexFee = swap.box.value - execution.minerFee
+    if (output < swap.params.minOutput) Left(PriceTooHigh(swap.poolId, swap.params.minOutput, output))
+    else if (dexFee > maxDexFee) Left(PriceTooLow(swap.poolId, maxDexFee, dexFee))
+    else Right((input, output, maxDexFee))
+  }
 
   private def mkPoolTokens(pool: CFMMPool, amountLP: Long, amountX: Long, amountY: Long) =
     mkTokens(
@@ -175,10 +180,10 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 object T2TCFMMInterpreter {
 
   def make[I[_]: Functor, F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has: ExecutionConfig.Has](implicit
-                                                                                                       network: ErgoNetwork[F],
-                                                                                                       contracts: AMMContracts[T2TCFMM],
-                                                                                                       encoder: ErgoAddressEncoder,
-                                                                                                       logs: Logs[I, F]
+    network: ErgoNetwork[F],
+    contracts: AMMContracts[T2TCFMM],
+    encoder: ErgoAddressEncoder,
+    logs: Logs[I, F]
   ): I[CFMMInterpreter[T2TCFMM, F]] =
     logs.forService[CFMMInterpreter[T2TCFMM, F]].map { implicit l =>
       (
