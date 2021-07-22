@@ -32,7 +32,7 @@ trait SigmaPlatform {
   def selfPk: DLogProtocol.ProveDlog = sk.publicImage
   def selfAddress: P2PKAddress       = P2PKAddress(selfPk)
 
-  val minerFeeNErg = 1000000L
+  val minerFeeNErg = 1250000L
 
   def feeAddress: Pay2SAddress = Pay2SAddress(ErgoScriptPredef.feeProposition())
   def minerFeeBox              = new ErgoBoxCandidate(minerFeeNErg, feeAddress.script, currentHeight())
@@ -63,7 +63,7 @@ trait SigmaPlatform {
 
   def submitTx(tx: ErgoLikeTransaction)(implicit e: Encoder[ErgoLikeTransaction]): Either[String, String] =
     basicRequest
-      .post(uri"http://213.239.193.208:9053/transactions")
+      .post(uri"http://159.65.11.55:9053/transactions")
       .body(tx)
       .response(asString)
       .send(backend)

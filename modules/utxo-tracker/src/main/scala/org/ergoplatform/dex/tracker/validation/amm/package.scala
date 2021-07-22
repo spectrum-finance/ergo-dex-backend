@@ -2,7 +2,6 @@ package org.ergoplatform.dex.tracker.validation
 
 import cats.{FlatMap, Monad}
 import org.ergoplatform.dex.configs.ExecutionConfig
-import org.ergoplatform.dex.domain.NetworkContext
 import org.ergoplatform.dex.domain.amm.CFMMOperationRequest
 import org.ergoplatform.ergo.ErgoNetwork
 import tofu.higherKind.Embed
@@ -24,11 +23,6 @@ package object amm {
   object CFMMRules {
 
     def make[F[_]: Monad: ExecutionConfig.Has](implicit network: ErgoNetwork[F]): CFMMRules[F] =
-      (
-        for {
-          conf       <- context
-          networkCtx <- NetworkContext.make
-        } yield new CfmmRuleDefs[F](conf, networkCtx).rules
-      ).embed
+      (context map (conf => new CfmmRuleDefs[F](conf).rules)).embed
   }
 }

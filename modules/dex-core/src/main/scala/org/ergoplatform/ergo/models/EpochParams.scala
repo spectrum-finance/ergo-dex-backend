@@ -17,5 +17,5 @@ final case class EpochParams(
   dataInputCost: Int,
   outputCost: Int
 ) {
-  val safeMinValue: Long = (minValuePerByte * 500).toLong
+  val safeMinValue: Long = (minValuePerByte * 1500).toLong
 }

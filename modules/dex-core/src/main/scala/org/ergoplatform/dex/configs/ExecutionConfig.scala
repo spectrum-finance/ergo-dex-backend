@@ -5,6 +5,6 @@ import derevo.pureconfig.pureconfigReader
 import tofu.Context
 
 @derive(pureconfigReader)
-final case class ExecutionConfig(minerFee: Long)
+final case class ExecutionConfig(minerFee: Long, minDexFee: Long)
 
 object ExecutionConfig extends Context.Companion[ExecutionConfig]

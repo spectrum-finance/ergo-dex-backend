@@ -9,7 +9,7 @@ import tofu.syntax.monadic._
 
 import scala.{PartialFunction => ?=>}
 
-final class CfmmRuleDefs[F[_]: Applicative](constraints: ExecutionConfig, network: NetworkContext) {
+final class CfmmRuleDefs[F[_]: Applicative](conf: ExecutionConfig) {
 
   type CFMMRule = CFMMOperationRequest ?=> Boolean
 
@@ -17,14 +17,12 @@ final class CfmmRuleDefs[F[_]: Applicative](constraints: ExecutionConfig, networ
 
   private val allRules = sufficientValueDepositRedeem orElse sufficientValueSwap
 
-  private val safeMinValue = network.params.safeMinValue
-
   private def sufficientValueDepositRedeem: CFMMRule = {
-    case Deposit(_, params, _) => params.dexFee - constraints.minerFee >= safeMinValue
-    case Redeem(_, params, _)  => params.dexFee - constraints.minerFee >= safeMinValue
+    case Deposit(_, params, _) => params.dexFee - conf.minerFee >= conf.minDexFee
+    case Redeem(_, params, _)  => params.dexFee - conf.minerFee >= conf.minDexFee
   }
 
   private def sufficientValueSwap: CFMMRule = { case Swap(_, params, _) =>
-    params.dexFeePerTokenNum * params.minOutput.value / params.dexFeePerTokenDenom - constraints.minerFee >= safeMinValue
+    params.dexFeePerTokenNum * params.minOutput.value / params.dexFeePerTokenDenom - conf.minerFee >= conf.minDexFee
   }
 }
