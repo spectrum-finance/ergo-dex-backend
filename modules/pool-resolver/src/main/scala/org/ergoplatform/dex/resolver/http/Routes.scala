@@ -16,7 +16,7 @@ final class Routes[
 
   val routes: HttpRoutes[F] = Tracing(resolveR <+> putPredictedR)
 
-  private val interpreter = Http4sServerInterpreter(opts)
+  private def interpreter = Http4sServerInterpreter(opts)
 
   def resolveR: HttpRoutes[F] =
     interpreter.toRoutes(Endpoints.resolve) { id =>

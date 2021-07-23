@@ -13,13 +13,13 @@
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/pool-resolver.log</file>
+        <file>/var/log/dex-backend/pool-resolver.log</file>
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <layout class="tofu.logging.ELKLayout"/>
         </encoder>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/pool-resolver.%d{yyyy-MM-dd}.%i.log
+            <fileNamePattern>/var/log/dex-backend/pool-resolver.%d{yyyy-MM-dd}.%i.log
             </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy
                     class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
@@ -35,7 +35,7 @@
     <logger name="org.ergoplatform" level="TRACE"/>
     <logger name="org.http4s" level="INFO"/>
     <logger name="org.apache.kafka" level="INFO"/>
-    <root level="TRACE">
+    <root level="INFO">
         <appender-ref ref="ASYNCSTDOUT"/>
     </root>
     <root level="TRACE">
