@@ -31,8 +31,11 @@ final class CFMMOpsHandler[
       parser.swap(out) orElse
       none[CFMMOperationRequest]
     }.unNone
-      .evalTap(op => info"CFMM operation request detected [$op]")
-      .flatMap(op => eval(rules(op)).ifM(op.pure, Evals[F, G].monoidK.empty))
+      .evalTap(op => info"CFMM operation request detected $op")
+      .flatMap { op =>
+        eval(rules(op)) >>=
+          (_.fold(op.pure)(e => eval(debug"Rule violation: $e") >> Evals[F, G].monoidK.empty))
+      }
       .map(op => Record[OperationId, CFMMOperationRequest](op.id, op))
       .thrush(producer.produce)
 }

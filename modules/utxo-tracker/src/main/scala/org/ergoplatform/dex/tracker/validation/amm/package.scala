@@ -11,7 +11,9 @@ import tofu.syntax.monadic._
 
 package object amm {
 
-  type CFMMRules[F[_]] = CFMMOperationRequest => F[Boolean]
+  type RuleViolation = String
+
+  type CFMMRules[F[_]] = CFMMOperationRequest => F[Option[RuleViolation]]
 
   implicit def embed: Embed[CFMMRules] =
     new Embed[CFMMRules] {
