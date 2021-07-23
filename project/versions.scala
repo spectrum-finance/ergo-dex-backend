@@ -5,7 +5,7 @@ object versions {
   val ErgoContractsVersion = "1.0.0"
 
   val SttpVersion        = "3.3.6"
-  val TapirVersion       = "0.18.0-M17"
+  val TapirVersion       = "0.18.1"
   val CirceVersion       = "0.13.0"
   val CatsVersion        = "2.5.0"
   val CatsEffectVersion  = "2.4.1"

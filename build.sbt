@@ -146,7 +146,7 @@ lazy val ordersExecutor = utils
     dockerExposedVolumes := Seq("/var/lib/orders-executor", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency)
+  .dependsOn(Seq(core, http).map(_ % allConfigDependency): _*)
 
 lazy val ammExecutor = utils
   .mkModule("amm-executor", "AmmExecutor")
@@ -168,7 +168,7 @@ lazy val ammExecutor = utils
     dockerExposedVolumes := Seq("/var/lib/amm-executor", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency)
+  .dependsOn(Seq(core, http).map(_ % allConfigDependency): _*)
 
 lazy val poolResolver = utils
   .mkModule("pool-resolver", "PoolResolver")

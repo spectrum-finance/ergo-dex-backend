@@ -3,10 +3,11 @@ package org.ergoplatform.dex.executor.amm.processes
 import cats.{Foldable, Functor, Monad}
 import derevo.derive
 import mouse.any._
+import org.ergoplatform.common.TraceId
 import org.ergoplatform.common.streaming.CommitPolicy
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.streaming.CFMMConsumer
-import tofu.Handle
+import tofu.{Handle, WithLocal}
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Evals, Temporal}
@@ -28,7 +29,7 @@ object Executor {
   def make[
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: CommitPolicy.Has: Handle[*[_], ExecutionFailed],
-    G[_]: Monad,
+    G[_]: Monad: TraceId.Local,
     C[_]: Foldable
   ](implicit
     consumer: CFMMConsumer[F, G],
@@ -41,7 +42,7 @@ object Executor {
 
   final private class Live[
     F[_]: Monad: Evals[*[_], G]: Temporal[*[_], C]: Handle[*[_], ExecutionFailed],
-    G[_]: Monad: Logging,
+    G[_]: Monad: Logging: TraceId.Local,
     C[_]: Foldable
   ](commitPolicy: CommitPolicy)(implicit
     consumer: CFMMConsumer[F, G],
@@ -50,7 +51,7 @@ object Executor {
 
     def run: F[Unit] =
       consumer.stream
-        .evalTap(rec => service.execute(rec.message))
+        .evalTap(rec => service.execute(rec.message).local(_ => TraceId.fromString(rec.message.id.value)))
         .commitBatchWithin[C](commitPolicy.maxBatchSize, commitPolicy.commitTimeout)
   }
 }

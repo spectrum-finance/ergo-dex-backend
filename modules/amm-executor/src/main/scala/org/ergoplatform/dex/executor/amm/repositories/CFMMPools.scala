@@ -3,6 +3,8 @@ package org.ergoplatform.dex.executor.amm.repositories
 import cats.Monad
 import cats.syntax.either._
 import derevo.derive
+import org.ergoplatform.common.TraceId
+import org.ergoplatform.common.http.Tracing
 import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.executor.amm.config.ResolverConfig
@@ -30,31 +32,37 @@ trait CFMMPools[F[_]] {
 
 object CFMMPools {
 
-  def make[F[_]: Monad: ResponseError.Raise: ResolverConfig.Has](implicit
+  def make[F[_]: Monad: ResponseError.Raise: ResolverConfig.Has: TraceId.Has](implicit
     backend: SttpBackend[F, Any]
   ): CFMMPools[F] =
-    (context map (conf => new Live[F](conf): CFMMPools[F])).embed
+    (ResolverConfig.access map (conf => new Live[F](conf): CFMMPools[F])).embed
 
-  final class Live[F[_]: Monad: ResponseError.Raise](conf: ResolverConfig)(implicit
+  final class Live[F[_]: Monad: ResponseError.Raise: TraceId.Has](conf: ResolverConfig)(implicit
     backend: SttpBackend[F, Any]
   ) extends CFMMPools[F] {
 
     private val basePrefix = "/cfmm"
 
+    private val mkBasicReq = context map { traceId => basicRequest.header(Tracing.TraceIdHeader, traceId.value) }
+
     def get(id: PoolId): F[Option[CFMMPool]] =
-      basicRequest
-        .get(conf.uri.withWholePath(s"$basePrefix/resolve/$id"))
-        .response(asJson[CFMMPool])
-        .send(backend)
-        .flatMap { r =>
-          if (r.code == StatusCode.NotFound) Option.empty[CFMMPool].pure
-          else r.body.leftMap(e => ResponseError(e.getMessage)).map(Option(_)).toRaise[F]
-        }
+      mkBasicReq.flatMap { base =>
+        base
+          .get(conf.uri.withWholePath(s"$basePrefix/resolve/$id"))
+          .response(asJson[CFMMPool])
+          .send(backend)
+          .flatMap { r =>
+            if (r.code == StatusCode.NotFound) Option.empty[CFMMPool].pure
+            else r.body.leftMap(e => ResponseError(e.getMessage)).map(Option(_)).toRaise[F]
+          }
+      }
 
     def put(pool: Predicted[CFMMPool]): F[Unit] =
-      basicRequest
-        .post(conf.uri.withWholePath(s"$basePrefix/predicted"))
-        .send(backend)
-        .void
+      mkBasicReq.flatMap { base =>
+        base
+          .post(conf.uri.withWholePath(s"$basePrefix/predicted"))
+          .send(backend)
+          .void
+      }
   }
 }

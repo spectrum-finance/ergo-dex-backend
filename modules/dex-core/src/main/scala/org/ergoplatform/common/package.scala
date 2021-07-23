@@ -17,9 +17,9 @@ import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import scorex.util.encode.Base16
 import sttp.tapir.{Codec, CodecFormat, DecodeResult, Schema, Validator}
-import tofu.Raise
 import tofu.logging.Loggable
 import tofu.syntax.raise._
+import tofu.{Raise, WithContext, WithLocal}
 
 package object common {
 
@@ -97,7 +97,11 @@ package object common {
   @newtype case class TraceId(value: String)
 
   object TraceId {
+    type Local[F[_]] = WithLocal[F, TraceId]
+    type Has[F[_]]   = WithContext[F, TraceId]
+
     implicit val loggable: Loggable[TraceId] = deriving
+    def fromString(s: String): TraceId       = apply(s)
   }
 
   private def deriveCodec[A, CF <: CodecFormat, T](

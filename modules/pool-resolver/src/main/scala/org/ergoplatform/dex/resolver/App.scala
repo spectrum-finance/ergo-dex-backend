@@ -8,11 +8,13 @@ import org.ergoplatform.common.cache.Redis
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer}
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
+import org.ergoplatform.dex.resolver
 import org.ergoplatform.dex.resolver.config.ConfigBundle
 import org.ergoplatform.dex.resolver.http.HttpServer
 import org.ergoplatform.dex.resolver.processes.PoolTracker
 import org.ergoplatform.dex.resolver.repositories.Pools
 import org.ergoplatform.dex.resolver.services.Resolver
+import sttp.tapir.server.http4s.Http4sServerOptions
 import tofu.fs2Instances._
 import tofu.lift.{IsoK, Unlift}
 import tofu.syntax.context._
@@ -20,6 +22,8 @@ import zio.interop.catz._
 import zio.{ExitCode, URIO, ZEnv}
 
 object App extends EnvApp[AppContext] {
+
+  implicit val serverOptions: Http4sServerOptions[RunF, RunF] = Http4sServerOptions.default[RunF, RunF]
 
   def run(args: List[String]): URIO[ZEnv, ExitCode] =
     init(args.headOption).use { case (tracker, server, ctx) =>

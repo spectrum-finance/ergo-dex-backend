@@ -188,8 +188,8 @@ object T2TCFMMInterpreter {
     logs.forService[CFMMInterpreter[T2TCFMM, F]].map { implicit l =>
       (
         for {
-          exchange   <- hasContext[F, ExchangeConfig]
-          execution  <- hasContext[F, ExecutionConfig]
+          exchange   <- ExchangeConfig.access
+          execution  <- ExecutionConfig.access
           networkCtx <- NetworkContext.make
         } yield new CFMMInterpreterTracing[T2TCFMM, F] attach new T2TCFMMInterpreter(exchange, execution, networkCtx)
       ).embed
