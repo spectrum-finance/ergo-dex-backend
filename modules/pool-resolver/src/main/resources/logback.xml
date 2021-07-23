@@ -35,11 +35,9 @@
     <logger name="org.ergoplatform" level="TRACE"/>
     <logger name="org.http4s" level="INFO"/>
     <logger name="org.apache.kafka" level="INFO"/>
+    <logger name="sttp.client3.asynchttpclient" level="INFO"/>
     <root level="INFO">
         <appender-ref ref="ASYNCSTDOUT"/>
-    </root>
-    <root level="TRACE">
-        <appender-ref ref="ASYNCFILE"/>
     </root>
 
 </configuration>
