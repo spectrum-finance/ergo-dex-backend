@@ -101,7 +101,7 @@ package object ergo {
     implicit val put: Put[BoxId] = deriving
 
     implicit def codec: scodec.Codec[BoxId] =
-      scodec.codecs.variableSizeBits(uint8, utf8).xmap(BoxId(_), _.value)
+      scodec.codecs.variableSizeBits(uint16, utf8).xmap(BoxId(_), _.value)
 
     def fromErgo(ergoBoxId: ErgoBox.BoxId): BoxId =
       Base16.encode(ergoBoxId).coerce[BoxId]
