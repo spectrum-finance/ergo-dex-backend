@@ -17,7 +17,7 @@ import sigmastate.lang.Terms.ValueOps
 object CreateCfmmPool extends App with SigmaPlatform {
 
   val secretHex = ""
-  val inputId   = "fffb9895aa02cf55714bae3fe77d7a11ec86d0b28462e2d45d3e6dcfd9a6c11e"
+  val inputId   = "1c51c3a53abfe87e6db9a03c649e8360f255ffc4bd34303d30fc7db23ae551db"
 
   val input = getInput(inputId).get
 
@@ -25,7 +25,7 @@ object CreateCfmmPool extends App with SigmaPlatform {
   val burnLP     = 1000
   val emissionLP = Long.MaxValue - burnLP
 
-  val lpName     = "WERG_WADA_LP"
+  val lpName     = "WERG_WADA_LP_2"
 
   val lockNErgs = 4000000L
   val minValue  = 500000L
