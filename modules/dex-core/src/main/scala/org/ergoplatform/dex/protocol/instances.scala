@@ -5,9 +5,11 @@ import cats.instances.either._
 import cats.instances.string._
 import cats.syntax.either._
 import doobie._
+import io.circe.syntax._
+import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.ErgoLikeTransaction
-import org.ergoplatform.ergo.SErgoTree
 import org.ergoplatform.common.HexString
+import org.ergoplatform.ergo.SErgoTree
 import scorex.util.encode.Base16
 import sigmastate.Values.ErgoTree
 import sigmastate.basics.DLogProtocol.ProveDlog
@@ -45,5 +47,5 @@ object instances {
   implicit val proveDlogLoggable: Loggable[ProveDlog] = Loggable.show
 
   implicit val ergoLikeTxLoggable: Loggable[ErgoLikeTransaction] =
-    Loggable.stringValue.contramap[ErgoLikeTransaction](_.toString) // todo:
+    Loggable.stringValue.contramap[ErgoLikeTransaction](_.asJson.noSpaces)
 }

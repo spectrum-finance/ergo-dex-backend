@@ -8,7 +8,6 @@ import org.ergoplatform.common.cache.Redis
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer}
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
-import org.ergoplatform.dex.resolver
 import org.ergoplatform.dex.resolver.config.ConfigBundle
 import org.ergoplatform.dex.resolver.http.HttpServer
 import org.ergoplatform.dex.resolver.processes.PoolTracker

@@ -2,8 +2,9 @@ package org.ergoplatform.ergo.models
 
 import derevo.circe.decoder
 import derevo.derive
+import tofu.logging.derivation.loggable
 
-@derive(decoder)
+@derive(decoder, loggable)
 final case class EpochParams(
   id: Int,
   height: Int,

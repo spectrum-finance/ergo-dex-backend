@@ -15,10 +15,9 @@ import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.executor.amm.services.Execution
 import org.ergoplatform.dex.executor.amm.streaming.CFMMConsumer
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
-import org.ergoplatform.ergo.{ErgoNetwork, ErgoNetworkStreaming}
-import sttp.capabilities.fs2.Fs2Streams
+import org.ergoplatform.ergo.ErgoNetwork
 import sttp.client3.SttpBackend
-import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
+import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import tofu.WithRun
 import tofu.fs2Instances._
 import tofu.syntax.unlift._
@@ -42,20 +41,19 @@ object App extends EnvApp[AppContext] {
       implicit0(mc: MakeKafkaConsumer[RunF, OperationId, CFMMOperationRequest]) =
         MakeKafkaConsumer.make[InitF, RunF, OperationId, CFMMOperationRequest]
       implicit0(consumer: CFMMConsumer[StreamF, RunF]) = Consumer.make[StreamF, RunF, OperationId, CFMMOperationRequest]
-      implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
-      implicit0(client: ErgoNetwork[RunF])                   = ErgoNetworkStreaming.make[StreamF, RunF]
-      implicit0(pools: CFMMPools[RunF])                      = CFMMPools.make[RunF]
+      implicit0(backend: SttpBackend[RunF, Any]) <- makeBackend(ctx)
+      implicit0(client: ErgoNetwork[RunF])       <- Resource.eval(ErgoNetwork.make[InitF, RunF])
+      implicit0(pools: CFMMPools[RunF]) = CFMMPools.make[RunF]
       implicit0(interpreter: CFMMInterpreter[T2TCFMM, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
-      implicit0(execution: Execution[RunF]) <- Resource.eval(Execution.make[InitF, RunF])
-      executor                              <- Resource.eval(Executor.make[InitF, StreamF, RunF, Chunk])
+      implicit0(execution: Execution[RunF])                  <- Resource.eval(Execution.make[InitF, RunF])
+      executor                                               <- Resource.eval(Executor.make[InitF, StreamF, RunF, Chunk])
     } yield executor -> ctx
 
   private def makeBackend(
-    ctx: AppContext,
-    blocker: Blocker
-  )(implicit wr: WithRun[RunF, InitF, AppContext]): Resource[InitF, SttpBackend[RunF, Fs2Streams[RunF]]] =
+    ctx: AppContext
+  )(implicit wr: WithRun[RunF, InitF, AppContext]): Resource[InitF, SttpBackend[RunF, Any]] =
     Resource
       .eval(wr.concurrentEffect)
-      .flatMap(implicit ce => AsyncHttpClientFs2Backend.resource[RunF](blocker))
+      .flatMap(implicit ce => AsyncHttpClientCatsBackend.resource[RunF]())
       .mapK(wr.runContextK(ctx))
 }

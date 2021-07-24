@@ -63,7 +63,7 @@ lazy val core = utils
       Kafka ++
       TapirCore ++
       SttpCore ++
-      SttpClient ++
+      SttpClientFs2 ++
       ScodecCore ++
       Monocle ++
       Enums
@@ -103,7 +103,7 @@ lazy val utxoTracker = utils
     dockerExposedVolumes := Seq("/var/lib/utxo-tracker", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency, cache % allConfigDependency)
+  .dependsOn(Seq(core, cache).map(_ % allConfigDependency): _*)
 
 lazy val matcher = utils
   .mkModule("dex-matcher", "DexMatcher")
@@ -133,7 +133,7 @@ lazy val ordersExecutor = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.executor.orders.App"
     ),
-    libraryDependencies ++= SttpClient
+    libraryDependencies ++= SttpClientCE
   )
   .settings(
     name in Universal := name.value,
@@ -155,7 +155,7 @@ lazy val ammExecutor = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.executor.amm.App"
     ),
-    libraryDependencies ++= SttpClient
+    libraryDependencies ++= SttpClientCE
   )
   .settings(
     name in Universal := name.value,

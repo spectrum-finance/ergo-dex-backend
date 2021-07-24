@@ -6,14 +6,19 @@ object dependencies {
 
   val SttpCore =
     List(
-      "com.softwaremill.sttp.client3" %% "core"  % versions.SttpVersion,
-      "com.softwaremill.sttp.client3" %% "circe" % versions.SttpVersion
+      "com.softwaremill.sttp.client3" %% "core"           % versions.SttpVersion,
+      "com.softwaremill.sttp.client3" %% "circe"          % versions.SttpVersion,
+      "com.softwaremill.sttp.client3" %% "okhttp-backend" % SttpVersion % Test
     )
 
-  val SttpClient =
+  val SttpClientFs2 =
     List(
-      "com.softwaremill.sttp.client3" %% "async-http-client-backend-fs2-ce2" % SttpVersion,
-      "com.softwaremill.sttp.client3" %% "okhttp-backend"                    % SttpVersion % Test
+      "com.softwaremill.sttp.client3" %% "async-http-client-backend-fs2-ce2" % SttpVersion
+    )
+
+  val SttpClientCE =
+    List(
+      "com.softwaremill.sttp.client3" %% "async-http-client-backend-cats-ce2" % SttpVersion
     )
 
   val TapirCore = List(
