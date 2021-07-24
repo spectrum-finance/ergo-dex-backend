@@ -57,7 +57,8 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       value            = depositBox.value - minerFeeBox.value - dexFeeBox.value,
       ergoTree         = deposit.params.p2pk.toErgoTree,
       creationHeight   = ctx.currentHeight,
-      additionalTokens = mkTokens(rewardLP.id -> rewardLP.value)
+      additionalTokens = mkTokens(rewardLP.id -> rewardLP.value),
+      additionalRegisters = Map((R4: NonMandatoryRegisterId) -> IntConstant(orderIndex))
     )
     val inputs      = Vector(poolIn, redeemIn)
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
@@ -97,7 +98,8 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       additionalTokens = mkTokens(
         shareX.id -> shareX.value,
         shareY.id -> shareY.value
-      )
+      ),
+      additionalRegisters = Map((R4: NonMandatoryRegisterId) -> IntConstant(orderIndex))
     )
     val inputs      = Vector(poolIn, redeemIn)
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
@@ -132,10 +134,11 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
       val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
       val rewardBox = new ErgoBoxCandidate(
-        value            = swapBox.value - minerFeeBox.value - dexFeeBox.value,
-        ergoTree         = swap.params.p2pk.toErgoTree,
-        creationHeight   = ctx.currentHeight,
-        additionalTokens = mkTokens(swap.params.minOutput.id -> swap.params.minOutput.value)
+        value               = swapBox.value - minerFeeBox.value - dexFeeBox.value,
+        ergoTree            = swap.params.p2pk.toErgoTree,
+        creationHeight      = ctx.currentHeight,
+        additionalTokens    = mkTokens(swap.params.minOutput.id -> swap.params.minOutput.value),
+        additionalRegisters = Map((R4: NonMandatoryRegisterId) -> IntConstant(orderIndex))
       )
       val inputs      = Vector(poolIn, swapIn)
       val outs        = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
@@ -148,6 +151,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
   private val minerFeeProp = Pay2SAddress(ErgoScriptPredef.feeProposition()).script
   private val dexFeeProp   = exchange.rewardAddress.toErgoTree
+  private val orderIndex   = 1
 
   private def swapParams(swap: Swap, pool: CFMMPool): Either[ExecutionFailed, (AssetAmount, AssetAmount, Long)] = {
     val input  = swap.params.input

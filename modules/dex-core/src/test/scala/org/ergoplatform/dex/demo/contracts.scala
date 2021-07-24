@@ -143,8 +143,8 @@ object contracts {
       |
       |    val successor = OUTPUTS(0)
       |
-      |    val feeNum0 = SELF.R4[Long].get
-      |    val feeNum1 = successor.R4[Long].get
+      |    val feeNum0 = SELF.R4[Int].get
+      |    val feeNum1 = successor.R4[Int].get
       |
       |    val ergs1       = successor.value
       |    val poolNFT1    = successor.tokens(0)
