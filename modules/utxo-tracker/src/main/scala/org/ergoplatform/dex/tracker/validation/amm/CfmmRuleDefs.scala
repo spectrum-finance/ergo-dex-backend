@@ -22,10 +22,10 @@ final class CfmmRuleDefs[F[_]: Applicative](conf: ExecutionConfig) {
   }
 
   private def sufficientValueSwap: CFMMRule = { case Swap(_, params, _) =>
-    checkFee(params.dexFeePerTokenNum * params.minOutput.value / params.dexFeePerTokenDenom)
+    checkFee(BigInt(params.dexFeePerTokenNum) * params.minOutput.value / params.dexFeePerTokenDenom)
   }
 
-  private def checkFee(givenFee: Long): Option[RuleViolation] = {
+  private def checkFee(givenFee: BigInt): Option[RuleViolation] = {
     val residualFee = givenFee - conf.minerFee
     if (residualFee >= conf.minDexFee) None
     else Some(s"Residual fee '$residualFee' is less than required minimum '${conf.minDexFee}'")
