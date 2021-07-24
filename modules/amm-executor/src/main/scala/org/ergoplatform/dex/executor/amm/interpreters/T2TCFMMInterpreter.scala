@@ -18,7 +18,6 @@ import sigmastate.Values.IntConstant
 import sigmastate.eval._
 import sigmastate.interpreter.ProverResult
 import tofu.logging.Logs
-import tofu.syntax.context._
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
@@ -151,13 +150,14 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   private val dexFeeProp   = exchange.rewardAddress.toErgoTree
 
   private def swapParams(swap: Swap, pool: CFMMPool): Either[ExecutionFailed, (AssetAmount, AssetAmount, Long)] = {
-    val input     = swap.params.input
-    val output    = pool.outputAmount(input)
-    val dexFee    = output.value * swap.params.dexFeePerTokenNum / swap.params.dexFeePerTokenDenom - execution.minerFee
-    val maxDexFee = swap.box.value - execution.minerFee
+    val input  = swap.params.input
+    val output = pool.outputAmount(input)
+    val dexFee = (BigInt(output.value) * swap.params.dexFeePerTokenNum /
+      swap.params.dexFeePerTokenDenom - execution.minerFee).toLong
+    val maxDexFee = swap.box.value - execution.minerFee - execution.minBoxValue
     if (output < swap.params.minOutput) Left(PriceTooHigh(swap.poolId, swap.params.minOutput, output))
     else if (dexFee > maxDexFee) Left(PriceTooLow(swap.poolId, maxDexFee, dexFee))
-    else Right((input, output, maxDexFee))
+    else Right((input, output, dexFee))
   }
 
   private def mkPoolTokens(pool: CFMMPool, amountLP: Long, amountX: Long, amountY: Long) =
