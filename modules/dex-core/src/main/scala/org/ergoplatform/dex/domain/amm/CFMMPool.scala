@@ -40,10 +40,18 @@ final case class CFMMPool(
   def swap(in: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
     val (deltaX, deltaY) =
       if (in.id == x.id)
-        (in.value, -y.value * in.value * feeNum / (x.value * constants.cfmm.FeeDenominator + in.value * feeNum))
+        (
+          BigInt(in.value),
+          -BigInt(y.value) * in.value * feeNum /
+          (BigInt(x.value) * constants.cfmm.FeeDenominator + BigInt(in.value) * feeNum)
+        )
       else
-        (-x.value * in.value * feeNum / (y.value * constants.cfmm.FeeDenominator + in.value * feeNum), in.value)
-    Predicted(copy(x = x + deltaX, y = y + deltaY, box = nextBox))
+        (
+          -BigInt(x.value) * in.value * feeNum /
+          (BigInt(y.value) * constants.cfmm.FeeDenominator + BigInt(in.value) * feeNum),
+          BigInt(in.value)
+        )
+    Predicted(copy(x = x + deltaX.toLong, y = y + deltaY.toLong, box = nextBox))
   }
 
   def rewardLP(inX: AssetAmount, inY: AssetAmount): AssetAmount =
@@ -62,7 +70,7 @@ final case class CFMMPool(
     def out(in: AssetAmount, out: AssetAmount) =
       out.withAmount(
         BigInt(out.value) * input.value * feeNum /
-        (in.value * constants.cfmm.FeeDenominator + input.value * feeNum)
+        (BigInt(in.value) * constants.cfmm.FeeDenominator + BigInt(input.value) * feeNum)
       )
     if (input.id == x.id) out(x, y) else out(y, x)
   }
@@ -75,10 +83,10 @@ object CFMMPool {
   implicit val codec: Codec[CFMMPool] =
     (
       implicitly[Codec[PoolId]] ::
-      implicitly[Codec[AssetAmount]] ::
-      implicitly[Codec[AssetAmount]] ::
-      implicitly[Codec[AssetAmount]] ::
-      int32 ::
-      implicitly[Codec[BoxInfo]]
+        implicitly[Codec[AssetAmount]] ::
+        implicitly[Codec[AssetAmount]] ::
+        implicitly[Codec[AssetAmount]] ::
+        int32 ::
+        implicitly[Codec[BoxInfo]]
     ).as[CFMMPool]
 }
