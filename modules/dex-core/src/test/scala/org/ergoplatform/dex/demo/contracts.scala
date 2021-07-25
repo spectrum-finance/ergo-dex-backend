@@ -28,7 +28,7 @@ object contracts {
       |    val rewardOut = OUTPUTS(1)
       |    val rewardLP  = rewardOut.tokens(0)
       |
-      |    val uniqueOutput = rewardOut.R4[Int].map({(i: Int) => INPUTS(i).id == SELF.id}).getOrElse(false)
+      |    val uniqueOutput = rewardOut.R4[Coll[Byte]].map({(id: Coll[Byte]) => id == SELF.id}).getOrElse(false)
       |
       |    val validRewardOut =
       |        rewardOut.propositionBytes == Pk.propBytes &&
@@ -66,7 +66,7 @@ object contracts {
       |    val returnX = returnOut.tokens(0)
       |    val returnY = returnOut.tokens(1)
       |
-      |    val uniqueOutput = returnOut.R4[Int].map({(i: Int) => INPUTS(i).id == SELF.id}).getOrElse(false)
+      |    val uniqueOutput = returnOut.R4[Coll[Byte]].map({(id: Coll[Byte]) => id == SELF.id}).getOrElse(false)
       |
       |    val validReturnOut =
       |        returnOut.propositionBytes == Pk.propBytes &&
@@ -115,7 +115,7 @@ object contracts {
       |                else
       |                    poolAssetY._2.toBigInt * baseAmount * FeeNum <= relaxedOutput * (poolAssetX._2.toBigInt * FeeDenom + baseAmount * FeeNum)
       |
-      |            val uniqueOutput = box.R4[Int].map({(i: Int) => INPUTS(i).id == SELF.id}).getOrElse(false)
+      |            val uniqueOutput = box.R4[Coll[Byte]].map({(id: Coll[Byte]) => id == SELF.id}).getOrElse(false)
       |
       |            box.propositionBytes == Pk.propBytes &&
       |            quoteAsset._1 == QuoteId &&
