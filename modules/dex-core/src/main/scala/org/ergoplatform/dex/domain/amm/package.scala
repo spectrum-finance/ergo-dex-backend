@@ -42,6 +42,8 @@ package object amm {
       PoolId(TokenId.fromBytes(bytes))
 
     def fromHex(s: HexString): PoolId = PoolId(TokenId(s))
+
+    def fromStringUnsafe(s: String): PoolId = PoolId(TokenId.fromStringUnsafe(s))
   }
 
   @derive(show, loggable, encoder, decoder)

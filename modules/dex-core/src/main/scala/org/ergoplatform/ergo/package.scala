@@ -138,6 +138,8 @@ package object ergo {
     ): F[TokenId] =
       HexString.fromString(s).map(TokenId.apply)
 
+    def fromStringUnsafe(s: String): TokenId = TokenId(HexString.unsafeFromString(s))
+
     def fromBytes(bytes: Array[Byte]): TokenId =
       TokenId(HexString.fromBytes(bytes))
   }

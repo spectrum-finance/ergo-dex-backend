@@ -91,7 +91,7 @@ object contracts {
       |
       |    val base       = SELF.tokens(0)
       |    val baseId     = base._1
-      |    val baseAmount = base._2
+      |    val baseAmount = base._2.toBigInt
       |
       |    val poolInput  = INPUTS(0)
       |    val poolNFT    = poolInput.tokens(0)._1
@@ -106,14 +106,16 @@ object contracts {
       |    val validTrade =
       |        OUTPUTS.exists { (box: Box) =>
       |            val quoteAsset    = box.tokens(0)
-      |            val quoteAmount   = quoteAsset._2
+      |            val quoteAmount   = quoteAsset._2.toBigInt
       |            val fairDexFee    = box.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom
-      |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
+      |            val relaxedOutput = quoteAmount + 1L // handle rounding loss
+      |            val poolX         = poolAssetX._2.toBigInt
+      |            val poolY         = poolAssetY._2.toBigInt
       |            val fairPrice     =
       |                if (poolAssetX._1 == QuoteId)
-      |                    poolAssetX._2.toBigInt * baseAmount * FeeNum <= relaxedOutput * (poolAssetY._2.toBigInt * FeeDenom + baseAmount * FeeNum)
+      |                    poolX * baseAmount * FeeNum <= relaxedOutput * (poolY * FeeDenom + baseAmount * FeeNum)
       |                else
-      |                    poolAssetY._2.toBigInt * baseAmount * FeeNum <= relaxedOutput * (poolAssetX._2.toBigInt * FeeDenom + baseAmount * FeeNum)
+      |                    poolY * baseAmount * FeeNum <= relaxedOutput * (poolX * FeeDenom + baseAmount * FeeNum)
       |
       |            val uniqueOutput = box.R4[Coll[Byte]].map({(id: Coll[Byte]) => id == SELF.id}).getOrElse(false)
       |
