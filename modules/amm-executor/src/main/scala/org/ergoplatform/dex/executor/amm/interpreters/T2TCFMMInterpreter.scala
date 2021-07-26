@@ -137,8 +137,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         value               = swapBox.value - minerFeeBox.value - dexFeeBox.value,
         ergoTree            = swap.params.p2pk.toErgoTree,
         creationHeight      = ctx.currentHeight,
-        additionalTokens    = mkTokens(swap.params.minOutput.id -> output.value),
-        additionalRegisters = Map((R4: NonMandatoryRegisterId) -> ByteArrayConstant(swapIn.boxId))
+        additionalTokens    = mkTokens(swap.params.minOutput.id -> output.value)
       )
       val inputs      = Vector(poolIn, swapIn)
       val outs        = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
