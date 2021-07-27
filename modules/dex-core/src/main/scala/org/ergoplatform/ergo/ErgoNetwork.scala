@@ -249,7 +249,7 @@ object ErgoNetworkStreaming {
         .force(req)
         .chunks
         .parseJsonStream
-        .handleErrorWith(_ => Stream(Json.Null))
+        //.handleErrorWith(_ => Stream(Json.Null))
         .map(_.as[Output].toOption)
         .unNone
     }
