@@ -5,10 +5,10 @@ import derevo.pureconfig.pureconfigReader
 import org.ergoplatform.common.streaming.CommitPolicy
 import org.ergoplatform.dex.configs._
 import tofu.Context
-import tofu.logging.Loggable
-import tofu.optics.macros.{promote, ClassyOptics}
+import tofu.logging.derivation.loggable
+import tofu.optics.macros.{ClassyOptics, promote}
 
-@derive(pureconfigReader)
+@derive(pureconfigReader, loggable)
 @ClassyOptics
 final case class ConfigBundle(
   @promote commitPolicy: CommitPolicy,
@@ -21,7 +21,4 @@ final case class ConfigBundle(
   @promote resolver: ResolverConfig
 )
 
-object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {
-
-  implicit val loggable: Loggable[ConfigBundle] = Loggable.empty
-}
+object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle]

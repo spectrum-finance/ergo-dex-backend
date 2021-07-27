@@ -17,7 +17,7 @@ final case class AppContext(
 object AppContext extends Context.Companion[AppContext] {
 
   def init(configs: ConfigBundle): AppContext =
-    AppContext(configs, BlockchainContext.empty, "<Initial>".coerce[TraceId])
+    AppContext(configs, BlockchainContext.empty, "<Root>".coerce[TraceId])
 
   implicit val loggable: Loggable[AppContext] = Loggable.stringValue.contramap[AppContext](_.traceId.value)
 }

@@ -4,6 +4,7 @@ import cats.instances.either._
 import cats.syntax.either._
 import cats.syntax.functor._
 import cats.{Applicative, Show}
+import derevo.derive
 import doobie.{Get, Put}
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.refineV
@@ -18,6 +19,7 @@ import pureconfig.error.CannotConvert
 import scorex.util.encode.Base16
 import sttp.tapir.{Codec, CodecFormat, DecodeResult, Schema, Validator}
 import tofu.logging.Loggable
+import tofu.logging.derivation.loggable
 import tofu.syntax.raise._
 import tofu.{Raise, WithContext, WithLocal}
 
@@ -94,13 +96,13 @@ package object common {
         .map(UrlString.apply)
   }
 
+  @derive(loggable)
   @newtype case class TraceId(value: String)
 
   object TraceId {
     type Local[F[_]] = WithLocal[F, TraceId]
     type Has[F[_]]   = WithContext[F, TraceId]
 
-    implicit val loggable: Loggable[TraceId] = deriving
     def fromString(s: String): TraceId       = apply(s)
   }
 

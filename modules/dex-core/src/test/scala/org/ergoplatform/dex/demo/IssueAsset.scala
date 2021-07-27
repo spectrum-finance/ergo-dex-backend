@@ -57,7 +57,14 @@ object IssueAsset extends App with SigmaPlatform {
 object SendAsset extends App with SigmaPlatform {
 
   val secretHex = ""
-  val inputId   = "5f9c91a806ccf2e55ad70e04ed0e9a66ce61ebc163ca6c15da1a461e4723bc64"
+  val inputId   = "db8a9dbd571f4206eacf85a9184383d892ee9382469afa72468d4a6f968a527e"
+
+  val recvs = Seq(
+    "9f4w8rfeoFfC44eYWDFV69gkqno1HJav82R4uMyURSzj87tCaat",
+    "9gJebr4q19S393kK6AgJVi7CCM7pPDNYkLvfoQCgWGQcqYTiRFX",
+    "9g1N1xqhrNG1b2TkmFcQGTFZ47EquUYUZAiWWCBEbZaBcsMhXJU",
+    "9g4KKywh8PTgVN9qCqArVufXwMxBYvfBx1QUTRQXVEyLmpa4Yi1"
+  ).map(recv => addressEncoder.fromString(recv).get)
 
   val input = getInput(inputId).get
 
@@ -66,35 +73,41 @@ object SendAsset extends App with SigmaPlatform {
   val newTokenId       = Digest32 @@ (ADKey !@@ input.boxId.toErgo)
   val newTokenEmission = 4500000L * math.pow(10, 10).toLong
 
-  val TERG  = getToken("f45c4f0d95ce1c64defa607d94717a9a30c00fdd44827504be20db19f4dce36f", input)
-  val TUSD  = getToken("f302c6c042ada3566df8e67069f8ac76d10ce15889535141593c168f3c59e776", input)
-  val WTERG = getToken("ef802b475c06189fdbf844153cdc1d449a5ba87cce13d11bb47b5a539f27f12b", input)
-  val WTADA = getToken("30974274078845f263b4f21787e33cc99e9ec19a17ad85a5bc6da2cca91c5a2e", input)
-  val LP = getToken("fffb9895aa02cf55714bae3fe77d7a11ec86d0b28462e2d45d3e6dcfd9a6c11e", input)
+  val WTERG0 = getToken("ef802b475c06189fdbf844153cdc1d449a5ba87cce13d11bb47b5a539f27f12b", input)
+  val WTADA0 = getToken("30974274078845f263b4f21787e33cc99e9ec19a17ad85a5bc6da2cca91c5a2e", input)
 
-  val sendErg = 50L * math.pow(10, 9).toLong
-  val sendAda = 100L * math.pow(10, 8).toLong
+  val otherTokens0 = extractTokens(input).filterNot { case (id, _) =>
+    java.util.Arrays.equals(id, WTERG0._1) || java.util.Arrays.equals(id, WTADA0._1)
+  }
 
-  val min = 1000000
+  val sendErg = 1000L * math.pow(10, 9).toLong
+  val sendAda = 1000L * math.pow(10, 8).toLong
 
-  val recv = addressEncoder.fromString("9g1N1xqhrNG1b2TkmFcQGTFZ47EquUYUZAiWWCBEbZaBcsMhXJU").get
+  val min = 100000L
 
-  val output = new ErgoBoxCandidate(
-    value               = min,
-    ergoTree            = recv.script,
-    creationHeight      = height,
-    additionalTokens    = Colls.fromItems(WTERG._1 -> sendErg, WTADA._1 -> sendAda)
-  )
+  val outputs = recvs.map { recv =>
+    new ErgoBoxCandidate(
+      value            = min,
+      ergoTree         = recv.script,
+      creationHeight   = height,
+      additionalTokens = Colls.fromItems(WTERG0._1 -> sendErg, WTADA0._1 -> sendAda)
+    )
+  }
 
   val change = new ErgoBoxCandidate(
-    value               = input.value - minerFeeNErg - min,
-    ergoTree            = selfAddress.script,
-    creationHeight      = height,
-    additionalTokens    = Colls.fromItems(TERG, TUSD, WTERG._1 -> (WTERG._2 - sendErg), WTADA._1 -> (WTADA._2 - sendAda))
+    value          = input.value - minerFeeNErg - min * recvs.size,
+    ergoTree       = selfAddress.script,
+    creationHeight = height,
+    additionalTokens = Colls.fromItems(
+      (otherTokens0 ++ Seq(
+        WTERG0._1 -> (WTERG0._2 - sendErg * recvs.size),
+        WTADA0._1 -> (WTADA0._2 - sendAda * recvs.size)
+      )): _*
+    )
   )
 
   val inputs0 = Vector(new UnsignedInput(ADKey @@ Base16.decode(inputId).get))
-  val outs0   = Vector(output, change, minerFeeBox)
+  val outs0   = Vector(change, minerFeeBox) ++ outputs
   val utx0    = UnsignedErgoLikeTransaction(inputs0, outs0)
   val tx0     = ErgoUnsafeProver.prove(utx0, sk)
 
