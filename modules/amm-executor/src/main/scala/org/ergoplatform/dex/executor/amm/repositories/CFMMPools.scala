@@ -10,8 +10,9 @@ import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.executor.amm.config.ResolverConfig
 import org.ergoplatform.ergo.errors.ResponseError
 import sttp.client3._
-import sttp.client3.circe.asJson
+import sttp.client3.circe._
 import sttp.model.StatusCode
+import sttp.tapir.json.circe.jsonBody
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
@@ -67,8 +68,12 @@ object CFMMPools {
       mkBasicReq.flatMap { base =>
         base
           .post(conf.uri.withWholePath(s"$BasePrefix/predicted"))
+          .body(pool)
           .send(backend)
-          .void
+          .flatMap { r =>
+            if (r.isSuccess) unit
+            else ResponseError(s"Non 2xx response code. ${r.body}").raise
+          }
       }
   }
 
