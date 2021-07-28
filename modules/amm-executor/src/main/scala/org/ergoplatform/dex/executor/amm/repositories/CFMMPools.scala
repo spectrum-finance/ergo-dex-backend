@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.executor.amm.repositories
 
-import cats.Monad
 import cats.syntax.either._
+import cats.{FlatMap, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.common.TraceId
 import org.ergoplatform.common.http.Tracing
@@ -12,13 +12,16 @@ import org.ergoplatform.ergo.errors.ResponseError
 import sttp.client3._
 import sttp.client3.circe.asJson
 import sttp.model.StatusCode
-import tofu.higherKind.derived.embed
+import tofu.higherKind.Mid
+import tofu.higherKind.derived.representableK
+import tofu.logging.{Logging, Logs}
 import tofu.syntax.context._
 import tofu.syntax.embed._
+import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
 
-@derive(embed)
+@derive(representableK)
 trait CFMMPools[F[_]] {
 
   /** Get pool state by pool id.
@@ -32,23 +35,26 @@ trait CFMMPools[F[_]] {
 
 object CFMMPools {
 
-  def make[F[_]: Monad: ResponseError.Raise: ResolverConfig.Has: TraceId.Has](implicit
-    backend: SttpBackend[F, Any]
-  ): CFMMPools[F] =
-    (ResolverConfig.access map (conf => new Live[F](conf): CFMMPools[F])).embed
+  def make[I[_]: Functor, F[_]: Monad: ResponseError.Raise: ResolverConfig.Has: TraceId.Has](implicit
+    backend: SttpBackend[F, Any],
+    logs: Logs[I, F]
+  ): I[CFMMPools[F]] =
+    logs.forService[CFMMPools[F]] map { implicit l =>
+      (ResolverConfig.access map (conf => new CFMMPoolsTracing[F] attach new Live[F](conf))).embed
+    }
 
   final class Live[F[_]: Monad: ResponseError.Raise: TraceId.Has](conf: ResolverConfig)(implicit
     backend: SttpBackend[F, Any]
   ) extends CFMMPools[F] {
 
-    private val basePrefix = "/cfmm"
+    private val BasePrefix = "/cfmm"
 
     private val mkBasicReq = context map { traceId => basicRequest.header(Tracing.TraceIdHeader, traceId.value) }
 
     def get(id: PoolId): F[Option[CFMMPool]] =
       mkBasicReq.flatMap { base =>
         base
-          .get(conf.uri.withWholePath(s"$basePrefix/resolve/$id"))
+          .get(conf.uri.withWholePath(s"$BasePrefix/resolve/$id"))
           .response(asJson[CFMMPool])
           .send(backend)
           .flatMap { r =>
@@ -60,9 +66,26 @@ object CFMMPools {
     def put(pool: Predicted[CFMMPool]): F[Unit] =
       mkBasicReq.flatMap { base =>
         base
-          .post(conf.uri.withWholePath(s"$basePrefix/predicted"))
+          .post(conf.uri.withWholePath(s"$BasePrefix/predicted"))
           .send(backend)
           .void
       }
+  }
+
+  final class CFMMPoolsTracing[F[_]: FlatMap: Logging] extends CFMMPools[Mid[F, *]] {
+
+    def get(id: PoolId): Mid[F, Option[CFMMPool]] =
+      for {
+        _ <- trace"get(id=$id)"
+        r <- _
+        _ <- trace"get(id=$id) -> $r"
+      } yield r
+
+    def put(pool: Predicted[CFMMPool]): Mid[F, Unit] =
+      for {
+        _ <- trace"put(pool=$pool)"
+        r <- _
+        _ <- trace"put(pool=$pool) -> $r"
+      } yield r
   }
 }

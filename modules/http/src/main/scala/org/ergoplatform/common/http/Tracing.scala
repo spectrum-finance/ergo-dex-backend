@@ -22,7 +22,7 @@ object Tracing {
       val traceIdF =
         req.headers
           .get(CIString(TraceIdHeader))
-          .map(_.toString().pure)
+          .map(_.head.value.pure)
           .getOrElse(GenUUID[F].randomUUID.map(_.toString))
           .map(TraceId.fromString)
       for {

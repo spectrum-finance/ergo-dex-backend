@@ -21,7 +21,7 @@ import tofu.syntax.logging._
 import tofu.syntax.monadic._
 
 @derive(representableK)
-trait Pools[F[_]] {
+trait CFMMPools[F[_]] {
 
   /** Get last predicted state of a pool with the given `id`.
     */
@@ -44,27 +44,27 @@ trait Pools[F[_]] {
   def existsPredicted(id: BoxId): F[Boolean]
 }
 
-object Pools {
+object CFMMPools {
 
   def make[I[_]: FlatMap, F[_]: Parallel: Concurrent: Timer](implicit
     redis: Redis.Plain[F],
     logs: Logs[I, F]
-  ): I[Pools[F]] =
+  ): I[CFMMPools[F]] =
     MakeRedisTransaction.make[I, F].flatMap { implicit mtx =>
-      logs.forService[Pools[F]] map (implicit l => new PoolTracing[F] attach new PoolsCache[F](Cache.make))
+      logs.forService[CFMMPools[F]] map (implicit l => new CFMMPoolsTracing[F] attach new CFMMPoolsCache[F](Cache.make))
     }
 
-  def ephemeral[I[_]: FlatMap, F[_]: FlatMap](implicit makeRef: MakeRef[I, F], logs: Logs[I, F]): I[Pools[F]] =
+  def ephemeral[I[_]: FlatMap, F[_]: FlatMap](implicit makeRef: MakeRef[I, F], logs: Logs[I, F]): I[CFMMPools[F]] =
     for {
       store                      <- makeRef.refOf(Map.empty[String, Json])
-      implicit0(log: Logging[F]) <- logs.forService[Pools[F]]
-    } yield new PoolTracing[F] attach new InMemory[F](store)
+      implicit0(log: Logging[F]) <- logs.forService[CFMMPools[F]]
+    } yield new CFMMPoolsTracing[F] attach new InMemory[F](store)
 
   private def PredictedKey(id: BoxId)      = s"predicted:$id"
   private def LastPredictedKey(id: PoolId) = s"predicted:last:$id"
   private def LastConfirmedKey(id: PoolId) = s"confirmed:last:$id"
 
-  final class PoolsCache[F[_]: Functor](cache: Cache[F]) extends Pools[F] {
+  final class CFMMPoolsCache[F[_]: Functor](cache: Cache[F]) extends CFMMPools[F] {
 
     implicit val codecString: Codec[String] = utf8
     implicit val codecBool: Codec[Boolean]  = bool
@@ -91,7 +91,7 @@ object Pools {
       cache.get[String, Boolean](PredictedKey(id)).map(_.isDefined)
   }
 
-  final class InMemory[F[_]: Functor](store: Ref[F, Map[String, Json]]) extends Pools[F] {
+  final class InMemory[F[_]: Functor](store: Ref[F, Map[String, Json]]) extends CFMMPools[F] {
 
     def getLastPredicted(id: PoolId): F[Option[Predicted[CFMMPool]]] =
       store.get.map(_.get(LastPredictedKey(id)) >>= (_.as[Predicted[CFMMPool]].toOption))
@@ -112,21 +112,41 @@ object Pools {
       store.get.map(_.contains(PredictedKey(id)))
   }
 
-  final class PoolTracing[F[_]: FlatMap: Logging] extends Pools[Mid[F, *]] {
+  final class CFMMPoolsTracing[F[_]: FlatMap: Logging] extends CFMMPools[Mid[F, *]] {
 
     def getLastPredicted(id: PoolId): Mid[F, Option[Predicted[CFMMPool]]] =
-      _ >>= (r => trace"getLastPredicted(id=$id) = $r" as r)
+      for {
+        _ <- trace"getLastPredicted(id=$id)"
+        r <- _
+        _ <- trace"getLastPredicted(id=$id) -> $r"
+      } yield r
 
     def getLastConfirmed(id: PoolId): Mid[F, Option[Confirmed[CFMMPool]]] =
-      _ >>= (r => trace"getLastConfirmed(id=$id) = $r" as r)
+      for {
+        _ <- trace"getLastConfirmed(id=$id)"
+        r <- _
+        _ <- trace"getLastConfirmed(id=$id) -> $r"
+      } yield r
 
     def put(pool: Predicted[CFMMPool]): Mid[F, Unit] =
-      trace"put(pool=$pool)" *> _
+      for {
+        _ <- trace"put(pool=$pool)"
+        r <- _
+        _ <- trace"put(pool=$pool) -> $r"
+      } yield r
 
     def put(pool: Confirmed[CFMMPool]): Mid[F, Unit] =
-      trace"put(pool=$pool)" *> _
+      for {
+        _ <- trace"put(pool=$pool)"
+        r <- _
+        _ <- trace"put(pool=$pool) -> $r"
+      } yield r
 
     def existsPredicted(id: BoxId): Mid[F, Boolean] =
-      _ >>= (r => trace"existsPredicted(id=$id) = $r" as r)
+      for {
+        _ <- trace"existsPredicted(id=$id)"
+        r <- _
+        _ <- trace"existsPredicted(id=$id) -> $r"
+      } yield r
   }
 }

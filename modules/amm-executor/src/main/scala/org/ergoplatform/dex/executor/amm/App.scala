@@ -41,9 +41,9 @@ object App extends EnvApp[AppContext] {
       implicit0(mc: MakeKafkaConsumer[RunF, OperationId, CFMMOperationRequest]) =
         MakeKafkaConsumer.make[InitF, RunF, OperationId, CFMMOperationRequest]
       implicit0(consumer: CFMMConsumer[StreamF, RunF]) = Consumer.make[StreamF, RunF, OperationId, CFMMOperationRequest]
-      implicit0(backend: SttpBackend[RunF, Any]) <- makeBackend(ctx)
-      implicit0(client: ErgoNetwork[RunF])       <- Resource.eval(ErgoNetwork.make[InitF, RunF])
-      implicit0(pools: CFMMPools[RunF]) = CFMMPools.make[RunF]
+      implicit0(backend: SttpBackend[RunF, Any])             <- makeBackend(ctx)
+      implicit0(client: ErgoNetwork[RunF])                   <- Resource.eval(ErgoNetwork.make[InitF, RunF])
+      implicit0(pools: CFMMPools[RunF])                      <- Resource.eval(CFMMPools.make[InitF, RunF])
       implicit0(interpreter: CFMMInterpreter[T2TCFMM, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
       implicit0(execution: Execution[RunF])                  <- Resource.eval(Execution.make[InitF, RunF])
       executor                                               <- Resource.eval(Executor.make[InitF, StreamF, RunF, Chunk])

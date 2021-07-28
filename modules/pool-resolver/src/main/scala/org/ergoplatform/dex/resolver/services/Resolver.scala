@@ -4,7 +4,7 @@ import cats.{Functor, Monad}
 import monocle.macros.syntax.lens._
 import org.ergoplatform.dex.domain.amm.state.{Confirmed, Predicted}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
-import org.ergoplatform.dex.resolver.repositories.Pools
+import org.ergoplatform.dex.resolver.repositories.CFMMPools
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
@@ -22,10 +22,10 @@ trait Resolver[F[_]] {
 
 object Resolver {
 
-  def make[I[+_]: Functor, F[_]: Monad](implicit pools: Pools[F], logs: Logs[I, F]): I[Resolver[F]] =
+  def make[I[+_]: Functor, F[_]: Monad](implicit pools: CFMMPools[F], logs: Logs[I, F]): I[Resolver[F]] =
     logs.forService[Resolver[F]] map (implicit l => new Live[F])
 
-  final class Live[F[_]: Monad: Logging](implicit pools: Pools[F]) extends Resolver[F] {
+  final class Live[F[_]: Monad: Logging](implicit pools: CFMMPools[F]) extends Resolver[F] {
 
     def resolve(id: PoolId): F[Option[CFMMPool]] =
       for {
