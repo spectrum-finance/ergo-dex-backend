@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.executor.amm.services
 
 import cats.{Functor, Monad}
-import org.ergoplatform.dex.domain.amm.{CFMMOperationRequest, Deposit, Redeem, Swap}
+import org.ergoplatform.dex.domain.amm.{CFMMOrder, Deposit, Redeem, Swap}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
@@ -12,7 +12,7 @@ import tofu.syntax.monadic._
 
 trait Execution[F[_]] {
 
-  def execute(op: CFMMOperationRequest): F[Unit]
+  def execute(op: CFMMOrder): F[Unit]
 }
 
 object Execution {
@@ -31,11 +31,11 @@ object Execution {
     network: ErgoNetwork[F]
   ) extends Execution[F] {
 
-    def execute(op: CFMMOperationRequest): F[Unit] =
-      pools.get(op.poolId) >>= {
+    def execute(order: CFMMOrder): F[Unit] =
+      pools.get(order.poolId) >>= {
         case Some(pool) =>
           val interpretF =
-            op match {
+            order match {
               case deposit: Deposit => tokenToToken.deposit(deposit, pool)
               case redeem: Redeem   => tokenToToken.redeem(redeem, pool)
               case swap: Swap       => tokenToToken.swap(swap, pool)
@@ -43,7 +43,7 @@ object Execution {
           interpretF >>= { case (transaction, nextPool) =>
             network.submitTransaction(transaction) >> pools.put(nextPool)
           }
-        case None => warn"Operation request references an unknown Pool{id=${op.poolId}}"
+        case None => warn"Operation request references an unknown Pool{id=${order.poolId}}"
       }
   }
 }

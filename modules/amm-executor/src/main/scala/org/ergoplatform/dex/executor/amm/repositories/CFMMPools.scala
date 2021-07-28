@@ -12,7 +12,6 @@ import org.ergoplatform.ergo.errors.ResponseError
 import sttp.client3._
 import sttp.client3.circe._
 import sttp.model.StatusCode
-import sttp.tapir.json.circe.jsonBody
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}

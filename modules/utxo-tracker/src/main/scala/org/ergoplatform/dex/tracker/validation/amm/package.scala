@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.validation
 
 import cats.{FlatMap, Monad}
 import org.ergoplatform.dex.configs.ExecutionConfig
-import org.ergoplatform.dex.domain.amm.CFMMOperationRequest
+import org.ergoplatform.dex.domain.amm.CFMMOrder
 import org.ergoplatform.ergo.ErgoNetwork
 import tofu.higherKind.Embed
 import tofu.syntax.context._
@@ -13,7 +13,7 @@ package object amm {
 
   type RuleViolation = String
 
-  type CFMMRules[F[_]] = CFMMOperationRequest => F[Option[RuleViolation]]
+  type CFMMRules[F[_]] = CFMMOrder => F[Option[RuleViolation]]
 
   implicit def embed: Embed[CFMMRules] =
     new Embed[CFMMRules] {

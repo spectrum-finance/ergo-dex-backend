@@ -19,7 +19,7 @@ final class CFMMOpsHandler[
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,
   G[_]: Functor: Logging
 ](implicit
-  producer: Producer[OperationId, CFMMOperationRequest, F],
+  producer: Producer[OrderId, CFMMOrder, F],
   parser: AMMOpsParser[CT],
   rules: CFMMRules[G]
 ) {
@@ -29,14 +29,14 @@ final class CFMMOpsHandler[
       parser.deposit(out) orElse
       parser.redeem(out) orElse
       parser.swap(out) orElse
-      none[CFMMOperationRequest]
+      none[CFMMOrder]
     }.unNone
       .evalTap(op => info"CFMM operation request detected $op")
       .flatMap { op =>
         eval(rules(op)) >>=
           (_.fold(op.pure)(e => eval(debug"Rule violation: $e") >> Evals[F, G].monoidK.empty))
       }
-      .map(op => Record[OperationId, CFMMOperationRequest](op.id, op))
+      .map(op => Record[OrderId, CFMMOrder](op.id, op))
       .thrush(producer.produce)
 }
 
@@ -48,7 +48,7 @@ object CFMMOpsHandler {
     F[_]: Monad: Evals[*[_], G]: FunctorFilter,
     G[_]: Functor
   ](implicit
-    producer: Producer[OperationId, CFMMOperationRequest, F],
+    producer: Producer[OrderId, CFMMOrder, F],
     contracts: AMMOpsParser[CT],
     rules: CFMMRules[G],
     logs: Logs[I, G]

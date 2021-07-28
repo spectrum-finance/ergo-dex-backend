@@ -57,13 +57,10 @@ object IssueAsset extends App with SigmaPlatform {
 object SendAsset extends App with SigmaPlatform {
 
   val secretHex = ""
-  val inputId   = "db8a9dbd571f4206eacf85a9184383d892ee9382469afa72468d4a6f968a527e"
+  val inputId   = "3d376d80b9bebd82398a14d03b6771cf6c63905d78ed7c91dc5782daf0608fd9"
 
   val recvs = Seq(
-    "9f4w8rfeoFfC44eYWDFV69gkqno1HJav82R4uMyURSzj87tCaat",
-    "9gJebr4q19S393kK6AgJVi7CCM7pPDNYkLvfoQCgWGQcqYTiRFX",
-    "9g1N1xqhrNG1b2TkmFcQGTFZ47EquUYUZAiWWCBEbZaBcsMhXJU",
-    "9g4KKywh8PTgVN9qCqArVufXwMxBYvfBx1QUTRQXVEyLmpa4Yi1"
+    "9hkxLeu8Z7s1aVK2UGZuQzrBV3iDB6sQzFUk6kAsLmzZVUwx1QM"
   ).map(recv => addressEncoder.fromString(recv).get)
 
   val input = getInput(inputId).get

@@ -47,16 +47,16 @@ package object amm {
   }
 
   @derive(show, loggable, encoder, decoder)
-  @newtype case class OperationId(value: String)
+  @newtype case class OrderId(value: String)
 
-  object OperationId {
+  object OrderId {
 
-    def fromBoxId(boxId: BoxId): OperationId = OperationId(boxId.value)
+    def fromBoxId(boxId: BoxId): OrderId = OrderId(boxId.value)
 
-    implicit val get: Get[OperationId] = deriving
-    implicit val put: Put[OperationId] = deriving
+    implicit val get: Get[OrderId] = deriving
+    implicit val put: Put[OrderId] = deriving
 
-    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OperationId]     = serializerByEncoder
-    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OperationId] = deserializerByDecoder
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OrderId]     = serializerByEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OrderId] = deserializerByDecoder
   }
 }
