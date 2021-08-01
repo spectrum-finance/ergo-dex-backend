@@ -7,5 +7,5 @@ object streaming {
 
   type CFMMConsumer[F[_], G[_]] = Consumer[OrderId, CFMMOrder, F, G]
 
-  type OrdersRotation[F[_], G[_]] = Producer[OrderId, Delayed[CFMMOrder], F]
+  type OrdersRotation[F[_]] = Producer[OrderId, Delayed[CFMMOrder], F]
 }

@@ -10,8 +10,7 @@ object KafkaCommittable {
   def apply[F[_], K, V](
     committable: CommittableConsumerRecord[F, K, V]
   ): Committable[K, V, (TopicPartition, OffsetAndMetadata), F] =
-    new Committable[K, V, (TopicPartition, OffsetAndMetadata), F] {
-
+    new Committable[K, V, (TopicPartition, OffsetAndMetadata), F] { self =>
       def key: K = committable.record.key
 
       def message: V = committable.record.value

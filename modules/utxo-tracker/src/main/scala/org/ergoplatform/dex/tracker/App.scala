@@ -44,7 +44,7 @@ object App extends EnvApp[ConfigBundle] {
       blocker <- Blocker[InitF]
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
-      implicit0(isoKRun: IsoK[RunF, InitF]) = IsoK.byFunK(wr.runContextK(configs))(wr.liftF)
+      implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
 //      implicit0(producer0: Producer[OrderId, AnyOrder, StreamF]) <-
 //        Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.ordersProducer)
       implicit0(producer1: Producer[OrderId, CFMMOrder, StreamF]) <-

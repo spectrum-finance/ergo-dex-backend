@@ -12,7 +12,10 @@ import tofu.syntax.monadic._
 
 trait Execution[F[_]] {
 
-  def execute(op: CFMMOrder): F[Unit]
+  /** Try to execute a given order if possible.
+    * @return `None` in case the order is executed, `Some(order)` otherwise.
+    */
+  def executeAttempt(op: CFMMOrder): F[Option[CFMMOrder]]
 }
 
 object Execution {
@@ -31,7 +34,7 @@ object Execution {
     network: ErgoNetwork[F]
   ) extends Execution[F] {
 
-    def execute(order: CFMMOrder): F[Unit] =
+    def executeAttempt(order: CFMMOrder): F[Option[CFMMOrder]] =
       pools.get(order.poolId) >>= {
         case Some(pool) =>
           val interpretF =
@@ -40,10 +43,13 @@ object Execution {
               case redeem: Redeem   => tokenToToken.redeem(redeem, pool)
               case swap: Swap       => tokenToToken.swap(swap, pool)
             }
-          interpretF >>= { case (transaction, nextPool) =>
-            network.submitTransaction(transaction) >> pools.put(nextPool)
-          }
-        case None => warn"Operation request references an unknown Pool{id=${order.poolId}}"
+          for {
+            (transaction, nextPool) <- interpretF
+            _                       <- network.submitTransaction(transaction)
+            _                       <- pools.put(nextPool)
+          } yield None
+        case None =>
+          warn"Operation request references an unknown Pool{id=${order.poolId}}" as None
       }
   }
 }
