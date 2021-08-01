@@ -57,8 +57,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       value               = depositBox.value - minerFeeBox.value - dexFeeBox.value,
       ergoTree            = deposit.params.p2pk.toErgoTree,
       creationHeight      = ctx.currentHeight,
-      additionalTokens    = mkTokens(rewardLP.id -> rewardLP.value),
-      additionalRegisters = Map((R4: NonMandatoryRegisterId) -> ByteArrayConstant(depositIn.boxId))
+      additionalTokens    = mkTokens(rewardLP.id -> rewardLP.value)
     )
     val inputs      = Vector(poolIn, depositIn)
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
@@ -98,8 +97,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       additionalTokens = mkTokens(
         shareX.id -> shareX.value,
         shareY.id -> shareY.value
-      ),
-      additionalRegisters = Map((R4: NonMandatoryRegisterId) -> ByteArrayConstant(redeemIn.boxId))
+      )
     )
     val inputs      = Vector(poolIn, redeemIn)
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)

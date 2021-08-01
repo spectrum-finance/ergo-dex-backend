@@ -12,7 +12,8 @@ object contracts {
       |
       |    val poolIn = INPUTS(0)
       |
-      |    val validPoolIn = poolIn.tokens(0) == (PoolNFT, 1L)
+      |    val validPoolIn  = poolIn.tokens(0) == (PoolNFT, 1L)
+      |    val noMoreInputs = INPUTS.size == 2
       |
       |    val poolLP    = poolIn.tokens(1)
       |    val reservesX = poolIn.tokens(2)
@@ -28,14 +29,12 @@ object contracts {
       |    val rewardOut = OUTPUTS(1)
       |    val rewardLP  = rewardOut.tokens(0)
       |
-      |    val uniqueOutput = rewardOut.R4[Coll[Byte]].map({(id: Coll[Byte]) => id == SELF.id}).getOrElse(false)
-      |
       |    val validRewardOut =
       |        rewardOut.propositionBytes == Pk.propBytes &&
       |        rewardOut.value >= SELF.value - DexFee &&
       |        rewardLP._1 == poolLP._1 &&
       |        rewardLP._2 >= minimalReward &&
-      |        uniqueOutput
+      |        noMoreInputs
       |
       |    sigmaProp(Pk || (validPoolIn && validRewardOut))
       |}
@@ -50,7 +49,8 @@ object contracts {
       |
       |    val poolIn = INPUTS(0)
       |
-      |    val validPoolIn = poolIn.tokens(0) == (PoolNFT, 1L)
+      |    val validPoolIn  = poolIn.tokens(0) == (PoolNFT, 1L)
+      |    val noMoreInputs = INPUTS.size == 2
       |
       |    val poolLP    = poolIn.tokens(1)
       |    val reservesX = poolIn.tokens(2)
@@ -66,8 +66,6 @@ object contracts {
       |    val returnX = returnOut.tokens(0)
       |    val returnY = returnOut.tokens(1)
       |
-      |    val uniqueOutput = returnOut.R4[Coll[Byte]].map({(id: Coll[Byte]) => id == SELF.id}).getOrElse(false)
-      |
       |    val validReturnOut =
       |        returnOut.propositionBytes == Pk.propBytes &&
       |        returnOut.value >= SELF.value - DexFee &&
@@ -75,7 +73,7 @@ object contracts {
       |        returnY._1 == reservesY._1 &&
       |        returnX._2 >= minReturnX &&
       |        returnY._2 >= minReturnY &&
-      |        uniqueOutput
+      |        noMoreInputs
       |
       |    sigmaProp(Pk || (validPoolIn && validReturnOut))
       |}
