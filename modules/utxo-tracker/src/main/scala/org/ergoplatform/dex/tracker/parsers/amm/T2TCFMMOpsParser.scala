@@ -49,13 +49,13 @@ final class T2TCFMMOpsParser(implicit
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     if (template == templates.swap) {
       for {
-        poolId       <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
+        poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
         inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
-        outId        <- tree.constants.parseBytea(4).map(TokenId.fromBytes)
-        minOutAmount <- tree.constants.parseLong(14)
+        outId        <- tree.constants.parseBytea(6).map(TokenId.fromBytes)
+        minOutAmount <- tree.constants.parseLong(16)
         outAmount = AssetAmount(outId, minOutAmount, None)
-        dexFeePerTokenNum   <- tree.constants.parseLong(15)
-        dexFeePerTokenDenom <- tree.constants.parseLong(16)
+        dexFeePerTokenNum   <- tree.constants.parseLong(17)
+        dexFeePerTokenDenom <- tree.constants.parseLong(18)
         p2pk                <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
         params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, p2pk)
       } yield Swap(poolId, params, box)

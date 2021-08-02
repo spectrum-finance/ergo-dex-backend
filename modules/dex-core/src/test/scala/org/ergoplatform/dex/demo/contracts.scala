@@ -83,32 +83,32 @@ object contracts {
     """
       |{
       |    val FeeDenom = 1000
-      |    val FeeNum   = 995
-      |    val DexFeePerTokenNum   = 10L
-      |    val DexFeePerTokenDenom = 1L
+      |    val FeeNum   = 996
+      |    val DexFeePerTokenNum   = 1L
+      |    val DexFeePerTokenDenom = 10L
       |
       |    val base       = SELF.tokens(0)
       |    val baseId     = base._1
       |    val baseAmount = base._2.toBigInt
       |
-      |    val poolInput  = INPUTS(0)
-      |    val poolNFT    = poolInput.tokens(0)._1
-      |    val poolAssetX = poolInput.tokens(2)
-      |    val poolAssetY = poolInput.tokens(3)
+      |    val poolInput       = INPUTS(0)
+      |    val poolTokensDefIx = poolInput.tokens.size - 1
+      |    val poolNFT         = poolInput.tokens(min(0, poolTokensDefIx))._1
+      |    val poolAssetX      = poolInput.tokens(min(2, poolTokensDefIx))
+      |    val poolAssetY      = poolInput.tokens(min(3, poolTokensDefIx))
       |
       |    val validPoolInput = poolNFT == PoolNFT
       |    val noMoreInputs   = INPUTS.size == 2
       |
-      |    val rewardBox = OUTPUTS(1)
-      |
       |    val validTrade = {
-      |        val quoteAsset    = rewardBox.tokens(0)
-      |        val quoteAmount   = quoteAsset._2.toBigInt
-      |        val fairDexFee    = rewardBox.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom
-      |        val relaxedOutput = quoteAmount + 1L // handle rounding loss
-      |        val poolX         = poolAssetX._2.toBigInt
-      |        val poolY         = poolAssetY._2.toBigInt
-      |        val fairPrice     =
+      |        val rewardBox      = OUTPUTS(min(2, INPUTS.size) - 1)
+      |        val quoteAsset     = rewardBox.tokens(0)
+      |        val quoteAmount    = quoteAsset._2.toBigInt
+      |        val fairDexFee     = rewardBox.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom
+      |        val relaxedOutput  = quoteAmount + 1L // handle rounding loss
+      |        val poolX          = poolAssetX._2.toBigInt
+      |        val poolY          = poolAssetY._2.toBigInt
+      |        val fairPrice      =
       |            if (poolAssetX._1 == QuoteId)
       |                poolX * baseAmount * FeeNum <= relaxedOutput * (poolY * FeeDenom + baseAmount * FeeNum)
       |            else
