@@ -13,7 +13,7 @@ import sigmastate.lang.Terms.ValueOps
 object MakeSwapProxy extends App with SigmaPlatform {
 
   val secretHex = ""
-  val inputId   = "f8d0ed454851206e3f3376f5cd813e5bd65f9c2b9c1f2571c5e8053a728c9771"
+  val inputId   = "8753b1b1cdb5ec5dc10a5e03459e168ebfd02fedddd6afdb1bce62eb70ad366f"
 
   val poolInId = "f56db4440333fcd13f8bf8be291afd6db80427c45a0f7aeba034d3dac9a269dc"
   val recvAddr = "9iCzZksco8R2P8HXTsZiFAq2km59PDznuTykBRjHd74BfBG3kk8"
@@ -97,7 +97,7 @@ object MakeSwapProxy extends App with SigmaPlatform {
 
 object ExecuteRefund extends App with SigmaPlatform {
   val secretHex = ""
-  val inputId   = "ea3e869fe41cb89b935739fa04d914798b42c431e7b180c36e178accc64b8dab"
+  val inputId   = "b895ecf9edcd7b808bffd9df49d5b568b823c8c0841b1e49063e6413b952c438"
 
   val input       = getInput(inputId).get
   val inputTokens = extractTokens(input)

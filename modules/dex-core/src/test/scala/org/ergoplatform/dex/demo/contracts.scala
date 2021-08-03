@@ -87,7 +87,7 @@ object contracts {
       |    val DexFeePerTokenNum   = 1L
       |    val DexFeePerTokenDenom = 10L
       |
-      |    val validTrade = { (_: Boolean) =>
+      |    val validTrade = {
       |        val base       = SELF.tokens(0)
       |        val baseId     = base._1
       |        val baseAmount = base._2.toBigInt
@@ -123,7 +123,7 @@ object contracts {
       |        fairPrice
       |    }
       |
-      |    sigmaProp(Pk || validTrade(false))
+      |    sigmaProp(Pk || validTrade)
       |}
       |""".stripMargin
 
