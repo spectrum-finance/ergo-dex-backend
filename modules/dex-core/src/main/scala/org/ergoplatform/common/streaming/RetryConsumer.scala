@@ -1,39 +1,47 @@
 package org.ergoplatform.common.streaming
 
-import cats.Monad
+import cats.{FlatMap, Monad}
 import cats.effect.Timer
 import fs2.kafka.types.KafkaOffset
-import tofu.streams.Evals
+import tofu.streams.{Evals, ParFlatten}
 import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
 import tofu.syntax.time.now
 
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 
-trait MessageRotation[K, V, F[_], G[_]] {
+trait RetryConsumer[K, V, F[_], G[_]] {
 
   type Offset
 
-  def consume: F[Committable[K, V, Offset, G]]
+  def stream: F[Committable[K, V, Offset, G]]
 
   def retry: F[(K, V)] => F[Unit]
 }
 
-object MessageRotation {
+object RetryConsumer {
+
+  type Aux[K, V, O, F[_], G[_]] = RetryConsumer[K, V, F, G] { type Offset = O }
+
+  private final class RetryConsumerContainer[K, V, O1, F[_]: FlatMap, G[_]]
 
   final class Live[
-    F[_]: Monad: Evals[*[_], G],
+    F[_]: Monad: Evals[*[_], G]: ParFlatten,
     G[_]: Monad: Timer,
     K,
     V
   ](conf: RotationConfig)(implicit
+    in: Consumer.Aux[K, V, KafkaOffset, F, G],
     retriesIn: Consumer.Aux[K, Delayed[V], KafkaOffset, F, G],
     retriesOut: Producer[K, Delayed[V], F]
-  ) extends MessageRotation[K, V, F, G] {
+  ) extends RetryConsumer[K, V, F, G] {
 
     type Offset = KafkaOffset
 
-    def consume: F[Committable[K, V, Offset, G]] =
+    def stream: F[Committable[K, V, Offset, G]] =
+      emits(List(in.stream, processRetries)).parFlattenUnbounded
+
+    def processRetries: F[Committable[K, V, Offset, G]] =
       retriesIn.stream.evalMap { c =>
         now.millis[G].flatMap { ts =>
           val sleep = c.message.blockedUntil - ts

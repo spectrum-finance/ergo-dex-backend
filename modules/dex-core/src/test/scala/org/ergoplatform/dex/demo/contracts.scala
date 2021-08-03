@@ -87,20 +87,20 @@ object contracts {
       |    val DexFeePerTokenNum   = 1L
       |    val DexFeePerTokenDenom = 10L
       |
-      |    val base       = SELF.tokens(0)
-      |    val baseId     = base._1
-      |    val baseAmount = base._2.toBigInt
+      |    val validTrade = { (_: Boolean) =>
+      |        val base       = SELF.tokens(0)
+      |        val baseId     = base._1
+      |        val baseAmount = base._2.toBigInt
       |
-      |    val poolInput       = INPUTS(0)
-      |    val poolTokensDefIx = poolInput.tokens.size - 1
-      |    val poolNFT         = poolInput.tokens(min(0, poolTokensDefIx))._1
-      |    val poolAssetX      = poolInput.tokens(min(2, poolTokensDefIx))
-      |    val poolAssetY      = poolInput.tokens(min(3, poolTokensDefIx))
+      |        val poolInput       = INPUTS(0)
+      |        val poolTokensDefIx = poolInput.tokens.size - 1
+      |        val poolNFT         = poolInput.tokens(min(0, poolTokensDefIx))._1
+      |        val poolAssetX      = poolInput.tokens(min(2, poolTokensDefIx))
+      |        val poolAssetY      = poolInput.tokens(min(3, poolTokensDefIx))
       |
-      |    val validPoolInput = poolNFT == PoolNFT
-      |    val noMoreInputs   = INPUTS.size == 2
+      |        val validPoolInput = poolNFT == PoolNFT
+      |        val noMoreInputs   = INPUTS.size == 2
       |
-      |    val validTrade = {
       |        val rewardBox      = OUTPUTS(min(2, INPUTS.size) - 1)
       |        val quoteAsset     = rewardBox.tokens(0)
       |        val quoteAmount    = quoteAsset._2.toBigInt
@@ -114,6 +114,8 @@ object contracts {
       |            else
       |                poolY * baseAmount * FeeNum <= relaxedOutput * (poolX * FeeDenom + baseAmount * FeeNum)
       |
+      |        validPoolInput &&
+      |        noMoreInputs &&
       |        rewardBox.propositionBytes == Pk.propBytes &&
       |        quoteAsset._1 == QuoteId &&
       |        quoteAsset._2 >= MinQuoteAmount &&
@@ -121,7 +123,7 @@ object contracts {
       |        fairPrice
       |    }
       |
-      |    sigmaProp(Pk || (validPoolInput && noMoreInputs && validTrade))
+      |    sigmaProp(Pk || validTrade(false))
       |}
       |""".stripMargin
 

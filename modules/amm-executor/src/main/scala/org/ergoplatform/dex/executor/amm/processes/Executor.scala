@@ -5,20 +5,19 @@ import cats.{Functor, Monad}
 import derevo.derive
 import mouse.any._
 import org.ergoplatform.common.TraceId
+import org.ergoplatform.common.streaming.RotationConfig
 import org.ergoplatform.common.streaming.syntax._
-import org.ergoplatform.common.streaming.{Delayed, Record, RotationConfig}
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.services.Execution
-import org.ergoplatform.dex.executor.amm.streaming.{CFMMConsumer, OrdersRotation}
+import org.ergoplatform.dex.executor.amm.streaming.CFMMConsumer
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
 import tofu.syntax.context._
 import tofu.syntax.embed._
+import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
-import tofu.syntax.time._
-import tofu.syntax.logging._
 
 @derive(representableK)
 trait Executor[F[_]] {
@@ -34,7 +33,6 @@ object Executor {
     G[_]: Monad: TraceId.Local: Clock
   ](implicit
     orders: CFMMConsumer[F, G],
-    ordersRotation: OrdersRotation[F],
     service: Execution[G],
     logs: Logs[I, G]
   ): I[Executor[F]] =
@@ -49,7 +47,6 @@ object Executor {
     G[_]: Monad: Logging: TraceId.Local: Clock
   ](rotationConf: RotationConfig)(implicit
     orders: CFMMConsumer[F, G],
-    ordersRotation: OrdersRotation[F],
     service: Execution[G]
   ) extends Executor[F] {
 
@@ -65,15 +62,8 @@ object Executor {
           fa.flatTap {
             case (_, None) => unit[F]
             case (_, Some(order)) =>
-              val toRotate =
-                fa.evalMap { _ =>
-                  now.millis.map { ts =>
-                    val nextAttemptAt = ts + rotationConf.retryDelay.toMillis
-                    Record(order.id, Delayed(order, nextAttemptAt))
-                  }
-                }
               eval(warn"Failed to execute $order, going to retry in ${rotationConf.retryDelay}") >>
-              ordersRotation.produce(toRotate)
+              orders.retry(fa as (order.id -> order))
           }
         }
         .evalMap { case (rec, _) => rec.commit }
