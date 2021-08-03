@@ -51,7 +51,7 @@ final class T2TCFMMOpsParser(implicit
       for {
         poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
         inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
-        outId        <- tree.constants.parseBytea(6).map(TokenId.fromBytes)
+        outId        <- tree.constants.parseBytea(2).map(TokenId.fromBytes)
         minOutAmount <- tree.constants.parseLong(16)
         outAmount = AssetAmount(outId, minOutAmount, None)
         dexFeePerTokenNum   <- tree.constants.parseLong(17)
