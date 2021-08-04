@@ -12,31 +12,32 @@ object contracts {
       |
       |    val poolIn = INPUTS(0)
       |
-      |    val validPoolIn  = poolIn.tokens(0) == (PoolNFT, 1L)
-      |    val noMoreInputs = INPUTS.size == 2
+      |    val validDeposit =
+      |        if (INPUTS.size == 2 && poolIn.tokens.size == 4) {
+      |            val validPoolIn  = poolIn.tokens(0) == (PoolNFT, 1L)
       |
-      |    val poolLP    = poolIn.tokens(1)
-      |    val reservesX = poolIn.tokens(2)
-      |    val reservesY = poolIn.tokens(2)
+      |            val poolLP    = poolIn.tokens(1)
+      |            val reservesX = poolIn.tokens(2)
+      |            val reservesY = poolIn.tokens(3)
       |
-      |    val supplyLP = InitiallyLockedLP - poolLP._2
+      |            val supplyLP = InitiallyLockedLP - poolLP._2
       |
-      |    val minimalReward = min(
-      |        selfX._2.toBigInt * supplyLP / reservesX._2,
-      |        selfY._2.toBigInt * supplyLP / reservesY._2
-      |    )
+      |            val minimalReward = min(
+      |                selfX._2.toBigInt * supplyLP / reservesX._2,
+      |                selfY._2.toBigInt * supplyLP / reservesY._2
+      |            )
       |
-      |    val rewardOut = OUTPUTS(1)
-      |    val rewardLP  = rewardOut.tokens(0)
+      |            val rewardOut = OUTPUTS(1)
+      |            val rewardLP  = rewardOut.tokens(0)
       |
-      |    val validRewardOut =
-      |        rewardOut.propositionBytes == Pk.propBytes &&
-      |        rewardOut.value >= SELF.value - DexFee &&
-      |        rewardLP._1 == poolLP._1 &&
-      |        rewardLP._2 >= minimalReward &&
-      |        noMoreInputs
+      |            validPoolIn &&
+      |            rewardOut.propositionBytes == Pk.propBytes &&
+      |            rewardOut.value >= SELF.value - DexFee &&
+      |            rewardLP._1 == poolLP._1 &&
+      |            rewardLP._2 >= minimalReward
+      |        } else false
       |
-      |    sigmaProp(Pk || (validPoolIn && validRewardOut))
+      |    sigmaProp(Pk || validDeposit)
       |}
       |""".stripMargin
 
@@ -49,33 +50,34 @@ object contracts {
       |
       |    val poolIn = INPUTS(0)
       |
-      |    val validPoolIn  = poolIn.tokens(0) == (PoolNFT, 1L)
-      |    val noMoreInputs = INPUTS.size == 2
+      |    val validRedeem =
+      |        if (INPUTS.size == 2 && poolIn.tokens.size == 4) {
+      |            val validPoolIn  = poolIn.tokens(0) == (PoolNFT, 1L)
       |
-      |    val poolLP    = poolIn.tokens(1)
-      |    val reservesX = poolIn.tokens(2)
-      |    val reservesY = poolIn.tokens(2)
+      |            val poolLP    = poolIn.tokens(1)
+      |            val reservesX = poolIn.tokens(2)
+      |            val reservesY = poolIn.tokens(2)
       |
-      |    val supplyLP = InitiallyLockedLP - poolLP._2
+      |            val supplyLP = InitiallyLockedLP - poolLP._2
       |
-      |    val minReturnX = selfLP._2.toBigInt * reservesX._2 / supplyLP
-      |    val minReturnY = selfLP._2.toBigInt * reservesY._2 / supplyLP
+      |            val minReturnX = selfLP._2.toBigInt * reservesX._2 / supplyLP
+      |            val minReturnY = selfLP._2.toBigInt * reservesY._2 / supplyLP
       |
-      |    val returnOut = OUTPUTS(1)
+      |            val returnOut = OUTPUTS(1)
       |
-      |    val returnX = returnOut.tokens(0)
-      |    val returnY = returnOut.tokens(1)
+      |            val returnX = returnOut.tokens(0)
+      |            val returnY = returnOut.tokens(1)
       |
-      |    val validReturnOut =
-      |        returnOut.propositionBytes == Pk.propBytes &&
-      |        returnOut.value >= SELF.value - DexFee &&
-      |        returnX._1 == reservesX._1 &&
-      |        returnY._1 == reservesY._1 &&
-      |        returnX._2 >= minReturnX &&
-      |        returnY._2 >= minReturnY &&
-      |        noMoreInputs
+      |            validPoolIn &&
+      |            returnOut.propositionBytes == Pk.propBytes &&
+      |            returnOut.value >= SELF.value - DexFee &&
+      |            returnX._1 == reservesX._1 &&
+      |            returnY._1 == reservesY._1 &&
+      |            returnX._2 >= minReturnX &&
+      |            returnY._2 >= minReturnY
+      |        } else false
       |
-      |    sigmaProp(Pk || (validPoolIn && validReturnOut))
+      |    sigmaProp(Pk || validRedeem)
       |}
       |""".stripMargin
 
@@ -87,36 +89,34 @@ object contracts {
       |    val DexFeePerTokenNum   = 1L
       |    val DexFeePerTokenDenom = 10L
       |
-      |    val poolInput = INPUTS(0)
+      |    val poolIn = INPUTS(0)
       |
       |    val validTrade =
-      |        if (INPUTS.size != 1 && poolInput.tokens.size == 4) {
+      |        if (INPUTS.size == 2 && poolIn.tokens.size == 4) {
       |            val base       = SELF.tokens(0)
       |            val baseId     = base._1
       |            val baseAmount = base._2.toBigInt
       |
-      |            val poolNFT         = poolInput.tokens(0)._1
-      |            val poolAssetX      = poolInput.tokens(2)
-      |            val poolAssetY      = poolInput.tokens(3)
+      |            val poolNFT    = poolIn.tokens(0)._1
+      |            val poolAssetX = poolIn.tokens(2)
+      |            val poolAssetY = poolIn.tokens(3)
       |
-      |            val validPoolInput = poolNFT == PoolNFT
-      |            val noMoreInputs   = INPUTS.size == 2
+      |            val validPoolIn = poolNFT == PoolNFT
       |
-      |            val rewardBox      = OUTPUTS(2)
-      |            val quoteAsset     = rewardBox.tokens(0)
-      |            val quoteAmount    = quoteAsset._2.toBigInt
-      |            val fairDexFee     = rewardBox.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom
-      |            val relaxedOutput  = quoteAmount + 1L // handle rounding loss
-      |            val poolX          = poolAssetX._2.toBigInt
-      |            val poolY          = poolAssetY._2.toBigInt
-      |            val fairPrice      =
+      |            val rewardBox     = OUTPUTS(2)
+      |            val quoteAsset    = rewardBox.tokens(0)
+      |            val quoteAmount   = quoteAsset._2.toBigInt
+      |            val fairDexFee    = rewardBox.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom
+      |            val relaxedOutput = quoteAmount + 1L // handle rounding loss
+      |            val poolX         = poolAssetX._2.toBigInt
+      |            val poolY         = poolAssetY._2.toBigInt
+      |            val fairPrice     =
       |                if (poolAssetX._1 == QuoteId)
       |                    poolX * baseAmount * FeeNum <= relaxedOutput * (poolY * FeeDenom + baseAmount * FeeNum)
       |                else
       |                    poolY * baseAmount * FeeNum <= relaxedOutput * (poolX * FeeDenom + baseAmount * FeeNum)
       |
-      |            validPoolInput &&
-      |            noMoreInputs &&
+      |            validPoolIn &&
       |            rewardBox.propositionBytes == Pk.propBytes &&
       |            quoteAsset._1 == QuoteId &&
       |            quoteAsset._2 >= MinQuoteAmount &&
