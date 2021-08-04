@@ -46,8 +46,8 @@ object Executor {
     F[_]: Monad: Evals[*[_], G]: ExecutionFailed.Handle,
     G[_]: Monad: Logging: TraceId.Local: Clock
   ](rotationConf: RotationConfig)(implicit
-                                  orders: CFMMCircuit[F, G],
-                                  service: Execution[G]
+    orders: CFMMCircuit[F, G],
+    service: Execution[G]
   ) extends Executor[F] {
 
     def run: F[Unit] =
@@ -63,7 +63,7 @@ object Executor {
             case (_, None) => unit[F]
             case (_, Some(order)) =>
               eval(warn"Failed to execute $order, going to retry in ${rotationConf.retryDelay}") >>
-              orders.retry(fa as (order.id -> order))
+                orders.retry(fa as (order.id -> order))
           }
         }
         .evalMap { case (rec, _) => rec.commit }
