@@ -1,9 +1,10 @@
 package org.ergoplatform.common.streaming
 
 import cats.tagless.FunctorK
-import cats.{~>, FlatMap, Functor, Monad}
+import cats.{FlatMap, Functor, Monad, ~>}
 import fs2.Stream
 import fs2.kafka._
+import fs2.kafka.types.KafkaOffset
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.ergoplatform.dex.configs.ConsumerConfig
@@ -55,7 +56,7 @@ object Consumer {
     G[_]: Functor,
     K,
     V
-  ](implicit makeConsumer: MakeKafkaConsumer[G, K, V]): Consumer[K, V, F, G] =
+  ](implicit makeConsumer: MakeKafkaConsumer[G, K, V]): Consumer.Aux[K, V, KafkaOffset, F, G] =
     embed.embed(
       (context map (conf => functorK.mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF)))
         .asInstanceOf[F[Consumer.Aux[K, V, Live[K, V, F]#Offset, F, G]]]

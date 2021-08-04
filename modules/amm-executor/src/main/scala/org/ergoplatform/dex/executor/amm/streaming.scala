@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.executor.amm
 
 import fs2.kafka.types.KafkaOffset
-import org.ergoplatform.common.streaming.{Consumer, Delayed, Producer, RetryConsumer}
+import org.ergoplatform.common.streaming.{Consumer, Delayed, Producer, StreamingCircuit}
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, OrderId}
 
 object streaming {
@@ -10,5 +10,5 @@ object streaming {
   type CFMMConsumerRetries[F[_], G[_]] = Consumer.Aux[OrderId, Delayed[CFMMOrder], KafkaOffset, F, G]
   type CFMMProducerRetries[F[_]]       = Producer[OrderId, Delayed[CFMMOrder], F]
 
-  type CFMMConsumer[F[_], G[_]] = RetryConsumer[OrderId, CFMMOrder, F, G]
+  type CFMMCircuit[F[_], G[_]] = StreamingCircuit[OrderId, CFMMOrder, F, G]
 }

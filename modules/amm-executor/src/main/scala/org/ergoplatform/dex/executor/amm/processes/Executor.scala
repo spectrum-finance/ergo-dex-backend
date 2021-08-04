@@ -9,7 +9,7 @@ import org.ergoplatform.common.streaming.RotationConfig
 import org.ergoplatform.common.streaming.syntax._
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.services.Execution
-import org.ergoplatform.dex.executor.amm.streaming.CFMMConsumer
+import org.ergoplatform.dex.executor.amm.streaming.CFMMCircuit
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
@@ -32,7 +32,7 @@ object Executor {
     F[_]: Monad: Evals[*[_], G]: RotationConfig.Has: ExecutionFailed.Handle,
     G[_]: Monad: TraceId.Local: Clock
   ](implicit
-    orders: CFMMConsumer[F, G],
+    orders: CFMMCircuit[F, G],
     service: Execution[G],
     logs: Logs[I, G]
   ): I[Executor[F]] =
@@ -46,8 +46,8 @@ object Executor {
     F[_]: Monad: Evals[*[_], G]: ExecutionFailed.Handle,
     G[_]: Monad: Logging: TraceId.Local: Clock
   ](rotationConf: RotationConfig)(implicit
-    orders: CFMMConsumer[F, G],
-    service: Execution[G]
+                                  orders: CFMMCircuit[F, G],
+                                  service: Execution[G]
   ) extends Executor[F] {
 
     def run: F[Unit] =

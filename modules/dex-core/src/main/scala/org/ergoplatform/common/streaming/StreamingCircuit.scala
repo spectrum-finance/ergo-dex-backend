@@ -1,16 +1,18 @@
 package org.ergoplatform.common.streaming
 
-import cats.{FlatMap, Monad}
 import cats.effect.Timer
+import cats.{FlatMap, Monad}
 import fs2.kafka.types.KafkaOffset
+import tofu.higherKind.Embed
 import tofu.streams.{Evals, ParFlatten}
+import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
 import tofu.syntax.time.now
 
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 
-trait RetryConsumer[K, V, F[_], G[_]] {
+trait StreamingCircuit[K, V, F[_], G[_]] {
 
   type Offset
 
@@ -19,11 +21,36 @@ trait RetryConsumer[K, V, F[_], G[_]] {
   def retry: F[(K, V)] => F[Unit]
 }
 
-object RetryConsumer {
+object StreamingCircuit {
 
-  type Aux[K, V, O, F[_], G[_]] = RetryConsumer[K, V, F, G] { type Offset = O }
+  type Aux[K, V, O, F[_], G[_]] = StreamingCircuit[K, V, F, G] { type Offset = O }
 
-  private final class RetryConsumerContainer[K, V, O1, F[_]: FlatMap, G[_]]
+  def make[
+    F[_]: Monad: Evals[*[_], G]: ParFlatten: RotationConfig.Has,
+    G[_]: Monad: Timer,
+    K,
+    V
+  ](implicit
+    in: Consumer.Aux[K, V, KafkaOffset, F, G],
+    retriesIn: Consumer.Aux[K, Delayed[V], KafkaOffset, F, G],
+    retriesOut: Producer[K, Delayed[V], F]
+  ): StreamingCircuit.Aux[K, V, KafkaOffset, F, G] =
+    embed.embed(RotationConfig.access.map(conf => new Live[F, G, K, V](conf)))
+
+  final private class StreamingCircuitContainer[K, V, O1, F[_]: FlatMap, G[_]](
+    ffa: F[StreamingCircuit.Aux[K, V, O1, F, G]]
+  ) extends StreamingCircuit[K, V, F, G] {
+    type Offset = O1
+    def stream: F[Committable[K, V, Offset, G]] = ffa >>= (_.stream)
+    def retry: F[(K, V)] => F[Unit]             = fa => ffa >>= (_.retry(fa))
+  }
+
+  implicit def embed[K, V, O, G[_]]: Embed[Aux[K, V, O, *[_], G]] =
+    new Embed[Aux[K, V, O, *[_], G]] {
+
+      def embed[F[_]: FlatMap](ft: F[Aux[K, V, O, F, G]]): Aux[K, V, O, F, G] =
+        new StreamingCircuitContainer(ft)
+    }
 
   final class Live[
     F[_]: Monad: Evals[*[_], G]: ParFlatten,
@@ -34,7 +61,7 @@ object RetryConsumer {
     in: Consumer.Aux[K, V, KafkaOffset, F, G],
     retriesIn: Consumer.Aux[K, Delayed[V], KafkaOffset, F, G],
     retriesOut: Producer[K, Delayed[V], F]
-  ) extends RetryConsumer[K, V, F, G] {
+  ) extends StreamingCircuit[K, V, F, G] {
 
     type Offset = KafkaOffset
 

@@ -40,8 +40,8 @@ object App extends EnvApp[AppContext] {
       implicit0(ul: Unlift[RunF, InitF]) = Unlift.byIso(IsoK.byFunK(wr.runContextK(ctx))(wr.liftF))
       implicit0(consumer: Consumer[PoolId, Confirmed[CFMMPool], StreamF, RunF]) =
         Consumer.make[StreamF, RunF, PoolId, Confirmed[CFMMPool]]
-      implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
-      implicit0(pools: CFMMPools[RunF])       <- Resource.eval(CFMMPools.make[InitF, RunF])
+      implicit0(redis: Redis.Plain[RunF]) <- Redis.make[InitF, RunF](configs.redis)
+      implicit0(pools: CFMMPools[RunF])   <- Resource.eval(CFMMPools.make[InitF, RunF])
       implicit0(resolver: Resolver[RunF]) <- Resource.eval(Resolver.make[InitF, RunF])
       tracker = PoolTracker.make[StreamF, RunF]
       server  = HttpServer.make[InitF, RunF](configs.http, runtime.platform.executor.asEC)

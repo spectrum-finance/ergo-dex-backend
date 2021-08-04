@@ -5,7 +5,7 @@ import fs2.kafka.serde._
 import fs2.kafka.types.KafkaOffset
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.common.streaming.{Consumer, Delayed, MakeKafkaConsumer, Producer}
+import org.ergoplatform.common.streaming.{Consumer, Delayed, MakeKafkaConsumer, Producer, StreamingCircuit}
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, OrderId}
 import org.ergoplatform.dex.executor.amm.config.ConfigBundle
 import org.ergoplatform.dex.executor.amm.context.AppContext
@@ -13,12 +13,7 @@ import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, T2TCFMMI
 import org.ergoplatform.dex.executor.amm.processes.Executor
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.executor.amm.services.Execution
-import org.ergoplatform.dex.executor.amm.streaming.{
-  CFMMConsumer,
-  CFMMConsumerIn,
-  CFMMConsumerRetries,
-  CFMMProducerRetries
-}
+import org.ergoplatform.dex.executor.amm.streaming.{CFMMCircuit, CFMMConsumerIn, CFMMConsumerRetries, CFMMProducerRetries}
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.ergo.ErgoNetwork
 import sttp.client3.SttpBackend
@@ -45,9 +40,9 @@ object App extends EnvApp[AppContext] {
       ctx                                   = AppContext.init(configs)
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(ctx)
       implicit0(e: ErgoAddressEncoder)      = ErgoAddressEncoder(configs.protocol.networkType.prefix)
-      implicit0(mc: MakeKafkaConsumer[RunF, OrderId, CFMMOrder]) =
+      implicit0(mkc: MakeKafkaConsumer[RunF, OrderId, CFMMOrder]) =
         MakeKafkaConsumer.make[InitF, RunF, OrderId, CFMMOrder]
-      implicit0(mc: MakeKafkaConsumer[RunF, OrderId, Delayed[CFMMOrder]]) =
+      implicit0(mkcd: MakeKafkaConsumer[RunF, OrderId, Delayed[CFMMOrder]]) =
         MakeKafkaConsumer.make[InitF, RunF, OrderId, Delayed[CFMMOrder]]
       implicit0(consumerIn: CFMMConsumerIn[StreamF, RunF]) =
         Consumer.make[StreamF, RunF, OrderId, CFMMOrder]
@@ -55,13 +50,13 @@ object App extends EnvApp[AppContext] {
         Consumer.make[StreamF, RunF, OrderId, Delayed[CFMMOrder]]
       implicit0(producerRetries: CFMMProducerRetries[StreamF]) <-
         Producer.make[InitF, StreamF, RunF, OrderId, Delayed[CFMMOrder]](configs.ordersRotation)
-      implicit0(consumer: CFMMConsumer[StreamF, RunF]) = ???
+      implicit0(consumer: CFMMCircuit[StreamF, RunF]) = StreamingCircuit.make[StreamF, RunF, OrderId, CFMMOrder]
       implicit0(backend: SttpBackend[RunF, Any])             <- makeBackend(ctx)
       implicit0(client: ErgoNetwork[RunF])                   <- Resource.eval(ErgoNetwork.make[InitF, RunF])
       implicit0(pools: CFMMPools[RunF])                      <- Resource.eval(CFMMPools.make[InitF, RunF])
       implicit0(interpreter: CFMMInterpreter[T2TCFMM, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
       implicit0(execution: Execution[RunF])                  <- Resource.eval(Execution.make[InitF, RunF])
-      executor                                               <- Resource.eval(Executor.make[InitF, StreamF, RunF, KafkaOffset])
+      executor                                               <- Resource.eval(Executor.make[InitF, StreamF, RunF])
     } yield executor -> ctx
 
   private def makeBackend(
