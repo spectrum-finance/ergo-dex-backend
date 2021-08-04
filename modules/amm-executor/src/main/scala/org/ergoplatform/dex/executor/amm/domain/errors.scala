@@ -11,13 +11,6 @@ object errors {
 
   object ExecutionFailed extends Errors.Companion[ExecutionFailed]
 
-  final case class ExhaustedOutputValue(available: Long, required: Long, nanoErgsPerByte: Long)
-    extends ExecutionFailed(
-      s"Output value exhausted. {available=$available, required=$required, nanoErgsPerByte=$nanoErgsPerByte}"
-    )
-
-  final case class NoSuchPool(poolId: PoolId) extends ExecutionFailed(s"Pool{id=$poolId} not found")
-
   final case class PriceTooHigh(poolId: PoolId, minOutput: AssetAmount, actualOutput: AssetAmount)
     extends ExecutionFailed(
       s"Price slipped up too much for Pool{id=$poolId}. {minOutput=${minOutput.show}, actualOutput=${actualOutput.show}}"

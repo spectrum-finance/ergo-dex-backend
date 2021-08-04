@@ -103,7 +103,7 @@ object contracts {
       |
       |            val validPoolIn = poolNFT == PoolNFT
       |
-      |            val rewardBox     = OUTPUTS(2)
+      |            val rewardBox     = OUTPUTS(1)
       |            val quoteAsset    = rewardBox.tokens(0)
       |            val quoteAmount   = quoteAsset._2.toBigInt
       |            val fairDexFee    = rewardBox.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom

@@ -11,7 +11,7 @@ import io.circe.jawn.CirceSupportParser
 import jawnfs2._
 import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.common.{ConstrainedEmbed, HexString}
-import org.ergoplatform.dex.configs.ExplorerConfig
+import org.ergoplatform.dex.configs.NetworkConfig
 import org.ergoplatform.dex.protocol
 import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.dex.protocol.instances._
@@ -68,10 +68,10 @@ object ErgoNetwork {
 
   def make[
     I[_]: Functor,
-    F[_]: MonadThrow: ExplorerConfig.Has
+    F[_]: MonadThrow: NetworkConfig.Has
   ](implicit backend: SttpBackend[F, Any], logs: Logs[I, F]): I[ErgoNetwork[F]] =
     logs.forService[ErgoNetwork[F]] map
-      (implicit l => (context map (conf => new ErgoNetworkTracing[F] attach new ErgoExplorer[F](conf))).embed)
+    (implicit l => (context map (conf => new ErgoNetworkTracing[F] attach new CombinedErgoNetwork[F](conf))).embed)
 }
 
 final class ErgoNetworkTracing[F[_]: Logging: FlatMap] extends ErgoNetwork[Mid[F, *]] {
@@ -107,14 +107,14 @@ final class ErgoNetworkTracing[F[_]: Logging: FlatMap] extends ErgoNetwork[Mid[F
     } yield os
 }
 
-class ErgoExplorer[F[_]: MonadThrow](config: ExplorerConfig)(implicit backend: SttpBackend[F, Any])
+class CombinedErgoNetwork[F[_]: MonadThrow](config: NetworkConfig)(implicit backend: SttpBackend[F, Any])
   extends ErgoNetwork[F] {
 
-  private val uri = config.uri
+  private val explorerUri = config.explorerUri
 
   def submitTransaction(tx: ErgoLikeTransaction): F[TxId] =
     basicRequest
-      .post(uri withPathSegment submitTransactionPathSeg)
+      .post(config.nodeUri withPathSegment node.submitTransactionPathSeg)
       .contentType(MediaType.ApplicationJson)
       .body(tx)
       .response(asJson[TxIdResponse])
@@ -124,7 +124,7 @@ class ErgoExplorer[F[_]: MonadThrow](config: ExplorerConfig)(implicit backend: S
 
   def getCurrentHeight: F[Int] =
     basicRequest
-      .get(uri.withPathSegment(blocksPathSeg).addParams("limit" -> "1", "order" -> "desc"))
+      .get(explorerUri.withPathSegment(blocksPathSeg).addParams("limit" -> "1", "order" -> "desc"))
       .response(asJson[Items[BlockInfo]])
       .send(backend)
       .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
@@ -132,14 +132,14 @@ class ErgoExplorer[F[_]: MonadThrow](config: ExplorerConfig)(implicit backend: S
 
   def getEpochParams: F[EpochParams] =
     basicRequest
-      .get(uri.withPathSegment(paramsPathSeg))
+      .get(explorerUri.withPathSegment(paramsPathSeg))
       .response(asJson[EpochParams])
       .send(backend)
       .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
 
   def getNetworkInfo: F[NetworkInfo] =
     basicRequest
-      .get(uri.withPathSegment(infoPathSeg))
+      .get(explorerUri.withPathSegment(infoPathSeg))
       .response(asJson[NetworkInfo])
       .send(backend)
       .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
@@ -147,7 +147,7 @@ class ErgoExplorer[F[_]: MonadThrow](config: ExplorerConfig)(implicit backend: S
   def getTransactionsByInputScript(templateHash: HexString, offset: Int, limit: Int): F[List[Transaction]] =
     basicRequest
       .get(
-        uri
+        explorerUri
           .withPathSegment(txsByScriptsPathSeg(templateHash))
           .addParams("offset" -> offset.toString, "limit" -> limit.toString, "sortDirection" -> "asc")
       )
@@ -159,7 +159,7 @@ class ErgoExplorer[F[_]: MonadThrow](config: ExplorerConfig)(implicit backend: S
   def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]] =
     basicRequest
       .get(
-        uri
+        explorerUri
           .withPathSegment(utxoByTokenIdPathSeg(tokenId))
           .addParams("offset" -> offset.toString, "limit" -> limit.toString)
       )
@@ -220,7 +220,7 @@ object ErgoNetworkStreaming {
 
   def make[
     S[_]: FlatMap: Evals[*[_], F]: LiftStream[*[_], F],
-    F[_]: MonadThrow: ExplorerConfig.Has
+    F[_]: MonadThrow: NetworkConfig.Has
   ](implicit backend: SttpBackend[F, Fs2Streams[F]]): ErgoNetworkStreaming[S, F] =
     constEmbed[S].embed(
       context
@@ -230,12 +230,12 @@ object ErgoNetworkStreaming {
 
   final class ErgoExplorerStreaming[
     F[_]: MonadThrow
-  ](config: ExplorerConfig)(implicit
+  ](config: NetworkConfig)(implicit
     backend: SttpBackend[F, Fs2Streams[F]]
-  ) extends ErgoExplorer[F](config)
+  ) extends CombinedErgoNetwork[F](config)
     with ErgoNetworkStreaming[Stream[F, *], F] {
 
-    private val uri                           = config.uri
+    private val uri                           = config.explorerUri
     implicit private val facade: Facade[Json] = new CirceSupportParser(None, allowDuplicateKeys = false).facade
 
     def streamUnspentOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] = {

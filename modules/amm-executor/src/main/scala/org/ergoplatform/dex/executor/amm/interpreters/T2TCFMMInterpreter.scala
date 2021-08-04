@@ -3,7 +3,7 @@ package org.ergoplatform.dex.executor.amm.interpreters
 import cats.{Functor, Monad}
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
-import org.ergoplatform.dex.configs.ExecutionConfig
+import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo, NetworkContext}
@@ -23,9 +23,9 @@ import tofu.syntax.monadic._
 import tofu.syntax.raise._
 
 final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
-  exchange: ExchangeConfig,
-  execution: ExecutionConfig,
-  ctx: NetworkContext
+                                                                    exchange: ExchangeConfig,
+                                                                    execution: MonetaryConfig,
+                                                                    ctx: NetworkContext
 )(implicit
   contracts: AMMContracts[T2TCFMM],
   encoder: ErgoAddressEncoder
@@ -179,17 +179,17 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
 object T2TCFMMInterpreter {
 
-  def make[I[_]: Functor, F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has: ExecutionConfig.Has](implicit
-    network: ErgoNetwork[F],
-    contracts: AMMContracts[T2TCFMM],
-    encoder: ErgoAddressEncoder,
-    logs: Logs[I, F]
+  def make[I[_]: Functor, F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has: MonetaryConfig.Has](implicit
+                                                                                                      network: ErgoNetwork[F],
+                                                                                                      contracts: AMMContracts[T2TCFMM],
+                                                                                                      encoder: ErgoAddressEncoder,
+                                                                                                      logs: Logs[I, F]
   ): I[CFMMInterpreter[T2TCFMM, F]] =
     logs.forService[CFMMInterpreter[T2TCFMM, F]].map { implicit l =>
       (
         for {
           exchange   <- ExchangeConfig.access
-          execution  <- ExecutionConfig.access
+          execution  <- MonetaryConfig.access
           networkCtx <- NetworkContext.make
         } yield new CFMMInterpreterTracing[T2TCFMM, F] attach new T2TCFMMInterpreter(exchange, execution, networkCtx)
       ).embed

@@ -9,15 +9,16 @@ import tofu.logging.derivation.loggable
 sealed trait CFMMOrder {
   val poolId: PoolId
   val box: Output
+  val timestamp: Long
 
   def id: OrderId = OrderId.fromBoxId(box.boxId)
 }
 
 @derive(encoder, decoder, loggable)
-final case class Deposit(poolId: PoolId, params: DepositParams, box: Output) extends CFMMOrder
+final case class Deposit(poolId: PoolId, timestamp: Long, params: DepositParams, box: Output) extends CFMMOrder
 
 @derive(encoder, decoder, loggable)
-final case class Redeem(poolId: PoolId, params: RedeemParams, box: Output) extends CFMMOrder
+final case class Redeem(poolId: PoolId, timestamp: Long, params: RedeemParams, box: Output) extends CFMMOrder
 
 @derive(encoder, decoder, loggable)
-final case class Swap(poolId: PoolId, params: SwapParams, box: Output) extends CFMMOrder
+final case class Swap(poolId: PoolId, timestamp: Long, params: SwapParams, box: Output) extends CFMMOrder

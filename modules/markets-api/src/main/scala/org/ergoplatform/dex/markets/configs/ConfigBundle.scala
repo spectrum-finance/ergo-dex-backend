@@ -3,7 +3,7 @@ package org.ergoplatform.dex.markets.configs
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
 import org.ergoplatform.common.db.PgConfig
-import org.ergoplatform.dex.configs.{ConfigBundleCompanion, ExplorerConfig}
+import org.ergoplatform.dex.configs.{ConfigBundleCompanion, NetworkConfig}
 import tofu.Context
 import tofu.logging.Loggable
 import tofu.optics.macros.{promote, ClassyOptics}
@@ -13,7 +13,7 @@ import tofu.optics.macros.{promote, ClassyOptics}
 final case class ConfigBundle(
   @promote indexer: IndexerConfig,
   @promote pg: PgConfig,
-  @promote network: ExplorerConfig
+  @promote network: NetworkConfig
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {

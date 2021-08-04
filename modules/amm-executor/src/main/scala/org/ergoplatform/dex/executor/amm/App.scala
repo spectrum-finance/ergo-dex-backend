@@ -51,9 +51,9 @@ object App extends EnvApp[AppContext] {
       implicit0(consumerIn: CFMMConsumerIn[StreamF, RunF]) =
         Consumer.make[StreamF, RunF, OrderId, CFMMOrder](configs.orders)
       implicit0(consumerRetries: CFMMConsumerRetries[StreamF, RunF]) =
-        Consumer.make[StreamF, RunF, OrderId, Delayed[CFMMOrder]](configs.orderRetries)
+        Consumer.make[StreamF, RunF, OrderId, Delayed[CFMMOrder]](configs.ordersRetryIn)
       implicit0(producerRetries: CFMMProducerRetries[StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, Delayed[CFMMOrder]](configs.ordersRotation)
+        Producer.make[InitF, StreamF, RunF, OrderId, Delayed[CFMMOrder]](configs.ordersRetryOut)
       implicit0(consumer: CFMMCircuit[StreamF, RunF]) = StreamingCircuit.make[StreamF, RunF, OrderId, CFMMOrder]
       implicit0(backend: SttpBackend[RunF, Any])             <- makeBackend(ctx)
       implicit0(client: ErgoNetwork[RunF])                   <- Resource.eval(ErgoNetwork.make[InitF, RunF])

@@ -14,12 +14,13 @@ final case class ConfigBundle(
   @promote rotation: RotationConfig,
   @promote exchange: ExchangeConfig,
   @promote execution: ExecutionConfig,
+  @promote monetary: MonetaryConfig,
   @promote protocol: ProtocolConfig,
   orders: ConsumerConfig,
-  orderRetries: ConsumerConfig,
-  ordersRotation: ProducerConfig,
+  ordersRetryIn: ConsumerConfig,
+  ordersRetryOut: ProducerConfig,
   @promote kafka: KafkaConfig,
-  @promote explorer: ExplorerConfig,
+  @promote explorer: NetworkConfig,
   @promote resolver: ResolverConfig
 )
 
