@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.executor.amm
 
 import fs2.kafka.types.KafkaOffset
-import org.ergoplatform.common.streaming.{Consumer, Delayed, Producer, StreamingCircuit}
+import org.ergoplatform.common.streaming._
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, OrderId}
 
 object streaming {

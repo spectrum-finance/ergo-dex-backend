@@ -2,10 +2,9 @@ package org.ergoplatform.dex.executor.amm
 
 import cats.effect.{Blocker, Resource}
 import fs2.kafka.serde._
-import fs2.kafka.types.KafkaOffset
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.common.streaming.{Consumer, Delayed, MakeKafkaConsumer, Producer, StreamingCircuit}
+import org.ergoplatform.common.streaming._
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, OrderId}
 import org.ergoplatform.dex.executor.amm.config.ConfigBundle
 import org.ergoplatform.dex.executor.amm.context.AppContext
@@ -13,7 +12,12 @@ import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, T2TCFMMI
 import org.ergoplatform.dex.executor.amm.processes.Executor
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.executor.amm.services.Execution
-import org.ergoplatform.dex.executor.amm.streaming.{CFMMCircuit, CFMMConsumerIn, CFMMConsumerRetries, CFMMProducerRetries}
+import org.ergoplatform.dex.executor.amm.streaming.{
+  CFMMCircuit,
+  CFMMConsumerIn,
+  CFMMConsumerRetries,
+  CFMMProducerRetries
+}
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.ergo.ErgoNetwork
 import sttp.client3.SttpBackend
@@ -45,9 +49,9 @@ object App extends EnvApp[AppContext] {
       implicit0(mkcd: MakeKafkaConsumer[RunF, OrderId, Delayed[CFMMOrder]]) =
         MakeKafkaConsumer.make[InitF, RunF, OrderId, Delayed[CFMMOrder]]
       implicit0(consumerIn: CFMMConsumerIn[StreamF, RunF]) =
-        Consumer.make[StreamF, RunF, OrderId, CFMMOrder]
+        Consumer.make[StreamF, RunF, OrderId, CFMMOrder](configs.orders)
       implicit0(consumerRetries: CFMMConsumerRetries[StreamF, RunF]) =
-        Consumer.make[StreamF, RunF, OrderId, Delayed[CFMMOrder]]
+        Consumer.make[StreamF, RunF, OrderId, Delayed[CFMMOrder]](configs.orderRetries)
       implicit0(producerRetries: CFMMProducerRetries[StreamF]) <-
         Producer.make[InitF, StreamF, RunF, OrderId, Delayed[CFMMOrder]](configs.ordersRotation)
       implicit0(consumer: CFMMCircuit[StreamF, RunF]) = StreamingCircuit.make[StreamF, RunF, OrderId, CFMMOrder]
