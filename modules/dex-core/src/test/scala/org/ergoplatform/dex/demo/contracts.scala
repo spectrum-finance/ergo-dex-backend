@@ -52,11 +52,11 @@ object contracts {
       |
       |    val validRedeem =
       |        if (INPUTS.size == 2 && poolIn.tokens.size == 4) {
-      |            val validPoolIn  = poolIn.tokens(0) == (PoolNFT, 1L)
+      |            val validPoolIn = poolIn.tokens(0) == (PoolNFT, 1L)
       |
       |            val poolLP    = poolIn.tokens(1)
       |            val reservesX = poolIn.tokens(2)
-      |            val reservesY = poolIn.tokens(2)
+      |            val reservesY = poolIn.tokens(3)
       |
       |            val supplyLP = InitiallyLockedLP - poolLP._2
       |

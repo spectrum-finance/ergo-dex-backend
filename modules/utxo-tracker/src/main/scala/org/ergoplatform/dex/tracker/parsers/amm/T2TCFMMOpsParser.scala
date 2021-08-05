@@ -41,9 +41,9 @@ final class T2TCFMMOpsParser[F[_]: Functor: Clock](implicit
       val template = ErgoTreeTemplate.fromBytes(tree.template)
       if (template == templates.redeem) {
         for {
-          poolId <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
+          poolId <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
           inLP   <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
-          dexFee <- tree.constants.parseLong(14)
+          dexFee <- tree.constants.parseLong(15)
           p2pk   <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
           params = RedeemParams(inLP, dexFee, p2pk)
         } yield Redeem(poolId, ts, params, box)
