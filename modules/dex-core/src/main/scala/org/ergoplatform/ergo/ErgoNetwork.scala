@@ -117,10 +117,10 @@ class CombinedErgoNetwork[F[_]: MonadThrow](config: NetworkConfig)(implicit back
       .post(config.nodeUri withPathSegment node.submitTransactionPathSeg)
       .contentType(MediaType.ApplicationJson)
       .body(tx)
-      .response(asJson[TxIdResponse])
+      .response(asString)
       .send(backend)
-      .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
-      .map(_.id)
+      .flatMap(_.body.leftMap(ResponseError(_)).toRaise)
+      .map(s => TxId(s))
 
   def getCurrentHeight: F[Int] =
     basicRequest

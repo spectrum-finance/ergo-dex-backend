@@ -18,7 +18,7 @@ final case class ConfigBundle(
   cfmmPoolsProducer: ProducerConfig,
   @promote kafka: KafkaConfig,
   @promote protocol: ProtocolConfig,
-  @promote explorer: NetworkConfig,
+  @promote network: NetworkConfig,
   @promote tracker: TrackerConfig,
   @promote monetary: MonetaryConfig,
   redis: RedisConfig

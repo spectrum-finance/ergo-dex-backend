@@ -20,7 +20,7 @@ final case class ConfigBundle(
   ordersRetryIn: ConsumerConfig,
   ordersRetryOut: ProducerConfig,
   @promote kafka: KafkaConfig,
-  @promote explorer: NetworkConfig,
+  @promote network: NetworkConfig,
   @promote resolver: ResolverConfig
 )
 
