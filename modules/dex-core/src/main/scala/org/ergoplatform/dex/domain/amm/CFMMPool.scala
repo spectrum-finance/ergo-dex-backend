@@ -25,15 +25,15 @@ final case class CFMMPool(
 
   def deposit(inX: AssetAmount, inY: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
     val unlocked = math.min(
-      inX.value * supplyLP / x.value,
-      inY.value * supplyLP / y.value
+      (BigInt(inX.value) * supplyLP / x.value).toLong,
+      (BigInt(inY.value) * supplyLP / y.value).toLong
     )
     Predicted(copy(lp = lp - unlocked, x = x + inX, y = y + inY, box = nextBox))
   }
 
   def redeem(inLp: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
-    val redeemedX = inLp.value * x.value / supplyLP
-    val redeemedY = inLp.value * y.value / supplyLP
+    val redeemedX = (BigInt(inLp.value) * x.value / supplyLP).toLong
+    val redeemedY = (BigInt(inLp.value) * y.value / supplyLP).toLong
     Predicted(copy(lp = lp + inLp, x = x - redeemedX, y = y - redeemedY, box = nextBox))
   }
 

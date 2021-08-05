@@ -14,7 +14,7 @@ import org.ergoplatform.dex.protocol.amm.AMMContracts
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{BoxId, ErgoNetwork, TokenId}
-import sigmastate.Values.{ByteArrayConstant, IntConstant}
+import sigmastate.Values.IntConstant
 import sigmastate.eval._
 import sigmastate.interpreter.ProverResult
 import tofu.logging.Logs
@@ -23,9 +23,9 @@ import tofu.syntax.monadic._
 import tofu.syntax.raise._
 
 final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
-                                                                    exchange: ExchangeConfig,
-                                                                    execution: MonetaryConfig,
-                                                                    ctx: NetworkContext
+  exchange: ExchangeConfig,
+  execution: MonetaryConfig,
+  ctx: NetworkContext
 )(implicit
   contracts: AMMContracts[T2TCFMM],
   encoder: ErgoAddressEncoder
@@ -54,10 +54,10 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val dexFee      = deposit.params.dexFee - execution.minerFee
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
     val returnBox = new ErgoBoxCandidate(
-      value               = depositBox.value - minerFeeBox.value - dexFeeBox.value,
-      ergoTree            = deposit.params.p2pk.toErgoTree,
-      creationHeight      = ctx.currentHeight,
-      additionalTokens    = mkTokens(rewardLP.id -> rewardLP.value)
+      value            = depositBox.value - minerFeeBox.value - dexFeeBox.value,
+      ergoTree         = deposit.params.p2pk.toErgoTree,
+      creationHeight   = ctx.currentHeight,
+      additionalTokens = mkTokens(rewardLP.id -> rewardLP.value)
     )
     val inputs      = Vector(poolIn, depositIn)
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
@@ -132,10 +132,10 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
       val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
       val rewardBox = new ErgoBoxCandidate(
-        value               = swapBox.value - minerFeeBox.value - dexFeeBox.value,
-        ergoTree            = swap.params.p2pk.toErgoTree,
-        creationHeight      = ctx.currentHeight,
-        additionalTokens    = mkTokens(swap.params.minOutput.id -> output.value)
+        value            = swapBox.value - minerFeeBox.value - dexFeeBox.value,
+        ergoTree         = swap.params.p2pk.toErgoTree,
+        creationHeight   = ctx.currentHeight,
+        additionalTokens = mkTokens(swap.params.minOutput.id -> output.value)
       )
       val inputs      = Vector(poolIn, swapIn)
       val outs        = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
@@ -180,10 +180,10 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 object T2TCFMMInterpreter {
 
   def make[I[_]: Functor, F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has: MonetaryConfig.Has](implicit
-                                                                                                      network: ErgoNetwork[F],
-                                                                                                      contracts: AMMContracts[T2TCFMM],
-                                                                                                      encoder: ErgoAddressEncoder,
-                                                                                                      logs: Logs[I, F]
+    network: ErgoNetwork[F],
+    contracts: AMMContracts[T2TCFMM],
+    encoder: ErgoAddressEncoder,
+    logs: Logs[I, F]
   ): I[CFMMInterpreter[T2TCFMM, F]] =
     logs.forService[CFMMInterpreter[T2TCFMM, F]].map { implicit l =>
       (
