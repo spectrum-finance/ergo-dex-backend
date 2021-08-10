@@ -5,7 +5,6 @@ import cats.syntax.either._
 import cats.syntax.show._
 import cats.{Monad, Show}
 import dev.profunktor.redis4cats.hlist.{HList, Witness}
-import dev.profunktor.redis4cats.transactions.RedisTransaction
 import org.ergoplatform.common.cache.errors.{BinaryDecodingFailed, BinaryEncodingFailed}
 import scodec.Codec
 import scodec.bits.BitVector
@@ -18,6 +17,8 @@ trait Cache[F[_]] {
   def set[K: Codec: Show, V: Codec: Show](key: K, value: V): F[Unit]
 
   def get[K: Codec: Show, V: Codec: Show](key: K): F[Option[V]]
+
+  def del[K: Codec: Show](key: K): F[Unit]
 
   def transaction[T <: HList](commands: T)(implicit w: Witness[T]): F[w.R]
 }
@@ -66,6 +67,14 @@ object Cache {
                      .toRaise
                  )
       } yield value).value
+
+    def del[K: Codec: Show](key: K): F[Unit] =
+      Codec[K]
+        .encode(key)
+        .toEither
+        .leftMap(err => BinaryEncodingFailed(key.show, err.messageWithContext))
+        .toRaise
+        .flatMap(k => redis.del(k.toByteArray).void)
 
     def transaction[T <: HList](commands: T)(implicit w: Witness[T]): F[w.R] =
       makeTx.make.exec(commands)

@@ -12,6 +12,7 @@ import jawnfs2._
 import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.common.{ConstrainedEmbed, HexString}
 import org.ergoplatform.dex.configs.NetworkConfig
+import org.ergoplatform.dex.domain.errors.TxFailed
 import org.ergoplatform.dex.protocol
 import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.dex.protocol.instances._
@@ -114,12 +115,20 @@ class CombinedErgoNetwork[F[_]: MonadThrow](config: NetworkConfig)(implicit back
 
   def submitTransaction(tx: ErgoLikeTransaction): F[TxId] =
     basicRequest
-      .post(config.nodeUri withPathSegment node.submitTransactionPathSeg)
+      .post(config.explorerUri withPathSegment submitTransactionPathSeg)
       .contentType(MediaType.ApplicationJson)
       .body(tx)
       .response(asString)
       .send(backend)
-      .flatMap(_.body.leftMap(ResponseError(_)).toRaise)
+      .flatMap {
+        case res if res.code.isClientError =>
+          for {
+            s   <- res.body.leftMap(ResponseError(_)).toRaise
+            err <- io.circe.parser.decode[ApiError](s).toRaise
+            r   <- TxFailed(err.reason).raise[F, String]
+          } yield r
+        case res => res.body.leftMap(ResponseError(_)).toRaise
+      }
       .map(s => TxId(s))
 
   def getCurrentHeight: F[Int] =

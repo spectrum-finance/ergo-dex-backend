@@ -5,6 +5,7 @@ import monocle.macros.syntax.lens._
 import org.ergoplatform.dex.domain.amm.state.{Confirmed, Predicted}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.resolver.repositories.CFMMPools
+import org.ergoplatform.ergo.BoxId
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
@@ -18,6 +19,10 @@ trait Resolver[F[_]] {
   /** Persist predicted pool.
     */
   def put(pool: Predicted[CFMMPool]): F[Unit]
+
+  /** Invalidate pool state.
+    */
+  def invalidate(boxId: BoxId): F[Unit]
 }
 
 object Resolver {
@@ -35,7 +40,7 @@ object Resolver {
                   case (Some(Confirmed(confirmed)), Some(pps @ Predicted(predicted))) =>
                     val upToDate = confirmed.box.lastConfirmedBoxGix <= predicted.box.lastConfirmedBoxGix
                     for {
-                      consistentChain <- pools.existsPredicted(confirmed.box.boxId)
+                      consistentChain <- pools.existsPrediction(confirmed.box.boxId)
                       pessimistic =
                         if (consistentChain) {
                           val updatedPool =
@@ -55,5 +60,9 @@ object Resolver {
     def put(pool: Predicted[CFMMPool]): F[Unit] =
       debug"New prediction for Pool{id='${pool.predicted.poolId}'}, $pool" >>
       pools.put(pool)
+
+    def invalidate(boxId: BoxId): F[Unit] =
+      debug"Invalidating PoolState{boxId=$boxId}" >>
+      pools.dropPrediction(boxId)
   }
 }

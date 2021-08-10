@@ -12,7 +12,7 @@ import eu.timepit.refined.string.{HexStringSpec, Url}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
-import org.ergoplatform.dex.errors.RefinementFailed
+import org.ergoplatform.common.errors.RefinementFailed
 import org.ergoplatform.ergo.constraints.{HexStringType, UrlStringType}
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert

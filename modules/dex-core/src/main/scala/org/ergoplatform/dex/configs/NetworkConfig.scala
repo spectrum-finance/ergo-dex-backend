@@ -8,6 +8,6 @@ import tofu.Context
 import tofu.logging.derivation.loggable
 
 @derive(pureconfigReader, loggable)
-final case class NetworkConfig(explorerUri: Uri, nodeUri: Uri)
+final case class NetworkConfig(explorerUri: Uri)
 
 object NetworkConfig extends Context.Companion[NetworkConfig]

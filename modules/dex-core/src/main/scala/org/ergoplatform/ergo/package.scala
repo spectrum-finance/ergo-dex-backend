@@ -23,7 +23,7 @@ import io.estatico.newtype.ops._
 import org.ergoplatform.common.HexString
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.domain.amm.PoolId.fromBytes
-import org.ergoplatform.dex.errors.RefinementFailed
+import org.ergoplatform.common.errors.RefinementFailed
 import org.ergoplatform.ergo.TokenId.fromBytes
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
@@ -100,11 +100,16 @@ package object ergo {
     implicit val get: Get[BoxId] = deriving
     implicit val put: Put[BoxId] = deriving
 
+    implicit def tapirCodec: sttp.tapir.Codec.PlainCodec[BoxId] = deriving
+
     implicit def codec: scodec.Codec[BoxId] =
       scodec.codecs.variableSizeBits(uint16, utf8).xmap(BoxId(_), _.value)
 
     def fromErgo(ergoBoxId: ErgoBox.BoxId): BoxId =
       Base16.encode(ergoBoxId).coerce[BoxId]
+
+    def fromStringUnsafe(s: String): BoxId =
+      BoxId(s)
   }
 
   @derive(show, encoder, decoder, loggable)

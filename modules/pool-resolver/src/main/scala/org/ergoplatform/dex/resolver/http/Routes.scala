@@ -14,7 +14,7 @@ final class Routes[
   F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]: TraceId.Local
 ](service: Resolver[F])(implicit opts: Http4sServerOptions[F, F]) {
 
-  val routes: HttpRoutes[F] = Tracing(resolveR <+> putPredictedR)
+  val routes: HttpRoutes[F] = Tracing(resolveR <+> putPredictedR <+> invalidateR)
 
   private def interpreter = Http4sServerInterpreter(opts)
 
@@ -30,5 +30,10 @@ final class Routes[
   def putPredictedR: HttpRoutes[F] =
     interpreter.toRoutes(Endpoints.putPredicted) { pool =>
       service.put(pool).adaptThrowable.value
+    }
+
+  def invalidateR: HttpRoutes[F] =
+    interpreter.toRoutes(Endpoints.invalidate) { boxId =>
+      service.invalidate(boxId).adaptThrowable.value
     }
 }

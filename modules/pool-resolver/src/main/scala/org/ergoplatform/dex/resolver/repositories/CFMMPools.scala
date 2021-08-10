@@ -41,7 +41,11 @@ trait CFMMPools[F[_]] {
 
   /** Check whether a pool state prediction with the given `id` exists.
     */
-  def existsPredicted(id: BoxId): F[Boolean]
+  def existsPrediction(id: BoxId): F[Boolean]
+
+  /** Drop prediction.
+    */
+  def dropPrediction(id: BoxId): F[Unit]
 }
 
 object CFMMPools {
@@ -87,8 +91,11 @@ object CFMMPools {
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
       cache.set(LastConfirmedKey(pool.confirmed.poolId), pool)
 
-    def existsPredicted(id: BoxId): F[Boolean] =
+    def existsPrediction(id: BoxId): F[Boolean] =
       cache.get[String, Boolean](PredictedKey(id)).map(_.isDefined)
+
+    def dropPrediction(id: BoxId): F[Unit] =
+      cache.del(PredictedKey(id))
   }
 
   final class InMemory[F[_]: Functor](store: Ref[F, Map[String, Json]]) extends CFMMPools[F] {
@@ -108,8 +115,11 @@ object CFMMPools {
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
       store.update(_.updated(LastConfirmedKey(pool.confirmed.poolId), pool.asJson))
 
-    def existsPredicted(id: BoxId): F[Boolean] =
+    def existsPrediction(id: BoxId): F[Boolean] =
       store.get.map(_.contains(PredictedKey(id)))
+
+    def dropPrediction(id: BoxId): F[Unit] =
+      store.update(_ - id.value)
   }
 
   final class CFMMPoolsTracing[F[_]: FlatMap: Logging] extends CFMMPools[Mid[F, *]] {
@@ -142,11 +152,18 @@ object CFMMPools {
         _ <- trace"put(pool=$pool) -> $r"
       } yield r
 
-    def existsPredicted(id: BoxId): Mid[F, Boolean] =
+    def existsPrediction(id: BoxId): Mid[F, Boolean] =
       for {
         _ <- trace"existsPredicted(id=$id)"
         r <- _
         _ <- trace"existsPredicted(id=$id) -> $r"
+      } yield r
+
+    def dropPrediction(id: BoxId): Mid[F, Unit] =
+      for {
+        _ <- trace"dropPrediction(id=$id)"
+        r <- _
+        _ <- trace"dropPrediction(id=$id) -> $r"
       } yield r
   }
 }

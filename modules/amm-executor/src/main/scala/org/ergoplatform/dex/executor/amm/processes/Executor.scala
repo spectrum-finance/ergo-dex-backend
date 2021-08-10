@@ -6,13 +6,12 @@ import cats.{Functor, Monad}
 import derevo.derive
 import mouse.any._
 import org.ergoplatform.common.TraceId
-import org.ergoplatform.common.streaming.RotationConfig
 import org.ergoplatform.common.streaming.syntax._
 import org.ergoplatform.dex.domain.amm.CFMMOrder
 import org.ergoplatform.dex.executor.amm.config.ExecutionConfig
-import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.services.Execution
 import org.ergoplatform.dex.executor.amm.streaming.CFMMCircuit
+import org.ergoplatform.ergo.explorer.TxSubmissionErrorParser
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
@@ -22,8 +21,8 @@ import tofu.syntax.embed._
 import tofu.syntax.handle._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
-import tofu.syntax.time._
 import tofu.syntax.streams.all._
+import tofu.syntax.time._
 
 @derive(representableK)
 trait Executor[F[_]] {
@@ -36,7 +35,7 @@ object Executor {
   def make[
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: ExecutionConfig.Has,
-    G[_]: Monad: TraceId.Local: Clock: ExecutionFailed.Handle: Catches
+    G[_]: Monad: TraceId.Local: Clock: Catches
   ](implicit
     orders: CFMMCircuit[F, G],
     service: Execution[G],
@@ -50,10 +49,11 @@ object Executor {
 
   final private class Live[
     F[_]: Monad: Evals[*[_], G],
-    G[_]: Monad: Logging: TraceId.Local: Clock: ExecutionFailed.Handle: Catches
+    G[_]: Monad: Logging: TraceId.Local: Clock: Catches
   ](conf: ExecutionConfig)(implicit
     orders: CFMMCircuit[F, G],
-    service: Execution[G]
+    service: Execution[G],
+    errParser: TxSubmissionErrorParser
   ) extends Executor[F] {
 
     def run: F[Unit] =
@@ -61,7 +61,6 @@ object Executor {
         .evalMap { rec =>
           service
             .executeAttempt(rec.message)
-            .handleWith[ExecutionFailed](e => warnCause"Order execution failed" (e) as Option(rec.message))
             .handleWith[Throwable](e => warnCause"Order execution failed" (e) as none[CFMMOrder])
             .local(_ => TraceId.fromString(rec.message.id.value))
             .tupleLeft(rec)

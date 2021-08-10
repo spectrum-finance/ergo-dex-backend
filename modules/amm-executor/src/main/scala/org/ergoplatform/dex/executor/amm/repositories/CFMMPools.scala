@@ -8,6 +8,7 @@ import org.ergoplatform.common.http.Tracing
 import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.executor.amm.config.ResolverConfig
+import org.ergoplatform.ergo.BoxId
 import org.ergoplatform.ergo.errors.ResponseError
 import sttp.client3._
 import sttp.client3.circe._
@@ -31,6 +32,10 @@ trait CFMMPools[F[_]] {
   /** Persist predicted pool.
     */
   def put(pool: Predicted[CFMMPool]): F[Unit]
+
+  /** Invalidate pool prediction.
+    */
+  def invalidate(boxId: BoxId): F[Unit]
 }
 
 object CFMMPools {
@@ -74,6 +79,17 @@ object CFMMPools {
             else ResponseError(s"Non 2xx response code. ${r.body}").raise
           }
       }
+
+    def invalidate(boxId: BoxId): F[Unit] =
+      mkBasicReq.flatMap { base =>
+        base
+          .post(conf.uri.withWholePath(s"$BasePrefix/invalidate/$boxId"))
+          .send(backend)
+          .flatMap { r =>
+            if (r.isSuccess) unit
+            else ResponseError(s"Non 2xx response code. ${r.body}").raise
+          }
+      }
   }
 
   final class CFMMPoolsTracing[F[_]: FlatMap: Logging] extends CFMMPools[Mid[F, *]] {
@@ -90,6 +106,13 @@ object CFMMPools {
         _ <- trace"put(pool=$pool)"
         r <- _
         _ <- trace"put(pool=$pool) -> $r"
+      } yield r
+
+    def invalidate(boxId: BoxId): Mid[F, Unit] =
+      for {
+        _ <- trace"invalidate(boxId=$boxId)"
+        r <- _
+        _ <- trace"invalidate(boxId=$boxId) -> $r"
       } yield r
   }
 }
