@@ -81,19 +81,16 @@ object CFMMPools {
     def getLastConfirmed(id: PoolId): F[Option[Confirmed[CFMMPool]]] =
       cache.get[String, Confirmed[CFMMPool]](LastConfirmedKey(id))
 
-    def put(pool: Predicted[CFMMPool]): F[Unit] =
-      cache
-        .get[String, Predicted[CFMMPool]](LastPredictedKey(pool.predicted.poolId))
-        .flatMapIn(s => Some(s.predicted.box.boxId))
-        .flatMap { prevStateRef =>
-          cache
-            .transaction(
-              cache.set(LastPredictedKey(pool.predicted.poolId), pool) ::
-              cache.set(PredictedKey(pool.predicted.box.boxId), PredictionLink(pool, prevStateRef)) ::
-              HNil
-            )
-            .void
-        }
+    def put(pool: Predicted[CFMMPool]): F[Unit] = {
+      val getPrevStateRef =
+        cache
+          .get[String, Predicted[CFMMPool]](LastPredictedKey(pool.predicted.poolId))
+          .flatMapIn(s => Some(s.predicted.box.boxId))
+      val setLastPredicted = cache.set(LastPredictedKey(pool.predicted.poolId), pool)
+      val setPredicted =
+        getPrevStateRef >>= (ref => cache.set(PredictedKey(pool.predicted.box.boxId), PredictionLink(pool, ref)))
+      cache.transaction(setLastPredicted :: setPredicted :: HNil).void
+    }
 
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
       cache.set(LastConfirmedKey(pool.confirmed.poolId), pool)
