@@ -1,14 +1,15 @@
 package org.ergoplatform.dex.resolver.repositories
 
+import cats.data.OptionT
 import cats.effect.concurrent.Ref
 import cats.effect.{Concurrent, Timer}
-import cats.{FlatMap, Functor, Parallel}
+import cats.{FlatMap, Functor, Monad, Parallel}
 import derevo.derive
 import dev.profunktor.redis4cats.hlist._
 import io.circe.Json
 import io.circe.syntax._
 import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis}
-import org.ergoplatform.dex.domain.amm.state.{Confirmed, Predicted}
+import org.ergoplatform.dex.domain.amm.state.{Confirmed, Predicted, PredictionLink}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.ergo.BoxId
 import scodec.Codec
@@ -17,6 +18,7 @@ import tofu.concurrent.MakeRef
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
+import tofu.syntax.foption._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 
@@ -64,11 +66,11 @@ object CFMMPools {
       implicit0(log: Logging[F]) <- logs.forService[CFMMPools[F]]
     } yield new CFMMPoolsTracing[F] attach new InMemory[F](store)
 
-  private def PredictedKey(id: BoxId)      = s"predicted:$id"
-  private def LastPredictedKey(id: PoolId) = s"predicted:last:$id"
+  private def PredictedKey(id: BoxId)      = s"predicted:$id" // -> link(state)
+  private def LastPredictedKey(id: PoolId) = s"predicted:last:$id" // -> state
   private def LastConfirmedKey(id: PoolId) = s"confirmed:last:$id"
 
-  final class CFMMPoolsCache[F[_]: Functor](cache: Cache[F]) extends CFMMPools[F] {
+  final class CFMMPoolsCache[F[_]: Monad](cache: Cache[F]) extends CFMMPools[F] {
 
     implicit val codecString: Codec[String] = utf8
     implicit val codecBool: Codec[Boolean]  = bool
@@ -81,12 +83,17 @@ object CFMMPools {
 
     def put(pool: Predicted[CFMMPool]): F[Unit] =
       cache
-        .transaction(
-          cache.set(LastPredictedKey(pool.predicted.poolId), pool) ::
-          cache.set(PredictedKey(pool.predicted.box.boxId), true) ::
-          HNil
-        )
-        .void
+        .get[String, Predicted[CFMMPool]](LastPredictedKey(pool.predicted.poolId))
+        .flatMapIn(s => Some(s.predicted.box.boxId))
+        .flatMap { prevStateRef =>
+          cache
+            .transaction(
+              cache.set(LastPredictedKey(pool.predicted.poolId), pool) ::
+              cache.set(PredictedKey(pool.predicted.box.boxId), PredictionLink(pool, prevStateRef)) ::
+              HNil
+            )
+            .void
+        }
 
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
       cache.set(LastConfirmedKey(pool.confirmed.poolId), pool)
@@ -95,7 +102,30 @@ object CFMMPools {
       cache.get[String, Boolean](PredictedKey(id)).map(_.isDefined)
 
     def dropPrediction(id: BoxId): F[Unit] =
-      cache.del(PredictedKey(id))
+      (for {
+        currentLink <- OptionT(cache.get[String, PredictionLink[CFMMPool]](PredictedKey(id)))
+        poolId = currentLink.state.predicted.poolId
+        _ <- currentLink.predecessorBoxId match {
+               case Some(predId) =>
+                 for {
+                   prevPool <- OptionT(cache.get[String, PredictionLink[CFMMPool]](PredictedKey(predId)))
+                   _ <- OptionT.liftF(
+                          cache
+                            .transaction(
+                              cache.set(LastPredictedKey(poolId), prevPool.state) ::
+                              cache.del(PredictedKey(id)) ::
+                              HNil
+                            )
+                        )
+                 } yield ()
+               case None =>
+                 OptionT.liftF(
+                   cache
+                     .transaction(cache.del(LastPredictedKey(poolId)) :: cache.del(PredictedKey(id)) :: HNil)
+                     .void
+                 )
+             }
+      } yield ()).value.void
   }
 
   final class InMemory[F[_]: Functor](store: Ref[F, Map[String, Json]]) extends CFMMPools[F] {
