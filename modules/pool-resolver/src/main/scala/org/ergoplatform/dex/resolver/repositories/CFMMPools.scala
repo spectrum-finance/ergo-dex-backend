@@ -99,7 +99,7 @@ object CFMMPools {
       cache.set(LastConfirmedKey(pool.confirmed.poolId), pool)
 
     def existsPrediction(id: BoxId): F[Boolean] =
-      cache.get[String, Boolean](PredictedKey(id)).map(_.isDefined)
+      cache.get[String, PredictionLink[Predicted[CFMMPool]]](PredictedKey(id)).map(_.isDefined)
 
     def dropPrediction(id: BoxId): F[Unit] =
       (for {
