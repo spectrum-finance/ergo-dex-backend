@@ -52,8 +52,8 @@ object Execution {
           val executeF =
             for {
               (transaction, nextPool) <- interpretF
-              finalize = network.submitTransaction(transaction) >> pools.put(nextPool)
-              _ <- finalize
+              finalizeF = network.submitTransaction(transaction) >> pools.put(nextPool)
+              _ <- finalizeF
                      .handleWith[TxFailed] { e =>
                        network.checkTransaction(transaction).flatMap {
                          case Some(errText) =>
