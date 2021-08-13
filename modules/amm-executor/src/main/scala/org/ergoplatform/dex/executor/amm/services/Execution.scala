@@ -52,20 +52,26 @@ object Execution {
           val executeF =
             for {
               (transaction, nextPool) <- interpretF
-              _                       <- network.submitTransaction(transaction)
-              _                       <- pools.put(nextPool)
+              finalize = network.submitTransaction(transaction) >> pools.put(nextPool)
+              _ <- finalize
+                     .handleWith[TxFailed] { e =>
+                       network.checkTransaction(transaction).flatMap {
+                         case Some(errText) =>
+                           val invalidInputs = errParser.missedInputs(errText)
+                           val poolBoxId     = pool.box.boxId
+                           val invalidPool   = invalidInputs.exists { case (boxId, _) => boxId == poolBoxId }
+                           if (invalidPool)
+                             warnCause"PoolState{id=${order.poolId}, boxId=$poolBoxId} is invalidated. Validation result: $errText" (e) >>
+                             pools.invalidate(poolBoxId)
+                           else
+                             warnCause"Order{id=${order.id}} is discarded due to TX error. Validation result: $errText" (e)
+                         case _ =>
+                           warnCause"Order{id=${order.id}} is discarded due to TX error." (e)
+                       }
+                     }
             } yield none[CFMMOrder]
-          executeF
-            .handleWith[ExecutionFailed](e => warnCause"Order execution failed" (e) as Option(order))
-            .handleWith[TxFailed] { e =>
-              val invalidInputs = errParser.missedInputs(e.reason)
-              val poolBoxId     = pool.box.boxId
-              val invalidPool   = invalidInputs.exists { case (boxId, _) => boxId == poolBoxId }
-              if (invalidPool)
-                warnCause"PoolState{id=${order.poolId}, boxId=$poolBoxId} has to be invalidated" (e) >>
-                pools.invalidate(poolBoxId) as none
-              else warnCause"Order{id=${order.id}} is discarded due to TX error" (e) as none
-            }
+
+          executeF.handleWith[ExecutionFailed](e => warnCause"Order execution failed" (e) as Option(order))
         case None =>
           warn"Order{id=${order.id}} references an unknown Pool{id=${order.poolId}}" as Some(order)
       }

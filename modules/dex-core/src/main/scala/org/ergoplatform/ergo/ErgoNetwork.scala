@@ -1,6 +1,7 @@
 package org.ergoplatform.ergo
 
 import cats.syntax.either._
+import cats.syntax.option._
 import cats.tagless.FunctorK
 import cats.tagless.syntax.functorK._
 import cats.{FlatMap, Functor}
@@ -44,6 +45,11 @@ trait ErgoNetwork[F[_]] {
     */
   def submitTransaction(tx: ErgoLikeTransaction): F[TxId]
 
+  /** Check a given transaction.
+    * @return None if transaction is valid, Some(error_description) otherwise.
+    */
+  def checkTransaction(tx: ErgoLikeTransaction): F[Option[String]]
+
   /** Get current network height.
     */
   def getCurrentHeight: F[Int]
@@ -84,6 +90,13 @@ final class ErgoNetworkTracing[F[_]: Logging: FlatMap] extends ErgoNetwork[Mid[F
       _    <- trace"submitTransaction(..) -> $txId"
     } yield txId
 
+  def checkTransaction(tx: ErgoLikeTransaction): Mid[F, Option[String]] =
+    for {
+      _ <- trace"checkTransaction(tx=$tx)"
+      r <- _
+      _ <- trace"checkTransaction(..) -> $r"
+    } yield r
+
   def getCurrentHeight: Mid[F, Int] =
     _.flatTap(i => trace"getCurrentHeight -> $i")
 
@@ -115,21 +128,43 @@ class CombinedErgoNetwork[F[_]: MonadThrow](config: NetworkConfig)(implicit back
 
   def submitTransaction(tx: ErgoLikeTransaction): F[TxId] =
     basicRequest
-      .post(config.explorerUri withPathSegment submitTransactionPathSeg)
+      .post(config.nodeUri withPathSegment node.paths.submitTransactionPathSeg)
       .contentType(MediaType.ApplicationJson)
       .body(tx)
-      .response(asString)
+      .response(asEither(asJson[node.models.ApiError], asString))
       .send(backend)
-      .flatMap {
-        case res if res.code.isClientError =>
-          for {
-            s   <- res.body.leftMap(ResponseError(_)).toRaise
-            err <- io.circe.parser.decode[ApiError](s).toRaise
-            r   <- TxFailed(err.reason).raise[F, String]
-          } yield r
-        case res => res.body.leftMap(ResponseError(_)).toRaise
+      .flatMap { res =>
+        res.body match {
+          case Left(err) =>
+            err
+              .leftMap(e => ResponseError(e.getMessage))
+              .toRaise
+              .flatMap(e => TxFailed(e.detail).raise)
+          case Right(r) =>
+            r.leftMap(ResponseError(_))
+              .toRaise
+              .map(s => TxId(s.replace("\"", "")))
+        }
       }
-      .map(s => TxId(s))
+
+  def checkTransaction(tx: ErgoLikeTransaction): F[Option[String]] =
+    basicRequest
+      .post(config.nodeUri withPathSegment checkTransactionPathSeg)
+      .contentType(MediaType.ApplicationJson)
+      .body(tx)
+      .response(asEither(asJson[ApiError], asJson[TxIdResponse]))
+      .send(backend)
+      .flatMap { res =>
+        res.body match {
+          case Left(err) =>
+            err
+              .leftMap(e => ResponseError(e.getMessage))
+              .toRaise
+              .map(e => Some(e.reason))
+          case _ =>
+            none[String].pure
+        }
+      }
 
   def getCurrentHeight: F[Int] =
     basicRequest
@@ -193,6 +228,9 @@ object ErgoNetworkStreaming {
 
     def submitTransaction(tx: ErgoLikeTransaction): F[TxId] =
       tft.flatMap(_.submitTransaction(tx))
+
+    def checkTransaction(tx: ErgoLikeTransaction): F[Option[String]] =
+      tft.flatMap(_.checkTransaction(tx))
 
     def getCurrentHeight: F[Int] =
       tft.flatMap(_.getCurrentHeight)
