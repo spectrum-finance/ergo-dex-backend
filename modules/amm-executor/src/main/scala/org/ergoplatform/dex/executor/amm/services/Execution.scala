@@ -67,7 +67,7 @@ object Execution {
               else warnCause"Order{id=${order.id}} is discarded due to TX error" (e) as none
             }
         case None =>
-          warn"Order{id=${order.id}} references an unknown Pool{id=${order.poolId}}" as none
+          warn"Order{id=${order.id}} references an unknown Pool{id=${order.poolId}}" as Some(order)
       }
   }
 }
