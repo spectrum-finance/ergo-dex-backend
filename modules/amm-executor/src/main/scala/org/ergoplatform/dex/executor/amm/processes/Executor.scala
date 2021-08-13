@@ -61,22 +61,20 @@ object Executor {
         .evalMap { rec =>
           service
             .executeAttempt(rec.message)
-            .handleWith[Throwable](e => warnCause"Order execution failed" (e) as none[CFMMOrder])
+            .handleWith[Throwable](e => warnCause"Order execution failed fatally" (e) as none[CFMMOrder])
             .local(_ => TraceId.fromString(rec.message.id.value))
             .tupleLeft(rec)
         }
-        .thrush { fa =>
-          fa.flatTap {
-            case (_, None) => unit[F]
-            case (_, Some(order)) =>
-              eval(now.millis) >>= {
-                case ts if ts - order.timestamp < conf.orderLifetime.toMillis =>
-                  eval(warn"Failed to execute $order. Going to retry.") >>
-                    orders.retry(fa as (order.id -> order))
-                case _ =>
-                  eval(warn"Failed to execute $order. Order expired.")
-              }
-          }
+        .flatTap {
+          case (_, None) => unit[F]
+          case (_, Some(order)) =>
+            eval(now.millis) >>= {
+              case ts if ts - order.timestamp < conf.orderLifetime.toMillis =>
+                eval(warn"Failed to execute $order. Going to retry.") >>
+                  orders.retry((order.id -> order).pure[F])
+              case _ =>
+                eval(warn"Failed to execute $order. Order expired.")
+            }
         }
         .evalMap { case (rec, _) => rec.commit }
   }
