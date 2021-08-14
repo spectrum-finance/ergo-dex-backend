@@ -131,7 +131,7 @@ class CombinedErgoNetwork[F[_]: MonadThrow](config: NetworkConfig)(implicit back
       .post(config.nodeUri withPathSegment node.paths.submitTransactionPathSeg)
       .contentType(MediaType.ApplicationJson)
       .body(tx)
-      .response(asEither(asJson[node.models.ApiError], asString))
+      .response(asEither(asJsonAlways[node.models.ApiError], asString))
       .send(backend)
       .flatMap { res =>
         res.body match {
@@ -152,7 +152,7 @@ class CombinedErgoNetwork[F[_]: MonadThrow](config: NetworkConfig)(implicit back
       .post(config.nodeUri withPathSegment checkTransactionPathSeg)
       .contentType(MediaType.ApplicationJson)
       .body(tx)
-      .response(asEither(asJson[ApiError], asJson[TxIdResponse]))
+      .response(asEither(asJsonAlways[ApiError], asJson[TxIdResponse]))
       .send(backend)
       .flatMap { res =>
         res.body match {
