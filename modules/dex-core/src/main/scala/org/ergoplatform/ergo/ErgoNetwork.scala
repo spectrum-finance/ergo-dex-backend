@@ -149,7 +149,7 @@ class CombinedErgoNetwork[F[_]: MonadThrow](config: NetworkConfig)(implicit back
 
   def checkTransaction(tx: ErgoLikeTransaction): F[Option[String]] =
     basicRequest
-      .post(config.nodeUri withPathSegment checkTransactionPathSeg)
+      .post(explorerUri withPathSegment checkTransactionPathSeg)
       .contentType(MediaType.ApplicationJson)
       .body(tx)
       .response(asEither(asJsonAlways[ApiError], asJson[TxIdResponse]))
