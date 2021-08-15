@@ -1,8 +1,10 @@
 <configuration>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%white(%d{HH:mm:ss.SSS}) %highlight(%-5level) %cyan(%logger{50}) - %msg %n</pattern>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="tofu.logging.logback.ConsoleContextLayout">
+                <pattern>[%X{traceId:-ROOT}][%date{yyyy-MM-dd HH:mm:ss.SSS}] %-5level [%.15thread]%X{alias}[%-25logger{15}] - %msg%n</pattern>
+            </layout>
         </encoder>
     </appender>
 
@@ -10,9 +12,30 @@
         <appender-ref ref="STDOUT"/>
     </appender>
 
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/dex-backend/amm-executor.log</file>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="tofu.logging.ELKLayout"/>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/dex-backend/amm-executor.%d{yyyy-MM-dd}.%i.log
+            </fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>50MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="ASYNCFILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+    </appender>
+
     <logger name="org.ergoplatform" level="TRACE"/>
     <logger name="org.http4s" level="INFO"/>
     <logger name="org.apache.kafka" level="INFO"/>
+    <logger name="sttp.client3.asynchttpclient" level="INFO"/>
     <root level="INFO">
         <appender-ref ref="ASYNCSTDOUT"/>
     </root>

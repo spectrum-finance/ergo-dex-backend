@@ -3,6 +3,7 @@ package org.ergoplatform.dex.resolver.http
 import org.ergoplatform.common.http.{HttpError, baseEndpoint}
 import org.ergoplatform.dex.domain.amm.state.Predicted
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
+import org.ergoplatform.ergo.BoxId
 import sttp.tapir._
 import sttp.tapir.json.circe._
 
@@ -21,4 +22,8 @@ object Endpoints {
     endpoint.post
       .in("predicted")
       .in(jsonBody[Predicted[CFMMPool]])
+
+  def invalidate: Endpoint[BoxId, HttpError, Unit, Any] =
+    endpoint.post
+      .in("invalidate" / path[BoxId])
 }

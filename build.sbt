@@ -4,7 +4,7 @@ lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
   scalaVersion := "2.12.14",
   organization := "org.ergoplatform",
-  version := "0.4.0",
+  version := "0.8.8",
   resolvers += Resolver.sonatypeRepo("public"),
   resolvers += Resolver.sonatypeRepo("snapshots"),
   test in assembly := {},
@@ -63,7 +63,8 @@ lazy val core = utils
       Kafka ++
       TapirCore ++
       SttpCore ++
-      SttpClient ++
+      SttpClientFs2 ++
+      ScodecCore ++
       Monocle ++
       Enums
   )
@@ -102,7 +103,7 @@ lazy val utxoTracker = utils
     dockerExposedVolumes := Seq("/var/lib/utxo-tracker", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency, cache % allConfigDependency)
+  .dependsOn(Seq(core, cache).map(_ % allConfigDependency): _*)
 
 lazy val matcher = utils
   .mkModule("dex-matcher", "DexMatcher")
@@ -123,7 +124,7 @@ lazy val matcher = utils
     dockerExposedVolumes := Seq("/var/lib/dex-matcher", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency, db % allConfigDependency)
+  .dependsOn(Seq(core, db).map(_ % allConfigDependency): _*)
 
 lazy val ordersExecutor = utils
   .mkModule("orders-executor", "OrdersExecutor")
@@ -132,7 +133,7 @@ lazy val ordersExecutor = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.executor.orders.App"
     ),
-    libraryDependencies ++= SttpClient
+    libraryDependencies ++= SttpClientCE
   )
   .settings(
     name in Universal := name.value,
@@ -145,7 +146,7 @@ lazy val ordersExecutor = utils
     dockerExposedVolumes := Seq("/var/lib/orders-executor", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency)
+  .dependsOn(Seq(core, http).map(_ % allConfigDependency): _*)
 
 lazy val ammExecutor = utils
   .mkModule("amm-executor", "AmmExecutor")
@@ -154,7 +155,7 @@ lazy val ammExecutor = utils
     mainClass in assembly := Some(
       "org.ergoplatform.dex.executor.amm.App"
     ),
-    libraryDependencies ++= SttpClient
+    libraryDependencies ++= SttpClientCE
   )
   .settings(
     name in Universal := name.value,
@@ -167,7 +168,7 @@ lazy val ammExecutor = utils
     dockerExposedVolumes := Seq("/var/lib/amm-executor", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency)
+  .dependsOn(Seq(core, http).map(_ % allConfigDependency): _*)
 
 lazy val poolResolver = utils
   .mkModule("pool-resolver", "PoolResolver")
@@ -188,7 +189,7 @@ lazy val poolResolver = utils
     dockerExposedVolumes := Seq("/var/lib/pool-resolver", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency, http % allConfigDependency)
+  .dependsOn(Seq(core, http, cache).map(_ % allConfigDependency): _*)
 
 lazy val marketsApi = utils
   .mkModule("markets-api", "MarketsApi")
@@ -210,4 +211,4 @@ lazy val marketsApi = utils
     dockerExposedVolumes := Seq("/var/lib/markets-api", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(core % allConfigDependency, db % allConfigDependency, http % allConfigDependency)
+  .dependsOn(Seq(core, db, http).map(_ % allConfigDependency): _*)

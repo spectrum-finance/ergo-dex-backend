@@ -8,7 +8,7 @@ import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.Redis
 import org.ergoplatform.common.streaming.Producer
 import org.ergoplatform.dex.domain.amm.state.Confirmed
-import org.ergoplatform.dex.domain.amm.{CFMMOperationRequest, CFMMPool, OperationId, PoolId}
+import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, OrderId, PoolId}
 import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.handlers.{CFMMOpsHandler, CFMMPoolsHandler}
@@ -44,11 +44,11 @@ object App extends EnvApp[ConfigBundle] {
       blocker <- Blocker[InitF]
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
-      implicit0(isoKRun: IsoK[RunF, InitF]) = IsoK.byFunK(wr.runContextK(configs))(wr.liftF)
+      implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
 //      implicit0(producer0: Producer[OrderId, AnyOrder, StreamF]) <-
 //        Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.ordersProducer)
-      implicit0(producer1: Producer[OperationId, CFMMOperationRequest, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OperationId, CFMMOperationRequest](configs.cfmmOpsProducer)
+      implicit0(producer1: Producer[OrderId, CFMMOrder, StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, OrderId, CFMMOrder](configs.cfmmOpsProducer)
       implicit0(producer2: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.cfmmPoolsProducer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)

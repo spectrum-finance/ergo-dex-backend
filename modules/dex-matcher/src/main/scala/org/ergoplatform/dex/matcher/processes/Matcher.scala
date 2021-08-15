@@ -42,7 +42,7 @@ object Matcher {
     logs: Logs[I, G]
   ): I[Matcher[F]] =
     logs.forService[Matcher[F]].map { implicit l =>
-      (hasContext[F, MatcherConfig], hasContext[F, CommitPolicy])
+      (MatcherConfig.access, CommitPolicy.access)
         .mapN((conf, policy) => new Live[F, G, C](conf, policy): Matcher[F])
         .embed
     }

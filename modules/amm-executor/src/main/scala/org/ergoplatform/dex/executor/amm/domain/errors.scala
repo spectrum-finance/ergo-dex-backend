@@ -9,19 +9,15 @@ object errors {
 
   abstract class ExecutionFailed(msg: String) extends Exception(msg)
 
-  object ExecutionFailed {
-    type Raise[F[_]] = tofu.Raise[F, ExecutionFailed]
-  }
+  object ExecutionFailed extends Errors.Companion[ExecutionFailed]
 
-  final case class ExhaustedOutputValue(available: Long, required: Long, nanoErgsPerByte: Long)
+  final case class PriceTooHigh(poolId: PoolId, minOutput: AssetAmount, actualOutput: AssetAmount)
     extends ExecutionFailed(
-      s"Output value exhausted. [Available: $available, Required: $required, NanoErgsPerByte: $nanoErgsPerByte]"
+      s"Price slipped up too much for Pool{id=$poolId}. {minOutput=${minOutput.show}, actualOutput=${actualOutput.show}}"
     )
 
-  final case class NoSuchPool(poolId: PoolId) extends ExecutionFailed(s"Pool [$poolId] not found")
-
-  final case class TooMuchSlippage(poolId: PoolId, minOutput: AssetAmount, actualOutput: AssetAmount)
+  final case class PriceTooLow(poolId: PoolId, maxDexFee: Long, actualDexFee: Long)
     extends ExecutionFailed(
-      s"Too much slippage for pool [$poolId]; minOutput: [${minOutput.show}], actualOutput: [${actualOutput.show}]"
+      s"Price slipped down too much for Pool{id=$poolId}. {maxDexFee=${maxDexFee.show}, actualDexFee=${actualDexFee.show}}"
     )
 }

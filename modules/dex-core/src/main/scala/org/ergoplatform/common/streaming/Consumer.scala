@@ -4,6 +4,7 @@ import cats.tagless.FunctorK
 import cats.{~>, FlatMap, Functor, Monad}
 import fs2.Stream
 import fs2.kafka._
+import fs2.kafka.types.KafkaOffset
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.ergoplatform.dex.configs.ConsumerConfig
@@ -55,11 +56,19 @@ object Consumer {
     G[_]: Functor,
     K,
     V
-  ](implicit makeConsumer: MakeKafkaConsumer[G, K, V]): Consumer[K, V, F, G] =
-    embed.embed(
-      (context map (conf => functorK.mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF)))
-        .asInstanceOf[F[Consumer.Aux[K, V, Live[K, V, F]#Offset, F, G]]]
-    )
+  ](implicit makeConsumer: MakeKafkaConsumer[G, K, V]): Consumer.Aux[K, V, KafkaOffset, F, G] =
+    embed.embed(context.map(make[F, G, K, V]))
+
+  def make[
+    F[_]: Monad: LiftStream[*[_], G],
+    G[_]: Functor,
+    K,
+    V
+  ](conf: ConsumerConfig)(implicit
+    makeConsumer: MakeKafkaConsumer[G, K, V]
+  ): Consumer.Aux[K, V, KafkaOffset, F, G] =
+    functorK.mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF)
+      .asInstanceOf[Consumer.Aux[K, V, Live[K, V, F]#Offset, F, G]]
 
   final class Live[K, V, F[_]: Functor](config: ConsumerConfig)(implicit
     makeConsumer: MakeKafkaConsumer[F, K, V]

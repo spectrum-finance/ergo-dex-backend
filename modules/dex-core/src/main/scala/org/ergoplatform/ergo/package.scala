@@ -6,10 +6,14 @@ import cats.instances.string._
 import cats.syntax.either._
 import cats.syntax.functor._
 import cats.{Applicative, Show}
+import derevo.cats.show
+import derevo.circe.{decoder, encoder}
+import derevo.derive
 import doobie._
+import scodec.codecs._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{refineV, W}
+import eu.timepit.refined.{W, refineV}
 import fs2.kafka.RecordDeserializer
 import fs2.kafka.serde._
 import io.circe.refined._
@@ -17,14 +21,19 @@ import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 import org.ergoplatform.common.HexString
-import org.ergoplatform.dex.errors.RefinementFailed
+import org.ergoplatform.dex.domain.amm.PoolId
+import org.ergoplatform.dex.domain.amm.PoolId.fromBytes
+import org.ergoplatform.common.errors.RefinementFailed
+import org.ergoplatform.ergo.TokenId.fromBytes
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
+import scodec.bits.ByteVector
 import scorex.crypto.hash.Sha256
 import scorex.util.encode.Base16
 import sttp.tapir.{Codec, Schema, Validator}
 import tofu.Raise
 import tofu.logging.Loggable
+import tofu.logging.derivation.loggable
 import tofu.syntax.raise._
 
 package object ergo {
@@ -91,18 +100,24 @@ package object ergo {
     implicit val get: Get[BoxId] = deriving
     implicit val put: Put[BoxId] = deriving
 
+    implicit def tapirCodec: sttp.tapir.Codec.PlainCodec[BoxId] = deriving
+
+    implicit def codec: scodec.Codec[BoxId] =
+      scodec.codecs.variableSizeBits(uint16, utf8).xmap(BoxId(_), _.value)
+
     def fromErgo(ergoBoxId: ErgoBox.BoxId): BoxId =
       Base16.encode(ergoBoxId).coerce[BoxId]
+
+    def fromStringUnsafe(s: String): BoxId =
+      BoxId(s)
   }
 
+  @derive(show, encoder, decoder, loggable)
   @newtype case class TokenId(value: HexString) {
     def unwrapped: String = value.unwrapped
   }
 
   object TokenId {
-    // circe instances
-    implicit val encoder: Encoder[TokenId] = deriving
-    implicit val decoder: Decoder[TokenId] = deriving
 
     implicit val get: Get[TokenId] =
       Get[HexString].map(TokenId(_))
@@ -118,13 +133,17 @@ package object ergo {
     implicit def validator: Validator[TokenId] =
       implicitly[Validator[HexString]].contramap[TokenId](_.value)
 
-    implicit val show: Show[TokenId]         = _.unwrapped
-    implicit val loggable: Loggable[TokenId] = Loggable.show
+    implicit def codec: scodec.Codec[TokenId] =
+      scodec.codecs
+        .bytes(32)
+        .xmap(xs => fromBytes(xs.toArray), pid => ByteVector(pid.value.toBytes))
 
     def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
       s: String
     ): F[TokenId] =
       HexString.fromString(s).map(TokenId.apply)
+
+    def fromStringUnsafe(s: String): TokenId = TokenId(HexString.unsafeFromString(s))
 
     def fromBytes(bytes: Array[Byte]): TokenId =
       TokenId(HexString.fromBytes(bytes))

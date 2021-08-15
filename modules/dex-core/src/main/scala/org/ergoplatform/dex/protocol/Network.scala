@@ -5,6 +5,7 @@ import enumeratum._
 import org.ergoplatform.ErgoAddressEncoder
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
+import tofu.logging.Loggable
 
 sealed abstract class Network(val prefix: Byte) extends EnumEntry {
   val addressEncoder: ErgoAddressEncoder = ErgoAddressEncoder(prefix)
@@ -20,6 +21,8 @@ object Network extends Enum[Network] {
       CannotConvert(s, "Network", s"[$s] doesn't match any of ${nsm.enumValues.mkString(", ")}")
     )
   )
+
+  implicit val loggable: Loggable[Network] = Loggable.stringValue.contramap(_.entryName)
 
   val values = findValues
 }

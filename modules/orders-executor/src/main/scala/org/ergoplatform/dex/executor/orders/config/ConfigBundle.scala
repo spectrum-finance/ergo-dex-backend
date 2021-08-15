@@ -17,7 +17,7 @@ final case class ConfigBundle(
   @promote consumer: ConsumerConfig,
   producer: ProducerConfig,
   @promote kafka: KafkaConfig,
-  @promote network: ExplorerConfig
+  @promote network: NetworkConfig
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {

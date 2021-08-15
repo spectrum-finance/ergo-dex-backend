@@ -1,11 +1,11 @@
 package org.ergoplatform.dex.tracker.repositories
 
-import cats.{FlatMap, Functor, Monad}
+import cats.effect.{Concurrent, Timer}
+import cats.{FlatMap, Functor, Parallel}
 import derevo.derive
-import org.ergoplatform.common.cache.{Cache, Redis}
+import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis}
 import scodec.Codec
 import scodec.codecs._
-import tofu.Throws
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
@@ -22,8 +22,15 @@ trait TrackerCache[F[_]] {
 
 object TrackerCache {
 
-  def make[I[_]: Functor, F[_]: Monad: Throws](implicit redis: Redis.Plain[F], logs: Logs[I, F]): I[TrackerCache[F]] =
-    logs.forService[TrackerCache[F]] map (implicit l => new CacheTracing[F] attach new Live[F](Cache.make))
+  def make[I[_]: FlatMap, F[_]: Parallel: Concurrent: Timer](implicit
+    redis: Redis.Plain[F],
+    logs: Logs[I, F]
+  ): I[TrackerCache[F]] =
+    for {
+      implicit0(mtx: MakeRedisTransaction[F]) <- MakeRedisTransaction.make[I, F]
+      implicit0(log: Logging[F])              <- logs.forService[TrackerCache[F]]
+      cache                                   <- Cache.make[I, F]
+    } yield new CacheTracing[F] attach new Live[F](cache)
 
   private val LastScannedBoxOffsetKey = "last_scanned_box"
   private val NullOffset              = -1L

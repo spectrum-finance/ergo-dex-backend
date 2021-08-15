@@ -2,28 +2,30 @@ package org.ergoplatform.dex.demo
 
 import org.ergoplatform.ErgoBox._
 import org.ergoplatform._
-import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.dex.protocol.sigmaUtils
+import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16
 import sigmastate.SType
-import sigmastate.Values.{ByteArrayConstant, ErgoTree, EvaluatedValue, IntConstant}
+import sigmastate.Values.{ErgoTree, EvaluatedValue, IntConstant}
 import sigmastate.eval._
 import sigmastate.lang.Terms.ValueOps
 
 object CreateCfmmPool extends App with SigmaPlatform {
 
   val secretHex = ""
-  val inputId   = "7f14228a5fd5b5c5d74bfbced3491916e2dc305106dd043f78b65b4cced9c2b9"
+  val inputId   = "1c51c3a53abfe87e6db9a03c649e8360f255ffc4bd34303d30fc7db23ae551db"
 
   val input = getInput(inputId).get
 
   val lpId       = Digest32 @@ (ADKey !@@ input.boxId.toErgo)
-  val emissionLP = Long.MaxValue
-  val lpName     = "TERG_TUSD_LP"
+  val burnLP     = 1000
+  val emissionLP = Long.MaxValue - burnLP
+
+  val lpName     = "WERG_WADA_LP_2"
 
   val lockNErgs = 4000000L
   val minValue  = 500000L
@@ -32,37 +34,34 @@ object CreateCfmmPool extends App with SigmaPlatform {
 
   require(input.value >= bootInputNErg + minerFeeNErg)
 
-  val depositTErg = 10000000000L
-  val depositTUsd = 1000000000000L
+  val depositWERG = 5000000000000L
+  val depositWADA = 10000000000000L
+
+  val WERG = getToken("ef802b475c06189fdbf844153cdc1d449a5ba87cce13d11bb47b5a539f27f12b", input)
+  val WADA = getToken("30974274078845f263b4f21787e33cc99e9ec19a17ad85a5bc6da2cca91c5a2e", input)
 
   val TERG = getToken("f45c4f0d95ce1c64defa607d94717a9a30c00fdd44827504be20db19f4dce36f", input)
   val TUSD = getToken("f302c6c042ada3566df8e67069f8ac76d10ce15889535141593c168f3c59e776", input)
 
-  require(TERG._2 >= depositTErg)
-  require(TUSD._2 >= depositTUsd)
+  require(WERG._2 >= depositWERG)
+  require(WADA._2 >= depositWADA)
 
   val height = currentHeight()
 
   // Init TX
 
-  val bootRegisters: Map[NonMandatoryRegisterId, _ <: EvaluatedValue[_ <: SType]] =
-    scala.Predef.Map(
-      R4 -> ByteArrayConstant(lpName.getBytes("UTF-8"))
-    )
-
   val boot = new ErgoBoxCandidate(
     value               = bootInputNErg,
     ergoTree            = selfAddress.script,
     creationHeight      = height,
-    additionalTokens    = Colls.fromItems(lpId -> emissionLP, TERG._1 -> depositTErg, TUSD._1 -> depositTUsd),
-    additionalRegisters = bootRegisters
+    additionalTokens    = Colls.fromItems(lpId -> emissionLP, WERG._1 -> depositWERG, WADA._1 -> depositWADA)
   )
 
   val change0 = new ErgoBoxCandidate(
     value            = input.value - bootInputNErg - minerFeeNErg,
     ergoTree         = selfAddress.script,
     creationHeight   = height,
-    additionalTokens = Colls.fromItems(TERG._1 -> (TERG._2 - depositTErg), TUSD._1 -> (TUSD._2 - depositTUsd))
+    additionalTokens = Colls.fromItems(WERG._1 -> (WERG._2 - depositWERG), WADA._1 -> (WADA._2 - depositWADA), TERG, TUSD)
   )
 
   val inputs0 = Vector(new UnsignedInput(ADKey @@ Base16.decode(inputId).get))
@@ -72,9 +71,9 @@ object CreateCfmmPool extends App with SigmaPlatform {
 
   // Pool TX
 
-  val shareLP = math.sqrt((depositTErg * depositTUsd).toDouble).toLong
+  val shareLP = math.sqrt((depositWERG * depositWADA).toDouble).toLong
 
-  require(shareLP * shareLP <= depositTErg * depositTUsd)
+  require(shareLP * shareLP <= depositWERG * depositWADA)
 
   val lpOut = new ErgoBoxCandidate(
     value            = minValue,
@@ -85,7 +84,7 @@ object CreateCfmmPool extends App with SigmaPlatform {
 
   val bootBox = tx0.outputs(0)
 
-  val poolFeeNum = 995
+  val poolFeeNum = 996
   val poolNFT    = Digest32 @@ (ADKey !@@ bootBox.id)
 
   val poolRegisters: Map[NonMandatoryRegisterId, _ <: EvaluatedValue[_ <: SType]] =
@@ -103,8 +102,8 @@ object CreateCfmmPool extends App with SigmaPlatform {
     additionalTokens = Colls.fromItems(
       poolNFT -> 1L,
       lpId    -> (emissionLP - shareLP),
-      TERG._1 -> depositTErg,
-      TUSD._1 -> depositTUsd
+      WERG._1 -> depositWERG,
+      WADA._1 -> depositWADA
     ),
     additionalRegisters = poolRegisters
   )

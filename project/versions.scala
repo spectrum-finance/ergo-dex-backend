@@ -4,8 +4,8 @@ object versions {
   val ErgoWalletVersion    = "v4.0.7-5a5356d9-SNAPSHOT"
   val ErgoContractsVersion = "1.0.0"
 
-  val SttpVersion        = "3.3.6"
-  val TapirVersion       = "0.18.0-M17"
+  val SttpVersion        = "3.3.11"
+  val TapirVersion       = "0.18.1"
   val CirceVersion       = "0.13.0"
   val CatsVersion        = "2.5.0"
   val CatsEffectVersion  = "2.4.1"
@@ -24,8 +24,8 @@ object versions {
   val MagnoliaVersion    = "0.17.0"
   val Redis4CatsVersion  = "0.14.0"
 
-  val ScodecCore = "1.11.7"
-  val ScodecBits = "1.1.21"
+  val ScodecCoreVersion = "1.11.7"
+  val ScodecBitsVersion = "1.1.21"
 
   val SimulacrumVersion = "0.19.0"
 

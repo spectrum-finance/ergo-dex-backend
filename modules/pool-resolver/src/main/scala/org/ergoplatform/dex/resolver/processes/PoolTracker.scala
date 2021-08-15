@@ -5,7 +5,7 @@ import org.ergoplatform.common.streaming.Consumer
 import org.ergoplatform.common.streaming.syntax._
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
-import org.ergoplatform.dex.resolver.repositories.Pools
+import org.ergoplatform.dex.resolver.repositories.CFMMPools
 import tofu.streams.Evals
 import tofu.syntax.streams.all._
 
@@ -21,7 +21,7 @@ object PoolTracker {
     G[_]: Functor
   ](implicit
     consumer: Consumer[PoolId, Confirmed[CFMMPool], F, G],
-    pools: Pools[G]
+    pools: CFMMPools[G]
   ): PoolTracker[F] = new Live[F, G]
 
   final class Live[
@@ -29,7 +29,7 @@ object PoolTracker {
     G[_]: Functor
   ](implicit
     consumer: Consumer[PoolId, Confirmed[CFMMPool], F, G],
-    pools: Pools[G]
+    pools: CFMMPools[G]
   ) extends PoolTracker[F] {
 
     def run: F[Unit] =

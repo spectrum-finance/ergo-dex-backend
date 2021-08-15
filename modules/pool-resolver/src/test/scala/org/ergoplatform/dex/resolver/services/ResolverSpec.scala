@@ -6,7 +6,7 @@ import cats.syntax.foldable._
 import monocle.macros.syntax.lens._
 import org.ergoplatform.dex.domain.amm.state.{Confirmed, Predicted}
 import org.ergoplatform.dex.generators._
-import org.ergoplatform.dex.resolver.repositories.Pools
+import org.ergoplatform.dex.resolver.repositories.CFMMPools
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
@@ -19,9 +19,9 @@ class ResolverSpec extends AnyPropSpec with should.Matchers with ScalaCheckPrope
   implicit val logs: Logs[IO, IO]       = Logs.sync[IO, IO]
   implicit val makeRef: MakeRef[IO, IO] = MakeRef.syncInstance[IO, IO]
 
-  def make: IO[(Pools[IO], Resolver[IO])] =
+  def make: IO[(CFMMPools[IO], Resolver[IO])] =
     for {
-      implicit0(pools: Pools[IO]) <- Pools.make[IO, IO]
+      implicit0(pools: CFMMPools[IO]) <- CFMMPools.ephemeral[IO, IO]
       resolver                    <- Resolver.make[IO, IO]
     } yield pools -> resolver
 

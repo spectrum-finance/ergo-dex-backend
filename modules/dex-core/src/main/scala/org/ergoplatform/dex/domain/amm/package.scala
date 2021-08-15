@@ -1,30 +1,33 @@
 package org.ergoplatform.dex.domain
 
 import cats.effect.Sync
+import derevo.cats.show
+import derevo.circe.{decoder, encoder}
+import derevo.derive
 import doobie.{Get, Put}
 import fs2.kafka.serde.{deserializerByDecoder, serializerByEncoder}
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
-import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
 import org.ergoplatform.common.HexString
 import org.ergoplatform.ergo.{BoxId, TokenId}
+import scodec.bits.ByteVector
 import sttp.tapir.{Codec, Schema, Validator}
-import tofu.logging.Loggable
+import tofu.logging.derivation.loggable
 
 package object amm {
 
+  @derive(show, loggable, encoder, decoder)
   @newtype final case class PoolId(value: TokenId) {
     def unwrapped: String = value.unwrapped
   }
 
   object PoolId {
-    implicit val loggable: Loggable[PoolId] = deriving
-
-    // circe instances
-    implicit val encoder: Encoder[PoolId] = deriving
-    implicit val decoder: Decoder[PoolId] = deriving
-
     implicit def plainCodec: Codec.PlainCodec[PoolId] = deriving
+
+    implicit def codec: scodec.Codec[PoolId] =
+      scodec.codecs
+        .bytes(32)
+        .xmap(xs => fromBytes(xs.toArray), pid => ByteVector(pid.value.value.toBytes))
 
     implicit def schema: Schema[PoolId] =
       Schema.schemaForString.description("Pool ID").asInstanceOf[Schema[PoolId]]
@@ -39,24 +42,21 @@ package object amm {
       PoolId(TokenId.fromBytes(bytes))
 
     def fromHex(s: HexString): PoolId = PoolId(TokenId(s))
+
+    def fromStringUnsafe(s: String): PoolId = PoolId(TokenId.fromStringUnsafe(s))
   }
 
-  @newtype case class OperationId(value: String)
+  @derive(show, loggable, encoder, decoder)
+  @newtype case class OrderId(value: String)
 
-  object OperationId {
+  object OrderId {
 
-    def fromBoxId(boxId: BoxId): OperationId = OperationId(boxId.value)
+    def fromBoxId(boxId: BoxId): OrderId = OrderId(boxId.value)
 
-    implicit val loggable: Loggable[OperationId] = deriving
+    implicit val get: Get[OrderId] = deriving
+    implicit val put: Put[OrderId] = deriving
 
-    implicit val get: Get[OperationId] = deriving
-    implicit val put: Put[OperationId] = deriving
-
-    // circe instances
-    implicit val encoder: Encoder[OperationId] = deriving
-    implicit val decoder: Decoder[OperationId] = deriving
-
-    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OperationId]     = serializerByEncoder
-    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OperationId] = deserializerByDecoder
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OrderId]     = serializerByEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OrderId] = deserializerByDecoder
   }
 }

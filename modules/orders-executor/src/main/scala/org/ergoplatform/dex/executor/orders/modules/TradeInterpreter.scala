@@ -45,7 +45,7 @@ object TradeInterpreter {
   implicit def instance[
     F[_]: Monad: Raise[*[_], ExecutionFailure]: ExchangeConfig.Has: ProtocolConfig.Has: BlockchainContext.Has
   ]: TradeInterpreter[F] =
-    (hasContext[F, ExchangeConfig], hasContext[F, ProtocolConfig], hasContext[F, BlockchainContext]).mapN {
+    (ExchangeConfig.access, ProtocolConfig.access, BlockchainContext.access).mapN {
       (dexConf, protoConf, blockchainCtx) =>
         NonEmptyList
           .of(new TransactionEnrichment[F](dexConf, protoConf), new DexOutputsCompaction[F](dexConf, protoConf))

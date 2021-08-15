@@ -4,6 +4,7 @@ import cats.instances.either._
 import cats.syntax.either._
 import cats.syntax.functor._
 import cats.{Applicative, Show}
+import derevo.derive
 import doobie.{Get, Put}
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.refineV
@@ -11,15 +12,16 @@ import eu.timepit.refined.string.{HexStringSpec, Url}
 import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
-import org.ergoplatform.dex.errors.RefinementFailed
+import org.ergoplatform.common.errors.RefinementFailed
 import org.ergoplatform.ergo.constraints.{HexStringType, UrlStringType}
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import scorex.util.encode.Base16
 import sttp.tapir.{Codec, CodecFormat, DecodeResult, Schema, Validator}
-import tofu.Raise
 import tofu.logging.Loggable
+import tofu.logging.derivation.loggable
 import tofu.syntax.raise._
+import tofu.{Raise, WithContext, WithLocal}
 
 package object common {
 
@@ -94,10 +96,14 @@ package object common {
         .map(UrlString.apply)
   }
 
+  @derive(loggable)
   @newtype case class TraceId(value: String)
 
   object TraceId {
-    implicit val loggable: Loggable[TraceId] = deriving
+    type Local[F[_]] = WithLocal[F, TraceId]
+    type Has[F[_]]   = WithContext[F, TraceId]
+
+    def fromString(s: String): TraceId       = apply(s)
   }
 
   private def deriveCodec[A, CF <: CodecFormat, T](

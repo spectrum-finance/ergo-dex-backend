@@ -1,89 +1,64 @@
 package org.ergoplatform.dex.demo
 
-import io.circe.syntax._
-import org.bouncycastle.util.BigIntegers
-import org.ergoplatform.ErgoBox.TokenId
 import org.ergoplatform._
 import org.ergoplatform.dex.protocol.codecs._
+import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import scorex.crypto.authds.ADKey
-import scorex.crypto.hash.{Blake2b256, Digest32}
 import scorex.util.encode.Base16
 import sigmastate.Values.ErgoTree
-import sigmastate.basics.DLogProtocol.DLogProverInput
 import sigmastate.eval._
-import sigmastate.lang.SigmaCompiler
 import sigmastate.lang.Terms.ValueOps
 
-import java.util
+object MakeSwapProxy extends App with SigmaPlatform {
 
-object MakeSwapProxy extends App {
+  val secretHex = "c0d3331f22120fb24a1a71c66f9e3b5de68d1c20e634b862c394456199040050"
+  val inputId   = "a166f1ee13a58150c2dfe3fee6a614647a3cb476a4d26386b9fa4d5fde5cc572"
 
-  val secret     = ""
-  val inputId    = "0f15c8e5254f3a623f77cb547f36d12cd6e7041a1a07cd2d8425e6742f83467d"
-  val poolInId   = "9057994837cf063588c0b85257c8f1a617f2a1a5e0f69ea27cd1ea0d2d9fda90"
-  val inputValue = 1859599950L
-  val recvAddr   = "9hWMWtGho2VBPsSRigWMUUtk9sWWPFKSdDWcxSvV9TiTB4PCRKc"
-  val curHeight  = 415703
+  val poolInId = "f56db4440333fcd13f8bf8be291afd6db80427c45a0f7aeba034d3dac9a269dc"
+  val recvAddr = "9iCzZksco8R2P8HXTsZiFAq2km59PDznuTykBRjHd74BfBG3kk8"
 
-  implicit val IR: IRContext         = new CompiletimeIRContext()
-  implicit val e: ErgoAddressEncoder = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
-  val sigma                          = SigmaCompiler(ErgoAddressEncoder.MainnetNetworkPrefix)
-
-  val sk          = DLogProverInput(BigIntegers.fromUnsignedByteArray(Base16.decode(secret).get))
-  val pk          = sk.publicImage
-  val selfAddress = P2PKAddress(pk)
+  val curHeight = currentHeight()
 
   val SafeMinAmountNErg = 400000L
 
-  val tergId  = Digest32 @@ Base16.decode("f45c4f0d95ce1c64defa607d94717a9a30c00fdd44827504be20db19f4dce36f").get
-  val tusdId  = Digest32 @@ Base16.decode("f302c6c042ada3566df8e67069f8ac76d10ce15889535141593c168f3c59e776").get
-  val edextId = Digest32 @@ Base16.decode("7c232b68665d233356e9abadf3820abff725105c5ccfa8618b77bc3a8bf603ce").get
-
   // User input
-  val input = new UnsignedInput(ADKey @@ Base16.decode(inputId).get)
-
-  val balanceTErg  = 997000000000L
-  val balanceTUsd  = 99999699993969709L
-  val balanceEdext = 88L
+  val input       = getInput(inputId).get
+  val inputTokens = extractTokens(input)
 
   // Pool input
-  val poolIn = new UnsignedInput(ADKey @@ Base16.decode(poolInId).get)
+  val poolIn     = getInput(poolInId).get
+  val poolFeeNum = 996
 
   val poolProp = ErgoTree.fromProposition(sigma.compile(Map.empty, contracts.pool).asSigmaProp)
-  val poolSH   = Blake2b256.hash(poolProp.bytes)
 
-  val reservesTErg0 = 1000000000L
-  val reservesTUsd0 = 100000000000L
+  val poolX     = poolIn.assets(2)
+  val reservesX = poolX.amount
+  val poolY     = poolIn.assets(3)
+  val reservesY = poolY.amount
 
-  def inputAmount(tokenId: TokenId, output: Long) =
-    if (util.Arrays.equals(tokenId, tergId))
-      (reservesTUsd0 * output * 1000 / ((reservesTErg0 - output) * 995)) + 1
+  def inputAmount(xy: Boolean, output: Long) =
+    if (xy)
+      (BigInt(reservesY) * output * 1000 / ((BigInt(reservesX) - output) * poolFeeNum)) + 1
     else
-      (reservesTErg0 * output * 1000 / ((reservesTUsd0 - output) * 995)) + 1
+      (BigInt(reservesX) * output * 1000 / ((BigInt(reservesY) - output) * poolFeeNum)) + 1
 
   // Order params
-  val tergOut   = 20000L
-  val tusdIn    = inputAmount(tergId, tergOut)
-  val relaxedIn = tusdIn - 1
+  val outX        = 50000000L
+  val inY         = inputAmount(xy = true, outX).toLong
+  val relaxedOutX = outX + 1L
 
-  val dexFeePerTokenNErg = 50L
-  val dexFeeNErg         = tergOut * dexFeePerTokenNErg
+  val dexFeeNErg = outX / 10
 
   require(dexFeeNErg >= SafeMinAmountNErg)
 
-  val minerFeeNErg = 1000000L
-
-  require(BigInt(reservesTErg0) * relaxedIn * 995 <= tergOut * (BigInt(reservesTUsd0) * 1000 + relaxedIn * 995))
+  require(BigInt(reservesX) * inY * poolFeeNum <= relaxedOutX * (BigInt(reservesY) * 1000 + inY * poolFeeNum))
 
   val swapEnv = Map(
-    "pk"             -> pk,
-    "poolScriptHash" -> poolSH.!@@(Digest32),
-    "dexFeePerToken" -> dexFeePerTokenNErg,
-    "minerFee"       -> minerFeeNErg,
-    "minQuoteAmount" -> tergOut,
-    "quoteId"        -> tergId.!@@(Digest32),
-    "poolFeeNum"     -> 995L
+    "Pk"             -> selfPk,
+    "PoolNFT"        -> Base16.decode(poolIn.assets(0).tokenId.unwrapped).get,
+    "MinQuoteAmount" -> outX,
+    "QuoteId"        -> Base16.decode(poolX.tokenId.unwrapped).get
   )
   val swapProp = ErgoTree.fromProposition(sigma.compile(swapEnv, contracts.swap).asSigmaProp)
 
@@ -91,23 +66,57 @@ object MakeSwapProxy extends App {
     SafeMinAmountNErg + dexFeeNErg + minerFeeNErg,
     swapProp,
     curHeight,
-    additionalTokens = Colls.fromItems(tusdId -> tusdIn)
+    additionalTokens = Colls.fromItems(poolY.tokenId.toErgo -> inY)
   )
 
-  val feeAddress = Pay2SAddress(ErgoScriptPredef.feeProposition())
-  val minerFee   = new ErgoBoxCandidate(minerFeeNErg, feeAddress.script, curHeight)
+  val changeTokens: Seq[(ErgoBox.TokenId, Long)] = inputTokens
+    .filterNot { case (id, _) =>
+      java.util.Arrays.equals(id, poolY.tokenId.toErgo)
+    } ++
+    Seq((poolY.tokenId.toErgo, inputTokens
+      .find { case (id, _) => java.util.Arrays.equals(id, poolY.tokenId.toErgo) }
+      .get
+      ._2 - inY))
 
   val change = new ErgoBoxCandidate(
-    inputValue - swap.value - minerFee.value,
+    input.value - swap.value - minerFeeBox.value,
     selfAddress.script,
     curHeight,
-    additionalTokens = Colls.fromItems(tergId -> balanceTErg, tusdId -> (balanceTUsd - tusdIn), edextId -> balanceEdext)
+    additionalTokens = Colls.fromItems(changeTokens: _*)
   )
 
-  val inputs = Vector(input)
-  val outs   = Vector(swap, change, minerFee)
-  val utx    = UnsignedErgoLikeTransaction(inputs, outs)
-  val tx     = ErgoUnsafeProver.prove(utx, sk)
+  val inputs0 = Vector(new UnsignedInput(ADKey @@ Base16.decode(inputId).get))
+  val outs0   = Vector(swap, change, minerFeeBox)
+  val utx0    = UnsignedErgoLikeTransaction(inputs0, outs0)
+  val tx0     = ErgoUnsafeProver.prove(utx0, sk)
 
-  println(tx.asJson.noSpacesSortKeys)
+  println("Submitting init tx")
+  val s0 = submitTx(tx0)
+  println(s0.map(id => s"Done. $id"))
+}
+
+object ExecuteRefund extends App with SigmaPlatform {
+  val secretHex = ""
+  val inputId   = "4648a43d26a7cbc08875161694ca524e75e0a2aca1701fbbe0b0a61542f14f52"
+
+  val input       = getInput(inputId).get
+  val inputTokens = extractTokens(input)
+
+  val curHeight = currentHeight()
+
+  val refundOut = new ErgoBoxCandidate(
+    input.value - minerFeeBox.value,
+    selfAddress.script,
+    curHeight,
+    additionalTokens = Colls.fromItems(inputTokens:_*)
+  )
+
+  val inputs0 = Vector(new UnsignedInput(ADKey @@ Base16.decode(inputId).get))
+  val outs0   = Vector(refundOut, minerFeeBox)
+  val utx0    = UnsignedErgoLikeTransaction(inputs0, outs0)
+  val tx0     = ErgoUnsafeProver.prove(utx0, sk)
+
+  println("Submitting init tx")
+  val s0 = submitTx(tx0)
+  println(s0.map(id => s"Done. $id"))
 }

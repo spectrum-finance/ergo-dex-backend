@@ -20,6 +20,8 @@ abstract class EnvApp[C: Loggable] extends CatsApp {
 
   val wr: WithRun[RunF, InitF, C] = implicitly
 
+  def isoKRunByContext(ctx: C): IsoK[RunF, InitF] = IsoK.byFunK(wr.runContextK(ctx))(wr.liftF)
+
   implicit val unlift: Unlift[InitF, RunF]  = wr
   implicit val isoK: IsoK[StreamF, StreamF] = IsoK.id[StreamF]
 }

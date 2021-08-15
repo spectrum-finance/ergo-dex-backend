@@ -8,7 +8,6 @@ import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.domain.orderbook.FilledOrder.AnyFilledOrder
-import org.ergoplatform.dex.constants
 import scorex.crypto.hash.Blake2b256
 import scorex.util.encode.Base16
 import tofu.logging.Loggable
@@ -20,7 +19,7 @@ final case class Trade[+T0 <: OrderType, +T1 <: OrderType](
 
   def id: TradeId =
     Base16
-      .encode(Blake2b256.hash(orders.map(_.base.id.value.getBytes(constants.Charset)).toList.reduce(_ ++ _)))
+      .encode(Blake2b256.hash(orders.map(_.base.id.value.getBytes("UTF-8")).toList.reduce(_ ++ _)))
       .coerce[TradeId]
 
   def orders: NonEmptyList[AnyFilledOrder] = order :: counterOrders

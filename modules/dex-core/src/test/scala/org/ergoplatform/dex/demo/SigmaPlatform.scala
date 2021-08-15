@@ -32,13 +32,16 @@ trait SigmaPlatform {
   def selfPk: DLogProtocol.ProveDlog = sk.publicImage
   def selfAddress: P2PKAddress       = P2PKAddress(selfPk)
 
-  val minerFeeNErg = 1000000L
+  val minerFeeNErg = 1250000L
 
   def feeAddress: Pay2SAddress = Pay2SAddress(ErgoScriptPredef.feeProposition())
   def minerFeeBox              = new ErgoBoxCandidate(minerFeeNErg, feeAddress.script, currentHeight())
 
   def getToken(id: String, input: ErgoBox): (TokenId, Long) =
     (Digest32 @@ Base16.decode(id).get, input.assets.find(_.tokenId.unwrapped == id).map(_.amount).getOrElse(0L))
+
+  def extractTokens(input: ErgoBox): List[(TokenId, Long)] =
+    input.assets.map(a => Digest32 @@ Base16.decode(a.tokenId.unwrapped).get -> a.amount)
 
   private lazy val backend = OkHttpSyncBackend()
 
@@ -63,7 +66,7 @@ trait SigmaPlatform {
 
   def submitTx(tx: ErgoLikeTransaction)(implicit e: Encoder[ErgoLikeTransaction]): Either[String, String] =
     basicRequest
-      .post(uri"http://213.239.193.208:9053/transactions")
+      .post(uri"http://46.4.112.10:9053/transactions")
       .body(tx)
       .response(asString)
       .send(backend)

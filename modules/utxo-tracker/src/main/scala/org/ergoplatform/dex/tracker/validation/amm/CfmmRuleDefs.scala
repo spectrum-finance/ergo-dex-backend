@@ -1,30 +1,37 @@
 package org.ergoplatform.dex.tracker.validation.amm
 
 import cats.Applicative
-import org.ergoplatform.dex.configs.ExecutionConfig
-import org.ergoplatform.dex.domain.NetworkContext
-import org.ergoplatform.dex.domain.amm.{CFMMOperationRequest, Deposit, Redeem, Swap}
+import org.ergoplatform.dex.configs.MonetaryConfig
+import org.ergoplatform.dex.domain.amm.{CFMMOrder, Deposit, Redeem, Swap}
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
 
 import scala.{PartialFunction => ?=>}
 
-final class CfmmRuleDefs[F[_]: Applicative](constraints: ExecutionConfig, network: NetworkContext) {
+final class CfmmRuleDefs[F[_]: Applicative](conf: MonetaryConfig) {
 
-  type CFMMRule = CFMMOperationRequest ?=> Boolean
+  type CFMMRule = CFMMOrder ?=> Option[RuleViolation]
 
-  def rules: CFMMRules[F] = op => allRules.lift(op).getOrElse(true).pure
+  def rules: CFMMRules[F] = op => allRules.lift(op).flatten.pure
 
   private val allRules = sufficientValueDepositRedeem orElse sufficientValueSwap
 
-  private val safeMinValue = network.params.safeMinValue
-
   private def sufficientValueDepositRedeem: CFMMRule = {
-    case Deposit(_, params, _) => params.dexFee - constraints.minerFee >= safeMinValue
-    case Redeem(_, params, _)  => params.dexFee - constraints.minerFee >= safeMinValue
+    case Deposit(_, _, params, _) => checkFee(params.dexFee)
+    case Redeem(_, _, params, _)  => checkFee(params.dexFee)
   }
 
-  private def sufficientValueSwap: CFMMRule = { case Swap(_, params, _) =>
-    params.dexFeePerToken * params.minOutput.value - constraints.minerFee >= safeMinValue
+  private def sufficientValueSwap: CFMMRule = { case Swap(_, _, params, box) =>
+    val minDexFee     = BigInt(params.dexFeePerTokenNum) * params.minOutput.value / params.dexFeePerTokenDenom
+    val sufficientFee = checkFee(minDexFee)
+    val maxDexFee     = box.value - conf.minerFee - conf.minBoxValue
+    val sufficientValue =
+      if (maxDexFee >= minDexFee) None
+      else Some(s"Actual fee '$maxDexFee' is less than declared minimum '$minDexFee'")
+    sufficientFee orElse sufficientValue
   }
+
+  private def checkFee(givenFee: BigInt): Option[RuleViolation] =
+    if (givenFee >= conf.minDexFee) None
+    else Some(s"Declared fee '$givenFee' is less than required minimum '${conf.minDexFee}'")
 }

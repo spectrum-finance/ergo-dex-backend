@@ -9,6 +9,7 @@ import sttp.capabilities
 import sttp.client3.{Request, Response, SttpBackend}
 import sttp.model.Uri
 import sttp.monad.MonadError
+import tofu.logging.Loggable
 
 object instances {
 
@@ -41,6 +42,8 @@ object instances {
         }
     }
 
-  implicit val configReader: ConfigReader[Uri] =
+  implicit val uriConfigReader: ConfigReader[Uri] =
     ConfigReader.fromString(s => Uri.parse(s).leftMap(r => CannotConvert(s, "Uri", r)))
+
+  implicit val uriLoggable: Loggable[Uri] = Loggable.stringValue.contramap(_.toString())
 }
