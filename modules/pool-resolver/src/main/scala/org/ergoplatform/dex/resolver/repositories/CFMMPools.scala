@@ -87,7 +87,7 @@ object CFMMPools {
       val getPrevStateRef =
         cache
           .get[String, Predicted[CFMMPool]](LastPredictedKey(pool.predicted.poolId))
-          .flatMapIn(s => Some(s.predicted.box.boxId))
+          .mapIn(_.predicted.box.boxId)
       val setLastPredicted = cache.set(LastPredictedKey(pool.predicted.poolId), pool)
       val setPredicted =
         getPrevStateRef >>= (ref => cache.set(PredictedKey(pool.predicted.box.boxId), PredictionLink(pool, ref)))
