@@ -53,23 +53,23 @@ object Execution {
             for {
               (transaction, nextPool) <- interpretF
               finalizeF = network.submitTransaction(transaction) >> pools.put(nextPool)
-              _ <- finalizeF
-                     .handleWith[TxFailed] { e =>
-                       network.checkTransaction(transaction).flatMap {
-                         case Some(errText) =>
-                           val invalidInputs = errParser.missedInputs(errText)
-                           val poolBoxId     = pool.box.boxId
-                           val invalidPool   = invalidInputs.exists { case (boxId, _) => boxId == poolBoxId }
-                           if (invalidPool)
-                             warnCause"PoolState{id=${order.poolId}, boxId=$poolBoxId} is invalidated. Validation result: $errText" (e) >>
-                             pools.invalidate(poolBoxId)
-                           else
-                             warnCause"Order{id=${order.id}} is discarded due to TX error. Validation result: $errText" (e)
-                         case _ =>
-                           warnCause"Order{id=${order.id}} is discarded due to TX error." (e)
+              res <- (finalizeF as none[CFMMOrder])
+                       .handleWith[TxFailed] { e =>
+                         network.checkTransaction(transaction).flatMap {
+                           case Some(errText) =>
+                             val invalidInputs = errParser.missedInputs(errText)
+                             val poolBoxId     = pool.box.boxId
+                             val invalidPool   = invalidInputs.exists { case (boxId, _) => boxId == poolBoxId }
+                             if (invalidPool)
+                               warnCause"PoolState{poolId=${order.poolId}, boxId=$poolBoxId} is invalidated. Validation result: $errText" (e) >>
+                               pools.invalidate(poolBoxId) as Some(order)
+                             else
+                               warnCause"Order{id=${order.id}} is discarded due to TX error. Validation result: $errText" (e) as none
+                           case _ =>
+                             warnCause"Order{id=${order.id}} is discarded due to TX error." (e) as none
+                         }
                        }
-                     }
-            } yield none[CFMMOrder]
+            } yield res
 
           executeF.handleWith[ExecutionFailed](e => warnCause"Order execution failed" (e) as Option(order))
         case None =>

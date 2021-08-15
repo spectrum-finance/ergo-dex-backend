@@ -56,9 +56,11 @@ object CFMMPools {
     redis: Redis.Plain[F],
     logs: Logs[I, F]
   ): I[CFMMPools[F]] =
-    MakeRedisTransaction.make[I, F].flatMap { implicit mtx =>
-      logs.forService[CFMMPools[F]] map (implicit l => new CFMMPoolsTracing[F] attach new CFMMPoolsCache[F](Cache.make))
-    }
+    for {
+      implicit0(mtx: MakeRedisTransaction[F]) <- MakeRedisTransaction.make[I, F]
+      implicit0(log: Logging[F])              <- logs.forService[CFMMPools[F]]
+      cache                                   <- Cache.make[I, F]
+    } yield new CFMMPoolsTracing[F] attach new CFMMPoolsCache[F](cache)
 
   def ephemeral[I[_]: FlatMap, F[_]: FlatMap](implicit makeRef: MakeRef[I, F], logs: Logs[I, F]): I[CFMMPools[F]] =
     for {

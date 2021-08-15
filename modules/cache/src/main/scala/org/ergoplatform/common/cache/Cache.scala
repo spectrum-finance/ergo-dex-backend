@@ -5,18 +5,19 @@ import cats.syntax.either._
 import cats.syntax.show._
 import cats.{Functor, Monad, Show}
 import derevo.derive
+import derevo.tagless.applyK
 import dev.profunktor.redis4cats.hlist.{HList, Witness}
 import org.ergoplatform.common.cache.errors.{BinaryDecodingFailed, BinaryEncodingFailed}
 import scodec.Codec
 import scodec.bits.BitVector
 import tofu.Throws
 import tofu.higherKind.Mid
-import tofu.higherKind.derived.{embed, representableK}
 import tofu.logging.{Loggable, Logging, Logs}
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
 
+@derive(applyK)
 trait Cache[F[_]] {
 
   def set[K: Codec: Loggable, V: Codec: Loggable](key: K, value: V): F[Unit]
@@ -25,13 +26,19 @@ trait Cache[F[_]] {
 
   def del[K: Codec: Loggable](key: K): F[Unit]
 
-  def transaction[T <: HList](commands: T)(implicit w: Witness[T]): F[w.R]
+  def transaction[T <: HList](commands: T)(implicit w: Witness[T]): F[Unit]
 }
 
 object Cache {
 
-  def make[F[_]: Monad: Throws](implicit redis: Redis.Plain[F], makeTx: MakeRedisTransaction[F]): Cache[F] =
-    new Live[F]
+  def make[I[_]: Functor, F[_]: Monad: Throws](implicit
+    redis: Redis.Plain[F],
+    makeTx: MakeRedisTransaction[F],
+    logs: Logs[I, F]
+  ): I[Cache[F]] =
+    logs.forService[Cache[F]].map { implicit l =>
+      new CacheTracing[F] attach new Live[F]
+    }
 
   final class Live[
     F[_]: Monad: BinaryEncodingFailed.Raise: BinaryDecodingFailed.Raise
@@ -83,8 +90,8 @@ object Cache {
         .toRaise
         .flatMap(k => redis.del(k.toByteArray).void)
 
-    def transaction[T <: HList](commands: T)(implicit w: Witness[T]): F[w.R] =
-      makeTx.make.exec(commands)
+    def transaction[T <: HList](commands: T)(implicit w: Witness[T]): F[Unit] =
+      makeTx.make.exec(commands).void
   }
 
   final class CacheTracing[F[_]: Monad: Logging] extends Cache[Mid[F, *]] {
@@ -98,7 +105,7 @@ object Cache {
     def del[K: Codec: Loggable](key: K): Mid[F, Unit] =
       _ <* trace"del(key=$key) -> ()"
 
-    def transaction[T <: HList](commands: T)(implicit w: Witness[T]): Mid[F, w.R] =
-      (fa: F[w.R]) => trace"transaction begin" >> fa.flatTap(_ => trace"transaction end")
+    def transaction[T <: HList](commands: T)(implicit w: Witness[T]): Mid[F, Unit] =
+      fa => trace"transaction begin" >> fa.flatTap(_ => trace"transaction end")
   }
 }
