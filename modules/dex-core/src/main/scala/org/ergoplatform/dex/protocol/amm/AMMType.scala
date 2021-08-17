@@ -3,7 +3,7 @@ package org.ergoplatform.dex.protocol.amm
 trait AMMType
 
 object AMMType {
-  trait CFMMFamily extends AMMType
-  trait T2TCFMM extends CFMMFamily
-  trait N2TCFMM extends CFMMFamily
+  trait CFMMType extends AMMType
+  trait T2T_CFMM extends CFMMType
+  trait N2T_CFMM extends CFMMType
 }

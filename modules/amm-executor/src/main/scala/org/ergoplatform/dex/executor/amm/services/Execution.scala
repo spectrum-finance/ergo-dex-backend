@@ -7,7 +7,7 @@ import org.ergoplatform.dex.domain.errors.TxFailed
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
-import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
+import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.ergo.ErgoNetwork
 import org.ergoplatform.ergo.explorer.TxSubmissionErrorParser
 import tofu.logging.{Logging, Logs}
@@ -26,18 +26,18 @@ trait Execution[F[_]] {
 object Execution {
 
   def make[I[_]: Functor, F[_]: Monad: TxFailed.Handle: ExecutionFailed.Handle](implicit
-    pools: CFMMPools[F],
-    tokenToToken: CFMMInterpreter[T2TCFMM, F],
-    network: ErgoNetwork[F],
-    logs: Logs[I, F]
+                                                                                pools: CFMMPools[F],
+                                                                                tokenToToken: CFMMInterpreter[T2T_CFMM, F],
+                                                                                network: ErgoNetwork[F],
+                                                                                logs: Logs[I, F]
   ): I[Execution[F]] =
     logs.forService[Execution[F]].map(implicit l => new Live[F])
 
   final class Live[F[_]: Monad: TxFailed.Handle: ExecutionFailed.Handle: Logging](implicit
-    pools: CFMMPools[F],
-    tokenToToken: CFMMInterpreter[T2TCFMM, F],
-    network: ErgoNetwork[F],
-    errParser: TxSubmissionErrorParser
+                                                                                  pools: CFMMPools[F],
+                                                                                  tokenToToken: CFMMInterpreter[T2T_CFMM, F],
+                                                                                  network: ErgoNetwork[F],
+                                                                                  errParser: TxSubmissionErrorParser
   ) extends Execution[F] {
 
     def executeAttempt(order: CFMMOrder): F[Option[CFMMOrder]] =

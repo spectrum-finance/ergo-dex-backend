@@ -4,6 +4,7 @@ import org.ergoplatform.ErgoBox._
 import org.ergoplatform._
 import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.dex.protocol.sigmaUtils
+import org.ergoplatform.dex.sources.t2tContracts
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import scorex.crypto.authds.ADKey
@@ -93,7 +94,7 @@ object CreateCfmmPool extends App with SigmaPlatform {
     )
 
   val poolTree =
-    sigmaUtils.updateVersionHeader(ErgoTree.fromProposition(sigma.compile(Map.empty, contracts.pool).asSigmaProp))
+    sigmaUtils.updateVersionHeader(ErgoTree.fromProposition(sigma.compile(Map.empty, t2tContracts.pool).asSigmaProp))
 
   val poolOut = new ErgoBoxCandidate(
     value          = lockNErgs,

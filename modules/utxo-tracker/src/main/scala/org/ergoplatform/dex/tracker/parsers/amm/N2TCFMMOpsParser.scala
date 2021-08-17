@@ -5,7 +5,7 @@ import cats.effect.Clock
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
-import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
+import org.ergoplatform.dex.protocol.amm.AMMType.N2T_CFMM
 import org.ergoplatform.dex.protocol.amm.ContractTemplates
 import org.ergoplatform.ergo.models.Output
 import org.ergoplatform.ergo.syntax._
@@ -14,10 +14,10 @@ import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 import tofu.syntax.monadic._
 import tofu.syntax.time._
 
-final class T2TCFMMOpsParser[F[_]: Functor: Clock](implicit
-                                                   templates: ContractTemplates[T2T_CFMM],
+final class N2TCFMMOpsParser[F[_]: Functor: Clock](implicit
+                                                   templates: ContractTemplates[N2T_CFMM],
                                                    e: ErgoAddressEncoder
-) extends AMMOpsParser[T2T_CFMM, F] {
+) extends AMMOpsParser[N2T_CFMM, F] {
 
   def deposit(box: Output): F[Option[Deposit]] =
     now.millis map { ts =>

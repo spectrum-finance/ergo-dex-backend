@@ -1,9 +1,9 @@
 package org.ergoplatform.dex.protocol.amm
 
-import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
+import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.ergo.ErgoTreeTemplate
 
-object T2tCfmmTemplates extends ContractTemplates[T2TCFMM] {
+object T2tCfmmTemplates extends ContractTemplates[T2T_CFMM] {
 
   def deposit: ErgoTreeTemplate =
     ErgoTreeTemplate.unsafeFromString(

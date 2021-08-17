@@ -3,12 +3,12 @@ package org.ergoplatform.dex.tracker.parsers.amm
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}
-import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
+import org.ergoplatform.dex.protocol.amm.AMMType.N2T_CFMM
 import org.ergoplatform.dex.protocol.amm.constants
 import org.ergoplatform.ergo.models.SConstant.IntConstant
 import org.ergoplatform.ergo.models.{Output, RegisterId}
 
-object T2TCFMMPoolsParser extends CFMMPoolsParser[T2T_CFMM] {
+object N2TCFMMPoolsParser extends CFMMPoolsParser[N2T_CFMM] {
 
   def pool(box: Output): Option[Confirmed[CFMMPool]] =
     for {

@@ -5,7 +5,7 @@ import mouse.any._
 import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
-import org.ergoplatform.dex.protocol.amm.AMMType.CFMMFamily
+import org.ergoplatform.dex.protocol.amm.AMMType.CFMMType
 import org.ergoplatform.dex.tracker.parsers.amm.CFMMPoolsParser
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
@@ -14,7 +14,7 @@ import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
 
 final class CFMMPoolsHandler[
-  CF <: CFMMFamily,
+  CF <: CFMMType,
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,
   G[_]: Functor: Logging
 ](implicit producer: Producer[PoolId, Confirmed[CFMMPool], F], parser: CFMMPoolsParser[CF]) {
@@ -29,7 +29,7 @@ final class CFMMPoolsHandler[
 object CFMMPoolsHandler {
 
   def make[
-    CF <: CFMMFamily,
+    CF <: CFMMType,
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: FunctorFilter,
     G[_]: Functor

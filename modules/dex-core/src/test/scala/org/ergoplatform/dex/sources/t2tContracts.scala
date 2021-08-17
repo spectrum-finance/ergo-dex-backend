@@ -1,6 +1,6 @@
-package org.ergoplatform.dex.demo
+package org.ergoplatform.dex.sources
 
-object contracts {
+object t2tContracts {
 
   val deposit: String =
     """
@@ -106,7 +106,8 @@ object contracts {
       |            val rewardBox     = OUTPUTS(1)
       |            val quoteAsset    = rewardBox.tokens(0)
       |            val quoteAmount   = quoteAsset._2.toBigInt
-      |            val fairDexFee    = rewardBox.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom
+      |            val dexFee        = quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom
+      |            val fairDexFee    = rewardBox.value >= SELF.value - dexFee
       |            val relaxedOutput = quoteAmount + 1L // handle rounding loss
       |            val poolX         = poolAssetX._2.toBigInt
       |            val poolY         = poolAssetY._2.toBigInt

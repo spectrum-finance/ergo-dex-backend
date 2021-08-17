@@ -18,7 +18,7 @@ import org.ergoplatform.dex.executor.amm.streaming.{
   CFMMConsumerRetries,
   CFMMProducerRetries
 }
-import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
+import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.ergo.ErgoNetwork
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
@@ -58,7 +58,7 @@ object App extends EnvApp[AppContext] {
       implicit0(backend: SttpBackend[RunF, Any])             <- makeBackend(ctx)
       implicit0(client: ErgoNetwork[RunF])                   <- Resource.eval(ErgoNetwork.make[InitF, RunF])
       implicit0(pools: CFMMPools[RunF])                      <- Resource.eval(CFMMPools.make[InitF, RunF])
-      implicit0(interpreter: CFMMInterpreter[T2TCFMM, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
+      implicit0(interpreter: CFMMInterpreter[T2T_CFMM, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
       implicit0(execution: Execution[RunF])                  <- Resource.eval(Execution.make[InitF, RunF])
       executor                                               <- Resource.eval(Executor.make[InitF, StreamF, RunF])
     } yield executor -> ctx

@@ -9,7 +9,7 @@ import org.ergoplatform.common.cache.Redis
 import org.ergoplatform.common.streaming.Producer
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, OrderId, PoolId}
-import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
+import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.handlers.{CFMMOpsHandler, CFMMPoolsHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
@@ -55,8 +55,8 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
       implicit0(cfmmRules: CFMMRules[RunF])                        = CFMMRules.make[RunF]
       //limitOrdersHandler <- Resource.eval(OrdersHandler.make[LimitOrders, InitF, StreamF, RunF])
-      t2tCfmmHandler                       <- Resource.eval(CFMMOpsHandler.make[T2TCFMM, InitF, StreamF, RunF])
-      cfmmPoolsHandler                     <- Resource.eval(CFMMPoolsHandler.make[T2TCFMM, InitF, StreamF, RunF])
+      t2tCfmmHandler                       <- Resource.eval(CFMMOpsHandler.make[T2T_CFMM, InitF, StreamF, RunF])
+      cfmmPoolsHandler                     <- Resource.eval(CFMMPoolsHandler.make[T2T_CFMM, InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       tracker <-

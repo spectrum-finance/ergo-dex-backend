@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.protocol.amm
 
 import org.ergoplatform.ergo.ErgoTreeTemplate
-import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
+import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 
 trait ContractTemplates[CF <: AMMType] {
 
@@ -14,5 +14,5 @@ trait ContractTemplates[CF <: AMMType] {
 
 object ContractTemplates {
 
-  implicit val t2tCfmmTemplates: ContractTemplates[T2TCFMM] = T2tCfmmTemplates
+  implicit val t2tCfmmTemplates: ContractTemplates[T2T_CFMM] = T2tCfmmTemplates
 }

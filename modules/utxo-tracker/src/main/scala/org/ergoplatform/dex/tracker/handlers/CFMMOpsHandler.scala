@@ -5,7 +5,7 @@ import cats.{FlatMap, Functor, FunctorFilter, Monad}
 import mouse.any._
 import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.dex.protocol.amm.AMMType.CFMMFamily
+import org.ergoplatform.dex.protocol.amm.AMMType.CFMMType
 import org.ergoplatform.dex.tracker.parsers.amm.AMMOpsParser
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
 import tofu.logging.{Logging, Logs}
@@ -15,7 +15,7 @@ import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
 
 final class CFMMOpsHandler[
-  CT <: CFMMFamily,
+  CT <: CFMMType,
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,
   G[_]: FlatMap: Logging
 ](implicit
@@ -44,7 +44,7 @@ final class CFMMOpsHandler[
 object CFMMOpsHandler {
 
   def make[
-    CT <: CFMMFamily,
+    CT <: CFMMType,
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: FunctorFilter,
     G[_]: FlatMap

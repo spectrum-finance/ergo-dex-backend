@@ -11,7 +11,7 @@ import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, PriceTooHigh, PriceTooLow}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterpreterTracing
 import org.ergoplatform.dex.protocol.amm.AMMContracts
-import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
+import org.ergoplatform.dex.protocol.amm.AMMType.{N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{BoxId, ErgoNetwork, TokenId}
 import sigmastate.Values.IntConstant
@@ -22,14 +22,14 @@ import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
 
-final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
+final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   exchange: ExchangeConfig,
   execution: MonetaryConfig,
   ctx: NetworkContext
 )(implicit
-  contracts: AMMContracts[T2T_CFMM],
+  contracts: AMMContracts[N2T_CFMM],
   encoder: ErgoAddressEncoder
-) extends CFMMInterpreter[T2T_CFMM, F] {
+) extends CFMMInterpreter[N2T_CFMM, F] {
 
   def deposit(deposit: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
     val poolBox0   = pool.box
@@ -177,21 +177,21 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     )
 }
 
-object T2TCFMMInterpreter {
+object N2TCFMMInterpreter {
 
   def make[I[_]: Functor, F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has: MonetaryConfig.Has](implicit
     network: ErgoNetwork[F],
-    contracts: AMMContracts[T2T_CFMM],
+    contracts: AMMContracts[N2T_CFMM],
     encoder: ErgoAddressEncoder,
     logs: Logs[I, F]
-  ): I[CFMMInterpreter[T2T_CFMM, F]] =
-    logs.forService[CFMMInterpreter[T2T_CFMM, F]].map { implicit l =>
+  ): I[CFMMInterpreter[N2T_CFMM, F]] =
+    logs.forService[CFMMInterpreter[N2T_CFMM, F]].map { implicit l =>
       (
         for {
           exchange   <- ExchangeConfig.access
           execution  <- MonetaryConfig.access
           networkCtx <- NetworkContext.make
-        } yield new CFMMInterpreterTracing[T2T_CFMM, F] attach new T2TCFMMInterpreter(exchange, execution, networkCtx)
+        } yield new CFMMInterpreterTracing[N2T_CFMM, F] attach new N2TCFMMInterpreter(exchange, execution, networkCtx)
       ).embed
     }
 }

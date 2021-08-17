@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.protocol.amm
 
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
-import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
+import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.ergo.SErgoTree
 import sigmastate.Values.ErgoTree
 
@@ -12,8 +12,8 @@ trait AMMContracts[CT <: AMMType] {
 
 object AMMContracts {
 
-  implicit val T2TCFMMContracts: AMMContracts[T2TCFMM] =
-    new AMMContracts[T2TCFMM] {
+  implicit val T2TCFMMContracts: AMMContracts[T2T_CFMM] =
+    new AMMContracts[T2T_CFMM] {
 
       def pool: ErgoTree =
         ErgoTreeSerializer.default.deserialize(

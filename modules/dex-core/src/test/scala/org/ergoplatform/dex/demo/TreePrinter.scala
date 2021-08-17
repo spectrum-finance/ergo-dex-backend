@@ -12,7 +12,7 @@ import sigmastate.lang.Terms.ValueOps
 
 object TreePrinter extends App {
 
-  import contracts._
+  import org.ergoplatform.dex.sources.t2tContracts._
 
   private val dummyPk       = DLogProverInput(BigInt(Long.MaxValue).bigInteger).publicImage
   private val dummyDigest32 = Array.fill(32)(0: Byte)
