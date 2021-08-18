@@ -5,8 +5,8 @@ import cats.effect.Clock
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, T2T_CFMM}
-import org.ergoplatform.dex.protocol.amm.ContractTemplates
 import org.ergoplatform.ergo.models.Output
+import tofu.higherKind.Embed
 
 trait AMMOpsParser[CT <: CFMMType, F[_]] {
 
@@ -19,9 +19,13 @@ trait AMMOpsParser[CT <: CFMMType, F[_]] {
 
 object AMMOpsParser {
 
+  implicit def embed[CT <: CFMMType]: Embed[AMMOpsParser[CT, *[_]]] = {
+    type Rep[F[_]] = AMMOpsParser[CT, F]
+    tofu.higherKind.derived.genEmbed[Rep]
+  }
+
   implicit def t2tCfmmOps[F[_]: Functor: Clock](implicit
-                                                ts: ContractTemplates[T2T_CFMM],
-                                                e: ErgoAddressEncoder
+    e: ErgoAddressEncoder
   ): AMMOpsParser[T2T_CFMM, F] =
-    new T2TCFMMOpsParser()
+    new T2TCFMMOpsParser
 }

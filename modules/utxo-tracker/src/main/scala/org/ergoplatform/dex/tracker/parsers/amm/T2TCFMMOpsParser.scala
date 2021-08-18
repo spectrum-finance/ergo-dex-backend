@@ -6,7 +6,7 @@ import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
-import org.ergoplatform.dex.protocol.amm.ContractTemplates
+import org.ergoplatform.dex.protocol.amm.{T2TCFMMTemplates => templates}
 import org.ergoplatform.ergo.models.Output
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{Address, ErgoTreeTemplate, TokenId}
@@ -15,8 +15,7 @@ import tofu.syntax.monadic._
 import tofu.syntax.time._
 
 final class T2TCFMMOpsParser[F[_]: Functor: Clock](implicit
-                                                   templates: ContractTemplates[T2T_CFMM],
-                                                   e: ErgoAddressEncoder
+  e: ErgoAddressEncoder
 ) extends AMMOpsParser[T2T_CFMM, F] {
 
   def deposit(box: Output): F[Option[Deposit]] =
@@ -54,7 +53,7 @@ final class T2TCFMMOpsParser[F[_]: Functor: Clock](implicit
     now.millis map { ts =>
       val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
       val template = ErgoTreeTemplate.fromBytes(tree.template)
-      if (template == templates.swap) {
+      if (template == templates.swapSell) {
         for {
           poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
           inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))

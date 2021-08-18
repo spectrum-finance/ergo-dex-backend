@@ -3,6 +3,7 @@ package org.ergoplatform.dex.domain
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
+import org.ergoplatform.dex.protocol.constants.{NativeAssetId, NativeAssetTicker}
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.models.BoxAsset
 import scodec._
@@ -31,6 +32,9 @@ object AssetAmount {
 
   def fromBoxAsset(boxAsset: BoxAsset): AssetAmount =
     AssetAmount(boxAsset.tokenId, boxAsset.amount, boxAsset.name)
+
+  def native(value: Long): AssetAmount =
+    AssetAmount(NativeAssetId, value, Some(NativeAssetTicker))
 
   implicit val schema: Schema[AssetAmount]       = Schema.derived[AssetAmount]
   implicit val validator: Validator[AssetAmount] = schema.validator

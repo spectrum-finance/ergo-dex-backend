@@ -87,9 +87,10 @@ object n2tContracts {
       |    val DexFeePerTokenNum   = 1L
       |    val DexFeePerTokenDenom = 10L
       |
+      |    val poolIn = INPUTS(0)
+      |
       |    val validTrade =
       |        if (INPUTS.size == 2 && poolIn.tokens.size == 3) {
-      |            val poolIn  = INPUTS(0)
       |            val poolNFT = poolIn.tokens(0)._1
       |
       |            val poolY = poolIn.tokens(2)
@@ -128,14 +129,13 @@ object n2tContracts {
       |    val DexFeePerTokenNum   = 1L
       |    val DexFeePerTokenDenom = 10L
       |
+      |    val poolIn = INPUTS(0)
+      |
       |    val validTrade =
       |        if (INPUTS.size == 2 && poolIn.tokens.size == 3) {
-      |            val FeeDenom = 1000
-      |
       |            val baseToken  = SELF.tokens(0) // token being sold
       |            val baseAmount = baseToken._2
       |
-      |            val poolIn  = INPUTS(0)
       |            val poolNFT = poolIn.tokens(0)._1  // first token id is NFT
       |
       |            val poolReservesX = poolIn.value.toBigInt   // nanoErgs is X asset amount
