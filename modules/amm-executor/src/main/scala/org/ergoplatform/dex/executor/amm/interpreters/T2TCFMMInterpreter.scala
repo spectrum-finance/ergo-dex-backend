@@ -1,21 +1,18 @@
 package org.ergoplatform.dex.executor.amm.interpreters
 
 import cats.{Functor, Monad}
-import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.amm.state.Predicted
-import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo, NetworkContext}
+import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, PriceTooHigh, PriceTooLow}
+import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterpreterTracing
 import org.ergoplatform.dex.protocol.amm.AMMContracts
 import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.ergo.{BoxId, ErgoNetwork, TokenId}
-import sigmastate.Values.IntConstant
-import sigmastate.eval._
+import org.ergoplatform.ergo.{BoxId, ErgoNetwork}
 import sigmastate.interpreter.ProverResult
 import tofu.logging.Logs
 import tofu.syntax.embed._
@@ -30,6 +27,9 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   contracts: AMMContracts[T2T_CFMM],
   encoder: ErgoAddressEncoder
 ) extends CFMMInterpreter[T2T_CFMM, F] {
+
+  val helpers = new CFMMInterpreterHelpers(exchange, execution)
+  import helpers._
 
   def deposit(deposit: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
     val poolBox0   = pool.box
@@ -146,34 +146,12 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       tx -> nextPool
     }
 
-  private val minerFeeProp = Pay2SAddress(ErgoScriptPredef.feeProposition()).script
-  private val dexFeeProp   = exchange.rewardAddress.toErgoTree
-
-  private def swapParams(swap: Swap, pool: CFMMPool): Either[ExecutionFailed, (AssetAmount, AssetAmount, Long)] = {
-    val input  = swap.params.input
-    val output = pool.outputAmount(input)
-    val dexFee = (BigInt(output.value) * swap.params.dexFeePerTokenNum /
-      swap.params.dexFeePerTokenDenom - execution.minerFee).toLong
-    val maxDexFee = swap.box.value - execution.minerFee - execution.minBoxValue
-    if (output < swap.params.minOutput) Left(PriceTooHigh(swap.poolId, swap.params.minOutput, output))
-    else if (dexFee > maxDexFee) Left(PriceTooLow(swap.poolId, maxDexFee, dexFee))
-    else Right((input, output, dexFee))
-  }
-
   private def mkPoolTokens(pool: CFMMPool, amountLP: Long, amountX: Long, amountY: Long) =
     mkTokens(
       pool.poolId.value -> 1L,
       pool.lp.id        -> amountLP,
       pool.x.id         -> amountX,
       pool.y.id         -> amountY
-    )
-
-  private def mkTokens(tokens: (TokenId, Long)*) =
-    Colls.fromItems(tokens.map { case (k, v) => k.toErgo -> v }: _*)
-
-  private def mkPoolRegs(pool: CFMMPool) =
-    scala.Predef.Map(
-      (R4: NonMandatoryRegisterId) -> IntConstant(pool.feeNum)
     )
 }
 

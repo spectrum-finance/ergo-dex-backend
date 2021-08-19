@@ -1,21 +1,18 @@
 package org.ergoplatform.dex.executor.amm.interpreters
 
 import cats.{Functor, Monad}
-import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.amm.state.Predicted
-import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo, NetworkContext}
+import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, PriceTooHigh, PriceTooLow}
+import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterpreterTracing
 import org.ergoplatform.dex.protocol.amm.AMMContracts
 import org.ergoplatform.dex.protocol.amm.AMMType.N2T_CFMM
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.ergo.{BoxId, ErgoNetwork, TokenId}
-import sigmastate.Values.IntConstant
-import sigmastate.eval._
+import org.ergoplatform.ergo.{BoxId, ErgoNetwork}
 import sigmastate.interpreter.ProverResult
 import tofu.logging.Logs
 import tofu.syntax.embed._
@@ -31,6 +28,9 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   encoder: ErgoAddressEncoder
 ) extends CFMMInterpreter[N2T_CFMM, F] {
 
+  val helpers = new CFMMInterpreterHelpers(exchange, execution)
+  import helpers._
+
   def deposit(deposit: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
     val poolBox0   = pool.box
     val depositBox = deposit.box
@@ -39,13 +39,12 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val (inX, inY) = (deposit.params.inX, deposit.params.inY)
     val rewardLP   = pool.rewardLP(inX, inY)
     val poolBox1 = new ErgoBoxCandidate(
-      value          = poolBox0.value,
+      value          = poolBox0.value + inX.value,
       ergoTree       = contracts.pool,
       creationHeight = ctx.currentHeight,
       additionalTokens = mkPoolTokens(
         pool,
         amountLP = pool.lp.value - rewardLP.value,
-        amountX  = pool.x.value + inX.value,
         amountY  = pool.y.value + inY.value
       ),
       additionalRegisters = mkPoolRegs(pool)
@@ -54,7 +53,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val dexFee      = deposit.params.dexFee - execution.minerFee
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
     val returnBox = new ErgoBoxCandidate(
-      value            = depositBox.value - minerFeeBox.value - dexFeeBox.value,
+      value            = depositBox.value - inX.value - minerFeeBox.value - dexFeeBox.value,
       ergoTree         = deposit.params.p2pk.toErgoTree,
       creationHeight   = ctx.currentHeight,
       additionalTokens = mkTokens(rewardLP.id -> rewardLP.value)
@@ -76,13 +75,12 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val inLP             = redeem.params.lp
     val (shareX, shareY) = pool.shares(inLP)
     val poolBox1 = new ErgoBoxCandidate(
-      value          = poolBox0.value,
+      value          = poolBox0.value - shareX.value,
       ergoTree       = contracts.pool,
       creationHeight = ctx.currentHeight,
       additionalTokens = mkPoolTokens(
         pool,
         amountLP = pool.lp.value + inLP.value,
-        amountX  = pool.x.value - shareX.value,
         amountY  = pool.y.value - shareY.value
       ),
       additionalRegisters = mkPoolRegs(pool)
@@ -91,13 +89,10 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val dexFee      = redeem.params.dexFee - execution.minerFee
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
     val returnBox = new ErgoBoxCandidate(
-      value          = redeemBox.value - minerFeeBox.value - dexFeeBox.value,
-      ergoTree       = redeem.params.p2pk.toErgoTree,
-      creationHeight = ctx.currentHeight,
-      additionalTokens = mkTokens(
-        shareX.id -> shareX.value,
-        shareY.id -> shareY.value
-      )
+      value            = redeemBox.value + shareX.value - minerFeeBox.value - dexFeeBox.value,
+      ergoTree         = redeem.params.p2pk.toErgoTree,
+      creationHeight   = ctx.currentHeight,
+      additionalTokens = mkTokens(shareY.id -> shareY.value)
     )
     val inputs      = Vector(poolIn, redeemIn)
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
@@ -118,25 +113,33 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         if (input.id == pool.x.id) input.value -> -output.value
         else -output.value                     -> input.value
       val poolBox1 = new ErgoBoxCandidate(
-        value          = poolBox0.value,
+        value          = poolBox0.value + deltaX,
         ergoTree       = contracts.pool,
         creationHeight = ctx.currentHeight,
         additionalTokens = mkPoolTokens(
           pool,
           amountLP = pool.lp.value,
-          amountX  = pool.x.value + deltaX,
           amountY  = pool.y.value + deltaY
         ),
         additionalRegisters = mkPoolRegs(pool)
       )
       val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
       val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
-      val rewardBox = new ErgoBoxCandidate(
-        value            = swapBox.value - minerFeeBox.value - dexFeeBox.value,
-        ergoTree         = swap.params.p2pk.toErgoTree,
-        creationHeight   = ctx.currentHeight,
-        additionalTokens = mkTokens(swap.params.minOutput.id -> output.value)
-      )
+      val rewardBox =
+        if (swap.params.input.isNative)
+          new ErgoBoxCandidate(
+            value            = swapBox.value - input.value - minerFeeBox.value - dexFeeBox.value,
+            ergoTree         = swap.params.p2pk.toErgoTree,
+            creationHeight   = ctx.currentHeight,
+            additionalTokens = mkTokens(swap.params.minOutput.id -> output.value)
+          )
+        else
+          new ErgoBoxCandidate(
+            value            = swapBox.value + output.value - minerFeeBox.value - dexFeeBox.value,
+            ergoTree         = swap.params.p2pk.toErgoTree,
+            creationHeight   = ctx.currentHeight,
+            additionalTokens = mkTokens(swap.params.minOutput.id -> output.value)
+          )
       val inputs      = Vector(poolIn, swapIn)
       val outs        = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
       val tx          = ErgoLikeTransaction(inputs, outs)
@@ -146,34 +149,11 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       tx -> nextPool
     }
 
-  private val minerFeeProp = Pay2SAddress(ErgoScriptPredef.feeProposition()).script
-  private val dexFeeProp   = exchange.rewardAddress.toErgoTree
-
-  private def swapParams(swap: Swap, pool: CFMMPool): Either[ExecutionFailed, (AssetAmount, AssetAmount, Long)] = {
-    val input  = swap.params.input
-    val output = pool.outputAmount(input)
-    val dexFee = (BigInt(output.value) * swap.params.dexFeePerTokenNum /
-      swap.params.dexFeePerTokenDenom - execution.minerFee).toLong
-    val maxDexFee = swap.box.value - execution.minerFee - execution.minBoxValue
-    if (output < swap.params.minOutput) Left(PriceTooHigh(swap.poolId, swap.params.minOutput, output))
-    else if (dexFee > maxDexFee) Left(PriceTooLow(swap.poolId, maxDexFee, dexFee))
-    else Right((input, output, dexFee))
-  }
-
-  private def mkPoolTokens(pool: CFMMPool, amountLP: Long, amountX: Long, amountY: Long) =
+  private def mkPoolTokens(pool: CFMMPool, amountLP: Long, amountY: Long) =
     mkTokens(
       pool.poolId.value -> 1L,
       pool.lp.id        -> amountLP,
-      pool.x.id         -> amountX,
       pool.y.id         -> amountY
-    )
-
-  private def mkTokens(tokens: (TokenId, Long)*) =
-    Colls.fromItems(tokens.map { case (k, v) => k.toErgo -> v }: _*)
-
-  private def mkPoolRegs(pool: CFMMPool) =
-    scala.Predef.Map(
-      (R4: NonMandatoryRegisterId) -> IntConstant(pool.feeNum)
     )
 }
 
