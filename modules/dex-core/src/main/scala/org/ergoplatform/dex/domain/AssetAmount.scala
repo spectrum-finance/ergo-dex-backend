@@ -26,6 +26,8 @@ final case class AssetAmount(id: TokenId, value: Long, ticker: Option[String]) {
 
   def -(that: AssetAmount): AssetAmount = withAmount(value - that.value)
   def +(that: AssetAmount): AssetAmount = withAmount(value + that.value)
+
+  def isNative: Boolean = id == NativeAssetId
 }
 
 object AssetAmount {

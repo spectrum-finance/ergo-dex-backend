@@ -13,5 +13,11 @@ object constants {
       val IndexX   = 2
       val IndexY   = 3
     }
+
+    object n2t {
+      val IndexNFT = 0
+      val IndexLP  = 1
+      val IndexY   = 2
+    }
   }
 }

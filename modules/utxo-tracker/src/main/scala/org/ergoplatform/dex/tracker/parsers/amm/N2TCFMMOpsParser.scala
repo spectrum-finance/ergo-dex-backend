@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.tracker.parsers.amm
 
-import cats.{Applicative, Monad}
 import cats.effect.Clock
+import cats.{Applicative, Monad}
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
@@ -12,9 +12,9 @@ import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{Address, ErgoTreeTemplate, TokenId}
 import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 import sigmastate.Values.ErgoTree
+import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.time._
-import tofu.syntax.embed._
 
 final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
   e: ErgoAddressEncoder
@@ -91,6 +91,7 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
 }
 
 object N2TCFMMOpsParser {
+
   def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): AMMOpsParser[N2T_CFMM, F] =
     now.millis.map(ts => new N2TCFMMOpsParser(ts): AMMOpsParser[N2T_CFMM, F]).embed
 }
