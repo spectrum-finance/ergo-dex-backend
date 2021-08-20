@@ -55,8 +55,8 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
       implicit0(cfmmRules: CFMMRules[RunF])                        = CFMMRules.make[RunF]
       //limitOrdersHandler <- Resource.eval(OrdersHandler.make[LimitOrders, InitF, StreamF, RunF])
-      t2tCfmmHandler                       <- Resource.eval(CFMMOpsHandler.make[T2T_CFMM, InitF, StreamF, RunF])
-      cfmmPoolsHandler                     <- Resource.eval(CFMMPoolsHandler.make[T2T_CFMM, InitF, StreamF, RunF])
+      t2tCfmmHandler                       <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF])
+      cfmmPoolsHandler                     <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       tracker <-

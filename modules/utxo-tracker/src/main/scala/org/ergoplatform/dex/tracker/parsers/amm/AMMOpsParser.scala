@@ -8,7 +8,7 @@ import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.ergo.models.Output
 import tofu.higherKind.Embed
 
-trait AMMOpsParser[CT <: CFMMType, F[_]] {
+trait AMMOpsParser[+CT <: CFMMType, F[_]] {
 
   def deposit(box: Output): F[Option[Deposit]]
 
@@ -18,6 +18,8 @@ trait AMMOpsParser[CT <: CFMMType, F[_]] {
 }
 
 object AMMOpsParser {
+
+  def apply[CT <: CFMMType, F[_]](implicit ev: AMMOpsParser[CT, F]): AMMOpsParser[CT, F] = ev
 
   implicit def embed[CT <: CFMMType]: Embed[AMMOpsParser[CT, *[_]]] = {
     type Rep[F[_]] = AMMOpsParser[CT, F]
