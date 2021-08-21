@@ -19,7 +19,7 @@ object TxSubmissionErrorParser {
       def missedInputs(error: String): List[(BoxId, Int)] =
         error match {
           case TxErrP(errs) =>
-            errs.split("; ").toList.map { case InputErrP(i, idHex) =>
+            errs.split("; ").toList.collect { case InputErrP(i, idHex) =>
               BoxId.fromStringUnsafe(idHex) -> i.toInt
             }
           case _ => List.empty
