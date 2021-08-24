@@ -10,7 +10,7 @@ import dev.profunktor.redis4cats.hlist.{HList, Witness}
 import org.ergoplatform.common.cache.errors.{BinaryDecodingFailed, BinaryEncodingFailed}
 import scodec.Codec
 import scodec.bits.BitVector
-import tofu.Throws
+import tofu.{BracketThrow, Throws}
 import tofu.higherKind.Mid
 import tofu.logging.{Loggable, Logging, Logs}
 import tofu.syntax.logging._
@@ -31,7 +31,7 @@ trait Cache[F[_]] {
 
 object Cache {
 
-  def make[I[_]: Functor, F[_]: Monad: Throws](implicit
+  def make[I[_]: Functor, F[_]: Monad: BracketThrow](implicit
     redis: Redis.Plain[F],
     makeTx: MakeRedisTransaction[F],
     logs: Logs[I, F]
@@ -41,7 +41,7 @@ object Cache {
     }
 
   final class Live[
-    F[_]: Monad: BinaryEncodingFailed.Raise: BinaryDecodingFailed.Raise
+    F[_]: Monad: BinaryEncodingFailed.Raise: BinaryDecodingFailed.Raise: BracketThrow
   ](implicit redis: Redis.Plain[F], makeTx: MakeRedisTransaction[F])
     extends Cache[F] {
 
@@ -91,7 +91,7 @@ object Cache {
         .flatMap(k => redis.del(k.toByteArray).void)
 
     def transaction[T <: HList](commands: T)(implicit w: Witness[T]): F[Unit] =
-      makeTx.make.exec(commands).void
+      makeTx.make.use(_.exec(commands).void)
   }
 
   final class CacheTracing[F[_]: Monad: Logging] extends Cache[Mid[F, *]] {

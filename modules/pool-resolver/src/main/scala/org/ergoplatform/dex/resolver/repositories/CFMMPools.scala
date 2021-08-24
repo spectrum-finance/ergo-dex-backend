@@ -8,7 +8,7 @@ import derevo.derive
 import dev.profunktor.redis4cats.hlist._
 import io.circe.Json
 import io.circe.syntax._
-import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis}
+import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis, RedisConfig}
 import org.ergoplatform.dex.domain.amm.state.{Confirmed, Predicted, PredictionLink}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.ergo.BoxId
@@ -52,14 +52,14 @@ trait CFMMPools[F[_]] {
 
 object CFMMPools {
 
-  def make[I[_]: FlatMap, F[_]: Parallel: Concurrent: Timer](implicit
+  def make[I[_]: FlatMap, F[_]: Parallel: Concurrent: Timer: RedisConfig.Has](implicit
     redis: Redis.Plain[F],
+    makeTx: MakeRedisTransaction[F],
     logs: Logs[I, F]
   ): I[CFMMPools[F]] =
     for {
-      implicit0(mtx: MakeRedisTransaction[F]) <- MakeRedisTransaction.make[I, F]
-      implicit0(log: Logging[F])              <- logs.forService[CFMMPools[F]]
-      cache                                   <- Cache.make[I, F]
+      implicit0(log: Logging[F]) <- logs.forService[CFMMPools[F]]
+      cache                      <- Cache.make[I, F]
     } yield new CFMMPoolsTracing[F] attach new CFMMPoolsCache[F](cache)
 
   def ephemeral[I[_]: FlatMap, F[_]: FlatMap](implicit makeRef: MakeRef[I, F], logs: Logs[I, F]): I[CFMMPools[F]] =

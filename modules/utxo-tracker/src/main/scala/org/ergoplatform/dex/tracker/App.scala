@@ -5,11 +5,10 @@ import fs2.kafka.serde._
 import mouse.any._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.common.cache.Redis
+import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
 import org.ergoplatform.common.streaming.Producer
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, OrderId, PoolId}
-import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.handlers.{CFMMOpsHandler, CFMMPoolsHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
@@ -26,12 +25,13 @@ import tofu.lift.IsoK
 import tofu.logging.derivation.loggable.generate
 import tofu.syntax.embed._
 import tofu.syntax.unlift._
-import zio.{ExitCode, URIO, ZEnv}
 import zio.interop.catz._
+import zio.{ExitCode, URIO, ZEnv}
 
 object App extends EnvApp[ConfigBundle] {
 
-  implicit private def makeRef: MakeRef[InitF, RunF] = MakeRef.syncInstance
+  implicit val makeRef: MakeRef[InitF, RunF]   = MakeRef.syncInstance
+  implicit val mtx: MakeRedisTransaction[RunF] = MakeRedisTransaction.make[RunF]
 
   def run(args: List[String]): URIO[ZEnv, ExitCode] =
     init(args.headOption).use { case (tracker, ctx) =>
@@ -53,7 +53,7 @@ object App extends EnvApp[ConfigBundle] {
         Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.cfmmPoolsProducer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
-      implicit0(cfmmRules: CFMMRules[RunF])                        = CFMMRules.make[RunF]
+      implicit0(cfmmRules: CFMMRules[RunF])                  = CFMMRules.make[RunF]
       //limitOrdersHandler <- Resource.eval(OrdersHandler.make[LimitOrders, InitF, StreamF, RunF])
       t2tCfmmHandler                       <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF])
       cfmmPoolsHandler                     <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF])

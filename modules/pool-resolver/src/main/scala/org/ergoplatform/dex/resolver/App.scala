@@ -4,7 +4,7 @@ import cats.effect.{Blocker, Resource}
 import fs2.Stream
 import fs2.kafka.serde._
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.common.cache.Redis
+import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer}
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
@@ -23,6 +23,7 @@ import zio.{ExitCode, URIO, ZEnv}
 object App extends EnvApp[AppContext] {
 
   implicit val serverOptions: Http4sServerOptions[RunF, RunF] = Http4sServerOptions.default[RunF, RunF]
+  implicit val mtx: MakeRedisTransaction[RunF]                = MakeRedisTransaction.make[RunF]
 
   def run(args: List[String]): URIO[ZEnv, ExitCode] =
     init(args.headOption).use { case (tracker, server, ctx) =>
