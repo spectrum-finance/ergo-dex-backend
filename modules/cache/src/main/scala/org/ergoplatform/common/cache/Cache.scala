@@ -10,7 +10,7 @@ import dev.profunktor.redis4cats.hlist.{HList, Witness}
 import org.ergoplatform.common.cache.errors.{BinaryDecodingFailed, BinaryEncodingFailed}
 import scodec.Codec
 import scodec.bits.BitVector
-import tofu.{BracketThrow, Throws}
+import tofu.BracketThrow
 import tofu.higherKind.Mid
 import tofu.logging.{Loggable, Logging, Logs}
 import tofu.syntax.logging._

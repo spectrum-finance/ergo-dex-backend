@@ -5,7 +5,6 @@ import cats.effect.concurrent.Ref
 import cats.effect.{Concurrent, Timer}
 import cats.{FlatMap, Functor, Monad, Parallel}
 import derevo.derive
-import dev.profunktor.redis4cats.hlist._
 import io.circe.Json
 import io.circe.syntax._
 import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis, RedisConfig}
@@ -91,7 +90,7 @@ object CFMMPools {
       val setLastPredicted = cache.set(LastPredictedKey(pool.predicted.poolId), pool)
       getPrevStateRef >>= { ref =>
         val setPredicted = cache.set(PredictedKey(pool.predicted.box.boxId), PredictionLink(pool, ref))
-        cache.transaction(setLastPredicted :: setPredicted :: HNil).void
+        setLastPredicted >> setPredicted // todo: atomicity
       }
     }
 
@@ -109,21 +108,13 @@ object CFMMPools {
                case Some(predId) =>
                  for {
                    prevPool <- OptionT(cache.get[String, PredictionLink[CFMMPool]](PredictedKey(predId)))
-                   _ <- OptionT.liftF(
-                          cache
-                            .transaction(
-                              cache.set(LastPredictedKey(poolId), prevPool.state) ::
-                              cache.del(PredictedKey(id)) ::
-                              HNil
-                            )
+                   _ <- OptionT.liftF( // todo: atomicity
+                          cache.set(LastPredictedKey(poolId), prevPool.state) >>
+                          cache.del(PredictedKey(id))
                         )
                  } yield ()
-               case None =>
-                 OptionT.liftF(
-                   cache
-                     .transaction(cache.del(LastPredictedKey(poolId)) :: cache.del(PredictedKey(id)) :: HNil)
-                     .void
-                 )
+               case None =>  // todo: atomicity
+                 OptionT.liftF(cache.del(LastPredictedKey(poolId)) >> cache.del(PredictedKey(id)))
              }
       } yield ()).value.void
   }
