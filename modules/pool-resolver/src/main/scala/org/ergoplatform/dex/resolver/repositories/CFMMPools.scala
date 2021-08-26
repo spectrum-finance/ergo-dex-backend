@@ -36,6 +36,10 @@ trait CFMMPools[F[_]] {
     */
   def put(pool: Predicted[CFMMPool]): F[Unit]
 
+  /** Update predicted pool.
+    */
+  def update(pool: Predicted[CFMMPool]): F[Unit]
+
   /** Persist confirmed pool state.
     */
   def put(pool: Confirmed[CFMMPool]): F[Unit]
@@ -96,6 +100,14 @@ object CFMMPools {
       existsPrediction(pool.predicted.box.boxId).ifM(unit, putF)
     }
 
+    def update(pool: Predicted[CFMMPool]): F[Unit] =
+      (for {
+        link <- OptionT(cache.get[String, PredictionLink[CFMMPool]](PredictedKey(pool.predicted.box.boxId)))
+        updatedLink = link.copy(state = pool)
+        _ <- OptionT.liftF(cache.set(LastPredictedKey(pool.predicted.poolId), pool))
+        _ <- OptionT.liftF(cache.set(PredictedKey(pool.predicted.box.boxId), updatedLink))
+      } yield ()).value.void
+
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
       cache.set(LastConfirmedKey(pool.confirmed.poolId), pool)
 
@@ -135,6 +147,8 @@ object CFMMPools {
           .updated(PredictedKey(pool.predicted.box.boxId), Json.Null)
       }
 
+    def update(pool: Predicted[CFMMPool]): F[Unit] = put(pool)
+
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
       store.update(_.updated(LastConfirmedKey(pool.confirmed.poolId), pool.asJson))
 
@@ -173,6 +187,13 @@ object CFMMPools {
         _ <- trace"put(pool=$pool)"
         r <- _
         _ <- trace"put(pool=$pool) -> $r"
+      } yield r
+
+    def update(pool: Predicted[CFMMPool]): Mid[F, Unit] =
+      for {
+        _ <- trace"update(pool=$pool)"
+        r <- _
+        _ <- trace"update(pool=$pool) -> $r"
       } yield r
 
     def existsPrediction(id: BoxId): Mid[F, Boolean] =

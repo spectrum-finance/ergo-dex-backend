@@ -46,7 +46,7 @@ object Resolver {
                           val updatedPool =
                             pps.lens(_.predicted.box.lastConfirmedBoxGix).set(confirmed.box.lastConfirmedBoxGix)
                           debug"Updating consistent chain for Pool{id='$id'}" >>
-                          pools.put(updatedPool) as updatedPool.predicted
+                          pools.update(updatedPool) as updatedPool.predicted
                         } else warn"Prediction chain is inconsistent for Pool{id='$id'}" as confirmed
                       pool <- if (upToDate) predicted.pure else pessimistic
                     } yield Some(pool)
