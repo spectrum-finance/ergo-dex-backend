@@ -1,13 +1,13 @@
 import dependencies._
 
-lazy val NexusReleases = "Sonatype Releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
+lazy val NexusReleases  = "Sonatype Releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
 lazy val NexusSnapshots = "Sonatype Snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
 
 lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
   scalaVersion := "2.12.14",
   organization := "org.ergoplatform",
-  version := "0.9.6",
+  version := "0.10.0",
   resolvers ++= Seq(
     Resolver.sonatypeRepo("public"),
     Resolver.sonatypeRepo("snapshots"),
@@ -78,7 +78,7 @@ lazy val core = utils
 
 lazy val cache = utils
   .mkModule("cache", "Cache")
-  .settings(commonSettings, libraryDependencies ++= Redis ++ Scodec ++ RocksDB)
+  .settings(commonSettings, libraryDependencies ++= Redis ++ Scodec)
   .dependsOn(core % allConfigDependency)
 
 lazy val db = utils
@@ -181,9 +181,8 @@ lazy val poolResolver = utils
   .mkModule("pool-resolver", "PoolResolver")
   .settings(commonSettings)
   .settings(
-    mainClass in assembly := Some(
-      "org.ergoplatform.dex.resolver.App"
-    )
+    mainClass in assembly := Some("org.ergoplatform.dex.resolver.App"),
+    libraryDependencies ++= RocksDB
   )
   .settings(
     name in Universal := name.value,
@@ -196,7 +195,7 @@ lazy val poolResolver = utils
     dockerExposedVolumes := Seq("/var/lib/pool-resolver", "/opt/docker/logs/")
   )
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(Seq(core, http, cache).map(_ % allConfigDependency): _*)
+  .dependsOn(Seq(core, http).map(_ % allConfigDependency): _*)
 
 lazy val marketsApi = utils
   .mkModule("markets-api", "MarketsApi")

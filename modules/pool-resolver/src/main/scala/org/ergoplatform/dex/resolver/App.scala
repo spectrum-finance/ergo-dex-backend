@@ -3,8 +3,8 @@ package org.ergoplatform.dex.resolver
 import cats.effect.{Blocker, Resource}
 import fs2.Stream
 import fs2.kafka.serde._
+import io.github.oskin1.rocksdb.scodec.TxRocksDB
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer}
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
@@ -23,7 +23,6 @@ import zio.{ExitCode, URIO, ZEnv}
 object App extends EnvApp[AppContext] {
 
   implicit val serverOptions: Http4sServerOptions[RunF, RunF] = Http4sServerOptions.default[RunF, RunF]
-  implicit val mtx: MakeRedisTransaction[RunF]                = MakeRedisTransaction.make[RunF]
 
   def run(args: List[String]): URIO[ZEnv, ExitCode] =
     init(args.headOption).use { case (tracker, server, ctx) =>
@@ -41,7 +40,7 @@ object App extends EnvApp[AppContext] {
       implicit0(ul: Unlift[RunF, InitF]) = Unlift.byIso(IsoK.byFunK(wr.runContextK(ctx))(wr.liftF))
       implicit0(consumer: Consumer[PoolId, Confirmed[CFMMPool], StreamF, RunF]) =
         Consumer.make[StreamF, RunF, PoolId, Confirmed[CFMMPool]]
-      implicit0(redis: Redis.Plain[RunF]) <- Redis.make[InitF, RunF](configs.redis)
+      implicit0(rocks: TxRocksDB[RunF])   <- TxRocksDB.make[InitF, RunF](configs.rocks.path)
       implicit0(pools: CFMMPools[RunF])   <- Resource.eval(CFMMPools.make[InitF, RunF])
       implicit0(resolver: Resolver[RunF]) <- Resource.eval(Resolver.make[InitF, RunF])
       tracker = PoolTracker.make[StreamF, RunF]

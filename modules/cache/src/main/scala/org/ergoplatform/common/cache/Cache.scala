@@ -37,10 +37,10 @@ object Cache {
     logs: Logs[I, F]
   ): I[Cache[F]] =
     logs.forService[Cache[F]].map { implicit l =>
-      new CacheTracing[F] attach new Live[F]
+      new CacheTracing[F] attach new Redis[F]
     }
 
-  final class Live[
+  final class Redis[
     F[_]: Monad: BinaryEncodingFailed.Raise: BinaryDecodingFailed.Raise: BracketThrow
   ](implicit redis: Redis.Plain[F], makeTx: MakeRedisTransaction[F])
     extends Cache[F] {

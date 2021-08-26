@@ -78,7 +78,7 @@ object dependencies {
   )
 
   val RocksDB = List(
-    "io.github.oskin1" %% "rocks4cats" % Rocks4CatsVersion
+    "io.github.oskin1" %% "rocks4cats-scodec" % Rocks4CatsVersion
   )
 
   val Tofu: List[ModuleID] = List(
