@@ -1,12 +1,19 @@
 import dependencies._
 
+lazy val NexusReleases = "Sonatype Releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
+lazy val NexusSnapshots = "Sonatype Snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
+
 lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
   scalaVersion := "2.12.14",
   organization := "org.ergoplatform",
   version := "0.9.4",
-  resolvers += Resolver.sonatypeRepo("public"),
-  resolvers += Resolver.sonatypeRepo("snapshots"),
+  resolvers ++= Seq(
+    Resolver.sonatypeRepo("public"),
+    Resolver.sonatypeRepo("snapshots"),
+    NexusReleases,
+    NexusSnapshots
+  ),
   test in assembly := {},
   assemblyMergeStrategy in assembly := {
     case "logback.xml"                                => MergeStrategy.first
@@ -71,7 +78,7 @@ lazy val core = utils
 
 lazy val cache = utils
   .mkModule("cache", "Cache")
-  .settings(commonSettings, libraryDependencies ++= Redis ++ Scodec)
+  .settings(commonSettings, libraryDependencies ++= Redis ++ Scodec ++ RocksDB)
   .dependsOn(core % allConfigDependency)
 
 lazy val db = utils

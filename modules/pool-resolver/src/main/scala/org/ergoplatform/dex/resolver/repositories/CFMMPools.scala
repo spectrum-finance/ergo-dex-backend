@@ -88,10 +88,12 @@ object CFMMPools {
           .get[String, Predicted[CFMMPool]](LastPredictedKey(pool.predicted.poolId))
           .mapIn(_.predicted.box.boxId)
       val setLastPredicted = cache.set(LastPredictedKey(pool.predicted.poolId), pool)
-      getPrevStateRef >>= { ref =>
-        val setPredicted = cache.set(PredictedKey(pool.predicted.box.boxId), PredictionLink(pool, ref))
-        setLastPredicted >> setPredicted // todo: atomicity
-      }
+      val putF =
+        getPrevStateRef >>= { ref =>
+          val setPredicted = cache.set(PredictedKey(pool.predicted.box.boxId), PredictionLink(pool, ref))
+          setLastPredicted >> setPredicted // todo: atomicity
+        }
+      existsPrediction(pool.predicted.box.boxId).ifM(unit, putF)
     }
 
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
@@ -113,7 +115,7 @@ object CFMMPools {
                           cache.del(PredictedKey(id))
                         )
                  } yield ()
-               case None =>  // todo: atomicity
+               case None => // todo: atomicity
                  OptionT.liftF(cache.del(LastPredictedKey(poolId)) >> cache.del(PredictedKey(id)))
              }
       } yield ()).value.void
