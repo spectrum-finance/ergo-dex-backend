@@ -23,7 +23,7 @@ object versions {
   val DerevoVersion      = "0.12.5"
   val MagnoliaVersion    = "0.17.0"
   val Redis4CatsVersion  = "0.14.0"
-  val Rocks4CatsVersion  = "0.1.2"
+  val Rocks4CatsVersion  = "0.1.3"
 
   val ScodecCoreVersion = "1.11.7"
   val ScodecBitsVersion = "1.1.21"
