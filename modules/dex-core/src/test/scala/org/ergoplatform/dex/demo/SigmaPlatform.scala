@@ -40,8 +40,21 @@ trait SigmaPlatform {
   def getToken(id: String, input: ErgoBox): (TokenId, Long) =
     (Digest32 @@ Base16.decode(id).get, input.assets.find(_.tokenId.unwrapped == id).map(_.amount).getOrElse(0L))
 
+  def getToken(id: String, inputs: List[ErgoBox]): (TokenId, Long) =
+    (Digest32 @@ Base16.decode(id).get, inputs.map(bx => getToken(id, bx)._2).sum)
+
   def extractTokens(input: ErgoBox): List[(TokenId, Long)] =
     input.assets.map(a => Digest32 @@ Base16.decode(a.tokenId.unwrapped).get -> a.amount)
+
+  def extractTokens(inputs: List[ErgoBox]): List[(TokenId, Long)] =
+    inputs
+      .flatMap(_.assets.map(a => a.tokenId -> a.amount))
+      .foldLeft(Map.empty[org.ergoplatform.ergo.TokenId, Long]) { case (acc, (tid, amt)) =>
+        val accumulated = acc.getOrElse(tid, 0L)
+        acc.updated(tid, accumulated + amt)
+      }
+      .toList
+      .map { case (tokenId, amt) => Digest32 @@ Base16.decode(tokenId.unwrapped).get -> amt }
 
   private lazy val backend = OkHttpSyncBackend()
 

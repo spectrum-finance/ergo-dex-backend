@@ -36,7 +36,7 @@ final class CFMMOpsHandler[
             swap    <- parser.swap(out)
           } yield deposit orElse redeem orElse swap orElse none[CFMMOrder]
         }
-        .map(_.headOption.flatten)
+        .map(_.reduce(_ orElse _))
     }.unNone
       .evalTap(op => info"CFMM operation request detected $op")
       .flatMap { op =>
