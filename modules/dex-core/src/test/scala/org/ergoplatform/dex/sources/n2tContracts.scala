@@ -21,8 +21,10 @@ object n2tContracts {
       |
       |            val supplyLP = InitiallyLockedLP - poolLP._2
       |
+      |            val _selfX = SelfX
+      |
       |            val minimalReward = min(
-      |                SelfX.toBigInt * supplyLP / reservesXAmount,
+      |                _selfX.toBigInt * supplyLP / reservesXAmount,
       |                selfY._2.toBigInt * supplyLP / reservesY._2
       |            )
       |
