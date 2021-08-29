@@ -71,7 +71,7 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
       minOutAmount <- tree.constants.parseLong(10)
       outAmount = AssetAmount(outId, minOutAmount, None)
       dexFeePerTokenNum   <- tree.constants.parseLong(11)
-      dexFeePerTokenDenom <- tree.constants.parseLong(16)
+      dexFeePerTokenDenom <- tree.constants.parseLong(12)
       p2pk                <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
       params = SwapParams(baseAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, p2pk)
     } yield Swap(poolId, ts, params, box)
