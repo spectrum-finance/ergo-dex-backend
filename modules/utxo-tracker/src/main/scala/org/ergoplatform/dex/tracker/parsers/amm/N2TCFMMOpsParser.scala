@@ -27,8 +27,7 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
       if (template == templates.deposit) {
         for {
           poolId    <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
-          declaredX <- tree.constants.parseLong(11)
-          inX = AssetAmount.native(declaredX)
+          inX <- tree.constants.parseLong(11).map(AssetAmount.native)
           inY    <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
           dexFee <- tree.constants.parseLong(10)
           p2pk   <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
@@ -66,16 +65,15 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
 
   private def swapSell(box: Output, tree: ErgoTree) =
     for {
-      poolId     <- tree.constants.parseBytea(7).map(PoolId.fromBytes)
-      baseAmount <- tree.constants.parseLong(11)
-      inAmount = AssetAmount.native(baseAmount)
-      outId        <- tree.constants.parseBytea(8).map(TokenId.fromBytes)
-      minOutAmount <- tree.constants.parseLong(9)
+      poolId     <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
+      baseAmount <- tree.constants.parseLong(2).map(AssetAmount.native)
+      outId        <- tree.constants.parseBytea(9).map(TokenId.fromBytes)
+      minOutAmount <- tree.constants.parseLong(10)
       outAmount = AssetAmount(outId, minOutAmount, None)
-      dexFeePerTokenNum   <- tree.constants.parseLong(15)
+      dexFeePerTokenNum   <- tree.constants.parseLong(11)
       dexFeePerTokenDenom <- tree.constants.parseLong(16)
       p2pk                <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
-      params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, p2pk)
+      params = SwapParams(baseAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, p2pk)
     } yield Swap(poolId, ts, params, box)
 
   private def swapBuy(box: Output, tree: ErgoTree) =
