@@ -7,7 +7,7 @@ import org.ergoplatform.dex.domain.errors.TxFailed
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
-import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
+import org.ergoplatform.dex.protocol.amm.AMMType.CFMMType
 import org.ergoplatform.ergo.ErgoNetwork
 import org.ergoplatform.ergo.explorer.TxSubmissionErrorParser
 import tofu.logging.{Logging, Logs}
@@ -27,7 +27,7 @@ object Execution {
 
   def make[I[_]: Functor, F[_]: Monad: TxFailed.Handle: ExecutionFailed.Handle](implicit
     pools: CFMMPools[F],
-    tokenToToken: CFMMInterpreter[T2T_CFMM, F],
+    interpreter: CFMMInterpreter[CFMMType, F],
     network: ErgoNetwork[F],
     logs: Logs[I, F]
   ): I[Execution[F]] =
@@ -35,7 +35,7 @@ object Execution {
 
   final class Live[F[_]: Monad: TxFailed.Handle: ExecutionFailed.Handle: Logging](implicit
     pools: CFMMPools[F],
-    tokenToToken: CFMMInterpreter[T2T_CFMM, F],
+    interpreter: CFMMInterpreter[CFMMType, F],
     network: ErgoNetwork[F],
     errParser: TxSubmissionErrorParser
   ) extends Execution[F] {
@@ -45,9 +45,9 @@ object Execution {
         case Some(pool) =>
           val interpretF =
             order match {
-              case deposit: Deposit => tokenToToken.deposit(deposit, pool)
-              case redeem: Redeem   => tokenToToken.redeem(redeem, pool)
-              case swap: Swap       => tokenToToken.swap(swap, pool)
+              case deposit: Deposit => interpreter.deposit(deposit, pool)
+              case redeem: Redeem   => interpreter.redeem(redeem, pool)
+              case swap: Swap       => interpreter.swap(swap, pool)
             }
           val executeF =
             for {
