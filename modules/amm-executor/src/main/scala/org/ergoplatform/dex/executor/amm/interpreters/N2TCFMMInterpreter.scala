@@ -137,8 +137,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
           new ErgoBoxCandidate(
             value            = swapBox.value + output.value - minerFeeBox.value - dexFeeBox.value,
             ergoTree         = swap.params.p2pk.toErgoTree,
-            creationHeight   = ctx.currentHeight,
-            additionalTokens = mkTokens(swap.params.minOutput.id -> output.value)
+            creationHeight   = ctx.currentHeight
           )
       val inputs      = Vector(poolIn, swapIn)
       val outs        = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)

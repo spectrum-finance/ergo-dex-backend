@@ -11,7 +11,7 @@ import scorex.crypto.authds.ADKey
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16
 import sigmastate.SType
-import sigmastate.Values.{ErgoTree, EvaluatedValue, IntConstant}
+import sigmastate.Values.{ByteArrayConstant, ErgoTree, EvaluatedValue, IntConstant}
 import sigmastate.eval._
 import sigmastate.lang.Terms.ValueOps
 
@@ -140,6 +140,7 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
   val emissionLP = Long.MaxValue - burnLP
 
   val lpName = "ERG_SigUSD_LP"
+  val lpDesc = "ERG/SigUSD pool LP tokens"
 
   val lockNErgs = 10000000L
   val minValue  = 500000L
@@ -159,7 +160,11 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
     value            = bootInputNErg,
     ergoTree         = selfAddress.script,
     creationHeight   = height,
-    additionalTokens = Colls.fromItems(lpId -> emissionLP, SigUSD._1 -> depositSigUSDCents)
+    additionalTokens = Colls.fromItems(lpId -> emissionLP, SigUSD._1 -> depositSigUSDCents),
+    additionalRegisters =     scala.Predef.Map(
+      R4 -> ByteArrayConstant(lpName.getBytes()),
+      R5 -> ByteArrayConstant(lpDesc.getBytes())
+    )
   )
 
   val change0 = new ErgoBoxCandidate(
