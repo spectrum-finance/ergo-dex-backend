@@ -84,10 +84,12 @@ object n2tContracts {
   val swapSell: String =
     """
       |{   // ERG -> Token
-      |    val FeeDenom = 1000
-      |    val FeeNum   = 996
+      |    val FeeDenom            = 1000
+      |    val FeeNum              = 996
       |    val DexFeePerTokenNum   = 2L
       |    val DexFeePerTokenDenom = 10L
+      |    val MinQuoteAmount      = 800L
+      |    val BaseAmount          = 1200L
       |
       |    val poolIn = INPUTS(0)
       |
@@ -106,19 +108,15 @@ object n2tContracts {
       |            val quoteAsset  = rewardBox.tokens(0)
       |            val quoteAmount = quoteAsset._2.toBigInt
       |
-      |            val _baseAmount = BaseAmount
-      |
-      |            val fairDexFee = rewardBox.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom - _baseAmount
+      |            val fairDexFee = rewardBox.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom - BaseAmount
       |
       |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
-      |            val fairPrice     = poolReservesY * _baseAmount * FeeNum <= relaxedOutput * (poolReservesX * FeeDenom + _baseAmount * FeeNum)
-      |
-      |            val _minQuoteAmount = MinQuoteAmount
+      |            val fairPrice     = poolReservesY * BaseAmount * FeeNum <= relaxedOutput * (poolReservesX * FeeDenom + BaseAmount * FeeNum)
       |
       |            validPoolIn &&
       |            rewardBox.propositionBytes == Pk.propBytes &&
       |            quoteAsset._1 == QuoteId &&
-      |            quoteAmount >= _minQuoteAmount &&
+      |            quoteAmount >= MinQuoteAmount &&
       |            fairDexFee &&
       |            fairPrice
       |        } else false
@@ -130,17 +128,17 @@ object n2tContracts {
   val swapBuy: String =
     """
       |{   // Token -> ERG
-      |    val FeeDenom = 1000
-      |    val FeeNum   = 996
+      |    val FeeDenom            = 1000
+      |    val FeeNum              = 996
       |    val DexFeePerTokenNum   = 1L
       |    val DexFeePerTokenDenom = 10L
+      |    val MinQuoteAmount      = 800L
       |
       |    val poolIn = INPUTS(0)
       |
       |    val validTrade =
       |        if (INPUTS.size == 2 && poolIn.tokens.size == 3) {
-      |            val baseToken  = SELF.tokens(0) // token being sold
-      |            val baseAmount = baseToken._2
+      |            val baseAmount = SELF.tokens(0)._2
       |
       |            val poolNFT = poolIn.tokens(0)._1  // first token id is NFT
       |
@@ -152,7 +150,7 @@ object n2tContracts {
       |            val rewardBox = OUTPUTS(1)
       |
       |            val deltaNErgs    = rewardBox.value - SELF.value // this is quoteAmount - fee
-      |            val quoteAmount   = deltaNErgs * DexFeePerTokenDenom / (DexFeePerTokenDenom - DexFeePerTokenNum)
+      |            val quoteAmount   = deltaNErgs.toBigInt * DexFeePerTokenDenom / (DexFeePerTokenDenom - DexFeePerTokenNum)
       |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
       |            val fairPrice     = poolReservesX * baseAmount * FeeNum <= relaxedOutput * (poolReservesY * FeeDenom + baseAmount * FeeNum)
       |

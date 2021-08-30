@@ -26,8 +26,8 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
     val parsed =
       if (template == templates.deposit) {
         for {
-          poolId    <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
-          inX <- tree.constants.parseLong(11).map(AssetAmount.native)
+          poolId <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
+          inX    <- tree.constants.parseLong(11).map(AssetAmount.native)
           inY    <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
           dexFee <- tree.constants.parseLong(10)
           p2pk   <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
@@ -65,8 +65,8 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
 
   private def swapSell(box: Output, tree: ErgoTree) =
     for {
-      poolId     <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
-      baseAmount <- tree.constants.parseLong(2).map(AssetAmount.native)
+      poolId       <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
+      baseAmount   <- tree.constants.parseLong(2).map(AssetAmount.native)
       outId        <- tree.constants.parseBytea(9).map(TokenId.fromBytes)
       minOutAmount <- tree.constants.parseLong(10)
       outAmount = AssetAmount(outId, minOutAmount, None)
@@ -82,9 +82,10 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
       inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
       minOutAmount <- tree.constants.parseLong(10)
       outAmount = AssetAmount.native(minOutAmount)
-      dexFeePerTokenNum   <- tree.constants.parseLong(12)
-      dexFeePerTokenDenom <- tree.constants.parseLong(5)
-      p2pk                <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
+      dexFeePerTokenDenom   <- tree.constants.parseLong(5)
+      dexFeePerTokenNumDiff <- tree.constants.parseLong(6)
+      dexFeePerTokenNum = dexFeePerTokenDenom - dexFeePerTokenNumDiff
+      p2pk <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
       params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, p2pk)
     } yield Swap(poolId, ts, params, box)
 }

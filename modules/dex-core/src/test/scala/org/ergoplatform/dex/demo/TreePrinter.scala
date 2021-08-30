@@ -1,9 +1,9 @@
 package org.ergoplatform.dex.demo
 
 import org.ergoplatform.ErgoAddressEncoder
-import org.ergoplatform.dex.protocol.{sigmaUtils, ErgoTreeSerializer}
+import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, sigmaUtils}
 import org.ergoplatform.dex.sources.{n2tContracts, t2tContracts}
-import org.ergoplatform.ergo.ErgoTreeTemplate
+import org.ergoplatform.ergo.{ErgoTreeTemplate, SErgoTree}
 import sigmastate.Values.ErgoTree
 import sigmastate.basics.DLogProtocol.DLogProverInput
 import sigmastate.eval.{CompiletimeIRContext, IRContext}
@@ -21,9 +21,15 @@ object TreePrinter extends App {
     "QuoteId"        -> Array.fill(32)(1.toByte),
     "DexFee"         -> 999999L,
     "SelfX"          -> 888888L,
-    "MinQuoteAmount" -> 777777L,
-    "BaseAmount"     -> 666666L
   )
+
+  def parseTree(raw: String): Unit = {
+    val tree = ErgoTreeSerializer.default.deserialize(SErgoTree.unsafeFromString(raw))
+
+    println(s"Constants:")
+    tree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
+    println()
+  }
 
   def printTree(signature: String, source: String): Unit = {
     val tree =
