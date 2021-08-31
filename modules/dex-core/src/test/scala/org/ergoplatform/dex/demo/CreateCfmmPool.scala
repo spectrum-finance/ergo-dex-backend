@@ -128,8 +128,8 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
   val secretHex = ""
 
   val inputsIds =
-    "1f2d9bfbf99f6ef9b259115dfe6bc83252855e76f9b43896f53e1dc190cfa8da" ::
-    "93e017eb7e3e97d0989ff08892aa80ab91e7204a58f1a90fe23c01db66481dc7" :: Nil
+    "303f39026572bcb4060b51fafc93787a236bb243744babaa99fceb833d61e198" ::
+    "1c9f431149416fb2da58f210aec1b87ec11a4cc8869ddb841dff4e8d0519e062" :: Nil
 
   val inputs       = inputsIds.map(inputId => getInput(inputId).get)
   val totalNErgsIn = inputs.map(_.value).sum

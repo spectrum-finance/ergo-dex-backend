@@ -71,7 +71,6 @@ object n2tContracts {
       |
       |            validPoolIn &&
       |            returnOut.propositionBytes == Pk.propBytes &&
-      |            returnOut.value >= SELF.value - DexFee &&
       |            returnY._1 == reservesY._1 && // token id matches
       |            returnXAmount >= minReturnX &&
       |            returnY._2 >= minReturnY
