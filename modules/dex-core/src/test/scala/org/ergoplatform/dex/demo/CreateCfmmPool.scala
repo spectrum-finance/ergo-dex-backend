@@ -128,8 +128,8 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
   val secretHex = ""
 
   val inputsIds =
-    "303f39026572bcb4060b51fafc93787a236bb243744babaa99fceb833d61e198" ::
-    "1c9f431149416fb2da58f210aec1b87ec11a4cc8869ddb841dff4e8d0519e062" :: Nil
+    "fa6326a26334f5e933b96470b53b45083374f71912b0d7597f00c2c7ebeb5da6" ::
+    "19052d88da81590e570c8c144a336aaa4d88a7a2e1170adaa59571bd6d95f682" :: Nil
 
   val inputs       = inputsIds.map(inputId => getInput(inputId).get)
   val totalNErgsIn = inputs.map(_.value).sum
@@ -139,18 +139,18 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
   val burnLP     = 1000
   val emissionLP = Long.MaxValue - burnLP
 
-  val lpName = "ERG_SigUSD_LP"
-  val lpDesc = "ERG/SigUSD pool LP tokens"
+  val lpName = "ERG_SigRSV_LP"
+  val lpDesc = "ERG/SigRSV pool LP tokens"
 
   val lockNErgs = 10000000L
   val minValue  = 500000L
 
-  val depositNErgs       = 1L * math.pow(10, 9).toLong
-  val depositSigUSDCents = 2000L
+  val depositNErgs  = 4738760630L
+  val depositSigRSV = 3900L
 
   val bootInputNErg = minerFeeNErg + lockNErgs + minValue + depositNErgs
 
-  val SigUSD = getToken("03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04", inputs)
+  val SigRSV = getToken("003bd19d0187117f130b62e1bcab0939929ff5c7709f843c5c4dd158949285d0", inputs)
 
   val height = currentHeight()
 
@@ -160,8 +160,8 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
     value            = bootInputNErg,
     ergoTree         = selfAddress.script,
     creationHeight   = height,
-    additionalTokens = Colls.fromItems(lpId -> emissionLP, SigUSD._1 -> depositSigUSDCents),
-    additionalRegisters =     scala.Predef.Map(
+    additionalTokens = Colls.fromItems(lpId -> emissionLP, SigRSV._1 -> depositSigRSV),
+    additionalRegisters = scala.Predef.Map(
       R4 -> ByteArrayConstant(lpName.getBytes()),
       R5 -> ByteArrayConstant(lpDesc.getBytes())
     )
@@ -172,7 +172,7 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
     ergoTree       = selfAddress.script,
     creationHeight = height,
     additionalTokens = Colls.fromItems(tokensIn.filterNot { case (tid, _) =>
-      java.util.Arrays.equals(tid, SigUSD._1)
+      java.util.Arrays.equals(tid, SigRSV._1)
     }: _*)
   )
 
@@ -183,9 +183,9 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
 
   // Pool TX
 
-  val shareLP = math.sqrt(((depositNErgs + lockNErgs) * depositSigUSDCents).toDouble).toLong
+  val shareLP = math.sqrt(((depositNErgs + lockNErgs) * depositSigRSV).toDouble).toLong
 
-  require(shareLP * shareLP <= (depositNErgs + lockNErgs) * depositSigUSDCents)
+  require(shareLP * shareLP <= (depositNErgs + lockNErgs) * depositSigRSV)
 
   val lpOut = new ErgoBoxCandidate(
     value            = minValue,
@@ -214,7 +214,7 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
     additionalTokens = Colls.fromItems(
       poolNFT   -> 1L,
       lpId      -> (emissionLP - shareLP),
-      SigUSD._1 -> depositSigUSDCents
+      SigRSV._1 -> depositSigRSV
     ),
     additionalRegisters = poolRegisters
   )
