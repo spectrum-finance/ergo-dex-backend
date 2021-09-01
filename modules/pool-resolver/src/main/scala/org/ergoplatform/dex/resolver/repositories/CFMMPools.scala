@@ -92,6 +92,7 @@ object CFMMPools {
                             .mapIn(_.predicted.box.boxId)
           _ <- tx.put(LastPredictedKey(pool.predicted.poolId), pool)
           _ <- tx.put(PredictedKey(pool.predicted.box.boxId), PredictionLink(pool, prevStateRef))
+          _ <- tx.commit
         } yield ()
       }
 
@@ -102,6 +103,7 @@ object CFMMPools {
           updatedLink = link.copy(state = pool)
           _ <- OptionT.liftF(tx.put(LastPredictedKey(pool.predicted.poolId), pool))
           _ <- OptionT.liftF(tx.put(PredictedKey(pool.predicted.box.boxId), updatedLink))
+          _ <- OptionT.liftF(tx.commit)
         } yield ()).value.void
       }
 
@@ -128,6 +130,7 @@ object CFMMPools {
                  case None =>
                    OptionT.liftF(tx.delete(LastPredictedKey(poolId)) >> tx.delete(PredictedKey(id)))
                }
+          _ <- OptionT.liftF(tx.commit)
         } yield ()).value.void
       }
   }
