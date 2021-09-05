@@ -16,6 +16,7 @@ abstract class EnvApp[C: Loggable] extends CatsApp {
 
   implicit def logs: Logs[InitF, RunF]                = Logs.withContext[InitF, RunF]
   implicit def logsInit: Logs[InitF, InitF]           = Logs.sync[InitF, InitF]
+  implicit def logsRun: Logs[RunF, RunF]              = Logs.sync[RunF, RunF]
   implicit def loggableContext: LoggableContext[RunF] = LoggableContext.of[RunF].instance[C]
 
   val wr: WithRun[RunF, InitF, C] = implicitly

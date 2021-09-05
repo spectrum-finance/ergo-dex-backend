@@ -1,9 +1,8 @@
 package org.ergoplatform.dex.protocol.amm
 
-import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
 import org.ergoplatform.ergo.ErgoTreeTemplate
 
-object T2tCfmmTemplates extends ContractTemplates[T2TCFMM] {
+object T2TCFMMTemplates {
 
   def deposit: ErgoTreeTemplate =
     ErgoTreeTemplate.unsafeFromString(
@@ -21,7 +20,7 @@ object T2tCfmmTemplates extends ContractTemplates[T2TCFMM] {
       "08018c720901927e8c720602069d9c720a7e8c72070206720b927e8c720802069d9c720a7e8c72090206720b7310"
     )
 
-  def swap: ErgoTreeTemplate =
+  def swapSell: ErgoTreeTemplate =
     ErgoTreeTemplate.unsafeFromString(
       "d805d6017300d602b2a4730100d6037302d6047303d6057304eb027201d195ed93b1a4730593b1db630872027306d80ad606db63087202" +
       "d607b2a5730700d608b2db63087207730800d6098c720802d60a7e720906d60bb27206730900d60c7e8c720b0206d60d7e8cb2db6308a7" +

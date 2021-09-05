@@ -77,6 +77,10 @@ object dependencies {
     "com.fasterxml.jackson.core" % "jackson-databind" % JacksonVersion
   )
 
+  val RocksDB = List(
+    "io.github.oskin1" %% "rocks4cats-scodec" % Rocks4CatsVersion
+  )
+
   val Tofu: List[ModuleID] = List(
     "tf.tofu" %% "tofu-core"         % TofuVersion,
     "tf.tofu" %% "tofu-concurrent"   % TofuVersion,

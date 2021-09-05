@@ -66,7 +66,7 @@ class T2TCFMMOpsParserSpec extends AnyPropSpec with should.Matchers with ScalaCh
   }
 
   implicit val e: ErgoAddressEncoder = new ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
-  def parser                         = new T2TCFMMOpsParser[IO]
+  def parser                         = T2TCFMMOpsParser.make[IO]
 
   def boxSample =
     io.circe.parser

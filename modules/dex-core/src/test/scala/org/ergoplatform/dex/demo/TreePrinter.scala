@@ -1,9 +1,9 @@
 package org.ergoplatform.dex.demo
 
 import org.ergoplatform.ErgoAddressEncoder
-import org.ergoplatform.dex.protocol.{sigmaUtils, ErgoTreeSerializer}
-import org.ergoplatform.ergo.ErgoTreeTemplate
-import scorex.crypto.hash.Sha256
+import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, sigmaUtils}
+import org.ergoplatform.dex.sources.{n2tContracts, t2tContracts}
+import org.ergoplatform.ergo.{ErgoTreeTemplate, SErgoTree}
 import sigmastate.Values.ErgoTree
 import sigmastate.basics.DLogProtocol.DLogProverInput
 import sigmastate.eval.{CompiletimeIRContext, IRContext}
@@ -12,62 +12,58 @@ import sigmastate.lang.Terms.ValueOps
 
 object TreePrinter extends App {
 
-  import contracts._
-
-  private val dummyPk       = DLogProverInput(BigInt(Long.MaxValue).bigInteger).publicImage
-  private val dummyDigest32 = Array.fill(32)(0: Byte)
-  private val dummyLong     = 1000L
-
   implicit private val IR: IRContext = new CompiletimeIRContext()
   val sigma                          = SigmaCompiler(ErgoAddressEncoder.MainnetNetworkPrefix)
 
-  val depositEnv = Map(
-    "Pk"      -> dummyPk,
-    "PoolNFT" -> dummyDigest32,
-    "DexFee"  -> dummyLong
+  val env = Map(
+    "Pk"             -> DLogProverInput(BigInt(Long.MaxValue).bigInteger).publicImage,
+    "PoolNFT"        -> Array.fill(32)(0: Byte),
+    "QuoteId"        -> Array.fill(32)(1.toByte),
+    "DexFee"         -> 999999L,
+    "SelfX"          -> 888888L,
   )
 
-  val depositTree =
-    sigmaUtils.updateVersionHeader(ErgoTree.fromProposition(sigma.compile(depositEnv, deposit).asSigmaProp))
+  def parseTree(raw: String): Unit = {
+    val tree = ErgoTreeSerializer.default.deserialize(SErgoTree.unsafeFromString(raw))
 
-  depositTree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
-  println("[Deposit] ErgoTree:         " + ErgoTreeSerializer.default.serialize(depositTree))
-  println("[Deposit] ErgoTreeTemplate: " + ErgoTreeTemplate.fromBytes(depositTree.template))
+    println(s"Constants:")
+    tree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
+    println()
+  }
 
-  val redeemTree =
-    sigmaUtils.updateVersionHeader(ErgoTree.fromProposition(sigma.compile(depositEnv, redeem).asSigmaProp))
+  def printTree(signature: String, source: String): Unit = {
+    val tree =
+      sigmaUtils.updateVersionHeader(ErgoTree.fromProposition(sigma.compile(env, source).asSigmaProp))
 
-  println()
-  redeemTree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
-  println("[Redeem] ErgoTree:         " + ErgoTreeSerializer.default.serialize(redeemTree))
-  println("[Redeem] ErgoTreeTemplate: " + ErgoTreeTemplate.fromBytes(redeemTree.template))
+    println(s"[$signature] Constants:")
+    tree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
+    println("* " * 40)
+    println(s"[$signature] ErgoTree:         " + ErgoTreeSerializer.default.serialize(tree))
+    println(s"[$signature] ErgoTreeTemplate: " + ErgoTreeTemplate.fromBytes(tree.template))
+    println("-" * 80)
+    println()
+  }
 
-  val swapEnv = Map(
-    "Pk"             -> dummyPk,
-    "PoolNFT"        -> Array.fill(32)(1.toByte),
-    "MinQuoteAmount" -> 89L,
-    "QuoteId"        -> Array.fill(32)(2.toByte)
+  val T2T_Trees = List(
+    "Deposit" -> t2tContracts.deposit,
+    "Redeem"  -> t2tContracts.redeem,
+    "Swap"    -> t2tContracts.swap,
+    "Pool"    -> t2tContracts.pool
   )
 
-  val swapTree =
-    sigmaUtils.updateVersionHeader(ErgoTree.fromProposition(sigma.compile(swapEnv, swap).asSigmaProp))
-
-  println()
-  swapTree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
-  println("[Swap] ErgoTree:         " + ErgoTreeSerializer.default.serialize(swapTree))
-  println("[Swap] ErgoTreeTemplate: " + ErgoTreeTemplate.fromBytes(swapTree.template))
-
-  val poolEnv = Map.empty[String, Any]
-
-  val poolTree =
-    sigmaUtils.updateVersionHeader(ErgoTree.fromProposition(sigma.compile(poolEnv, pool).asSigmaProp))
-
-  println()
-  poolTree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
-  println("[Pool] ErgoTree:         " + ErgoTreeSerializer.default.serialize(poolTree))
-  println("[Pool] ErgoTreeTemplate: " + ErgoTreeTemplate.fromBytes(poolTree.template))
-  println("[Pool] ErgoTreeTemplateHash: " + ErgoTreeTemplate.fromBytes(Sha256.hash(poolTree.template)))
-  println(
-    "[Pool] Address: " + new ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix).fromProposition(poolTree)
+  val N2T_Trees = List(
+    "Deposit"  -> n2tContracts.deposit,
+    "Redeem"   -> n2tContracts.redeem,
+    "SwapSell" -> n2tContracts.swapSell,
+    "SwapBuy"  -> n2tContracts.swapBuy,
+    "Pool"     -> n2tContracts.pool
   )
+
+  def printAll(cat: String, trees: List[(String, String)]): Unit = {
+    println(cat)
+    println("^" * 80)
+    trees.foreach { case (sign, tree) => printTree(sign, tree) }
+  }
+
+  printAll("N2T", N2T_Trees)
 }

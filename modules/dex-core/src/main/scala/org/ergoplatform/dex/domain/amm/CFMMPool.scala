@@ -21,6 +21,8 @@ final case class CFMMPool(
   box: BoxInfo
 ) {
 
+  val isNative: Boolean = x.isNative || y.isNative
+
   def supplyLP: Long = constants.cfmm.TotalEmissionLP - lp.value
 
   def deposit(inX: AssetAmount, inY: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {

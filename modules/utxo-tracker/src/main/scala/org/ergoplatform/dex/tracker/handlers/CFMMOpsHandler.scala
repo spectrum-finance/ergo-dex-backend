@@ -1,11 +1,15 @@
 package org.ergoplatform.dex.tracker.handlers
 
+import cats.effect.Clock
 import cats.implicits.none
-import cats.{FlatMap, Functor, FunctorFilter, Monad}
+import cats.instances.list._
+import cats.syntax.traverse._
+import cats.{Functor, FunctorFilter, Monad}
 import mouse.any._
+import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.dex.protocol.amm.AMMType.CFMMFamily
+import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.dex.tracker.parsers.amm.AMMOpsParser
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
 import tofu.logging.{Logging, Logs}
@@ -15,27 +19,29 @@ import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
 
 final class CFMMOpsHandler[
-  CT <: CFMMFamily,
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,
-  G[_]: FlatMap: Logging
-](implicit
+  G[_]: Monad: Logging
+](parsers: List[AMMOpsParser[CFMMType, G]])(implicit
   producer: Producer[OrderId, CFMMOrder, F],
-  parser: AMMOpsParser[CT, G],
   rules: CFMMRules[G]
 ) {
 
   def handler: BoxHandler[F] =
     _.evalMap { out =>
-      for {
-        deposit <- parser.deposit(out)
-        redeem  <- parser.redeem(out)
-        swap    <- parser.swap(out)
-      } yield deposit orElse redeem orElse swap orElse none[CFMMOrder]
+      parsers
+        .traverse { parser =>
+          for {
+            deposit <- parser.deposit(out)
+            redeem  <- parser.redeem(out)
+            swap    <- parser.swap(out)
+          } yield deposit orElse redeem orElse swap orElse none[CFMMOrder]
+        }
+        .map(_.reduce(_ orElse _))
     }.unNone
       .evalTap(op => info"CFMM operation request detected $op")
       .flatMap { op =>
         eval(rules(op)) >>=
-          (_.fold(op.pure)(e => eval(debug"Rule violation: $e") >> Evals[F, G].monoidK.empty))
+          (_.fold(op.pure[F])(e => eval(debug"Rule violation: $e") >> Evals[F, G].monoidK.empty))
       }
       .map(op => Record[OrderId, CFMMOrder](op.id, op))
       .thrush(producer.produce)
@@ -44,15 +50,19 @@ final class CFMMOpsHandler[
 object CFMMOpsHandler {
 
   def make[
-    CT <: CFMMFamily,
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: FunctorFilter,
-    G[_]: FlatMap
+    G[_]: Monad: Clock
   ](implicit
     producer: Producer[OrderId, CFMMOrder, F],
-    contracts: AMMOpsParser[CT, G],
     rules: CFMMRules[G],
-    logs: Logs[I, G]
+    logs: Logs[I, G],
+    encoder: ErgoAddressEncoder
   ): I[BoxHandler[F]] =
-    logs.forService[CFMMOpsHandler[CT, F, G]].map(implicit log => new CFMMOpsHandler[CT, F, G].handler)
+    logs.forService[CFMMOpsHandler[F, G]].map { implicit log =>
+      val parsers =
+        AMMOpsParser[T2T_CFMM, G] ::
+        AMMOpsParser[N2T_CFMM, G] :: Nil
+      new CFMMOpsHandler[F, G](parsers).handler
+    }
 }

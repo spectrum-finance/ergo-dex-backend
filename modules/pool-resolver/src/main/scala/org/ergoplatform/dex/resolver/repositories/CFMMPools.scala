@@ -2,13 +2,13 @@ package org.ergoplatform.dex.resolver.repositories
 
 import cats.data.OptionT
 import cats.effect.concurrent.Ref
-import cats.effect.{Concurrent, Timer}
-import cats.{FlatMap, Functor, Monad, Parallel}
+import cats.effect.{BracketThrow, Concurrent, Timer}
+import cats.syntax.show._
+import cats.{FlatMap, Functor, Parallel}
 import derevo.derive
-import dev.profunktor.redis4cats.hlist._
 import io.circe.Json
 import io.circe.syntax._
-import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis}
+import io.github.oskin1.rocksdb.scodec.TxRocksDB
 import org.ergoplatform.dex.domain.amm.state.{Confirmed, Predicted, PredictionLink}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.ergo.BoxId
@@ -37,6 +37,10 @@ trait CFMMPools[F[_]] {
     */
   def put(pool: Predicted[CFMMPool]): F[Unit]
 
+  /** Update predicted pool.
+    */
+  def update(pool: Predicted[CFMMPool]): F[Unit]
+
   /** Persist confirmed pool state.
     */
   def put(pool: Confirmed[CFMMPool]): F[Unit]
@@ -53,14 +57,12 @@ trait CFMMPools[F[_]] {
 object CFMMPools {
 
   def make[I[_]: FlatMap, F[_]: Parallel: Concurrent: Timer](implicit
-    redis: Redis.Plain[F],
+    rocks: TxRocksDB[F],
     logs: Logs[I, F]
   ): I[CFMMPools[F]] =
-    for {
-      implicit0(mtx: MakeRedisTransaction[F]) <- MakeRedisTransaction.make[I, F]
-      implicit0(log: Logging[F])              <- logs.forService[CFMMPools[F]]
-      cache                                   <- Cache.make[I, F]
-    } yield new CFMMPoolsTracing[F] attach new CFMMPoolsCache[F](cache)
+    logs.forService[CFMMPools[F]].map { implicit l =>
+      new CFMMPoolsTracing[F] attach new CFMMPoolsRocks[F]
+    }
 
   def ephemeral[I[_]: FlatMap, F[_]: FlatMap](implicit makeRef: MakeRef[I, F], logs: Logs[I, F]): I[CFMMPools[F]] =
     for {
@@ -72,59 +74,65 @@ object CFMMPools {
   private def LastPredictedKey(id: PoolId) = s"predicted:last:$id" // -> state
   private def LastConfirmedKey(id: PoolId) = s"confirmed:last:$id"
 
-  final class CFMMPoolsCache[F[_]: Monad](cache: Cache[F]) extends CFMMPools[F] {
+  final class CFMMPoolsRocks[F[_]: BracketThrow](implicit rocks: TxRocksDB[F]) extends CFMMPools[F] {
 
     implicit val codecString: Codec[String] = utf8
     implicit val codecBool: Codec[Boolean]  = bool
 
     def getLastPredicted(id: PoolId): F[Option[Predicted[CFMMPool]]] =
-      cache.get[String, Predicted[CFMMPool]](LastPredictedKey(id))
+      rocks.get[String, Predicted[CFMMPool]](LastPredictedKey(id))
 
     def getLastConfirmed(id: PoolId): F[Option[Confirmed[CFMMPool]]] =
-      cache.get[String, Confirmed[CFMMPool]](LastConfirmedKey(id))
+      rocks.get[String, Confirmed[CFMMPool]](LastConfirmedKey(id))
 
-    def put(pool: Predicted[CFMMPool]): F[Unit] = {
-      val getPrevStateRef =
-        cache
-          .get[String, Predicted[CFMMPool]](LastPredictedKey(pool.predicted.poolId))
-          .mapIn(_.predicted.box.boxId)
-      val setLastPredicted = cache.set(LastPredictedKey(pool.predicted.poolId), pool)
-      val setPredicted =
-        getPrevStateRef >>= (ref => cache.set(PredictedKey(pool.predicted.box.boxId), PredictionLink(pool, ref)))
-      cache.transaction(setLastPredicted :: setPredicted :: HNil).void
-    }
+    def put(pool: Predicted[CFMMPool]): F[Unit] =
+      rocks.beginTransaction.use { tx =>
+        for {
+          prevStateRef <- tx.get[String, Predicted[CFMMPool]](LastPredictedKey(pool.predicted.poolId))
+                            .mapIn(_.predicted.box.boxId)
+          _ <- tx.put(LastPredictedKey(pool.predicted.poolId), pool)
+          _ <- tx.put(PredictedKey(pool.predicted.box.boxId), PredictionLink(pool, prevStateRef))
+          _ <- tx.commit
+        } yield ()
+      }
+
+    def update(pool: Predicted[CFMMPool]): F[Unit] =
+      rocks.beginTransaction.use { tx =>
+        (for {
+          link <- OptionT(tx.get[String, PredictionLink[CFMMPool]](PredictedKey(pool.predicted.box.boxId)))
+          updatedLink = link.copy(state = pool)
+          _ <- OptionT.liftF(tx.put(LastPredictedKey(pool.predicted.poolId), pool))
+          _ <- OptionT.liftF(tx.put(PredictedKey(pool.predicted.box.boxId), updatedLink))
+          _ <- OptionT.liftF(tx.commit)
+        } yield ()).value.void
+      }
 
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
-      cache.set(LastConfirmedKey(pool.confirmed.poolId), pool)
+      rocks.put(LastConfirmedKey(pool.confirmed.poolId), pool)
 
     def existsPrediction(id: BoxId): F[Boolean] =
-      cache.get[String, PredictionLink[Predicted[CFMMPool]]](PredictedKey(id)).map(_.isDefined)
+      rocks.get[String, PredictionLink[Predicted[CFMMPool]]](PredictedKey(id)).map(_.isDefined)
 
     def dropPrediction(id: BoxId): F[Unit] =
-      (for {
-        currentLink <- OptionT(cache.get[String, PredictionLink[CFMMPool]](PredictedKey(id)))
-        poolId = currentLink.state.predicted.poolId
-        _ <- currentLink.predecessorBoxId match {
-               case Some(predId) =>
-                 for {
-                   prevPool <- OptionT(cache.get[String, PredictionLink[CFMMPool]](PredictedKey(predId)))
-                   _ <- OptionT.liftF(
-                          cache
-                            .transaction(
-                              cache.set(LastPredictedKey(poolId), prevPool.state) ::
-                              cache.del(PredictedKey(id)) ::
-                              HNil
-                            )
-                        )
-                 } yield ()
-               case None =>
-                 OptionT.liftF(
-                   cache
-                     .transaction(cache.del(LastPredictedKey(poolId)) :: cache.del(PredictedKey(id)) :: HNil)
-                     .void
-                 )
-             }
-      } yield ()).value.void
+      rocks.beginTransaction.use { tx =>
+        (for {
+          currentLink <- OptionT(tx.get[String, PredictionLink[CFMMPool]](PredictedKey(id)))
+          poolId = currentLink.state.predicted.poolId
+          _ <- currentLink.predecessorBoxId match {
+                 case Some(predId) =>
+                   for {
+                     prevPool <- OptionT(tx.get[String, PredictionLink[CFMMPool]](PredictedKey(predId)))
+                     _ <- OptionT.liftF(
+                            tx.put(LastPredictedKey(poolId), prevPool.state) >>
+                            tx.delete(PredictedKey(id))
+                          )
+                   } yield ()
+                 case None =>
+                   OptionT.liftF(tx.delete(LastPredictedKey(poolId)) >> tx.delete(PredictedKey(id)))
+               }
+          _ <- OptionT.liftF(tx.commit)
+        } yield ()).value.void
+      }
   }
 
   final class InMemory[F[_]: Functor](store: Ref[F, Map[String, Json]]) extends CFMMPools[F] {
@@ -140,6 +148,8 @@ object CFMMPools {
         _.updated(LastPredictedKey(pool.predicted.poolId), pool.asJson)
           .updated(PredictedKey(pool.predicted.box.boxId), Json.Null)
       }
+
+    def update(pool: Predicted[CFMMPool]): F[Unit] = put(pool)
 
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
       store.update(_.updated(LastConfirmedKey(pool.confirmed.poolId), pool.asJson))
@@ -179,6 +189,13 @@ object CFMMPools {
         _ <- trace"put(pool=$pool)"
         r <- _
         _ <- trace"put(pool=$pool) -> $r"
+      } yield r
+
+    def update(pool: Predicted[CFMMPool]): Mid[F, Unit] =
+      for {
+        _ <- trace"update(pool=$pool)"
+        r <- _
+        _ <- trace"update(pool=$pool) -> $r"
       } yield r
 
     def existsPrediction(id: BoxId): Mid[F, Boolean] =

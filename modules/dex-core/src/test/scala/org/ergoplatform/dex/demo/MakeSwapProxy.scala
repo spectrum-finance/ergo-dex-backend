@@ -2,6 +2,7 @@ package org.ergoplatform.dex.demo
 
 import org.ergoplatform._
 import org.ergoplatform.dex.protocol.codecs._
+import org.ergoplatform.dex.sources.t2tContracts
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import scorex.crypto.authds.ADKey
@@ -30,7 +31,7 @@ object MakeSwapProxy extends App with SigmaPlatform {
   val poolIn     = getInput(poolInId).get
   val poolFeeNum = 996
 
-  val poolProp = ErgoTree.fromProposition(sigma.compile(Map.empty, contracts.pool).asSigmaProp)
+  val poolProp = ErgoTree.fromProposition(sigma.compile(Map.empty, t2tContracts.pool).asSigmaProp)
 
   val poolX     = poolIn.assets(2)
   val reservesX = poolX.amount
@@ -60,7 +61,7 @@ object MakeSwapProxy extends App with SigmaPlatform {
     "MinQuoteAmount" -> outX,
     "QuoteId"        -> Base16.decode(poolX.tokenId.unwrapped).get
   )
-  val swapProp = ErgoTree.fromProposition(sigma.compile(swapEnv, contracts.swap).asSigmaProp)
+  val swapProp = ErgoTree.fromProposition(sigma.compile(swapEnv, t2tContracts.swap).asSigmaProp)
 
   val swap = new ErgoBoxCandidate(
     SafeMinAmountNErg + dexFeeNErg + minerFeeNErg,

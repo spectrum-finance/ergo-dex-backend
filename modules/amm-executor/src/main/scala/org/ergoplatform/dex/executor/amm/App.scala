@@ -8,7 +8,7 @@ import org.ergoplatform.common.streaming._
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, OrderId}
 import org.ergoplatform.dex.executor.amm.config.ConfigBundle
 import org.ergoplatform.dex.executor.amm.context.AppContext
-import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, T2TCFMMInterpreter}
+import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, N2TCFMMInterpreter, T2TCFMMInterpreter}
 import org.ergoplatform.dex.executor.amm.processes.Executor
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.executor.amm.services.Execution
@@ -18,7 +18,7 @@ import org.ergoplatform.dex.executor.amm.streaming.{
   CFMMConsumerRetries,
   CFMMProducerRetries
 }
-import org.ergoplatform.dex.protocol.amm.AMMType.T2TCFMM
+import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.ergo.ErgoNetwork
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
@@ -55,12 +55,14 @@ object App extends EnvApp[AppContext] {
       implicit0(producerRetries: CFMMProducerRetries[StreamF]) <-
         Producer.make[InitF, StreamF, RunF, OrderId, Delayed[CFMMOrder]](configs.ordersRetryOut)
       implicit0(consumer: CFMMCircuit[StreamF, RunF]) = StreamingCircuit.make[StreamF, RunF, OrderId, CFMMOrder]
-      implicit0(backend: SttpBackend[RunF, Any])             <- makeBackend(ctx)
-      implicit0(client: ErgoNetwork[RunF])                   <- Resource.eval(ErgoNetwork.make[InitF, RunF])
-      implicit0(pools: CFMMPools[RunF])                      <- Resource.eval(CFMMPools.make[InitF, RunF])
-      implicit0(interpreter: CFMMInterpreter[T2TCFMM, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
-      implicit0(execution: Execution[RunF])                  <- Resource.eval(Execution.make[InitF, RunF])
-      executor                                               <- Resource.eval(Executor.make[InitF, StreamF, RunF])
+      implicit0(backend: SttpBackend[RunF, Any])         <- makeBackend(ctx)
+      implicit0(client: ErgoNetwork[RunF])               <- Resource.eval(ErgoNetwork.make[InitF, RunF])
+      implicit0(pools: CFMMPools[RunF])                  <- Resource.eval(CFMMPools.make[InitF, RunF])
+      implicit0(t2tInt: CFMMInterpreter[T2T_CFMM, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
+      implicit0(n2tInt: CFMMInterpreter[N2T_CFMM, RunF]) <- Resource.eval(N2TCFMMInterpreter.make[InitF, RunF])
+      implicit0(interpreter: CFMMInterpreter[CFMMType, RunF]) = CFMMInterpreter.make[RunF]
+      implicit0(execution: Execution[RunF]) <- Resource.eval(Execution.make[InitF, RunF])
+      executor                              <- Resource.eval(Executor.make[InitF, StreamF, RunF])
     } yield executor -> ctx
 
   private def makeBackend(

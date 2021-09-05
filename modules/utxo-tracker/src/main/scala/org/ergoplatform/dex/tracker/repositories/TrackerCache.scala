@@ -24,12 +24,12 @@ object TrackerCache {
 
   def make[I[_]: FlatMap, F[_]: Parallel: Concurrent: Timer](implicit
     redis: Redis.Plain[F],
+    makeTx: MakeRedisTransaction[F],
     logs: Logs[I, F]
   ): I[TrackerCache[F]] =
     for {
-      implicit0(mtx: MakeRedisTransaction[F]) <- MakeRedisTransaction.make[I, F]
-      implicit0(log: Logging[F])              <- logs.forService[TrackerCache[F]]
-      cache                                   <- Cache.make[I, F]
+      implicit0(log: Logging[F]) <- logs.forService[TrackerCache[F]]
+      cache                      <- Cache.make[I, F]
     } yield new CacheTracing[F] attach new Live[F](cache)
 
   private val LastScannedBoxOffsetKey = "last_scanned_box"
