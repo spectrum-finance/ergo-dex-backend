@@ -2,6 +2,7 @@ services:
   zookeeper:
       mem_limit: 500000000
       image: 'bitnami/zookeeper:latest'
+      restart: always
       networks:
           - ergo-net
       ports:
@@ -13,6 +14,7 @@ services:
       depends_on:
         - zookeeper
       image: 'bitnami/kafka:latest'
+      restart: always
       networks:
         - ergo-net
       environment:
@@ -25,6 +27,7 @@ services:
       mem_limit: 50000000
       container_name: redis
       image: 'redis:latest'
+      restart: always
       networks:
           - ergo-net
       volumes:
@@ -32,6 +35,7 @@ services:
   utxotracker:
     mem_limit: 500000000
     container_name: utxotracker
+    restart: always
     depends_on:
       - redis
       - kafka
@@ -43,6 +47,7 @@ services:
   poolresolver:
     mem_limit: 500000000
     container_name: poolresolver
+    restart: always
     build: 
       context: .
       dockerfile: ./modules/pool-resolver/src/main/resources/Dockerfile
@@ -56,6 +61,7 @@ services:
   ammexecutor:
     mem_limit: 500000000
     container_name: ammexecutor
+    restart: always
     build: 
       context: .
       dockerfile: ./modules/amm-executor/src/main/resources/Dockerfile
