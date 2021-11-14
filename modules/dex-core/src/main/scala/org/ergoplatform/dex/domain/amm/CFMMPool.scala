@@ -25,12 +25,12 @@ final case class CFMMPool(
 
   def supplyLP: Long = constants.cfmm.TotalEmissionLP - lp.value
 
+  // todo: calculate box transition right there.
   def deposit(inX: AssetAmount, inY: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
-    val unlocked = math.min(
-      (BigInt(inX.value) * supplyLP / x.value).toLong,
-      (BigInt(inY.value) * supplyLP / y.value).toLong
-    )
-    Predicted(copy(lp = lp - unlocked, x = x + inX, y = y + inY, box = nextBox))
+    val (unlocked, change) = rewardLP(inX, inY)
+    val (changeX, changeY) =
+      (change.filter(_.id == inX.id).map(_.value).sum, change.filter(_.id == inY.id).map(_.value).sum)
+    Predicted(copy(lp = lp - unlocked, x = x + inX - changeX, y = y + inY - changeY, box = nextBox))
   }
 
   def redeem(inLp: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
@@ -56,13 +56,21 @@ final case class CFMMPool(
     Predicted(copy(x = x + deltaX.toLong, y = y + deltaY.toLong, box = nextBox))
   }
 
-  def rewardLP(inX: AssetAmount, inY: AssetAmount): AssetAmount =
-    lp.withAmount(
-      math.min(
-        (BigInt(inX.value) * supplyLP / x.value).toLong,
-        (BigInt(inY.value) * supplyLP / y.value).toLong
-      )
-    )
+  def rewardLP(inX: AssetAmount, inY: AssetAmount): (AssetAmount, Option[AssetAmount]) = {
+    val minByX = BigInt(inX.value) * supplyLP / x.value
+    val minByY = BigInt(inY.value) * supplyLP / y.value
+    val change =
+      if (minByX < minByY) {
+        val diff = minByY - minByX
+        val excessY = diff * y.value / supplyLP
+        Some(inY.withAmount(excessY))
+      } else if (minByX > minByY) {
+        val diff = minByX - minByY
+        val excessX = diff * x.value / supplyLP
+        Some(inX.withAmount(excessX))
+      } else None
+    lp.withAmount(math.min(minByX.toLong, minByY.toLong)) -> change
+  }
 
   def shares(lpIn: AssetAmount): (AssetAmount, AssetAmount) =
     x.withAmount(BigInt(lpIn.value) * x.value / supplyLP) ->
