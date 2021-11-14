@@ -56,13 +56,21 @@ final case class CFMMPool(
     Predicted(copy(x = x + deltaX.toLong, y = y + deltaY.toLong, box = nextBox))
   }
 
-  def rewardLP(inX: AssetAmount, inY: AssetAmount): AssetAmount =
-    lp.withAmount(
-      math.min(
-        (BigInt(inX.value) * supplyLP / x.value).toLong,
-        (BigInt(inY.value) * supplyLP / y.value).toLong
-      )
-    )
+  def rewardLP(inX: AssetAmount, inY: AssetAmount): (AssetAmount, Option[AssetAmount]) = {
+    val minByX = BigInt(inX.value) * supplyLP / x.value
+    val minByY = BigInt(inY.value) * supplyLP / y.value
+    val change =
+      if (minByX < minByY) {
+        val diff = minByY - minByX
+        val excessY = diff * x.value / supplyLP
+        Some(inY.withAmount(excessY))
+      } else if (minByX > minByY) {
+        val diff = minByX - minByY
+        val excessX = diff * y.value / supplyLP
+        Some(inX.withAmount(excessX))
+      } else None
+    lp.withAmount(math.min(minByX.toLong, minByY.toLong)) -> change
+  }
 
   def shares(lpIn: AssetAmount): (AssetAmount, AssetAmount) =
     x.withAmount(BigInt(lpIn.value) * x.value / supplyLP) ->
