@@ -2,6 +2,22 @@ package org.ergoplatform.dex.sources
 
 object n2tContracts {
 
+  """
+    |val Rx = 22036355385162L
+    |val Ry = 7843116L
+    |
+    |val InitiallyLockedLP = 0x7fffffffffffffffL
+    |val supplyLP = InitiallyLockedLP - 9223372024530417514L
+    |
+    |val selfX = 481211480934L
+    |val selfY = 446490L
+    |
+    |val minByX = BigInt(selfX) * supplyLP / Rx
+    |val minByY = BigInt(selfY) * supplyLP / Ry
+    |
+    |val diff = minByY - minByX
+    |""".stripMargin
+
   val deposit: String =
     """
       |{
@@ -18,22 +34,42 @@ object n2tContracts {
       |            val poolLP          = poolIn.tokens(1)
       |            val reservesXAmount = poolIn.value
       |            val reservesY       = poolIn.tokens(2)
+      |            val reservesYAmount = reservesY._2
       |
       |            val supplyLP = InitiallyLockedLP - poolLP._2
       |
       |            val _selfX = SelfX
       |
-      |            val minimalReward = min(
-      |                _selfX.toBigInt * supplyLP / reservesXAmount,
-      |                selfY._2.toBigInt * supplyLP / reservesY._2
-      |            )
+      |            val minByX = _selfX.toBigInt * supplyLP / reservesXAmount
+      |            val minByY = selfY._2.toBigInt * supplyLP / reservesYAmount
+      |
+      |            val minimalReward = min(minByX, minByY)
       |
       |            val rewardOut = OUTPUTS(1)
       |            val rewardLP  = rewardOut.tokens(0)
       |
+      |            val validChange =
+      |              if (minByX < minByY && rewardOut.tokens.size == 2) {
+      |                val diff = minByY - minByX
+      |                val excessY = diff * reservesYAmount / supplyLP
+      |
+      |                val changeY = rewardOut.tokens(1)
+      |
+      |                rewardOut.value >= SELF.value - DexFee - _selfX &&
+      |                changeY._1 == reservesY._1 &&
+      |                changeY._2 >= excessY
+      |              } else if (minByX >= minByY) {
+      |                val diff = minByX - minByY
+      |                val excessX = diff * reservesXAmount / supplyLP
+      |
+      |                rewardOut.value >= SELF.value - DexFee - (_selfX - excessX)
+      |              } else {
+      |                false
+      |              }
+      |
       |            validPoolIn &&
       |            rewardOut.propositionBytes == Pk.propBytes &&
-      |            rewardOut.value >= SELF.value - DexFee - SelfX &&
+      |            validChange &&
       |            rewardLP._1 == poolLP._1 &&
       |            rewardLP._2 >= minimalReward
       |        } else false

@@ -37,7 +37,9 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val depositIn  = new Input(depositBox.boxId.toErgo, ProverResult.empty)
     val poolIn     = new Input(poolBox0.boxId.toErgo, ProverResult.empty)
     val (inX, inY) = (deposit.params.inX, deposit.params.inY)
-    val rewardLP   = pool.rewardLP(inX, inY)
+    val (rewardLP, change)   = pool.rewardLP(inX, inY)
+    val (changeX, changeY) =
+      (change.filter(_.id == inX.id).map(_.value).sum, change.filter(_.id == inY.id).map(_.value).sum)
     val poolBox1 = new ErgoBoxCandidate(
       value          = poolBox0.value,
       ergoTree       = contracts.pool,
@@ -45,8 +47,8 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       additionalTokens = mkPoolTokens(
         pool,
         amountLP = pool.lp.value - rewardLP.value,
-        amountX  = pool.x.value + inX.value,
-        amountY  = pool.y.value + inY.value
+        amountX  = pool.x.value + inX.value - changeX,
+        amountY  = pool.y.value + inY.value - changeY
       ),
       additionalRegisters = mkPoolRegs(pool)
     )
@@ -57,7 +59,10 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       value            = depositBox.value - minerFeeBox.value - dexFeeBox.value,
       ergoTree         = deposit.params.p2pk.toErgoTree,
       creationHeight   = ctx.currentHeight,
-      additionalTokens = mkTokens(rewardLP.id -> rewardLP.value)
+      additionalTokens =
+        if (changeX > 0) mkTokens(rewardLP.id -> rewardLP.value, inX.id -> changeX)
+        else if (changeY > 0) mkTokens(rewardLP.id -> rewardLP.value, inY.id -> changeY)
+        else mkTokens(rewardLP.id -> rewardLP.value)
     )
     val inputs      = Vector(poolIn, depositIn)
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)

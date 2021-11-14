@@ -26,10 +26,10 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
     val parsed =
       if (template == templates.deposit) {
         for {
-          poolId <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
-          inX    <- tree.constants.parseLong(11).map(AssetAmount.native)
+          poolId <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
+          inX    <- tree.constants.parseLong(16).map(AssetAmount.native)
           inY    <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
-          dexFee <- tree.constants.parseLong(10)
+          dexFee <- tree.constants.parseLong(15)
           p2pk   <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
           params = DepositParams(inX, inY, dexFee, p2pk)
         } yield Deposit(poolId, ts, params, box)
