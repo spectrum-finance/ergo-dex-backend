@@ -25,12 +25,12 @@ final case class CFMMPool(
 
   def supplyLP: Long = constants.cfmm.TotalEmissionLP - lp.value
 
+  // todo: calculate box transition right there.
   def deposit(inX: AssetAmount, inY: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
-    val unlocked = math.min(
-      (BigInt(inX.value) * supplyLP / x.value).toLong,
-      (BigInt(inY.value) * supplyLP / y.value).toLong
-    )
-    Predicted(copy(lp = lp - unlocked, x = x + inX, y = y + inY, box = nextBox))
+    val (unlocked, change) = rewardLP(inX, inY)
+    val (changeX, changeY) =
+      (change.filter(_.id == inX.id).map(_.value).sum, change.filter(_.id == inY.id).map(_.value).sum)
+    Predicted(copy(lp = lp - unlocked, x = x + inX - changeX, y = y + inY - changeY, box = nextBox))
   }
 
   def redeem(inLp: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
