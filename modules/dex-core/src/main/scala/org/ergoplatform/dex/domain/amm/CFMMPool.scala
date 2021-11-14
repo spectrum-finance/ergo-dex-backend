@@ -62,11 +62,11 @@ final case class CFMMPool(
     val change =
       if (minByX < minByY) {
         val diff = minByY - minByX
-        val excessY = diff * x.value / supplyLP
+        val excessY = diff * y.value / supplyLP
         Some(inY.withAmount(excessY))
       } else if (minByX > minByY) {
         val diff = minByX - minByY
-        val excessX = diff * y.value / supplyLP
+        val excessX = diff * x.value / supplyLP
         Some(inX.withAmount(excessX))
       } else None
     lp.withAmount(math.min(minByX.toLong, minByY.toLong)) -> change
