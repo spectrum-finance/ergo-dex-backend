@@ -2,22 +2,6 @@ package org.ergoplatform.dex.sources
 
 object n2tContracts {
 
-  """
-    |val Rx = 22036355385162L
-    |val Ry = 7843116L
-    |
-    |val InitiallyLockedLP = 0x7fffffffffffffffL
-    |val supplyLP = InitiallyLockedLP - 9223372024530417514L
-    |
-    |val selfX = 481211480934L
-    |val selfY = 446490L
-    |
-    |val minByX = BigInt(selfX) * supplyLP / Rx
-    |val minByY = BigInt(selfY) * supplyLP / Ry
-    |
-    |val diff = minByY - minByX
-    |""".stripMargin
-
   val deposit: String =
     """
       |{
