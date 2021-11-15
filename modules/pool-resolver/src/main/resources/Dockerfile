@@ -2,7 +2,8 @@ FROM mozilla/sbt AS builder
 USER root
 WORKDIR /builder
 ADD . /builder
-RUN sbt pool-resolver/assembly && \
+RUN export SBT_OPTS="-Xmx2G -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -Xss2M  -Duser.timezone=GMT" && \
+    sbt pool-resolver/assembly && \
     mv /builder/modules/pool-resolver/target/scala-*/PoolResolver-assembly-*.jar ./PoolResolver.jar
 
 from adoptopenjdk:11-jre

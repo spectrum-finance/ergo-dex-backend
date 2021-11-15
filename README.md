@@ -38,11 +38,15 @@ The 2 values that need to be changed in the config.env file are the address you 
 Finally the Docker images need to be build before running them:
 Windows:
 ```
-docker compose build
+docker compose build utxotracker
+docker compose build poolresolver
+docker compose build ammexecutor
 ```
 Linux:
 ```
-docker-compose build
+docker-compose build utxotracker
+docker-compose build poolresolver
+docker-compose build ammexecutor
 ```
 ### Running the services
 Once the Docker images are built the only thing left to do is to run them:
