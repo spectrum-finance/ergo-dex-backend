@@ -20,7 +20,7 @@ object TreePrinter extends App {
     "PoolNFT"        -> Array.fill(32)(0: Byte),
     "QuoteId"        -> Array.fill(32)(1.toByte),
     "DexFee"         -> 999999L,
-    "SelfX"          -> 888888L,
+    "SelfX"          -> 888888L
   )
 
   def parseTree(raw: String): Unit = {
@@ -66,4 +66,10 @@ object TreePrinter extends App {
   }
 
   printAll("N2T", N2T_Trees)
+  printAll("T2T", T2T_Trees)
+
+//  printTree("deposit", n2tContracts.deposit)
+//  val src = "tree_encoded"
+//  val tree = ErgoTreeSerializer.default.deserialize(SErgoTree.unsafeFromString(src))
+//  tree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
 }

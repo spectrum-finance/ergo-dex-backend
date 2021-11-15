@@ -29,34 +29,40 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 ) extends CFMMInterpreter[N2T_CFMM, F] {
 
   val helpers = new CFMMInterpreterHelpers(exchange, execution)
+
   import helpers._
 
   def deposit(deposit: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
-    val poolBox0   = pool.box
-    val depositBox = deposit.box
-    val depositIn  = new Input(depositBox.boxId.toErgo, ProverResult.empty)
-    val poolIn     = new Input(poolBox0.boxId.toErgo, ProverResult.empty)
-    val (inX, inY) = (deposit.params.inX, deposit.params.inY)
-    val rewardLP   = pool.rewardLP(inX, inY)
+    val poolBox0           = pool.box
+    val depositBox         = deposit.box
+    val depositIn          = new Input(depositBox.boxId.toErgo, ProverResult.empty)
+    val poolIn             = new Input(poolBox0.boxId.toErgo, ProverResult.empty)
+    val (inX, inY)         = (deposit.params.inX, deposit.params.inY)
+    val (rewardLP, change) = pool.rewardLP(inX, inY)
+    val (changeX, changeY) =
+      (change.filter(_.id == inX.id).map(_.value).sum, change.filter(_.id == inY.id).map(_.value).sum)
     val poolBox1 = new ErgoBoxCandidate(
-      value          = poolBox0.value + inX.value,
+      value          = poolBox0.value + inX.value - changeX,
       ergoTree       = contracts.pool,
       creationHeight = ctx.currentHeight,
       additionalTokens = mkPoolTokens(
         pool,
         amountLP = pool.lp.value - rewardLP.value,
-        amountY  = pool.y.value + inY.value
+        amountY  = pool.y.value + inY.value - changeY
       ),
       additionalRegisters = mkPoolRegs(pool)
     )
     val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
     val dexFee      = deposit.params.dexFee - execution.minerFee
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
+
     val returnBox = new ErgoBoxCandidate(
-      value            = depositBox.value - inX.value - minerFeeBox.value - dexFeeBox.value,
-      ergoTree         = deposit.params.p2pk.toErgoTree,
-      creationHeight   = ctx.currentHeight,
-      additionalTokens = mkTokens(rewardLP.id -> rewardLP.value)
+      value          = depositBox.value - inX.value - minerFeeBox.value - dexFeeBox.value + changeX,
+      ergoTree       = deposit.params.p2pk.toErgoTree,
+      creationHeight = ctx.currentHeight,
+      additionalTokens =
+        if (changeY > 0) mkTokens(rewardLP.id -> rewardLP.value, inY.id -> changeY)
+        else mkTokens(rewardLP.id             -> rewardLP.value)
     )
     val inputs      = Vector(poolIn, depositIn)
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
@@ -135,9 +141,9 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
           )
         else
           new ErgoBoxCandidate(
-            value            = swapBox.value + output.value - minerFeeBox.value - dexFeeBox.value,
-            ergoTree         = swap.params.p2pk.toErgoTree,
-            creationHeight   = ctx.currentHeight
+            value          = swapBox.value + output.value - minerFeeBox.value - dexFeeBox.value,
+            ergoTree       = swap.params.p2pk.toErgoTree,
+            creationHeight = ctx.currentHeight
           )
       val inputs      = Vector(poolIn, swapIn)
       val outs        = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
