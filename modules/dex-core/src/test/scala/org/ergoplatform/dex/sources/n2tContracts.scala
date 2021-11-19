@@ -51,11 +51,16 @@ object n2tContracts {
       |                false
       |              }
       |
+      |            val validMinerFee = OUTPUTS.map { (o: Box) =>
+      |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
+      |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
+      |
       |            validPoolIn &&
       |            rewardOut.propositionBytes == Pk.propBytes &&
       |            validChange &&
       |            rewardLP._1 == poolLP._1 &&
-      |            rewardLP._2 >= minimalReward
+      |            rewardLP._2 >= minimalReward &&
+      |            validMinerFee
       |        } else false
       |
       |    sigmaProp(Pk || validDeposit)
