@@ -56,7 +56,7 @@ final class T2TCFMMOpsParser[F[_]: Applicative: Clock](ts: Long)(implicit
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.swapSell) {
+      if (template == templates.swap) {
         for {
           poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
           inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
