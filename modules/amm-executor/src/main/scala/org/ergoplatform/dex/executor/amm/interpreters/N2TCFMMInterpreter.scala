@@ -52,8 +52,9 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       ),
       additionalRegisters = mkPoolRegs(pool)
     )
-    val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
-    val dexFee      = deposit.params.dexFee - execution.minerFee
+    val minerFee    = execution.minerFee min deposit.maxMinerFee
+    val minerFeeBox = new ErgoBoxCandidate(minerFee, minerFeeProp, ctx.currentHeight)
+    val dexFee      = deposit.params.dexFee - minerFee
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
 
     val returnBox = new ErgoBoxCandidate(
@@ -91,8 +92,9 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       ),
       additionalRegisters = mkPoolRegs(pool)
     )
-    val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
-    val dexFee      = redeem.params.dexFee - execution.minerFee
+    val minerFee    = execution.minerFee min redeem.maxMinerFee
+    val minerFeeBox = new ErgoBoxCandidate(minerFee, minerFeeProp, ctx.currentHeight)
+    val dexFee      = redeem.params.dexFee - minerFee
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
     val returnBox = new ErgoBoxCandidate(
       value            = redeemBox.value + shareX.value - minerFeeBox.value - dexFeeBox.value,
@@ -129,7 +131,8 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         ),
         additionalRegisters = mkPoolRegs(pool)
       )
-      val minerFeeBox = new ErgoBoxCandidate(execution.minerFee, minerFeeProp, ctx.currentHeight)
+      val minerFee    = execution.minerFee min swap.maxMinerFee
+      val minerFeeBox = new ErgoBoxCandidate(minerFee, minerFeeProp, ctx.currentHeight)
       val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
       val rewardBox =
         if (swap.params.input.isNative)

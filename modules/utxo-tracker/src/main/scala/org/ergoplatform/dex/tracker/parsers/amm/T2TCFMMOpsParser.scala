@@ -25,13 +25,14 @@ final class T2TCFMMOpsParser[F[_]: Applicative: Clock](ts: Long)(implicit
     val parsed =
       if (template == templates.deposit) {
         for {
-          poolId <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
-          inX    <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
-          inY    <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount, a.name))
-          dexFee <- tree.constants.parseLong(15)
-          p2pk   <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
+          poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
+          maxMinerFee <- tree.constants.parseLong(25)
+          inX         <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
+          inY         <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount, a.name))
+          dexFee      <- tree.constants.parseLong(15)
+          p2pk        <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
           params = DepositParams(inX, inY, dexFee, p2pk)
-        } yield Deposit(poolId, ts, params, box)
+        } yield Deposit(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }
@@ -42,12 +43,13 @@ final class T2TCFMMOpsParser[F[_]: Applicative: Clock](ts: Long)(implicit
     val parsed =
       if (template == templates.redeem) {
         for {
-          poolId <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
-          inLP   <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
-          dexFee <- tree.constants.parseLong(15)
-          p2pk   <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
+          poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
+          maxMinerFee <- tree.constants.parseLong(19)
+          inLP        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
+          dexFee      <- tree.constants.parseLong(15)
+          p2pk        <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
           params = RedeemParams(inLP, dexFee, p2pk)
-        } yield Redeem(poolId, ts, params, box)
+        } yield Redeem(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }
@@ -59,6 +61,7 @@ final class T2TCFMMOpsParser[F[_]: Applicative: Clock](ts: Long)(implicit
       if (template == templates.swap) {
         for {
           poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
+          maxMinerFee  <- tree.constants.parseLong(21)
           inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
           outId        <- tree.constants.parseBytea(2).map(TokenId.fromBytes)
           minOutAmount <- tree.constants.parseLong(15)
@@ -67,7 +70,7 @@ final class T2TCFMMOpsParser[F[_]: Applicative: Clock](ts: Long)(implicit
           dexFeePerTokenDenom <- tree.constants.parseLong(17)
           p2pk                <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
           params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, p2pk)
-        } yield Swap(poolId, ts, params, box)
+        } yield Swap(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }
