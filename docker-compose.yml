@@ -85,13 +85,13 @@ services:
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
-      - "../redis:/usr/local/etc/redis"
+      - "../redis:/data"
   tracker:
     build:
       context: ${DEX_SOURCES_PATH}/modules/utxo-tracker/target/docker/stage
       dockerfile: Dockerfile
     volumes:
-      - "${PWD}/../logs:/var/log/dex-backend:rw"
+      - "../logs:/var/log/dex-backend:rw"
     env_file: config.env
     depends_on:
       - kafka1
@@ -103,7 +103,7 @@ services:
       context: ${DEX_SOURCES_PATH}/modules/amm-executor/target/docker/stage
       dockerfile: Dockerfile
     volumes:
-      - "${PWD}/../logs:/var/log/dex-backend:rw"
+      - "../logs:/var/log/dex-backend:rw"
     env_file: config.env
     depends_on:
       - kafka1
@@ -115,8 +115,8 @@ services:
       context: ${DEX_SOURCES_PATH}/modules/pool-resolver/target/docker/stage
       dockerfile: Dockerfile
     volumes:
-      - "${PWD}/../logs:/var/log/dex-backend:rw"
-      - "${PWD}/../data/pool-resolver:/usr/local/etc/rocks"
+      - "../logs:/var/log/dex-backend:rw"
+      - "../data/pool-resolver:/usr/local/etc"
     env_file: config.env
     ports: [ 9876:9876 ]
     depends_on:
