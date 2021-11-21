@@ -109,8 +109,8 @@ services:
       - kafka1
       - kafka2
       - kafka3
-      - pool-resolver
-  pool-resolver:
+      - poolresolver
+  poolresolver:
     build:
       context: ${DEX_SOURCES_PATH}/modules/pool-resolver/target/docker/stage
       dockerfile: Dockerfile
