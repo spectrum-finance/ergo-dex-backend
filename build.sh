@@ -1,3 +1,5 @@
+#!bin/sh
+
 git pull
 git checkout $1
 sbt docker:stage
