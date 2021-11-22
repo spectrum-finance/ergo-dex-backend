@@ -48,7 +48,14 @@ Once the Docker images are built the only thing left to do is to run them:
 ./run
 ```
 #### Verifying the services are running correctly
-You can look into the logs of the services to ensure they are running correctly. For example to look into the logs of the aamexecutor you can use the following command:
+You can look into the logs of the services to ensure they are running correctly. To look at a combined log for all services use the following command:
+Windows:
 ```
-docker logs ergo-dex-backend-amm-executor-1 -f
+cd ergo-dex-backend
+docker compose logs -f
+```
+Linux:
+```
+cd ergo-dex-backend
+sudo docker-compose logs -f
 ```
