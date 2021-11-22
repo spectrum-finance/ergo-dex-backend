@@ -1,2 +1,2 @@
-$env:PWD=$PSScriptRoot
+$env:DEX_SOURCES_PATH=$PSScriptRoot
 docker compose up -d

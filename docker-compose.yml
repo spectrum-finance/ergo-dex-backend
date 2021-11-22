@@ -1,5 +1,4 @@
 version: '3'
-
 services:
   zoo1:
     image: zookeeper:3.4.9
@@ -20,56 +19,17 @@ services:
     environment:
       HOSTNAME_COMMAND: "docker info | grep ^Name: | cut -d' ' -f 2"
       KAFKA_BROKER_ID: 1
-      KAFKA_REPLICATION_FACTOR: 3
+      KAFKA_REPLICATION_FACTOR: 1
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181"
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092,CONNECTIONS_FROM_HOST://localhost:19091
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     volumes:
       - "../zk-kafka/kafka1/data:/var/lib/kafka/data:rw"
-  kafka2:
-    image: confluentinc/cp-kafka:5.3.0
-    hostname: kafka2
-    container_name: kafka2
-    links:
-      - zoo1
-    environment:
-      KAFKA_REPLICATION_FACTOR: 3
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092,CONNECTIONS_FROM_HOST://localhost:19092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-    volumes:
-      - "../zk-kafka/kafka2/data:/var/lib/kafka/data:rw"
-  kafka3:
-    image: confluentinc/cp-kafka:5.3.0
-    hostname: kafka3
-    container_name: kafka3
-    links:
-      - zoo1
-    environment:
-      KAFKA_REPLICATION_FACTOR: 3
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-      KAFKA_BROKER_ID: 3
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9092,CONNECTIONS_FROM_HOST://localhost:19093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
-      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181"
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-    volumes:
-      - "../zk-kafka/kafka3/data:/var/lib/kafka/data:rw"
   manager:
     image: sheepkiller/kafka-manager
     ports:
@@ -95,8 +55,6 @@ services:
     env_file: config.env
     depends_on:
       - kafka1
-      - kafka2
-      - kafka3
       - redis
   amm-executor:
     build:
@@ -107,8 +65,6 @@ services:
     env_file: config.env
     depends_on:
       - kafka1
-      - kafka2
-      - kafka3
       - poolresolver
   poolresolver:
     build:
@@ -121,6 +77,4 @@ services:
     ports: [ 9876:9876 ]
     depends_on:
       - kafka1
-      - kafka2
-      - kafka3
       - redis
