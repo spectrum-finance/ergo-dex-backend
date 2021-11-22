@@ -72,7 +72,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - "../logs:/var/log/dex-backend:rw"
-      - "../data/pool-resolver:/usr/local/etc"
+      - "../data/pool-resolver/rocks:/usr/local/etc/rocks:Z"
     env_file: config.env
     ports: [ 9876:9876 ]
     depends_on:
