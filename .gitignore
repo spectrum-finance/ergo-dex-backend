@@ -14,3 +14,5 @@ target
 
 .vscode/
 project/metals.sbt
+
+config.env
