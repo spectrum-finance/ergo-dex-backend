@@ -21,14 +21,14 @@ import tofu.syntax.raise._
 
 final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   exchange: ExchangeConfig,
-  execution: MonetaryConfig,
+  monetary: MonetaryConfig,
   ctx: NetworkContext
 )(implicit
   contracts: AMMContracts[T2T_CFMM],
   encoder: ErgoAddressEncoder
 ) extends CFMMInterpreter[T2T_CFMM, F] {
 
-  val helpers = new CFMMInterpreterHelpers(exchange, execution)
+  val helpers = new CFMMInterpreterHelpers(exchange, monetary)
   import helpers._
 
   def deposit(deposit: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
@@ -52,7 +52,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       ),
       additionalRegisters = mkPoolRegs(pool)
     )
-    val minerFee    = execution.minerFee min deposit.maxMinerFee
+    val minerFee    = monetary.minerFee min deposit.maxMinerFee
     val minerFeeBox = new ErgoBoxCandidate(minerFee, minerFeeProp, ctx.currentHeight)
     val dexFee      = deposit.params.dexFee - minerFee
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
@@ -93,7 +93,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       ),
       additionalRegisters = mkPoolRegs(pool)
     )
-    val minerFee    = execution.minerFee min redeem.maxMinerFee
+    val minerFee    = monetary.minerFee min redeem.maxMinerFee
     val minerFeeBox = new ErgoBoxCandidate(minerFee, minerFeeProp, ctx.currentHeight)
     val dexFee      = redeem.params.dexFee - minerFee
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
@@ -136,7 +136,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         ),
         additionalRegisters = mkPoolRegs(pool)
       )
-      val minerFee    = execution.minerFee min swap.maxMinerFee
+      val minerFee    = monetary.minerFee min swap.maxMinerFee
       val minerFeeBox = new ErgoBoxCandidate(minerFee, minerFeeProp, ctx.currentHeight)
       val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
       val rewardBox = new ErgoBoxCandidate(

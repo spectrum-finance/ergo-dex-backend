@@ -16,7 +16,7 @@ import special.collection.Coll
 
 final class CFMMInterpreterHelpers(
   exchange: ExchangeConfig,
-  execution: MonetaryConfig
+  monetary: MonetaryConfig
 )(implicit encoder: ErgoAddressEncoder) {
 
   val minerFeeProp: Values.ErgoTree = Pay2SAddress(ErgoScriptPredef.feeProposition()).script
@@ -26,8 +26,8 @@ final class CFMMInterpreterHelpers(
     val input  = swap.params.input
     val output = pool.outputAmount(input)
     val dexFee = (BigInt(output.value) * swap.params.dexFeePerTokenNum /
-      swap.params.dexFeePerTokenDenom - execution.minerFee).toLong
-    val maxDexFee = swap.box.value - execution.minerFee - execution.minBoxValue
+      swap.params.dexFeePerTokenDenom - monetary.minerFee).toLong
+    val maxDexFee = swap.box.value - monetary.minerFee - monetary.minBoxValue
     if (output < swap.params.minOutput) Left(PriceTooHigh(swap.poolId, swap.params.minOutput, output))
     else if (dexFee > maxDexFee) Left(PriceTooLow(swap.poolId, maxDexFee, dexFee))
     else Right((input, output, dexFee))
