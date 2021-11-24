@@ -18,6 +18,7 @@ class T2TCFMMOpsParserSpec extends AnyPropSpec with should.Matchers with ScalaCh
     res shouldBe Some(
       Swap(
         PoolId.fromStringUnsafe("f1fb942ebd039dc782fd9109acdb60aabea4dc7e75e9c813b6528c62692fc781"),
+        0L,
         FixedTs,
         SwapParams(
           AssetAmount(
@@ -30,9 +31,9 @@ class T2TCFMMOpsParserSpec extends AnyPropSpec with should.Matchers with ScalaCh
             1901019262,
             None
           ),
-          dexFeePerTokenNum = 2630167984063278L,
+          dexFeePerTokenNum   = 2630167984063278L,
           dexFeePerTokenDenom = 1000000000000000000L,
-          p2pk = Address.fromStringUnsafe("9g1N1xqhrNG1b2TkmFcQGTFZ47EquUYUZAiWWCBEbZaBcsMhXJU")
+          p2pk                = Address.fromStringUnsafe("9g1N1xqhrNG1b2TkmFcQGTFZ47EquUYUZAiWWCBEbZaBcsMhXJU")
         ),
         Output(
           BoxId("e419674609fe037d98d07e9c7074b3ad25f2c4e69a9bf844c389117a332fa87d"),

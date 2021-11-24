@@ -17,11 +17,11 @@ final class CfmmRuleDefs[F[_]: Applicative](conf: MonetaryConfig) {
   private val allRules = sufficientValueDepositRedeem orElse sufficientValueSwap
 
   private def sufficientValueDepositRedeem: CFMMRule = {
-    case Deposit(_, _, params, _) => checkFee(params.dexFee)
-    case Redeem(_, _, params, _)  => checkFee(params.dexFee)
+    case Deposit(_, _, _, params, _) => checkFee(params.dexFee)
+    case Redeem(_, _, _, params, _)  => checkFee(params.dexFee)
   }
 
-  private def sufficientValueSwap: CFMMRule = { case Swap(_, _, params, box) =>
+  private def sufficientValueSwap: CFMMRule = { case Swap(_, _, _, params, box) =>
     val minDexFee     = BigInt(params.dexFeePerTokenNum) * params.minOutput.value / params.dexFeePerTokenDenom
     val sufficientFee = checkFee(minDexFee)
     val maxDexFee     = box.value - conf.minerFee - conf.minBoxValue
