@@ -58,12 +58,17 @@ object t2tContracts {
       |                false
       |              }
       |
+      |            val validMinerFee = OUTPUTS.map { (o: Box) =>
+      |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
+      |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
+      |
       |            validPoolIn &&
       |            rewardOut.propositionBytes == Pk.propBytes &&
       |            validErgChange &&
       |            validTokenChange &&
       |            rewardLP._1 == poolLP._1 &&
-      |            rewardLP._2 >= minimalReward
+      |            rewardLP._2 >= minimalReward &&
+      |            validMinerFee
       |        } else false
       |
       |    sigmaProp(Pk || validDeposit)
@@ -97,13 +102,18 @@ object t2tContracts {
       |            val returnX = returnOut.tokens(0)
       |            val returnY = returnOut.tokens(1)
       |
+      |            val validMinerFee = OUTPUTS.map { (o: Box) =>
+      |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
+      |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
+      |
       |            validPoolIn &&
       |            returnOut.propositionBytes == Pk.propBytes &&
       |            returnOut.value >= SELF.value - DexFee &&
       |            returnX._1 == reservesX._1 &&
       |            returnY._1 == reservesY._1 &&
       |            returnX._2 >= minReturnX &&
-      |            returnY._2 >= minReturnY
+      |            returnY._2 >= minReturnY &&
+      |            validMinerFee
       |        } else false
       |
       |    sigmaProp(Pk || validRedeem)
@@ -147,12 +157,17 @@ object t2tContracts {
       |                else
       |                    poolY * baseAmount * FeeNum <= relaxedOutput * (poolX * FeeDenom + baseAmount * FeeNum)
       |
+      |            val validMinerFee = OUTPUTS.map { (o: Box) =>
+      |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
+      |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
+      |
       |            validPoolIn &&
       |            rewardBox.propositionBytes == Pk.propBytes &&
       |            quoteAsset._1 == QuoteId &&
       |            quoteAsset._2 >= MinQuoteAmount &&
       |            fairDexFee &&
-      |            fairPrice
+      |            fairPrice &&
+      |            validMinerFee
       |        } else false
       |
       |    sigmaProp(Pk || validTrade)

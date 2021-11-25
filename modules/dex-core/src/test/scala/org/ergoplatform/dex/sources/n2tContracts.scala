@@ -51,11 +51,16 @@ object n2tContracts {
       |                false
       |              }
       |
+      |            val validMinerFee = OUTPUTS.map { (o: Box) =>
+      |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
+      |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
+      |
       |            validPoolIn &&
       |            rewardOut.propositionBytes == Pk.propBytes &&
       |            validChange &&
       |            rewardLP._1 == poolLP._1 &&
-      |            rewardLP._2 >= minimalReward
+      |            rewardLP._2 >= minimalReward &&
+      |            validMinerFee
       |        } else false
       |
       |    sigmaProp(Pk || validDeposit)
@@ -89,11 +94,16 @@ object n2tContracts {
       |            val returnXAmount = returnOut.value - SELF.value + DexFee
       |            val returnY       = returnOut.tokens(0)
       |
+      |            val validMinerFee = OUTPUTS.map { (o: Box) =>
+      |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
+      |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
+      |
       |            validPoolIn &&
       |            returnOut.propositionBytes == Pk.propBytes &&
       |            returnY._1 == reservesY._1 && // token id matches
       |            returnXAmount >= minReturnX &&
-      |            returnY._2 >= minReturnY
+      |            returnY._2 >= minReturnY &&
+      |            validMinerFee
       |        } else false
       |
       |    sigmaProp(Pk || validRedeem)
@@ -132,12 +142,17 @@ object n2tContracts {
       |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
       |            val fairPrice     = poolReservesY * BaseAmount * FeeNum <= relaxedOutput * (poolReservesX * FeeDenom + BaseAmount * FeeNum)
       |
+      |            val validMinerFee = OUTPUTS.map { (o: Box) =>
+      |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
+      |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
+      |
       |            validPoolIn &&
       |            rewardBox.propositionBytes == Pk.propBytes &&
       |            quoteAsset._1 == QuoteId &&
       |            quoteAmount >= MinQuoteAmount &&
       |            fairDexFee &&
-      |            fairPrice
+      |            fairPrice &&
+      |            validMinerFee
       |        } else false
       |
       |    sigmaProp(Pk || validTrade)
@@ -173,10 +188,15 @@ object n2tContracts {
       |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
       |            val fairPrice     = poolReservesX * baseAmount * FeeNum <= relaxedOutput * (poolReservesY * FeeDenom + baseAmount * FeeNum)
       |
+      |            val validMinerFee = OUTPUTS.map { (o: Box) =>
+      |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
+      |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
+      |
       |            validPoolIn &&
       |            rewardBox.propositionBytes == Pk.propBytes &&
       |            quoteAmount >= MinQuoteAmount &&
-      |            fairPrice
+      |            fairPrice &&
+      |            validMinerFee
       |        } else false
       |
       |    sigmaProp(Pk || validTrade)

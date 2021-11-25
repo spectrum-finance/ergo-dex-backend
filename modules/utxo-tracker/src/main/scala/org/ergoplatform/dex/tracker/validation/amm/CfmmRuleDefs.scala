@@ -17,21 +17,24 @@ final class CfmmRuleDefs[F[_]: Applicative](conf: MonetaryConfig) {
   private val allRules = sufficientValueDepositRedeem orElse sufficientValueSwap
 
   private def sufficientValueDepositRedeem: CFMMRule = {
-    case Deposit(_, _, params, _) => checkFee(params.dexFee)
-    case Redeem(_, _, params, _)  => checkFee(params.dexFee)
+    case Deposit(_, _, _, params, _) => checkFee(params.dexFee)
+    case Redeem(_, _, _, params, _)  => checkFee(params.dexFee)
   }
 
-  private def sufficientValueSwap: CFMMRule = { case Swap(_, _, params, box) =>
-    val minDexFee     = BigInt(params.dexFeePerTokenNum) * params.minOutput.value / params.dexFeePerTokenDenom
-    val sufficientFee = checkFee(minDexFee)
-    val maxDexFee     = box.value - conf.minerFee - conf.minBoxValue
-    val sufficientValue =
+  private def sufficientValueSwap: CFMMRule = { case Swap(_, maxMinerFee, _, params, box) =>
+    val minDexFee   = BigInt(params.dexFeePerTokenNum) * params.minOutput.value / params.dexFeePerTokenDenom
+    val nativeInput = if (params.input.isNative) params.input.value else 0L
+    val minerFee    = conf.minerFee min maxMinerFee
+    val maxDexFee   = box.value - conf.minBoxValue - nativeInput
+    val insufficientValue =
       if (maxDexFee >= minDexFee) None
       else Some(s"Actual fee '$maxDexFee' is less than declared minimum '$minDexFee'")
-    sufficientFee orElse sufficientValue
+    val maxDexFeeNet    = maxDexFee - minerFee
+    val insufficientFee = checkFee(maxDexFeeNet)
+    insufficientFee orElse insufficientValue
   }
 
   private def checkFee(givenFee: BigInt): Option[RuleViolation] =
     if (givenFee >= conf.minDexFee) None
-    else Some(s"Declared fee '$givenFee' is less than required minimum '${conf.minDexFee}'")
+    else Some(s"Declared fee '$givenFee' is less than configured minimum '${conf.minDexFee}'")
 }

@@ -26,13 +26,14 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
     val parsed =
       if (template == templates.deposit) {
         for {
-          poolId <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
-          inX    <- tree.constants.parseLong(16).map(AssetAmount.native)
-          inY    <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
-          dexFee <- tree.constants.parseLong(15)
-          p2pk   <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
+          poolId      <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
+          maxMinerFee <- tree.constants.parseLong(22)
+          inX         <- tree.constants.parseLong(16).map(AssetAmount.native)
+          inY         <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
+          dexFee      <- tree.constants.parseLong(15)
+          p2pk        <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
           params = DepositParams(inX, inY, dexFee, p2pk)
-        } yield Deposit(poolId, ts, params, box)
+        } yield Deposit(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }
@@ -43,12 +44,13 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
     val parsed =
       if (template == templates.redeem) {
         for {
-          poolId <- tree.constants.parseBytea(11).map(PoolId.fromBytes)
-          inLP   <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
-          dexFee <- tree.constants.parseLong(12)
-          p2pk   <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
+          poolId      <- tree.constants.parseBytea(11).map(PoolId.fromBytes)
+          maxMinerFee <- tree.constants.parseLong(16)
+          inLP        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
+          dexFee      <- tree.constants.parseLong(12)
+          p2pk        <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
           params = RedeemParams(inLP, dexFee, p2pk)
-        } yield Redeem(poolId, ts, params, box)
+        } yield Redeem(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }
@@ -66,6 +68,7 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
   private def swapSell(box: Output, tree: ErgoTree) =
     for {
       poolId       <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
+      maxMinerFee  <- tree.constants.parseLong(22)
       baseAmount   <- tree.constants.parseLong(2).map(AssetAmount.native)
       outId        <- tree.constants.parseBytea(9).map(TokenId.fromBytes)
       minOutAmount <- tree.constants.parseLong(10)
@@ -74,11 +77,12 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
       dexFeePerTokenDenom <- tree.constants.parseLong(12)
       p2pk                <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
       params = SwapParams(baseAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, p2pk)
-    } yield Swap(poolId, ts, params, box)
+    } yield Swap(poolId, maxMinerFee, ts, params, box)
 
   private def swapBuy(box: Output, tree: ErgoTree) =
     for {
       poolId       <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
+      maxMinerFee  <- tree.constants.parseLong(19)
       inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
       minOutAmount <- tree.constants.parseLong(10)
       outAmount = AssetAmount.native(minOutAmount)
@@ -87,7 +91,7 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
       dexFeePerTokenNum = dexFeePerTokenDenom - dexFeePerTokenNumDiff
       p2pk <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
       params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, p2pk)
-    } yield Swap(poolId, ts, params, box)
+    } yield Swap(poolId, maxMinerFee, ts, params, box)
 }
 
 object N2TCFMMOpsParser {
