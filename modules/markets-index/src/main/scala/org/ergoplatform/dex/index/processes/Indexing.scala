@@ -38,9 +38,12 @@ object Indexing {
           case o: Deposit => Left(o)
           case o: Redeem  => Right(o)
         }
-        (repo.insertSwaps(swaps) >>= (i => info"[$i] orders indexed")) >>
-        (repo.insertDeposits(deposits) >>= (i => info"[$i] orders indexed")) >>
-        (repo.insertRedeems(redeems) >>= (i => info"[$i] orders indexed"))
+        for {
+          ss <- repo.insertSwaps(swaps)
+          ds <- repo.insertDeposits(deposits)
+          rs <- repo.insertRedeems(redeems)
+          _  <- info"[${ss + ds + rs}}] orders indexed"
+        } yield ()
       }
   }
 }
