@@ -1,20 +1,35 @@
 package org.ergoplatform.dex.index.repos
 
-import cats.effect.Resource
-import org.ergoplatform.dex.index.App._
-import org.ergoplatform.dex.index.configs.ConfigBundle
-import tofu.doobie.transactor.Txr
+import cats.{~>, FlatMap}
+import cats.tagless.FunctorK
+import cats.tagless.syntax.functorK._
+import tofu.doobie.LiftConnectionIO
+import tofu.doobie.log.EmbeddableLogHandler
+import tofu.logging.Logs
+import tofu.syntax.monadic._
 
-case class RepoBundle[F[_]](outputsRepo: OutputsRepo[F], assetsRepo: AssetsRepo[F], CFMMOrdersRepo: CFMMOrdersRepo[F])
+final case class RepoBundle[F[_]](
+  outputs: OutputsRepo[F],
+  assets: AssetsRepo[F],
+  orders: CFMMOrdersRepo[F]
+)
 
 object RepoBundle {
 
-  def make(xa: Txr.Contextual[RunF, ConfigBundle]): Resource[Any, RepoBundle[xa.DB]] = {
-    for {
-      or <- Resource.eval(OutputsRepo.make[InitF, xa.DB])
-      ar <- Resource.eval(AssetsRepo.make[InitF, xa.DB])
-      cfmmr <- Resource.eval(CFMMOrdersRepo.make[InitF, xa.DB])
-    } yield RepoBundle(or, ar, cfmmr)
-  }
+  implicit val functorK: FunctorK[RepoBundle] =
+    new FunctorK[RepoBundle] {
 
+      def mapK[F[_], G[_]](af: RepoBundle[F])(fk: F ~> G): RepoBundle[G] =
+        RepoBundle(af.outputs.mapK(fk), af.assets.mapK(fk), af.orders.mapK(fk))
+    }
+
+  def make[I[_]: FlatMap, D[_]: FlatMap: LiftConnectionIO](implicit
+    elh: EmbeddableLogHandler[D],
+    logs: Logs[I, D]
+  ): I[RepoBundle[D]] =
+    for {
+      outputs <- OutputsRepo.make[I, D]
+      assets  <- AssetsRepo.make[I, D]
+      orders  <- CFMMOrdersRepo.make[I, D]
+    } yield RepoBundle(outputs, assets, orders)
 }

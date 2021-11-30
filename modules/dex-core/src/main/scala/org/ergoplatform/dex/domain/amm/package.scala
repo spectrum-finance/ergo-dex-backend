@@ -22,6 +22,10 @@ package object amm {
   }
 
   object PoolId {
+
+    implicit val put: Put[PoolId] = deriving
+    implicit val get: Get[PoolId] = deriving
+
     implicit def plainCodec: Codec.PlainCodec[PoolId] = deriving
 
     implicit def codec: scodec.Codec[PoolId] =

@@ -13,9 +13,10 @@ import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
 import org.ergoplatform.common.errors.RefinementFailed
-import org.ergoplatform.ergo.constraints.{HexStringType, UrlStringType}
+import org.ergoplatform.ergo.constraints.{Base58Spec, HexStringType, UrlStringType}
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
+import scorex.crypto.encode.Base58
 import scorex.util.encode.Base16
 import sttp.tapir.{Codec, CodecFormat, DecodeResult, Schema, Validator}
 import tofu.logging.Loggable
@@ -103,7 +104,7 @@ package object common {
     type Local[F[_]] = WithLocal[F, TraceId]
     type Has[F[_]]   = WithContext[F, TraceId]
 
-    def fromString(s: String): TraceId       = apply(s)
+    def fromString(s: String): TraceId = apply(s)
   }
 
   private def deriveCodec[A, CF <: CodecFormat, T](

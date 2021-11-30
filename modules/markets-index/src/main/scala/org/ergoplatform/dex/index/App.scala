@@ -3,7 +3,7 @@ package org.ergoplatform.dex.index
 import cats.effect.{Blocker, Resource}
 import fs2.Chunk
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
+import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
 import org.ergoplatform.common.streaming.{Consumer, Delayed}
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, OrderId}
 import org.ergoplatform.dex.index.configs.ConfigBundle
@@ -23,9 +23,7 @@ import tofu.lift.IsoK
 import tofu.syntax.unlift._
 import zio.interop.catz._
 
-
 object App extends EnvApp[ConfigBundle] {
 
-
-
+  def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = ???
 }

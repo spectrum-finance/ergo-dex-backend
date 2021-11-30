@@ -33,15 +33,13 @@ object CFMMOrdersRepo {
 
   final class Live(implicit lh: LogHandler) extends CFMMOrdersRepo[ConnectionIO] {
 
-    override def insertSwaps(swaps: NonEmptyList[DBSwap]): ConnectionIO[Int] =
+    def insertSwaps(swaps: NonEmptyList[DBSwap]): ConnectionIO[Int] =
       SwapOrdersSql.insert[DBSwap].updateMany(swaps)
 
-    override def insertRedeems(redeems: NonEmptyList[DBRedeem]): ConnectionIO[Int] =
+    def insertRedeems(redeems: NonEmptyList[DBRedeem]): ConnectionIO[Int] =
       RedeemOrdersSql.insert[DBRedeem].updateMany(redeems)
 
-    override def insertDeposits(deposits: NonEmptyList[DBDeposit]): ConnectionIO[Int] =
+    def insertDeposits(deposits: NonEmptyList[DBDeposit]): ConnectionIO[Int] =
       DepositOrdersSql.insert[DBDeposit].updateMany(deposits)
-
   }
-
 }

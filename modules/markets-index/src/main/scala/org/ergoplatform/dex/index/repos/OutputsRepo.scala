@@ -12,6 +12,7 @@ import tofu.doobie.log.EmbeddableLogHandler
 import tofu.higherKind.derived.representableK
 import tofu.logging.Logs
 import tofu.syntax.monadic._
+import org.ergoplatform.dex.index.db.instances._
 import cats.tagless.syntax.functorK._
 
 @derive(representableK)
@@ -31,8 +32,7 @@ object OutputsRepo {
 
   final class Live(implicit lh: LogHandler) extends OutputsRepo[ConnectionIO] {
 
-    override def insertOutputs(outputs: NonEmptyList[DBOutput]): ConnectionIO[Int] =
+    def insertOutputs(outputs: NonEmptyList[DBOutput]): ConnectionIO[Int] =
       OutputsSql.insert[DBOutput].updateMany(outputs)
   }
-
 }

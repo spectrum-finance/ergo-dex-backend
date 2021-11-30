@@ -13,7 +13,7 @@ import doobie._
 import scodec.codecs._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{W, refineV}
+import eu.timepit.refined.{refineV, W}
 import fs2.kafka.RecordDeserializer
 import fs2.kafka.serde._
 import io.circe.refined._
@@ -21,10 +21,7 @@ import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 import org.ergoplatform.common.HexString
-import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.domain.amm.PoolId.fromBytes
 import org.ergoplatform.common.errors.RefinementFailed
-import org.ergoplatform.ergo.TokenId.fromBytes
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import scodec.bits.ByteVector
@@ -169,6 +166,14 @@ package object ergo {
   }
 
   object Address {
+
+    implicit val get: Get[Address] =
+      Get[String]
+        .temap(s => refineV[Base58Spec](s))
+        .map(rs => Address(rs))
+
+    implicit val put: Put[Address] =
+      Put[String].contramap[Address](_.unwrapped)
 
     implicit val show: Show[Address]         = _.unwrapped
     implicit val loggable: Loggable[Address] = Loggable.show

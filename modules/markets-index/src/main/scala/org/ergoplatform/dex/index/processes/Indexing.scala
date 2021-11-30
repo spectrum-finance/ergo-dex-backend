@@ -4,7 +4,8 @@ import cats.data.NonEmptyList
 import cats.syntax.foldable._
 import cats.{Foldable, Functor, Monad}
 import org.ergoplatform.dex.domain.amm.{Deposit, Redeem, Swap}
-import org.ergoplatform.dex.index.db.models.{depositToDb, outputToDb, redeemToDb, swapToDb}
+import org.ergoplatform.dex.index.db.DBView.syntax.DBViewOps
+import org.ergoplatform.dex.index.db.models.{DBDeposit, DBOutput, DBRedeem, DBSwap}
 import org.ergoplatform.dex.index.repos.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMConsumer
 import tofu.logging.{Logging, Logs}
@@ -25,9 +26,7 @@ object Indexing {
     S[_]: Evals[*[_], F]: Chunks[*[_], C],
     F[_]: Monad,
     C[_]: Functor: Foldable
-  ](implicit orders: CFMMConsumer[S, F],
-    repoBundle: RepoBundle[F],
-    logs: Logs[I, F]): I[Indexing[S]] =
+  ](implicit orders: CFMMConsumer[S, F], repoBundle: RepoBundle[F], logs: Logs[I, F]): I[Indexing[S]] =
     logs.forService[Indexing[S]] map { implicit l =>
       new CFMMIndexing[S, F, C]
     }
@@ -38,29 +37,27 @@ object Indexing {
     C[_]: Functor: Foldable
   ](implicit
     orders: CFMMConsumer[S, F],
-    repoBundle: RepoBundle[F]
+    repos: RepoBundle[F]
   ) extends Indexing[S] {
 
     def run: S[Unit] =
       orders.stream.chunks.evalMap { rs =>
         val orders = rs.map(r => r.message).toList
         val (swaps, others) = orders.partitionEither {
-          case o: Swap => Left(o)
-          case o       => Right(o)
+          case o: Swap    => Left(o)
+          case o: Deposit => Right(Left(o))
+          case o: Redeem  => Right(Right(o))
         }
-        val (deposits, redeems) = others.partitionEither {
-          case o: Deposit => Left(o)
-          case o: Redeem  => Right(o)
-        }
-        val outputs = orders.map(_.box)
+        val (deposits, redeems) = others.partitionEither(identity)
+        val outputs             = orders.map(_.box)
         def insertMaybe[A](xs: List[A])(insert: NonEmptyList[A] => F[Int]) =
           NonEmptyList.fromList(xs).fold(0.pure[F])(insert)
         for {
-          ss <- insertMaybe(swaps)(xs => repoBundle.CFMMOrdersRepo.insertSwaps(xs.map(swapToDb)))
-          ds <- insertMaybe(deposits)(xs => repoBundle.CFMMOrdersRepo.insertDeposits(xs.map(depositToDb)))
-          rs <- insertMaybe(redeems)(xs => repoBundle.CFMMOrdersRepo.insertRedeems(xs.map(redeemToDb)))
-          _ <- insertMaybe(outputs.map(outputToDb))(xs => repoBundle.outputsRepo.insertOutputs(xs))
-          _ <- insertMaybe(outputs.flatMap(_.assets))(xs => repoBundle.assetsRepo.insertAssets(xs))
+          ss <- insertMaybe(swaps)(xs => repos.orders.insertSwaps(xs.map(_.viewDB[DBSwap])))
+          ds <- insertMaybe(deposits)(xs => repos.orders.insertDeposits(xs.map(_.viewDB[DBDeposit])))
+          rs <- insertMaybe(redeems)(xs => repos.orders.insertRedeems(xs.map(_.viewDB[DBRedeem])))
+          _  <- insertMaybe(outputs.map(_.viewDB[DBOutput]))(xs => repos.outputs.insertOutputs(xs))
+          _  <- insertMaybe(outputs.flatMap(_.assets))(xs => repos.assets.insertAssets(xs))
           _  <- info"[${ss + ds + rs}}] orders indexed"
         } yield ()
       }
