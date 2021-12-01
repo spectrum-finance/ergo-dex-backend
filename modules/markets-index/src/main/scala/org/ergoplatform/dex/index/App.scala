@@ -73,7 +73,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       tracker <-
-        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Historical, t2tCfmmHandler, cfmmPoolsHandler))
+        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Historical, cfmmPoolsHandler))
       implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])
       indexer                             <- Resource.eval(Indexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
     } yield tracker -> configs

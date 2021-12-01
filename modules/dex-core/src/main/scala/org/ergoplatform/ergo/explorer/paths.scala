@@ -11,7 +11,8 @@ object paths {
   val infoPathSeg: Segment             = Segment("api/v1/info", identity)
   val paramsPathSeg: Segment           = Segment("api/v1/epochs/params", identity)
   val utxoPathSeg: Segment             = Segment("api/v1/boxes/unspent/byGlobalIndex/stream", identity)
-  val stxoPathSeg: Segment             = Segment("api/v1/boxes/spent/byGlobalIndex/stream", identity)
+  val txoPathSeg: Segment             = Segment("api/v1/boxes/byGlobalIndex/stream", identity)
+  val txPathSeg: Segment               = Segment("api/v1/transactions/byGlobalIndex/stream", identity)
 
   def txsByScriptsPathSeg(templateHash: HexString): Segment =
     Segment(s"api/v1/transactions/byInputsScriptTemplateHash/$templateHash", identity)

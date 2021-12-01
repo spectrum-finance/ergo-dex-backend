@@ -12,6 +12,7 @@ final case class Transaction(
   inclusionHeight: Int,
   timestamp: Long,
   index: Int,
+  globalIndex: Long,
   numConfirmations: Int,
   inputs: List[Input],
   outputs: List[Output]

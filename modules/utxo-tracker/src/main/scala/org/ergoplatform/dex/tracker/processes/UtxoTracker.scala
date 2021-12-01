@@ -56,7 +56,7 @@ object UtxoTracker {
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =
-      eval(info"Tracking in mode [${mode.toString}] ..") >>
+      eval(info"Starting TXO tracker in mode [${mode.toString}] ..") >>
       eval(cache.lastScannedBoxOffset).repeat
         .flatMap { lastOffset =>
           eval(client.getNetworkInfo).flatMap { networkParams =>
@@ -64,7 +64,7 @@ object UtxoTracker {
             val maxOffset  = networkParams.maxBoxGix
             val nextOffset = (offset + conf.batchSize) min maxOffset
             val outputsStream = mode match {
-              case TrackerMode.Historical => client.streamSpentOutputs(offset, conf.batchSize)
+              case TrackerMode.Historical => client.streamOutputs(offset, conf.batchSize)
               case TrackerMode.Live       => client.streamUnspentOutputs(offset, conf.batchSize)
             }
             val scan =

@@ -221,7 +221,11 @@ trait ErgoNetworkStreaming[S[_], F[_]] extends ErgoNetwork[F] {
 
   /** Get a stream of unspent outputs at the given global offset.
     */
-  def streamSpentOutputs(boxGixOffset: Long, limit: Int): S[Output]
+  def streamOutputs(boxGixOffset: Long, limit: Int): S[Output]
+
+  /** Get a stream of transactions at the given global offset.
+    */
+  def streamTransactions(txGixOffset: Long, limit: Int): S[Transaction]
 }
 
 object ErgoNetworkStreaming {
@@ -254,8 +258,11 @@ object ErgoNetworkStreaming {
     def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output] =
       evals.eval(tft.map(_.streamUnspentOutputs(boxGixOffset, limit))).flatten
 
-    def streamSpentOutputs(boxGixOffset: Long, limit: Int): S[Output] =
-      evals.eval(tft.map(_.streamSpentOutputs(boxGixOffset, limit))).flatten
+    def streamOutputs(boxGixOffset: Long, limit: Int): S[Output] =
+      evals.eval(tft.map(_.streamOutputs(boxGixOffset, limit))).flatten
+
+    def streamTransactions(txGixOffset: Long, limit: Int): S[Transaction] =
+      evals.eval(tft.map(_.streamTransactions(txGixOffset, limit))).flatten
   }
 
   implicit def functorK[F[_]]: FunctorK[ErgoNetworkStreaming[*[_], F]] = {
@@ -295,8 +302,23 @@ object ErgoNetworkStreaming {
     def streamUnspentOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] =
       streamSomeOutputs(utxoPathSeg)(boxGixOffset, limit)
 
-    def streamSpentOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] =
-      streamSomeOutputs(stxoPathSeg)(boxGixOffset, limit)
+    def streamOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] =
+      streamSomeOutputs(txoPathSeg)(boxGixOffset, limit)
+
+    def streamTransactions(txGixOffset: Long, limit: Int): Stream[F, Transaction] = {
+      val req =
+        basicRequest
+          .get(uri.withPathSegment(txPathSeg).addParams("minGix" -> txGixOffset.toString, "limit" -> limit.toString))
+          .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
+          .send(backend)
+          .map(_.body)
+      Stream
+        .force(req)
+        .chunks
+        .parseJsonStream
+        .map(_.as[Transaction].toOption)
+        .unNone
+    }
 
     def streamSomeOutputs(path: Uri.Segment)(boxGixOffset: Long, limit: Int): Stream[F, Output] = {
       val req =
