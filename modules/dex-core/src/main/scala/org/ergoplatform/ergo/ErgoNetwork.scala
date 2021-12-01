@@ -217,7 +217,7 @@ trait ErgoNetworkStreaming[S[_], F[_]] extends ErgoNetwork[F] {
 
   /** Get a stream of unspent outputs at the given global offset.
     */
-  def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output]
+  def streamOutputs(boxGixOffset: Long, limit: Int, unspent: Boolean): S[Output]
 }
 
 object ErgoNetworkStreaming {
@@ -247,8 +247,8 @@ object ErgoNetworkStreaming {
     def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]] =
       tft.flatMap(_.getUtxoByToken(tokenId, offset, limit))
 
-    def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output] =
-      evals.eval(tft.map(_.streamUnspentOutputs(boxGixOffset, limit))).flatten
+    def streamOutputs(boxGixOffset: Long, limit: Int, unspent: Boolean): S[Output] =
+      evals.eval(tft.map(_.streamOutputs(boxGixOffset, limit, unspent))).flatten
   }
 
   implicit def functorK[F[_]]: FunctorK[ErgoNetworkStreaming[*[_], F]] = {
@@ -285,10 +285,11 @@ object ErgoNetworkStreaming {
     private val uri                           = config.explorerUri
     implicit private val facade: Facade[Json] = new CirceSupportParser(None, allowDuplicateKeys = false).facade
 
-    def streamUnspentOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] = {
+    def streamOutputs(boxGixOffset: Long, limit: Int, unspent: Boolean): Stream[F, Output] = {
+      val path = if (unspent) utxoPathSeg else outputsPathSeg
       val req =
         basicRequest
-          .get(uri.withPathSegment(utxoPathSeg).addParams("minGix" -> boxGixOffset.toString, "limit" -> limit.toString))
+          .get(uri.withPathSegment(path).addParams("minGix" -> boxGixOffset.toString, "limit" -> limit.toString))
           .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
           .send(backend)
           .map(_.body)
@@ -296,7 +297,6 @@ object ErgoNetworkStreaming {
         .force(req)
         .chunks
         .parseJsonStream
-        //.handleErrorWith(_ => Stream(Json.Null))
         .map(_.as[Output].toOption)
         .unNone
     }

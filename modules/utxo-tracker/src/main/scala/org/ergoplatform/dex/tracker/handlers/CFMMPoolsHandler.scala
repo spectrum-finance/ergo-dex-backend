@@ -1,7 +1,5 @@
 package org.ergoplatform.dex.tracker.handlers
 
-import cats.instances.list._
-import cats.syntax.traverse._
 import cats.{Functor, FunctorFilter, Monad}
 import mouse.any._
 import org.ergoplatform.common.streaming.{Producer, Record}

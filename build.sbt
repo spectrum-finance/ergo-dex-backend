@@ -170,7 +170,7 @@ lazy val marketsIndex = utils
   .settings(assembly / mainClass := Some("org.ergoplatform.dex.index.App"))
   .settings(nativePackagerSettings("markets-index"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(Seq(core, db).map(_ % allConfigDependency): _*)
+  .dependsOn(Seq(core, db, utxoTracker).map(_ % allConfigDependency): _*)
 
 lazy val marketsApi = utils
   .mkModule("markets-api", "MarketsApi")

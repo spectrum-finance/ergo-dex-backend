@@ -26,23 +26,39 @@ trait UtxoTracker[F[_]] {
 
 object UtxoTracker {
 
+  trait TrackerMode { val trackUnspentOnly: Boolean }
+
+  object TrackerMode {
+
+    // Track only unspent outputs
+    object Live extends TrackerMode {
+      val trackUnspentOnly = true
+    }
+
+    // Track all outputs since the very beginning of blockchain history
+    object Historical extends TrackerMode {
+      val trackUnspentOnly = false
+    }
+  }
+
   def make[
     I[_]: FlatMap,
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: TrackerConfig.Has: Catches,
     G[_]: Monad
-  ](trackers: BoxHandler[F]*)(implicit
+  ](mode: TrackerMode, trackers: BoxHandler[F]*)(implicit
     client: ErgoNetworkStreaming[F, G],
     cache: TrackerCache[G],
     logs: Logs[I, G]
   ): I[UtxoTracker[F]] =
     logs.forService[UtxoTracker[F]].map { implicit l =>
-      (context map (conf => new Live[F, G](cache, conf, trackers.toList): UtxoTracker[F])).embed
+      (context map
+      (conf => new StreamingTracker[F, G](mode, cache, conf, trackers.toList): UtxoTracker[F])).embed
     }
 
-  final private class Live[
+  final private[dex] class StreamingTracker[
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging
-  ](cache: TrackerCache[G], conf: TrackerConfig, handlers: List[BoxHandler[F]])(implicit
+  ](mode: TrackerMode, cache: TrackerCache[G], conf: TrackerConfig, handlers: List[BoxHandler[F]])(implicit
     client: ErgoNetworkStreaming[F, G]
   ) extends UtxoTracker[F] {
 
@@ -57,7 +73,7 @@ object UtxoTracker {
             val scan =
               eval(info"Requesting UTXO batch {offset=$offset, maxOffset=$maxOffset, batchSize=${conf.batchSize} ..") >>
               client
-                .streamUnspentOutputs(offset, conf.batchSize)
+                .streamOutputs(offset, conf.batchSize, mode.trackUnspentOnly)
                 .evalTap(out => trace"Scanning box $out")
                 .flatTap(out => emits(handlers.map(_(out.pure[F]))).parFlattenUnbounded)
                 .evalMap(out => cache.setLastScannedBoxOffset(out.globalIndex))

@@ -2,12 +2,13 @@ package org.ergoplatform.dex.index.processes
 
 import cats.data.NonEmptyList
 import cats.syntax.foldable._
-import cats.{Foldable, Functor, Monad}
+import cats.{Applicative, Foldable, Functor, Monad}
 import org.ergoplatform.dex.domain.amm.{Deposit, Redeem, Swap}
 import org.ergoplatform.dex.index.db.DBView.syntax.DBViewOps
 import org.ergoplatform.dex.index.db.models.{DBDeposit, DBOutput, DBRedeem, DBSwap}
 import org.ergoplatform.dex.index.repos.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMConsumer
+import tofu.doobie.transactor.Txr
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Chunks, Evals}
 import tofu.syntax.logging._
@@ -25,19 +26,27 @@ object Indexing {
     I[_]: Functor,
     S[_]: Evals[*[_], F]: Chunks[*[_], C],
     F[_]: Monad,
+    D[_]: Monad,
     C[_]: Functor: Foldable
-  ](implicit orders: CFMMConsumer[S, F], repoBundle: RepoBundle[F], logs: Logs[I, F]): I[Indexing[S]] =
+  ](implicit
+    orders: CFMMConsumer[S, F],
+    repoBundle: RepoBundle[D],
+    txr: Txr.Aux[F, D],
+    logs: Logs[I, F]
+  ): I[Indexing[S]] =
     logs.forService[Indexing[S]] map { implicit l =>
-      new CFMMIndexing[S, F, C]
+      new CFMMIndexing[S, F, D, C]
     }
 
   final class CFMMIndexing[
     S[_]: Evals[*[_], F]: Chunks[*[_], C],
     F[_]: Monad: Logging,
+    D[_]: Monad,
     C[_]: Functor: Foldable
   ](implicit
     orders: CFMMConsumer[S, F],
-    repos: RepoBundle[F]
+    repos: RepoBundle[D],
+    txr: Txr.Aux[F, D]
   ) extends Indexing[S] {
 
     def run: S[Unit] =
@@ -50,16 +59,17 @@ object Indexing {
         }
         val (deposits, redeems) = others.partitionEither(identity)
         val outputs             = orders.map(_.box)
-        def insertMaybe[A](xs: List[A])(insert: NonEmptyList[A] => F[Int]) =
-          NonEmptyList.fromList(xs).fold(0.pure[F])(insert)
-        for {
-          ss <- insertMaybe(swaps)(xs => repos.orders.insertSwaps(xs.map(_.viewDB[DBSwap])))
-          ds <- insertMaybe(deposits)(xs => repos.orders.insertDeposits(xs.map(_.viewDB[DBDeposit])))
-          rs <- insertMaybe(redeems)(xs => repos.orders.insertRedeems(xs.map(_.viewDB[DBRedeem])))
-          _  <- insertMaybe(outputs.map(_.viewDB[DBOutput]))(xs => repos.outputs.insertOutputs(xs))
-          _  <- insertMaybe(outputs.flatMap(_.assets))(xs => repos.assets.insertAssets(xs))
-          _  <- info"[${ss + ds + rs}}] orders indexed"
-        } yield ()
+        def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
+          NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
+        val insert =
+          for {
+            ss <- insertNel(swaps)(xs => repos.orders.insertSwaps(xs.map(_.dbView[DBSwap])))
+            ds <- insertNel(deposits)(xs => repos.orders.insertDeposits(xs.map(_.dbView[DBDeposit])))
+            rs <- insertNel(redeems)(xs => repos.orders.insertRedeems(xs.map(_.dbView[DBRedeem])))
+            _  <- insertNel(outputs.map(_.dbView[DBOutput]))(xs => repos.outputs.insertOutputs(xs))
+            _  <- insertNel(outputs.flatMap(_.assets))(xs => repos.assets.insertAssets(xs))
+          } yield ss + ds + rs
+        txr.trans(insert) >>= (n => info"[$n}] orders indexed")
       }
   }
 }

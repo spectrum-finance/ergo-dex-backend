@@ -1,5 +1,6 @@
 package org.ergoplatform.dex.demo
 
+import cats.effect.ExitCode.Error
 import org.ergoplatform.ErgoBox._
 import org.ergoplatform._
 import org.ergoplatform.dex.protocol.codecs._
@@ -14,6 +15,8 @@ import sigmastate.SType
 import sigmastate.Values.{ByteArrayConstant, ErgoTree, EvaluatedValue, IntConstant}
 import sigmastate.eval._
 import sigmastate.lang.Terms.ValueOps
+
+import java.math.BigInteger
 
 object CreateCfmmPool extends App with SigmaPlatform {
 
@@ -128,8 +131,8 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
   val secretHex = ""
 
   val inputsIds =
-    "fa6326a26334f5e933b96470b53b45083374f71912b0d7597f00c2c7ebeb5da6" ::
-    "19052d88da81590e570c8c144a336aaa4d88a7a2e1170adaa59571bd6d95f682" :: Nil
+    "c95645836ca45f6923978e175b93305185406aa939b213c96e44b6645911d04f" ::
+    "06114d23a666883439f8b6121c1ade36e4ece75a18324a86f1ddf4ede8460de2" :: Nil
 
   val inputs       = inputsIds.map(inputId => getInput(inputId).get)
   val totalNErgsIn = inputs.map(_.value).sum
@@ -139,18 +142,18 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
   val burnLP     = 1000
   val emissionLP = Long.MaxValue - burnLP
 
-  val lpName = "ERG_SigRSV_LP"
-  val lpDesc = "ERG/SigRSV pool LP tokens"
+  val lpName = "ERG_Erdoge_LP"
+  val lpDesc = "ERG/Erdoge pool LP tokens"
 
   val lockNErgs = 10000000L
   val minValue  = 500000L
 
-  val depositNErgs  = 4738760630L
-  val depositSigRSV = 3900L
+  val depositNErgs  = 500000000L
+  val depositSigRSV = 1400L
 
   val bootInputNErg = minerFeeNErg + lockNErgs + minValue + depositNErgs
 
-  val SigRSV = getToken("003bd19d0187117f130b62e1bcab0939929ff5c7709f843c5c4dd158949285d0", inputs)
+  val SigRSV = getToken("36aba4b4a97b65be491cf9f5ca57b5408b0da8d0194f30ec8330d1e8946161c1", inputs)
 
   val height = currentHeight()
 
@@ -163,7 +166,8 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
     additionalTokens = Colls.fromItems(lpId -> emissionLP, SigRSV._1 -> depositSigRSV),
     additionalRegisters = scala.Predef.Map(
       R4 -> ByteArrayConstant(lpName.getBytes()),
-      R5 -> ByteArrayConstant(lpDesc.getBytes())
+      R5 -> ByteArrayConstant(lpDesc.getBytes()),
+      R6 -> ByteArrayConstant("0".getBytes())
     )
   )
 
@@ -183,7 +187,22 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
 
   // Pool TX
 
-  val shareLP = math.sqrt(((depositNErgs + lockNErgs) * depositSigRSV).toDouble).toLong
+  val shareLP = sqrt(((BigInt(depositNErgs) + lockNErgs) * depositSigRSV).bigInteger).toLong
+
+  def sqrt(x: BigInteger): BigInteger = {
+    var div  = BigInteger.ZERO.setBit(x.bitLength / 2)
+    var div2 = div
+    // Loop until we hit the same value twice in a row, or wind
+    // up alternating.
+
+    while (true) {
+      val y = div.add(x.divide(div)).shiftRight(1)
+      if (y.equals(div) || y.equals(div2)) return y
+      div2 = div
+      div  = y
+    }
+    throw new Error("SQRT failed")
+  }
 
   require(shareLP * shareLP <= (depositNErgs + lockNErgs) * depositSigRSV)
 
