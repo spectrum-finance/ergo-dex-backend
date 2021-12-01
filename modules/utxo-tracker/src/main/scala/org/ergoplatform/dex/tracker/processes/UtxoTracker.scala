@@ -2,7 +2,6 @@ package org.ergoplatform.dex.tracker.processes
 
 import cats.{Defer, FlatMap, Monad, MonoidK}
 import derevo.derive
-import mouse.any._
 import org.ergoplatform.dex.tracker.configs.TrackerConfig
 import org.ergoplatform.dex.tracker.handlers.BoxHandler
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
@@ -26,19 +25,13 @@ trait UtxoTracker[F[_]] {
 
 object UtxoTracker {
 
-  trait TrackerMode { val trackUnspentOnly: Boolean }
+  trait TrackerMode
 
   object TrackerMode {
-
     // Track only unspent outputs
-    object Live extends TrackerMode {
-      val trackUnspentOnly = true
-    }
-
-    // Track all outputs since the very beginning of blockchain history
-    object Historical extends TrackerMode {
-      val trackUnspentOnly = false
-    }
+    object Live extends TrackerMode
+    // Track only spent outputs since the very beginning of blockchain history
+    object Historical extends TrackerMode
   }
 
   def make[
@@ -63,17 +56,20 @@ object UtxoTracker {
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =
-      eval(info"Starting tracking ..") >>
+      eval(info"Tracking in mode [${mode.toString}] ..") >>
       eval(cache.lastScannedBoxOffset).repeat
         .flatMap { lastOffset =>
           eval(client.getNetworkInfo).flatMap { networkParams =>
             val offset     = lastOffset max conf.initialOffset
             val maxOffset  = networkParams.maxBoxGix
             val nextOffset = (offset + conf.batchSize) min maxOffset
+            val outputsStream = mode match {
+              case TrackerMode.Historical => client.streamSpentOutputs(offset, conf.batchSize)
+              case TrackerMode.Live       => client.streamUnspentOutputs(offset, conf.batchSize)
+            }
             val scan =
               eval(info"Requesting UTXO batch {offset=$offset, maxOffset=$maxOffset, batchSize=${conf.batchSize} ..") >>
-              client
-                .streamOutputs(offset, conf.batchSize, mode.trackUnspentOnly)
+              outputsStream
                 .evalTap(out => trace"Scanning box $out")
                 .flatTap(out => emits(handlers.map(_(out.pure[F]))).parFlattenUnbounded)
                 .evalMap(out => cache.setLastScannedBoxOffset(out.globalIndex))

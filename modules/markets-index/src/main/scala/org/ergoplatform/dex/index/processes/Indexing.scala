@@ -2,7 +2,7 @@ package org.ergoplatform.dex.index.processes
 
 import cats.data.NonEmptyList
 import cats.syntax.foldable._
-import cats.{Applicative, Foldable, Functor, Monad}
+import cats.{Foldable, Functor, Monad}
 import org.ergoplatform.dex.domain.amm.{Deposit, Redeem, Swap}
 import org.ergoplatform.dex.index.db.DBView.syntax.DBViewOps
 import org.ergoplatform.dex.index.db.models.{DBDeposit, DBOutput, DBRedeem, DBSwap}

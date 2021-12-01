@@ -25,7 +25,7 @@ import org.typelevel.jawn.Facade
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3._
 import sttp.client3.circe._
-import sttp.model.MediaType
+import sttp.model.{MediaType, Uri}
 import tofu.MonadThrow
 import tofu.fs2.LiftStream
 import tofu.higherKind.Mid
@@ -217,7 +217,11 @@ trait ErgoNetworkStreaming[S[_], F[_]] extends ErgoNetwork[F] {
 
   /** Get a stream of unspent outputs at the given global offset.
     */
-  def streamOutputs(boxGixOffset: Long, limit: Int, unspent: Boolean): S[Output]
+  def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output]
+
+  /** Get a stream of unspent outputs at the given global offset.
+    */
+  def streamSpentOutputs(boxGixOffset: Long, limit: Int): S[Output]
 }
 
 object ErgoNetworkStreaming {
@@ -247,8 +251,11 @@ object ErgoNetworkStreaming {
     def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]] =
       tft.flatMap(_.getUtxoByToken(tokenId, offset, limit))
 
-    def streamOutputs(boxGixOffset: Long, limit: Int, unspent: Boolean): S[Output] =
-      evals.eval(tft.map(_.streamOutputs(boxGixOffset, limit, unspent))).flatten
+    def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output] =
+      evals.eval(tft.map(_.streamUnspentOutputs(boxGixOffset, limit))).flatten
+
+    def streamSpentOutputs(boxGixOffset: Long, limit: Int): S[Output] =
+      evals.eval(tft.map(_.streamSpentOutputs(boxGixOffset, limit))).flatten
   }
 
   implicit def functorK[F[_]]: FunctorK[ErgoNetworkStreaming[*[_], F]] = {
@@ -285,8 +292,13 @@ object ErgoNetworkStreaming {
     private val uri                           = config.explorerUri
     implicit private val facade: Facade[Json] = new CirceSupportParser(None, allowDuplicateKeys = false).facade
 
-    def streamOutputs(boxGixOffset: Long, limit: Int, unspent: Boolean): Stream[F, Output] = {
-      val path = if (unspent) utxoPathSeg else outputsPathSeg
+    def streamUnspentOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] =
+      streamSomeOutputs(utxoPathSeg)(boxGixOffset, limit)
+
+    def streamSpentOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] =
+      streamSomeOutputs(stxoPathSeg)(boxGixOffset, limit)
+
+    def streamSomeOutputs(path: Uri.Segment)(boxGixOffset: Long, limit: Int): Stream[F, Output] = {
       val req =
         basicRequest
           .get(uri.withPathSegment(path).addParams("minGix" -> boxGixOffset.toString, "limit" -> limit.toString))
