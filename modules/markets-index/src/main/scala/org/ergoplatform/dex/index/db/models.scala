@@ -1,10 +1,7 @@
 package org.ergoplatform.dex.index.db
 
-import io.circe.Json
-import io.circe.syntax._
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
 import org.ergoplatform.dex.domain.amm.{Deposit, EvaluatedCFMMOrder, OrderId, PoolId, PoolStateId, Redeem, Swap}
-import org.ergoplatform.ergo.models.Output
 import org.ergoplatform.ergo._
 
 object models {
@@ -117,32 +114,4 @@ object models {
         deposit.params.p2pk
       )
   }
-
-  final case class DBOutput(
-    boxId: BoxId,
-    transactionId: TxId,
-    value: Long,
-    index: Int,
-    globalIndex: Long,
-    creationHeight: Int,
-    settlementHeight: Int,
-    ergoTree: SErgoTree,
-    address: Address,
-    additionalRegisters: Json
-  )
-
-  implicit val outputView: DBView[Output, DBOutput] =
-    (output: Output) =>
-      DBOutput(
-        output.boxId,
-        output.transactionId,
-        output.value,
-        output.index,
-        output.globalIndex,
-        output.creationHeight,
-        output.settlementHeight,
-        output.ergoTree,
-        output.address,
-        output.additionalRegisters.asJson
-      )
 }

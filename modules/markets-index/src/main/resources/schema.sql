@@ -40,38 +40,3 @@ create table if not exists deposits (
     dex_fee bigint not null,
     p2pk varchar(64) not null
 );
-
-CREATE TABLE outputs
-(
-    box_id                  VARCHAR(64) NOT NULL,
-    transaction_id          VARCHAR(64) NOT NULL,
-    value                   BIGINT      NOT NULL,
-    index                   INTEGER     NOT NULL,
-    global_index            BIGINT      NOT NULL,
-    creation_height         INTEGER     NOT NULL,
-    settlement_height       INTEGER     NOT NULL,
-    ergo_tree               VARCHAR     NOT NULL,
-    address                 VARCHAR     NOT NULL,
-    additional_registers    JSON        NOT NULL,
-    PRIMARY KEY (box_id)
-);
-
-CREATE INDEX "outputs__box_id" ON outputs (box_id);
-CREATE INDEX "outputs__transaction_id" ON outputs (transaction_id);
-CREATE INDEX "outputs__address" ON outputs (address);
-CREATE INDEX "outputs__ergo_tree" ON outputs (ergo_tree);
-
-CREATE TABLE assets
-(
-    token_id  VARCHAR(64) NOT NULL,
-    index     INTEGER     NOT NULL,
-    amount    BIGINT      NOT NULL,
-    name      VARCHAR,
-    decimals  INTEGER,
-    type      VARCHAR,
-    PRIMARY KEY (token_id)
-);
-
-CREATE INDEX "assets__token_id" ON node_assets (token_id);
-
-

@@ -69,7 +69,6 @@ object HistoryIndexing {
             Right(Right(EvaluatedCFMMOrder(o, none[RedeemEvaluation], p).dbView[DBRedeem]))
         }
         val (deposits, redeems) = others.partitionEither(identity)
-        val outputs             = orders.map(_.order.box)
         def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
           NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
         val insert =
@@ -77,8 +76,6 @@ object HistoryIndexing {
             ss <- insertNel(swaps)(repos.orders.insertSwaps)
             ds <- insertNel(deposits)(repos.orders.insertDeposits)
             rs <- insertNel(redeems)(repos.orders.insertRedeems)
-            _  <- insertNel(outputs.map(_.dbView[DBOutput]))(xs => repos.outputs.insertOutputs(xs))
-            _  <- insertNel(outputs.flatMap(_.assets))(xs => repos.assets.insertAssets(xs))
           } yield ss + ds + rs
         txr.trans(insert) >>= (n => info"[$n] orders indexed")
       }
