@@ -6,19 +6,18 @@ import fs2.kafka.serde._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
-import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
+import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.dex.domain.amm.state.Confirmed
-import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, OrderId, PoolId}
+import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, EvaluatedCFMMOrder, OrderEvaluation, OrderId, PoolId}
 import org.ergoplatform.dex.index.configs.ConfigBundle
-import org.ergoplatform.dex.index.processes.Indexing
+import org.ergoplatform.dex.index.processes.HistoryIndexing
 import org.ergoplatform.dex.index.repos.RepoBundle
-import org.ergoplatform.dex.index.streaming.CFMMConsumer
-import org.ergoplatform.dex.tracker.handlers.{CFMMOpsHandler, CFMMPoolsHandler}
+import org.ergoplatform.dex.index.streaming.CFMMHistConsumer
+import org.ergoplatform.dex.tracker.handlers.CFMMPoolsHandler
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
 import org.ergoplatform.dex.tracker.processes.UtxoTracker.TrackerMode
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
-import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
 import org.ergoplatform.ergo.ErgoNetworkStreaming
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
@@ -41,12 +40,12 @@ object App extends EnvApp[ConfigBundle] {
   implicit val mtx: MakeRedisTransaction[RunF] = MakeRedisTransaction.make[RunF]
 
   def run(args: List[String]): URIO[ZEnv, ExitCode] =
-    init(args.headOption).use { case (tracker, ctx) =>
-      val appF = tracker.run.compile.drain
+    init(args.headOption).use { case (tracker, hist, pools, ctx) =>
+      val appF = fs2.Stream(tracker.run, hist.run, pools.run).parJoinUnbounded.compile.drain
       appF.run(ctx) as ExitCode.success
     }.orDie
 
-  private def init(configPathOpt: Option[String]): Resource[InitF, (UtxoTracker[StreamF], ConfigBundle)] =
+  private def init(configPathOpt: Option[String]) =
     for {
       blocker <- Blocker[InitF]
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
@@ -57,26 +56,29 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
-      implicit0(mkc: MakeKafkaConsumer[RunF, OrderId, CFMMOrder]) =
-        MakeKafkaConsumer.make[InitF, RunF, OrderId, CFMMOrder]
-      implicit0(consumer: CFMMConsumer[StreamF, RunF]) =
-        Consumer.make[StreamF, RunF, OrderId, CFMMOrder](configs.cfmmOrdersConsumer)
-      implicit0(producer1: Producer[OrderId, CFMMOrder, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, CFMMOrder](configs.cfmmOrdersProducer)
-      implicit0(producer2: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-
+      implicit0(mc: MakeKafkaConsumer[RunF, PoolId, Confirmed[CFMMPool]]) =
+        MakeKafkaConsumer.make[InitF, RunF, PoolId, Confirmed[CFMMPool]]
+      implicit0(poolCons: Consumer[PoolId, Confirmed[CFMMPool], StreamF, RunF]) =
+        Consumer.make[StreamF, RunF, PoolId, Confirmed[CFMMPool]]
+      implicit0(mkc: MakeKafkaConsumer[RunF, OrderId, EvaluatedCFMMOrder.Any]) =
+        MakeKafkaConsumer.make[InitF, RunF, OrderId, EvaluatedCFMMOrder.Any]
+      implicit0(orderCons: CFMMHistConsumer[StreamF, RunF]) =
+        Consumer.make[StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any](configs.cfmmHistoryConsumer)
+      implicit0(orderProd: Producer[OrderId, EvaluatedCFMMOrder.Any, StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any](configs.cfmmHistoryProducer)
+      implicit0(poolProd: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.cfmmPoolsProducer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
-      implicit0(cfmmRules: CFMMRules[RunF])                  = CFMMRules.make[RunF]
-      t2tCfmmHandler                       <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF])
       cfmmPoolsHandler                     <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       tracker <-
         Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Historical, cfmmPoolsHandler))
       implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])
-      indexer                             <- Resource.eval(Indexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-    } yield tracker -> configs
+      historyIndexer                      <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      poolsIndexer                        <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+    } yield (tracker, historyIndexer, poolsIndexer, configs)
 
   private def makeBackend(
     configs: ConfigBundle,

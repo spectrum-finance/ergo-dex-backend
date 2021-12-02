@@ -1,5 +1,6 @@
 create table if not exists swaps (
     pool_id varchar(64) not null,
+    pool_state_id varchar(64) not null,
     max_miner_fee bigint not null,
     timestamp bigint not null,
     input_id varchar(64) not null,
@@ -15,6 +16,7 @@ create table if not exists swaps (
 
 create table if not exists redeems (
     pool_id varchar(64) not null,
+    pool_state_id varchar(64) not null,
     max_miner_fee bigint not null,
     timestamp bigint not null,
     lp_id varchar(64) not null,
@@ -26,6 +28,7 @@ create table if not exists redeems (
 
 create table if not exists deposits (
     pool_id varchar(64) not null,
+    pool_state_id varchar(64) not null,
     max_miner_fee bigint not null,
     timestamp bigint not null,
     in_x_id varchar(64) not null,

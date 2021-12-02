@@ -9,12 +9,23 @@ import fs2.kafka.serde.{deserializerByDecoder, serializerByEncoder}
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.estatico.newtype.macros.newtype
 import org.ergoplatform.common.HexString
+import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.ergo.{BoxId, TokenId}
 import scodec.bits.ByteVector
 import sttp.tapir.{Codec, Schema, Validator}
 import tofu.logging.derivation.loggable
 
 package object amm {
+
+  @derive(show, loggable, encoder, decoder)
+  @newtype final case class PoolStateId(value: BoxId) {
+    def unwrapped: String = value.value
+  }
+
+  object PoolStateId {
+    implicit val put: Put[PoolStateId] = deriving
+    implicit val get: Get[PoolStateId] = deriving
+  }
 
   @derive(show, loggable, encoder, decoder)
   @newtype final case class PoolId(value: TokenId) {

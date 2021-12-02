@@ -11,7 +11,7 @@ import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-class T2TCFMMOpsParserSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks with CatsPlatform {
+class T2TCFMMOrdersParserSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks with CatsPlatform {
 
   property("Swap order parsing") {
     val res = parser.swap(boxSample).unsafeRunSync()
@@ -67,7 +67,7 @@ class T2TCFMMOpsParserSpec extends AnyPropSpec with should.Matchers with ScalaCh
   }
 
   implicit val e: ErgoAddressEncoder = new ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
-  def parser                         = T2TCFMMOpsParser.make[IO]
+  def parser                         = T2TCFMMOrdersParser.make[IO]
 
   def boxSample =
     io.circe.parser

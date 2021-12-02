@@ -9,14 +9,14 @@ import org.ergoplatform.dex.configs._
 import org.ergoplatform.dex.tracker.configs.TrackerConfig
 import tofu.Context
 import tofu.logging.Loggable
-import tofu.optics.macros.{ClassyOptics, promote}
+import tofu.optics.macros.{promote, ClassyOptics}
 
 @derive(pureconfigReader)
 @ClassyOptics
 final case class ConfigBundle(
   @promote commitPolicy: CommitPolicy,
-  cfmmOrdersConsumer: ConsumerConfig,
-  cfmmOrdersProducer: ProducerConfig,
+  cfmmHistoryConsumer: ConsumerConfig,
+  cfmmHistoryProducer: ProducerConfig,
   cfmmPoolsProducer: ProducerConfig,
   @promote db: PgConfig,
   @promote kafka: KafkaConfig,
