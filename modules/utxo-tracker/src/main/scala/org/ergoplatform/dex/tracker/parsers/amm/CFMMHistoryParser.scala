@@ -51,7 +51,7 @@ object CFMMHistoryParser {
   ) extends CFMMHistoryParser[CT, F] {
 
     def swap(tx: Transaction): F[Option[EvaluatedCFMMOrder[Swap, SwapEvaluation]]] =
-      parseSomeOrder(tx)(orders.swap, evals.parseSwapEval)
+      parseSomeOrder(tx)(orders.swap, (o, _, a) => evals.parseSwapEval(o, a))
 
     def deposit(tx: Transaction): F[Option[EvaluatedCFMMOrder[Deposit, DepositEvaluation]]] =
       parseSomeOrder(tx)(orders.deposit, evals.parseDepositEval)
@@ -61,14 +61,22 @@ object CFMMHistoryParser {
 
     private def parseSomeOrder[A <: CFMMOrder, E <: OrderEvaluation](
       tx: Transaction
-    )(opParser: Output => F[Option[A]], evalParse: (Output, A) => F[Option[E]]): F[Option[EvaluatedCFMMOrder[A, E]]] =
+    )(
+      opParser: Output => F[Option[A]],
+      evalParse: (Output, CFMMPool, A) => F[Option[E]]
+    ): F[Option[EvaluatedCFMMOrder[A, E]]] =
       tx.inputs
         .map(_.asOutput)
-        .traverse { o =>
-          opParser(o)
+        .traverse { i =>
+          opParser(i)
             .flatMap {
-              case Some(ord) => evalParse(o, ord).map(eval => (ord.some, eval, pools.pool(o)))
-              case None      => (none[A], none[E], none[Confirmed[CFMMPool]]).pure[F]
+              case Some(ord) =>
+                val pool = pools.pool(i)
+                tx.outputs
+                  .traverse(o => pools.pool(i).fold(none[E].pure[F])(p => evalParse(o, p.confirmed, ord)))
+                  .map(_.headOption.flatten)
+                  .map(eval => (ord.some, eval, pool))
+              case None => (none[A], none[E], none[Confirmed[CFMMPool]]).pure[F]
             }
         }
         .map {
