@@ -7,7 +7,7 @@ import cats.{Foldable, Functor, Monad}
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
 import org.ergoplatform.dex.domain.amm.{Deposit, EvaluatedCFMMOrder, Redeem, Swap}
 import org.ergoplatform.dex.index.db.DBView.syntax.DBViewOps
-import org.ergoplatform.dex.index.db.models.{DBDeposit, DBOutput, DBRedeem, DBSwap}
+import org.ergoplatform.dex.index.db.models.{DBDeposit, DBRedeem, DBSwap}
 import org.ergoplatform.dex.index.repos.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMHistConsumer
 import tofu.doobie.transactor.Txr
@@ -20,6 +20,10 @@ import tofu.syntax.streams.evals._
 
 trait HistoryIndexing[F[_]] {
   def run: F[Unit]
+}
+
+trait Foo[A] {
+  def doSmt(a: A): A
 }
 
 object HistoryIndexing {
