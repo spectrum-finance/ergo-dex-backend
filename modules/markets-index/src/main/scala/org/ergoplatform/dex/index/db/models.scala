@@ -1,10 +1,41 @@
 package org.ergoplatform.dex.index.db
 
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
-import org.ergoplatform.dex.domain.amm.{Deposit, EvaluatedCFMMOrder, OrderId, PoolId, PoolStateId, Redeem, Swap}
+import org.ergoplatform.dex.domain.amm.{CFMMPool, Deposit, EvaluatedCFMMOrder, OrderId, PoolId, PoolStateId, Redeem, Swap}
 import org.ergoplatform.ergo._
 
 object models {
+
+  final case class DBCFMMPool(
+    poolId: PoolId,
+    lpId: TokenId,
+    lpAmount: Long,
+    lpTicker: Option[String],
+    xId: TokenId,
+    xAmount: Long,
+    xTicker: Option[String],
+    yId: TokenId,
+    yAmount: Long,
+    yTicker: Option[String],
+    feeNum: Int,
+    boxId: BoxId
+  )
+
+  def poolToDB: CFMMPool => DBCFMMPool = pool =>
+    DBCFMMPool(
+      pool.poolId,
+      pool.lp.id,
+      pool.lp.value,
+      pool.lp.ticker,
+      pool.x.id,
+      pool.x.value,
+      pool.x.ticker,
+      pool.y.id,
+      pool.y.value,
+      pool.y.ticker,
+      pool.feeNum,
+      pool.box.boxId
+    )
 
   final case class DBSwap(
     orderId: OrderId,

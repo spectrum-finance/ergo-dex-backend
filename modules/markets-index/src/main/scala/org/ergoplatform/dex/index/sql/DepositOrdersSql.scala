@@ -5,15 +5,18 @@ import org.ergoplatform.common.sql.QuerySet
 object DepositOrdersSql extends QuerySet {
 
   val fields: List[String] = List(
+    "order_id",
     "pool_id",
+    "pool_state_id",
     "max_miner_fee",
     "timestamp",
-    "in_x_id",
-    "in_x_value",
-    "in_x_ticker",
-    "in_y_id",
-    "in_y_value",
-    "in_y_ticker",
+    "input_id_x",
+    "input_amount_x",
+    "input_ticker_x",
+    "input_id_y",
+    "input_amount_y",
+    "input_ticker_y",
+    "output_amount_lp",
     "dex_fee",
     "p2pk"
   )

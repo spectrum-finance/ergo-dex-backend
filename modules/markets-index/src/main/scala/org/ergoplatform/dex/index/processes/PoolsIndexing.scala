@@ -3,6 +3,7 @@ package org.ergoplatform.dex.index.processes
 import cats.data.NonEmptyList
 import cats.syntax.foldable._
 import cats.{Foldable, Functor, Monad}
+import org.ergoplatform.dex.index.db.models.poolToDB
 import org.ergoplatform.dex.index.repos.RepoBundle
 import org.ergoplatform.dex.index.streaming.{CFMMHistConsumer, CFMMPoolsConsumer}
 import tofu.doobie.transactor.Txr
@@ -49,7 +50,7 @@ object PoolsIndexing {
     def run: S[Unit] =
       pools.stream.chunks.evalMap { rs =>
         val poolSnapshots = rs.map(r => r.message.confirmed).toList
-        val insert        = NonEmptyList.fromList(poolSnapshots).fold(0.pure[D])(repos.pools.insert)
+        val insert        = NonEmptyList.fromList(poolSnapshots).fold(0.pure[D])(xs => repos.pools.insert(xs.map(poolToDB)))
         txr.trans(insert) >>= (n => info"[$n] pool snapshots indexed")
       }
   }
