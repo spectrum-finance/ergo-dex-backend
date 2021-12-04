@@ -1,6 +1,5 @@
 package org.ergoplatform.dex.demo
 
-import cats.effect.ExitCode.Error
 import org.ergoplatform.ErgoBox._
 import org.ergoplatform._
 import org.ergoplatform.dex.protocol.codecs._
@@ -18,37 +17,59 @@ import sigmastate.lang.Terms.ValueOps
 
 import java.math.BigInteger
 
+object Utils {
+
+  def sqrt(x: BigInteger): BigInteger = {
+    var div  = BigInteger.ZERO.setBit(x.bitLength / 2)
+    var div2 = div
+    // Loop until we hit the same value twice in a row, or wind
+    // up alternating.
+
+    while (true) {
+      val y = div.add(x.divide(div)).shiftRight(1)
+      if (y.equals(div) || y.equals(div2)) return y
+      div2 = div
+      div  = y
+    }
+    throw new Error("SQRT failed")
+  }
+}
+
+import Utils._
+
 object CreateCfmmPool extends App with SigmaPlatform {
 
   val secretHex = ""
-  val inputId   = "1c51c3a53abfe87e6db9a03c649e8360f255ffc4bd34303d30fc7db23ae551db"
 
-  val input = getInput(inputId).get
+  val inputsIds =
+    "ef8b8067973e3f96e3b39d54a9b53039414986392b1861ed572db67ac96f7f60" ::
+    "87ff47c5a9b0a60b4f7ec8a1c12ce5fcd104156ee2d9ba0d0e12f1e4a080a678" ::
+    "df9e09e778e714b51bfb0a98d8517a855b58f08c263be5759d0f2cd1ad83bc50" :: Nil
 
-  val lpId       = Digest32 @@ (ADKey !@@ input.boxId.toErgo)
+  val inputs       = inputsIds.map(inputId => getInput(inputId).get)
+  val totalNErgsIn = inputs.map(_.value).sum
+  val tokensIn     = extractTokens(inputs)
+
+  val lpId       = Digest32 @@ (ADKey !@@ inputs(0).boxId.toErgo)
   val burnLP     = 1000
   val emissionLP = Long.MaxValue - burnLP
 
-  val lpName = "WERG_WADA_LP_2"
+  val lpName = "SigUSD_SigRSV_LP"
+  val lpDesc = "SigUSD/SigRSV pool LP tokens"
 
   val lockNErgs = 4000000L
   val minValue  = 500000L
 
   val bootInputNErg = minerFeeNErg + lockNErgs + minValue
 
-  require(input.value >= bootInputNErg + minerFeeNErg)
+  val depositSigUSD = 10000L // 100
+  val depositSigRSV = 15600L // 15600
 
-  val depositWERG = 5000000000000L
-  val depositWADA = 10000000000000L
+  val SigUSD = getToken("03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04", inputs)
+  val SigRSV = getToken("003bd19d0187117f130b62e1bcab0939929ff5c7709f843c5c4dd158949285d0", inputs)
 
-  val WERG = getToken("ef802b475c06189fdbf844153cdc1d449a5ba87cce13d11bb47b5a539f27f12b", input)
-  val WADA = getToken("30974274078845f263b4f21787e33cc99e9ec19a17ad85a5bc6da2cca91c5a2e", input)
-
-  val TERG = getToken("f45c4f0d95ce1c64defa607d94717a9a30c00fdd44827504be20db19f4dce36f", input)
-  val TUSD = getToken("f302c6c042ada3566df8e67069f8ac76d10ce15889535141593c168f3c59e776", input)
-
-  require(WERG._2 >= depositWERG)
-  require(WADA._2 >= depositWADA)
+  require(SigUSD._2 >= depositSigUSD)
+  require(SigRSV._2 >= depositSigRSV)
 
   val height = currentHeight()
 
@@ -58,27 +79,33 @@ object CreateCfmmPool extends App with SigmaPlatform {
     value            = bootInputNErg,
     ergoTree         = selfAddress.script,
     creationHeight   = height,
-    additionalTokens = Colls.fromItems(lpId -> emissionLP, WERG._1 -> depositWERG, WADA._1 -> depositWADA)
+    additionalTokens = Colls.fromItems(lpId -> emissionLP, SigUSD._1 -> depositSigUSD, SigRSV._1 -> depositSigRSV),
+    additionalRegisters = scala.Predef.Map(
+      R4 -> ByteArrayConstant(lpName.getBytes()),
+      R5 -> ByteArrayConstant(lpDesc.getBytes()),
+      R6 -> ByteArrayConstant("0".getBytes())
+    )
   )
 
   val change0 = new ErgoBoxCandidate(
-    value          = input.value - bootInputNErg - minerFeeNErg,
+    value          = totalNErgsIn - bootInputNErg - minerFeeNErg,
     ergoTree       = selfAddress.script,
     creationHeight = height,
-    additionalTokens =
-      Colls.fromItems(WERG._1 -> (WERG._2 - depositWERG), WADA._1 -> (WADA._2 - depositWADA), TERG, TUSD)
+    additionalTokens = Colls.fromItems(tokensIn.filterNot { case (tid, _) =>
+      java.util.Arrays.equals(tid, SigUSD._1) || java.util.Arrays.equals(tid, SigRSV._1)
+    }: _*)
   )
 
-  val inputs0 = Vector(new UnsignedInput(ADKey @@ Base16.decode(inputId).get))
+  val inputs0 = inputs.map(input => new UnsignedInput(ADKey @@ Base16.decode(input.boxId.value).get)).toVector
   val outs0   = Vector(boot, change0, minerFeeBox)
   val utx0    = UnsignedErgoLikeTransaction(inputs0, outs0)
   val tx0     = ErgoUnsafeProver.prove(utx0, sk)
 
   // Pool TX
 
-  val shareLP = math.sqrt((depositWERG * depositWADA).toDouble).toLong
+  val shareLP = math.sqrt((depositSigUSD * depositSigRSV).toDouble).toLong
 
-  require(shareLP * shareLP <= depositWERG * depositWADA)
+  require(shareLP * shareLP <= depositSigUSD * depositSigRSV)
 
   val lpOut = new ErgoBoxCandidate(
     value            = minValue,
@@ -89,7 +116,7 @@ object CreateCfmmPool extends App with SigmaPlatform {
 
   val bootBox = tx0.outputs(0)
 
-  val poolFeeNum = 996
+  val poolFeeNum = 995
   val poolNFT    = Digest32 @@ (ADKey !@@ bootBox.id)
 
   val poolRegisters: Map[NonMandatoryRegisterId, _ <: EvaluatedValue[_ <: SType]] =
@@ -105,10 +132,10 @@ object CreateCfmmPool extends App with SigmaPlatform {
     ergoTree       = poolTree,
     creationHeight = height,
     additionalTokens = Colls.fromItems(
-      poolNFT -> 1L,
-      lpId    -> (emissionLP - shareLP),
-      WERG._1 -> depositWERG,
-      WADA._1 -> depositWADA
+      poolNFT   -> 1L,
+      lpId      -> (emissionLP - shareLP),
+      SigUSD._1 -> depositSigUSD,
+      SigRSV._1 -> depositSigRSV
     ),
     additionalRegisters = poolRegisters
   )
@@ -188,21 +215,6 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
   // Pool TX
 
   val shareLP = sqrt(((BigInt(depositNErgs) + lockNErgs) * depositSigRSV).bigInteger).toLong
-
-  def sqrt(x: BigInteger): BigInteger = {
-    var div  = BigInteger.ZERO.setBit(x.bitLength / 2)
-    var div2 = div
-    // Loop until we hit the same value twice in a row, or wind
-    // up alternating.
-
-    while (true) {
-      val y = div.add(x.divide(div)).shiftRight(1)
-      if (y.equals(div) || y.equals(div2)) return y
-      div2 = div
-      div  = y
-    }
-    throw new Error("SQRT failed")
-  }
 
   require(shareLP * shareLP <= (depositNErgs + lockNErgs) * depositSigRSV)
 

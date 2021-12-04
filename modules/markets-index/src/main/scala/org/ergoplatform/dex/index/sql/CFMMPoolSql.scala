@@ -5,6 +5,7 @@ import org.ergoplatform.common.sql.QuerySet
 object CFMMPoolSql extends QuerySet {
 
   val fields: List[String] = List(
+    "pool_state_id",
     "pool_id",
     "lp_id",
     "lp_amount",
@@ -16,7 +17,7 @@ object CFMMPoolSql extends QuerySet {
     "y_amount",
     "y_ticker",
     "fee_num",
-    "box_id"
+    "protocol_version"
   )
 
   val tableName: String = "pools"

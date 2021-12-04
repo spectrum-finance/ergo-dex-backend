@@ -5,7 +5,7 @@ import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
-import org.ergoplatform.dex.index.db.models.DBCFMMPool
+import org.ergoplatform.dex.index.db.models.DBPool
 import org.ergoplatform.dex.index.sql.CFMMPoolSql
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
@@ -17,7 +17,7 @@ import cats.tagless.syntax.functorK._
 @derive(representableK)
 trait PoolsRepo[F[_]] {
 
-  def insert(pools: NonEmptyList[DBCFMMPool]): F[Int]
+  def insert(pools: NonEmptyList[DBPool]): F[Int]
 }
 
 object PoolsRepo {
@@ -32,8 +32,8 @@ object PoolsRepo {
 
   final class Live(implicit lh: LogHandler) extends PoolsRepo[ConnectionIO] {
 
-    override def insert(pools: NonEmptyList[DBCFMMPool]): ConnectionIO[Int] =
-      CFMMPoolSql.insert[DBCFMMPool].updateMany(pools)
+    override def insert(pools: NonEmptyList[DBPool]): ConnectionIO[Int] =
+      CFMMPoolSql.insert[DBPool].updateMany(pools)
 
   }
 }

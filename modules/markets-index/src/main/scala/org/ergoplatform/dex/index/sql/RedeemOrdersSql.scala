@@ -16,7 +16,8 @@ object RedeemOrdersSql extends QuerySet {
     "output_amount_x",
     "output_amount_y",
     "dex_fee",
-    "p2pk"
+    "p2pk",
+    "protocol_version"
   )
 
   val tableName: String = "redeems"

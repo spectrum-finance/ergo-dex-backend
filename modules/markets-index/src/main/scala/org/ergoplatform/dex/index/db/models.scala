@@ -1,12 +1,23 @@
 package org.ergoplatform.dex.index.db
 
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
-import org.ergoplatform.dex.domain.amm.{CFMMPool, Deposit, EvaluatedCFMMOrder, OrderId, PoolId, PoolStateId, Redeem, Swap}
+import org.ergoplatform.dex.domain.amm.{
+  CFMMPool,
+  Deposit,
+  EvaluatedCFMMOrder,
+  OrderId,
+  PoolId,
+  PoolStateId,
+  ProtocolVersion,
+  Redeem,
+  Swap
+}
 import org.ergoplatform.ergo._
 
 object models {
 
-  final case class DBCFMMPool(
+  final case class DBPool(
+    stateId: PoolStateId,
     poolId: PoolId,
     lpId: TokenId,
     lpAmount: Long,
@@ -18,24 +29,26 @@ object models {
     yAmount: Long,
     yTicker: Option[String],
     feeNum: Int,
-    boxId: BoxId
+    protocolVersion: ProtocolVersion
   )
 
-  def poolToDB: CFMMPool => DBCFMMPool = pool =>
-    DBCFMMPool(
-      pool.poolId,
-      pool.lp.id,
-      pool.lp.value,
-      pool.lp.ticker,
-      pool.x.id,
-      pool.x.value,
-      pool.x.ticker,
-      pool.y.id,
-      pool.y.value,
-      pool.y.ticker,
-      pool.feeNum,
-      pool.box.boxId
-    )
+  implicit val poolView: DBView[CFMMPool, DBPool] =
+    pool =>
+      DBPool(
+        PoolStateId.fromBoxId(pool.box.boxId),
+        pool.poolId,
+        pool.lp.id,
+        pool.lp.value,
+        pool.lp.ticker,
+        pool.x.id,
+        pool.x.value,
+        pool.x.ticker,
+        pool.y.id,
+        pool.y.value,
+        pool.y.ticker,
+        pool.feeNum,
+        ProtocolVersion.Initial
+      )
 
   final case class DBSwap(
     orderId: OrderId,
@@ -52,7 +65,8 @@ object models {
     outputAmount: Option[Long],
     dexFeePerTokenNum: Long,
     dexFeePerTokenDenom: Long,
-    p2pk: Address
+    p2pk: Address,
+    protocolVersion: ProtocolVersion
   )
 
   implicit val swapView: DBView[EvaluatedCFMMOrder[Swap, SwapEvaluation], DBSwap] = {
@@ -72,7 +86,8 @@ object models {
         ev.map(_.output.value),
         swap.params.dexFeePerTokenNum,
         swap.params.dexFeePerTokenDenom,
-        swap.params.p2pk
+        swap.params.p2pk,
+        ProtocolVersion.Initial
       )
   }
 
@@ -88,7 +103,8 @@ object models {
     outputAmountX: Option[Long],
     outputAmountY: Option[Long],
     dexFee: Long,
-    p2pk: Address
+    p2pk: Address,
+    protocolVersion: ProtocolVersion
   )
 
   implicit val redeemView: DBView[EvaluatedCFMMOrder[Redeem, RedeemEvaluation], DBRedeem] = {
@@ -105,7 +121,8 @@ object models {
         ev.map(_.outputX.value),
         ev.map(_.outputY.value),
         redeem.params.dexFee,
-        redeem.params.p2pk
+        redeem.params.p2pk,
+        ProtocolVersion.Initial
       )
   }
 
@@ -123,7 +140,8 @@ object models {
     inputTickerY: Option[String],
     outputAmountLP: Option[Long],
     dexFee: Long,
-    p2pk: Address
+    p2pk: Address,
+    protocolVersion: ProtocolVersion
   )
 
   implicit val depositView: DBView[EvaluatedCFMMOrder[Deposit, DepositEvaluation], DBDeposit] = {
@@ -142,7 +160,8 @@ object models {
         deposit.params.inY.ticker,
         ev.map(_.outputLP.value),
         deposit.params.dexFee,
-        deposit.params.p2pk
+        deposit.params.p2pk,
+        ProtocolVersion.Initial
       )
   }
 }

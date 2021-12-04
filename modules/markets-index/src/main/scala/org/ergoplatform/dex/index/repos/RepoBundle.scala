@@ -28,6 +28,6 @@ object RepoBundle {
   ): I[RepoBundle[D]] =
     for {
       orders <- CFMMOrdersRepo.make[I, D]
-      pools <- PoolsRepo.make[I, D]
+      pools  <- PoolsRepo.make[I, D]
     } yield RepoBundle(orders, pools)
 }

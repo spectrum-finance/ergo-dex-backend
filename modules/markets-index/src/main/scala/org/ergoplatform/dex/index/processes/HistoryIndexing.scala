@@ -22,10 +22,6 @@ trait HistoryIndexing[F[_]] {
   def run: F[Unit]
 }
 
-trait Foo[A] {
-  def doSmt(a: A): A
-}
-
 object HistoryIndexing {
 
   def make[

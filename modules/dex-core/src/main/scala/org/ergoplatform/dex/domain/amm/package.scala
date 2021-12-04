@@ -25,6 +25,18 @@ package object amm {
   object PoolStateId {
     implicit val put: Put[PoolStateId] = deriving
     implicit val get: Get[PoolStateId] = deriving
+
+    def fromBoxId(boxId: BoxId): PoolStateId = PoolStateId(boxId)
+  }
+
+  @derive(show, loggable, encoder, decoder)
+  @newtype final case class ProtocolVersion(value: Int)
+
+  object ProtocolVersion {
+    implicit val put: Put[ProtocolVersion] = deriving
+    implicit val get: Get[ProtocolVersion] = deriving
+
+    val Initial: ProtocolVersion = ProtocolVersion(1)
   }
 
   @derive(show, loggable, encoder, decoder)

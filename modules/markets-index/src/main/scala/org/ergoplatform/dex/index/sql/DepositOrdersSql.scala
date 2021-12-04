@@ -18,7 +18,8 @@ object DepositOrdersSql extends QuerySet {
     "input_ticker_y",
     "output_amount_lp",
     "dex_fee",
-    "p2pk"
+    "p2pk",
+    "protocol_version"
   )
 
   val tableName: String = "deposits"
