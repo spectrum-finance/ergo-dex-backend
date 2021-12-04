@@ -6,16 +6,16 @@ import fs2.kafka.serde._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
-import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
+import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, EvaluatedCFMMOrder, OrderEvaluation, OrderId, PoolId}
 import org.ergoplatform.dex.index.configs.ConfigBundle
-import org.ergoplatform.dex.index.processes.HistoryIndexing
+import org.ergoplatform.dex.index.processes.{HistoryIndexing, PoolsIndexing}
 import org.ergoplatform.dex.index.repos.RepoBundle
-import org.ergoplatform.dex.index.streaming.CFMMHistConsumer
-import org.ergoplatform.dex.tracker.handlers.CFMMPoolsHandler
-import org.ergoplatform.dex.tracker.processes.UtxoTracker
+import org.ergoplatform.dex.index.streaming.{CFMMHistConsumer, CFMMPoolsConsumer}
+import org.ergoplatform.dex.tracker.handlers.{CFMMHistoryHandler, CFMMPoolsHandler}
+import org.ergoplatform.dex.tracker.processes.{TxTracker, UtxoTracker}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker.TrackerMode
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.ergo.ErgoNetworkStreaming
@@ -40,8 +40,8 @@ object App extends EnvApp[ConfigBundle] {
   implicit val mtx: MakeRedisTransaction[RunF] = MakeRedisTransaction.make[RunF]
 
   def run(args: List[String]): URIO[ZEnv, ExitCode] =
-    init(args.headOption).use { case (tracker, hist, pools, ctx) =>
-      val appF = fs2.Stream(tracker.run, hist.run, pools.run).parJoinUnbounded.compile.drain
+    init(args.headOption).use { case (utxoTracker, txTracker, pools, hist, ctx) =>
+      val appF = fs2.Stream(utxoTracker.run, txTracker.run, pools.run, hist.run).parJoinUnbounded.compile.drain
       appF.run(ctx) as ExitCode.success
     }.orDie
 
@@ -58,7 +58,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
       implicit0(mc: MakeKafkaConsumer[RunF, PoolId, Confirmed[CFMMPool]]) =
         MakeKafkaConsumer.make[InitF, RunF, PoolId, Confirmed[CFMMPool]]
-      implicit0(poolCons: Consumer[PoolId, Confirmed[CFMMPool], StreamF, RunF]) =
+      implicit0(poolCons: CFMMPoolsConsumer[StreamF, RunF]) =
         Consumer.make[StreamF, RunF, PoolId, Confirmed[CFMMPool]]
       implicit0(mkc: MakeKafkaConsumer[RunF, OrderId, EvaluatedCFMMOrder.Any]) =
         MakeKafkaConsumer.make[InitF, RunF, OrderId, EvaluatedCFMMOrder.Any]
@@ -71,14 +71,16 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
       cfmmPoolsHandler                     <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF])
+      cfmmHistoryHandler                   <- Resource.eval(CFMMHistoryHandler.make[InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
-      tracker <-
+      utxoTracker <-
         Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Historical, cfmmPoolsHandler))
+      txTracker                           <- Resource.eval(TxTracker.make[InitF, StreamF, RunF](cfmmHistoryHandler))
       implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])
       historyIndexer                      <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      poolsIndexer                        <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-    } yield (tracker, historyIndexer, poolsIndexer, configs)
+      poolsIndexer                        <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+    } yield (utxoTracker, txTracker, poolsIndexer, historyIndexer, configs)
 
   private def makeBackend(
     configs: ConfigBundle,

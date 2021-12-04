@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.tracker.processes
 
-import cats.{Defer, Monad, MonoidK}
+import cats.{Defer, Functor, Monad, MonoidK}
 import derevo.derive
 import org.ergoplatform.dex.tracker.configs.TrackerConfig
 import org.ergoplatform.dex.tracker.handlers.TxHandler
@@ -8,11 +8,12 @@ import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.ergo.ErgoNetworkStreaming
 import tofu.Catches
 import tofu.higherKind.derived.representableK
-import tofu.logging.Logging
+import tofu.logging.{Logging, Logs}
 import tofu.streams.{Evals, Pace, ParFlatten}
 import tofu.syntax.handle._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
+import tofu.syntax.embed._
 import tofu.syntax.streams.all._
 
 @derive(representableK)
@@ -23,10 +24,24 @@ trait TxTracker[F[_]] {
 
 object TxTracker {
 
+  def make[
+    I[_]: Functor,
+    F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches: TrackerConfig.Has,
+    G[_]: Monad
+  ](handlers: TxHandler[F]*)(implicit
+    cache: TrackerCache[G],
+    client: ErgoNetworkStreaming[F, G],
+    logs: Logs[I, G]
+  ): I[TxTracker[F]] =
+    logs.forService[TxTracker[F]].map { implicit l =>
+      (TrackerConfig.access map (conf => new StreamingTxTracker[F, G](conf, handlers.toList): TxTracker[F])).embed
+    }
+
   final class StreamingTxTracker[
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging
-  ](cache: TrackerCache[G], conf: TrackerConfig, handlers: List[TxHandler[F]])(implicit
+  ](conf: TrackerConfig, handlers: List[TxHandler[F]])(implicit
+    cache: TrackerCache[G],
     client: ErgoNetworkStreaming[F, G]
   ) extends TxTracker[F] {
 
