@@ -16,6 +16,7 @@ import tofu.optics.macros.{promote, ClassyOptics}
 final case class ConfigBundle(
   @promote commitPolicy: CommitPolicy,
   cfmmHistoryConsumer: ConsumerConfig,
+  cfmmPoolsConsumer: ConsumerConfig,
   cfmmHistoryProducer: ProducerConfig,
   cfmmPoolsProducer: ProducerConfig,
   @promote db: PgConfig,
@@ -23,7 +24,6 @@ final case class ConfigBundle(
   @promote protocol: ProtocolConfig,
   @promote network: NetworkConfig,
   @promote tracker: TrackerConfig,
-  @promote monetary: MonetaryConfig,
   redis: RedisConfig
 )
 

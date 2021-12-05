@@ -59,7 +59,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(mc: MakeKafkaConsumer[RunF, PoolId, Confirmed[CFMMPool]]) =
         MakeKafkaConsumer.make[InitF, RunF, PoolId, Confirmed[CFMMPool]]
       implicit0(poolCons: CFMMPoolsConsumer[StreamF, RunF]) =
-        Consumer.make[StreamF, RunF, PoolId, Confirmed[CFMMPool]]
+        Consumer.make[StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.cfmmPoolsConsumer)
       implicit0(mkc: MakeKafkaConsumer[RunF, OrderId, EvaluatedCFMMOrder.Any]) =
         MakeKafkaConsumer.make[InitF, RunF, OrderId, EvaluatedCFMMOrder.Any]
       implicit0(orderCons: CFMMHistConsumer[StreamF, RunF]) =
