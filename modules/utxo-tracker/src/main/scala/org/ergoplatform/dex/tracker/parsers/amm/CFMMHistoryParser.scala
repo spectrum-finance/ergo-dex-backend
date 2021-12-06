@@ -11,6 +11,7 @@ import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.ergo.models.{Output, Transaction}
 import tofu.higherKind.Embed
 import tofu.syntax.monadic._
+import tofu.syntax.foption._
 
 trait CFMMHistoryParser[+CT <: CFMMType, F[_]] {
 
@@ -52,12 +53,15 @@ object CFMMHistoryParser {
 
     def swap(tx: Transaction): F[Option[EvaluatedCFMMOrder[Swap, SwapEvaluation]]] =
       parseSomeOrder(tx)(orders.swap, (o, _, a) => evals.parseSwapEval(o, a))
+        .mapIn(x => x.copy(order = x.order.copy(timestamp = tx.timestamp)))
 
     def deposit(tx: Transaction): F[Option[EvaluatedCFMMOrder[Deposit, DepositEvaluation]]] =
       parseSomeOrder(tx)(orders.deposit, evals.parseDepositEval)
+        .mapIn(x => x.copy(order = x.order.copy(timestamp = tx.timestamp)))
 
     def redeem(tx: Transaction): F[Option[EvaluatedCFMMOrder[Redeem, RedeemEvaluation]]] =
       parseSomeOrder(tx)(orders.redeem, evals.parseRedeemEval)
+        .mapIn(x => x.copy(order = x.order.copy(timestamp = tx.timestamp)))
 
     private def parseSomeOrder[A <: CFMMOrder, E <: OrderEvaluation](
       tx: Transaction
