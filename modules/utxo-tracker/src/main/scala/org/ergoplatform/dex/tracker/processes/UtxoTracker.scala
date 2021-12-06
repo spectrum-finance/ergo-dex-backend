@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.processes
 
 import cats.{Defer, FlatMap, Monad, MonoidK}
 import derevo.derive
-import org.ergoplatform.dex.tracker.configs.TrackerConfig
+import org.ergoplatform.dex.tracker.configs.UtxoTrackerConfig
 import org.ergoplatform.dex.tracker.handlers.BoxHandler
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.ergo.ErgoNetworkStreaming
@@ -36,7 +36,7 @@ object UtxoTracker {
 
   def make[
     I[_]: FlatMap,
-    F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: TrackerConfig.Has: Catches,
+    F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: UtxoTrackerConfig.Has: Catches,
     G[_]: Monad
   ](mode: TrackerMode, trackers: BoxHandler[F]*)(implicit
     client: ErgoNetworkStreaming[F, G],
@@ -51,8 +51,8 @@ object UtxoTracker {
   final private[dex] class StreamingTracker[
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging
-  ](mode: TrackerMode, cache: TrackerCache[G], conf: TrackerConfig, handlers: List[BoxHandler[F]])(implicit
-    client: ErgoNetworkStreaming[F, G]
+  ](mode: TrackerMode, cache: TrackerCache[G], conf: UtxoTrackerConfig, handlers: List[BoxHandler[F]])(implicit
+                                                                                                       client: ErgoNetworkStreaming[F, G]
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =

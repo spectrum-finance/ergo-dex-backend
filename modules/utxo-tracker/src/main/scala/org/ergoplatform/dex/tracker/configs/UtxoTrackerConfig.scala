@@ -7,10 +7,10 @@ import tofu.Context
 import scala.concurrent.duration.FiniteDuration
 
 @derive(pureconfigReader)
-final case class TrackerConfig(
+final case class UtxoTrackerConfig(
   initialOffset: Long,
   batchSize: Int,
   retryDelay: FiniteDuration
 )
 
-object TrackerConfig extends Context.Companion[TrackerConfig]
+object UtxoTrackerConfig extends Context.Companion[UtxoTrackerConfig]
