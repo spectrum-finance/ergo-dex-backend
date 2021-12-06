@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.markets.models
+package org.ergoplatform.dex.markets.models.orderbook
 
 import cats.syntax.either._
 import derevo.derive

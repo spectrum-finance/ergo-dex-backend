@@ -6,9 +6,9 @@ import cats.{Apply, FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
+import org.ergoplatform.dex.markets.models.orderbook.Fill
 import org.ergoplatform.ergo.TokenId
-import org.ergoplatform.dex.markets.models.Fill
-import org.ergoplatform.dex.markets.sql.fillsSql
+import org.ergoplatform.dex.markets.sql.AmmQueries
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.higherKind.Mid
@@ -41,17 +41,13 @@ object FillsRepo {
 
   final class Live(implicit lh: LogHandler) extends FillsRepo[ConnectionIO] {
 
-    def insert(trade: Fill): ConnectionIO[Unit] =
-      fillsSql.insert[Fill].run(trade).map(_ => ())
+    def insert(trade: Fill): ConnectionIO[Unit] = ???
 
-    def insert(trades: NonEmptyList[Fill]): ConnectionIO[Unit] =
-      fillsSql.insert[Fill].updateMany(trades).map(_ => ())
+    def insert(trades: NonEmptyList[Fill]): ConnectionIO[Unit] = ???
 
-    def volumeByPair(quote: TokenId, base: TokenId)(fromTs: Long): ConnectionIO[Long] =
-      fillsSql.volumeByPair(quote, base)(fromTs).unique
+    def volumeByPair(quote: TokenId, base: TokenId)(fromTs: Long): ConnectionIO[Long] = ???
 
-    def countTransactions: ConnectionIO[Int] =
-      fillsSql.countTransactions.unique
+    def countTransactions: ConnectionIO[Int] = ???
   }
 
   final class FillsRepoTracing[F[_]: Apply: Logging] extends FillsRepo[Mid[F, *]] {

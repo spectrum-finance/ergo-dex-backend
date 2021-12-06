@@ -1,7 +1,8 @@
 package org.ergoplatform.dex.markets.modules
 
 import cats.Applicative
-import org.ergoplatform.dex.markets.models.{Fill, Side}
+import org.ergoplatform.dex.markets.models.orderbook.Side
+import org.ergoplatform.dex.markets.models.orderbook.Fill
 import org.ergoplatform.dex.protocol.orderbook.{OrderContractFamily, OrderContracts, OrderParams}
 import org.ergoplatform.dex.protocol.constants
 import org.ergoplatform.ergo.models.Transaction

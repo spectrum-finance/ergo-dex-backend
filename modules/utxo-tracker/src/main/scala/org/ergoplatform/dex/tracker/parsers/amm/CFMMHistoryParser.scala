@@ -5,7 +5,6 @@ import cats.syntax.traverse._
 import cats.syntax.option._
 import cats.instances.list._
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
-import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, Deposit, EvaluatedCFMMOrder, OrderEvaluation, Redeem, Swap}
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.ergo.models.{Output, Transaction}
@@ -68,26 +67,21 @@ object CFMMHistoryParser {
     )(
       opParser: Output => F[Option[A]],
       evalParse: (Output, CFMMPool, A) => F[Option[E]]
-    ): F[Option[EvaluatedCFMMOrder[A, E]]] =
-      tx.inputs
-        .map(_.asOutput)
-        .traverse { i =>
-          opParser(i)
-            .flatMap {
-              case Some(ord) =>
-                val pool = pools.pool(i)
-                tx.outputs
-                  .traverse(o => pools.pool(i).fold(none[E].pure[F])(p => evalParse(o, p.confirmed, ord)))
-                  .map(_.headOption.flatten)
-                  .map(eval => (ord.some, eval, pool))
-              case None => (none[A], none[E], none[Confirmed[CFMMPool]]).pure[F]
-            }
+    ): F[Option[EvaluatedCFMMOrder[A, E]]] = {
+      val inputs = tx.inputs.map(_.asOutput)
+      def parseExecutedOrder(order: A): F[Option[EvaluatedCFMMOrder[A, E]]] =
+        inputs.map(pools.pool).collectFirst { case Some(p) => p } match {
+          case Some(p) =>
+            tx.outputs
+              .traverse(o => evalParse(o, p.confirmed, order))
+              .map(_.collectFirst { case Some(c) => c })
+              .map(eval => EvaluatedCFMMOrder(order, eval, p.confirmed.some).some)
+          case None => EvaluatedCFMMOrder(order, none, none).someF[F]
         }
-        .map {
-          _.collectFirst { case (Some(order), maybeEval, maybePool) =>
-            EvaluatedCFMMOrder(order, maybeEval, maybePool.map(_.confirmed))
-          }
-        }
-
+      inputs
+        .traverse(opParser)
+        .map(_.collectFirst { case Some(x) => x })
+        .flatMap(_.fold(noneF[F, EvaluatedCFMMOrder[A, E]])(parseExecutedOrder))
+    }
   }
 }
