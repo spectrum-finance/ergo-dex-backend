@@ -17,6 +17,7 @@ object CFMMPoolSql extends QuerySet {
     "y_amount",
     "y_ticker",
     "fee_num",
+    "gindex",
     "protocol_version"
   )
 

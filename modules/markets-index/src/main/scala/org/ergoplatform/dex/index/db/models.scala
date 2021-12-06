@@ -29,6 +29,7 @@ object models {
     yAmount: Long,
     yTicker: Option[String],
     feeNum: Int,
+    globalIndex: Long,
     protocolVersion: ProtocolVersion
   )
 
@@ -47,6 +48,7 @@ object models {
         pool.y.value,
         pool.y.ticker,
         pool.feeNum,
+        pool.box.lastConfirmedBoxGix,
         ProtocolVersion.Initial
       )
 
