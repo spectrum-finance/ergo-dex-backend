@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.processes
 
 import cats.{Defer, Functor, Monad, MonoidK}
 import derevo.derive
-import org.ergoplatform.dex.tracker.configs.{TxTrackerConfig, UtxoTrackerConfig}
+import org.ergoplatform.dex.tracker.configs.TxTrackerConfig
 import org.ergoplatform.dex.tracker.handlers.TxHandler
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.ergo.ErgoNetworkStreaming
@@ -10,10 +10,10 @@ import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Evals, Pace, ParFlatten}
+import tofu.syntax.embed._
 import tofu.syntax.handle._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
-import tofu.syntax.embed._
 import tofu.syntax.streams.all._
 
 @derive(representableK)
@@ -51,7 +51,7 @@ object TxTracker {
         .flatMap { lastOffset =>
           eval(client.getNetworkInfo).flatMap { networkParams =>
             val offset     = lastOffset max conf.initialOffset
-            val maxOffset  = networkParams.maxBoxGix
+            val maxOffset  = networkParams.maxTxGix
             val nextOffset = (offset + conf.batchSize) min maxOffset
             val scan =
               eval(info"Requesting TX batch {offset=$offset, maxOffset=$maxOffset, batchSize=${conf.batchSize} ..") >>
