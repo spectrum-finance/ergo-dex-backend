@@ -9,7 +9,7 @@ import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
 import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.dex.domain.amm.state.Confirmed
-import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, EvaluatedCFMMOrder, OrderEvaluation, OrderId, PoolId}
+import org.ergoplatform.dex.domain.amm.{CFMMPool, EvaluatedCFMMOrder, OrderId, PoolId}
 import org.ergoplatform.dex.index.configs.ConfigBundle
 import org.ergoplatform.dex.index.processes.{HistoryIndexing, PoolsIndexing}
 import org.ergoplatform.dex.index.repos.RepoBundle

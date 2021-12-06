@@ -34,12 +34,12 @@ object CFMMOrdersRepo {
   final class Live(implicit lh: LogHandler) extends CFMMOrdersRepo[ConnectionIO] {
 
     def insertSwaps(swaps: NonEmptyList[DBSwap]): ConnectionIO[Int] =
-      SwapOrdersSql.insert[DBSwap].updateMany(swaps)
+      SwapOrdersSql.insertNoConflict[DBSwap].updateMany(swaps)
 
     def insertRedeems(redeems: NonEmptyList[DBRedeem]): ConnectionIO[Int] =
-      RedeemOrdersSql.insert[DBRedeem].updateMany(redeems)
+      RedeemOrdersSql.insertNoConflict[DBRedeem].updateMany(redeems)
 
     def insertDeposits(deposits: NonEmptyList[DBDeposit]): ConnectionIO[Int] =
-      DepositOrdersSql.insert[DBDeposit].updateMany(deposits)
+      DepositOrdersSql.insertNoConflict[DBDeposit].updateMany(deposits)
   }
 }

@@ -32,8 +32,7 @@ object PoolsRepo {
 
   final class Live(implicit lh: LogHandler) extends PoolsRepo[ConnectionIO] {
 
-    override def insert(pools: NonEmptyList[DBPool]): ConnectionIO[Int] =
-      CFMMPoolSql.insert[DBPool].updateMany(pools)
-
+    def insert(pools: NonEmptyList[DBPool]): ConnectionIO[Int] =
+      CFMMPoolSql.insertNoConflict[DBPool].updateMany(pools)
   }
 }

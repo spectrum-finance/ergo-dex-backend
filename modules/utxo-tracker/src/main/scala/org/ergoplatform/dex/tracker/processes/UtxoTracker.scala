@@ -52,11 +52,11 @@ object UtxoTracker {
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging
   ](mode: TrackerMode, cache: TrackerCache[G], conf: UtxoTrackerConfig, handlers: List[BoxHandler[F]])(implicit
-                                                                                                       client: ErgoNetworkStreaming[F, G]
+    client: ErgoNetworkStreaming[F, G]
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =
-      eval(info"Starting TXO tracker in mode [${mode.toString}] ..") >>
+      eval(info"Starting UTXO tracker in mode [${mode.toString}] ..") >>
       eval(cache.lastScannedBoxOffset).repeat
         .flatMap { lastOffset =>
           eval(client.getNetworkInfo).flatMap { networkParams =>
