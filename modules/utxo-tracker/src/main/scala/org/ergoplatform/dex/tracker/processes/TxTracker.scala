@@ -59,7 +59,7 @@ object TxTracker {
                 .streamTransactions(offset, conf.batchSize)
                 .evalTap(tx => trace"Scanning TX $tx")
                 .flatTap(tx => emits(handlers.map(_(tx.pure[F]))).parFlattenUnbounded)
-                .evalMap(tx => cache.setLastScannedBoxOffset(tx.globalIndex))
+                .evalMap(tx => cache.setLastScannedTxOffset(tx.globalIndex))
             val finalizeOffset = eval(cache.setLastScannedTxOffset(nextOffset))
             val pause =
               eval(info"Upper limit {maxOffset=$maxOffset} was reached. Retrying in ${conf.retryDelay.toSeconds}s") >>
