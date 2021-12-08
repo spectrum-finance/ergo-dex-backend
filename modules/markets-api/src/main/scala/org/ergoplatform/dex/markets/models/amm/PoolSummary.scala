@@ -2,5 +2,13 @@ package org.ergoplatform.dex.markets.models.amm
 
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.PoolId
+import org.ergoplatform.dex.markets.domain.{Fees, TotalValueLocked, Volume}
 
-final case class PoolSummary(id: PoolId, lockedX: AssetAmount, lockedY: AssetAmount)
+final case class PoolSummary(
+  id: PoolId,
+  lockedX: AssetAmount,
+  lockedY: AssetAmount,
+  tvl: TotalValueLocked,
+  volume: Volume,
+  fees: Fees
+)
