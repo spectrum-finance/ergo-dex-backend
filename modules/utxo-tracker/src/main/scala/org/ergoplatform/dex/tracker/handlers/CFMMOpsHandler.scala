@@ -10,7 +10,7 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.dex.tracker.parsers.amm.AMMOpsParser
+import org.ergoplatform.dex.tracker.parsers.amm.CFMMOrdersParser
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
@@ -21,7 +21,7 @@ import tofu.syntax.streams.all._
 final class CFMMOpsHandler[
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,
   G[_]: Monad: Logging
-](parsers: List[AMMOpsParser[CFMMType, G]])(implicit
+](parsers: List[CFMMOrdersParser[CFMMType, G]])(implicit
   producer: Producer[OrderId, CFMMOrder, F],
   rules: CFMMRules[G]
 ) {
@@ -61,8 +61,8 @@ object CFMMOpsHandler {
   ): I[BoxHandler[F]] =
     logs.forService[CFMMOpsHandler[F, G]].map { implicit log =>
       val parsers =
-        AMMOpsParser[T2T_CFMM, G] ::
-        AMMOpsParser[N2T_CFMM, G] :: Nil
+        CFMMOrdersParser[T2T_CFMM, G] ::
+        CFMMOrdersParser[N2T_CFMM, G] :: Nil
       new CFMMOpsHandler[F, G](parsers).handler
     }
 }

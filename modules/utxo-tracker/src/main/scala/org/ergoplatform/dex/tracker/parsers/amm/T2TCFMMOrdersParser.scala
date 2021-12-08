@@ -15,9 +15,9 @@ import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.time.now
 
-final class T2TCFMMOpsParser[F[_]: Applicative: Clock](ts: Long)(implicit
+final class T2TCFMMOrdersParser[F[_]: Applicative: Clock](ts: Long)(implicit
   e: ErgoAddressEncoder
-) extends AMMOpsParser[T2T_CFMM, F] {
+) extends CFMMOrdersParser[T2T_CFMM, F] {
 
   def deposit(box: Output): F[Option[Deposit]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
@@ -76,8 +76,8 @@ final class T2TCFMMOpsParser[F[_]: Applicative: Clock](ts: Long)(implicit
   }
 }
 
-object T2TCFMMOpsParser {
+object T2TCFMMOrdersParser {
 
-  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): AMMOpsParser[T2T_CFMM, F] =
-    now.millis.map(ts => new T2TCFMMOpsParser(ts): AMMOpsParser[T2T_CFMM, F]).embed
+  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): CFMMOrdersParser[T2T_CFMM, F] =
+    now.millis.map(ts => new T2TCFMMOrdersParser(ts): CFMMOrdersParser[T2T_CFMM, F]).embed
 }

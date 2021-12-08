@@ -25,7 +25,7 @@ import org.typelevel.jawn.Facade
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3._
 import sttp.client3.circe._
-import sttp.model.MediaType
+import sttp.model.{MediaType, Uri}
 import tofu.MonadThrow
 import tofu.fs2.LiftStream
 import tofu.higherKind.Mid
@@ -218,6 +218,14 @@ trait ErgoNetworkStreaming[S[_], F[_]] extends ErgoNetwork[F] {
   /** Get a stream of unspent outputs at the given global offset.
     */
   def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output]
+
+  /** Get a stream of unspent outputs at the given global offset.
+    */
+  def streamOutputs(boxGixOffset: Long, limit: Int): S[Output]
+
+  /** Get a stream of transactions at the given global offset.
+    */
+  def streamTransactions(txGixOffset: Long, limit: Int): S[Transaction]
 }
 
 object ErgoNetworkStreaming {
@@ -249,6 +257,12 @@ object ErgoNetworkStreaming {
 
     def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output] =
       evals.eval(tft.map(_.streamUnspentOutputs(boxGixOffset, limit))).flatten
+
+    def streamOutputs(boxGixOffset: Long, limit: Int): S[Output] =
+      evals.eval(tft.map(_.streamOutputs(boxGixOffset, limit))).flatten
+
+    def streamTransactions(txGixOffset: Long, limit: Int): S[Transaction] =
+      evals.eval(tft.map(_.streamTransactions(txGixOffset, limit))).flatten
   }
 
   implicit def functorK[F[_]]: FunctorK[ErgoNetworkStreaming[*[_], F]] = {
@@ -285,10 +299,16 @@ object ErgoNetworkStreaming {
     private val uri                           = config.explorerUri
     implicit private val facade: Facade[Json] = new CirceSupportParser(None, allowDuplicateKeys = false).facade
 
-    def streamUnspentOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] = {
+    def streamUnspentOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] =
+      streamSomeOutputs(utxoPathSeg)(boxGixOffset, limit)
+
+    def streamOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] =
+      streamSomeOutputs(txoPathSeg)(boxGixOffset, limit)
+
+    def streamTransactions(txGixOffset: Long, limit: Int): Stream[F, Transaction] = {
       val req =
         basicRequest
-          .get(uri.withPathSegment(utxoPathSeg).addParams("minGix" -> boxGixOffset.toString, "limit" -> limit.toString))
+          .get(uri.withPathSegment(txPathSeg).addParams("minGix" -> txGixOffset.toString, "limit" -> limit.toString))
           .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
           .send(backend)
           .map(_.body)
@@ -296,7 +316,21 @@ object ErgoNetworkStreaming {
         .force(req)
         .chunks
         .parseJsonStream
-        //.handleErrorWith(_ => Stream(Json.Null))
+        .map(_.as[Transaction].toOption)
+        .unNone
+    }
+
+    def streamSomeOutputs(path: Uri.Segment)(boxGixOffset: Long, limit: Int): Stream[F, Output] = {
+      val req =
+        basicRequest
+          .get(uri.withPathSegment(path).addParams("minGix" -> boxGixOffset.toString, "limit" -> limit.toString))
+          .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
+          .send(backend)
+          .map(_.body)
+      Stream
+        .force(req)
+        .chunks
+        .parseJsonStream
         .map(_.as[Output].toOption)
         .unNone
     }

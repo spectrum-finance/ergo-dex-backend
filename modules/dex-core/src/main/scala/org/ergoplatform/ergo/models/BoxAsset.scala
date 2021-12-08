@@ -2,7 +2,9 @@ package org.ergoplatform.ergo.models
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
+import doobie.util.Write
 import org.ergoplatform.ergo.{TokenId, TokenType}
+import shapeless.Lazy
 import tofu.logging.derivation.loggable
 
 /** A model mirroring Asset entity from Ergo node REST API.
@@ -17,3 +19,7 @@ final case class BoxAsset(
   decimals: Option[Int],
   `type`: Option[TokenType]
 )
+
+object BoxAsset {
+  implicit def write: Write[BoxAsset] = Lazy(implicitly[Write[BoxAsset]]).value
+}

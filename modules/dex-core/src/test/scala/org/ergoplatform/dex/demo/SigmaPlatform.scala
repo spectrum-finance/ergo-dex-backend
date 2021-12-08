@@ -79,7 +79,7 @@ trait SigmaPlatform {
 
   def submitTx(tx: ErgoLikeTransaction)(implicit e: Encoder[ErgoLikeTransaction]): Either[String, String] =
     basicRequest
-      .post(uri"http://46.4.112.10:9053/transactions")
+      .post(uri"http://165.227.26.175:16042/transactions")
       .body(tx)
       .response(asString)
       .send(backend)

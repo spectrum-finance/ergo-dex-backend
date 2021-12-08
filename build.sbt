@@ -3,11 +3,11 @@ import dependencies._
 lazy val NexusReleases  = "Sonatype Releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
 lazy val NexusSnapshots = "Sonatype Snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
 
-lazy val commonSettings = Seq(
+lazy val commonSettings = List(
   scalacOptions ++= commonScalacOptions,
   scalaVersion := "2.12.15",
   organization := "org.ergoplatform",
-  version := "0.11.0",
+  version := "0.12.7",
   resolvers ++= Seq(
     Resolver.sonatypeRepo("public"),
     Resolver.sonatypeRepo("snapshots"),
@@ -26,6 +26,17 @@ lazy val commonSettings = Seq(
   },
   libraryDependencies ++= dependencies.Testing ++ dependencies.CompilerPlugins,
   ThisBuild / evictionErrorLevel := Level.Info
+)
+
+def nativePackagerSettings(moduleSig: String) = List(
+  Universal / name := name.value,
+  UniversalDocs / name := (Universal / name).value,
+  UniversalSrc / name := (Universal / name).value,
+  Universal / packageName := packageName.value,
+  Universal / mappings += ((Compile / packageBin) map { p =>
+    p -> s"lib/$moduleSig.jar"
+  }).value,
+  dockerExposedVolumes := Seq(s"/var/lib/$moduleSig", "/opt/docker/logs/")
 )
 
 lazy val commonScalacOptions = List(
@@ -51,7 +62,19 @@ lazy val dexBackend = project
   .withId("ergo-dex-backend")
   .settings(commonSettings)
   .settings(moduleName := "ergo-dex-backend", name := "ErgoDexBackend")
-  .aggregate(core, cache, db, http, utxoTracker, matcher, ordersExecutor, ammExecutor, poolResolver, marketsApi)
+  .aggregate(
+    core,
+    cache,
+    db,
+    http,
+    utxoTracker,
+    matcher,
+    ordersExecutor,
+    ammExecutor,
+    poolResolver,
+    marketsIndex,
+    marketsApi
+  )
 
 lazy val core = utils
   .mkModule("dex-core", "DexCore")
@@ -95,42 +118,16 @@ lazy val http = utils
 lazy val utxoTracker = utils
   .mkModule("utxo-tracker", "UtxoTracker")
   .settings(commonSettings)
-  .settings(
-    assembly / mainClass := Some(
-      "org.ergoplatform.dex.tracker.App"
-    )
-  )
-  .settings(
-    Universal / name := name.value,
-    UniversalDocs / name := (Universal / name).value,
-    UniversalSrc / name := (Universal / name).value,
-    Universal / packageName := packageName.value,
-    Universal / mappings += ((Compile / packageBin) map { p =>
-      p -> "lib/utxo-tracker.jar"
-    }).value,
-    dockerExposedVolumes := Seq("/var/lib/utxo-tracker", "/opt/docker/logs/")
-  )
+  .settings(assembly / mainClass := Some("org.ergoplatform.dex.tracker.App"))
+  .settings(nativePackagerSettings("utxo-tracker"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(Seq(core, cache).map(_ % allConfigDependency): _*)
 
 lazy val matcher = utils
   .mkModule("dex-matcher", "DexMatcher")
   .settings(commonSettings)
-  .settings(
-    assembly / mainClass := Some(
-      "org.ergoplatform.dex.matcher.App"
-    )
-  )
-  .settings(
-    Universal / name := name.value,
-    UniversalDocs / name := (Universal / name).value,
-    UniversalSrc / name := (Universal / name).value,
-    Universal / packageName := packageName.value,
-    Universal / mappings += ((Compile / packageBin) map { p =>
-      p -> "lib/dex-matcher.jar"
-    }).value,
-    dockerExposedVolumes := Seq("/var/lib/dex-matcher", "/opt/docker/logs/")
-  )
+  .settings(assembly / mainClass := Some("org.ergoplatform.dex.matcher.App"))
+  .settings(nativePackagerSettings("dex-matcher"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(Seq(core, db).map(_ % allConfigDependency): _*)
 
@@ -138,21 +135,10 @@ lazy val ordersExecutor = utils
   .mkModule("orders-executor", "OrdersExecutor")
   .settings(commonSettings)
   .settings(
-    assembly / mainClass := Some(
-      "org.ergoplatform.dex.executor.orders.App"
-    ),
+    assembly / mainClass := Some("org.ergoplatform.dex.executor.orders.App"),
     libraryDependencies ++= SttpClientCE
   )
-  .settings(
-    Universal / name := name.value,
-    UniversalDocs / name := (Universal / name).value,
-    UniversalSrc / name := (Universal / name).value,
-    Universal / packageName := packageName.value,
-    Universal / mappings += ((Compile / packageBin) map { p =>
-      p -> "lib/orders-executor.jar"
-    }).value,
-    dockerExposedVolumes := Seq("/var/lib/orders-executor", "/opt/docker/logs/")
-  )
+  .settings(nativePackagerSettings("orders-executor"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(Seq(core, http).map(_ % allConfigDependency): _*)
 
@@ -160,21 +146,10 @@ lazy val ammExecutor = utils
   .mkModule("amm-executor", "AmmExecutor")
   .settings(commonSettings)
   .settings(
-    assembly / mainClass := Some(
-      "org.ergoplatform.dex.executor.amm.App"
-    ),
+    assembly / mainClass := Some("org.ergoplatform.dex.executor.amm.App"),
     libraryDependencies ++= SttpClientCE
   )
-  .settings(
-    Universal / name := name.value,
-    UniversalDocs / name := (Universal / name).value,
-    UniversalSrc / name := (Universal / name).value,
-    Universal / packageName := packageName.value,
-    Universal / mappings += ((Compile / packageBin) map { p =>
-      p -> "lib/amm-executor.jar"
-    }).value,
-    dockerExposedVolumes := Seq("/var/lib/amm-executor", "/opt/docker/logs/")
-  )
+  .settings(nativePackagerSettings("amm-executor"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(Seq(core, http).map(_ % allConfigDependency): _*)
 
@@ -185,37 +160,25 @@ lazy val poolResolver = utils
     assembly / mainClass := Some("org.ergoplatform.dex.resolver.App"),
     libraryDependencies ++= RocksDB
   )
-  .settings(
-    Universal / name := name.value,
-    UniversalDocs / name := (Universal / name).value,
-    UniversalSrc / name := (Universal / name).value,
-    Universal / packageName := packageName.value,
-    Universal / mappings += ((Compile / packageBin) map { p =>
-      p -> "lib/pool-resolver.jar"
-    }).value,
-    dockerExposedVolumes := Seq("/var/lib/pool-resolver", "/opt/docker/logs/")
-  )
+  .settings(nativePackagerSettings("pool-resolver"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(Seq(core, http).map(_ % allConfigDependency): _*)
+
+lazy val marketsIndex = utils
+  .mkModule("markets-index", "MarketsIndex")
+  .settings(commonSettings)
+  .settings(assembly / mainClass := Some("org.ergoplatform.dex.index.App"))
+  .settings(nativePackagerSettings("markets-index"))
+  .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
+  .dependsOn(Seq(core, db, utxoTracker).map(_ % allConfigDependency): _*)
 
 lazy val marketsApi = utils
   .mkModule("markets-api", "MarketsApi")
   .settings(commonSettings)
   .settings(
-    assembly / mainClass := Some(
-      "org.ergoplatform.dex.markets.App"
-    ),
+    assembly / mainClass := Some("org.ergoplatform.dex.markets.App"),
     libraryDependencies ++= Tapir
   )
-  .settings(
-    Universal / name := name.value,
-    UniversalDocs / name := (Universal / name).value,
-    UniversalSrc / name := (Universal / name).value,
-    Universal / packageName := packageName.value,
-    Universal / mappings += ((Compile / packageBin) map { p =>
-      p -> "lib/markets-api.jar"
-    }).value,
-    dockerExposedVolumes := Seq("/var/lib/markets-api", "/opt/docker/logs/")
-  )
+  .settings(nativePackagerSettings("markets-api"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(Seq(core, db, http).map(_ % allConfigDependency): _*)

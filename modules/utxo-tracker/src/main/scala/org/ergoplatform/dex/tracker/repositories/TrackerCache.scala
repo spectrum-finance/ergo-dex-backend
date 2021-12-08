@@ -17,7 +17,11 @@ trait TrackerCache[F[_]] {
 
   def lastScannedBoxOffset: F[Long]
 
+  def lastScannedTxOffset: F[Long]
+
   def setLastScannedBoxOffset(n: Long): F[Unit]
+
+  def setLastScannedTxOffset(n: Long): F[Unit]
 }
 
 object TrackerCache {
@@ -33,6 +37,7 @@ object TrackerCache {
     } yield new CacheTracing[F] attach new Live[F](cache)
 
   private val LastScannedBoxOffsetKey = "last_scanned_box"
+  private val LastScannedTxOffsetKey  = "last_scanned_tx"
   private val NullOffset              = -1L
 
   final class Live[F[_]: Functor](cache: Cache[F]) extends TrackerCache[F] {
@@ -43,8 +48,14 @@ object TrackerCache {
     def lastScannedBoxOffset: F[Long] =
       cache.get[String, Long](LastScannedBoxOffsetKey).map(_.getOrElse(NullOffset))
 
+    def lastScannedTxOffset: F[Long] =
+      cache.get[String, Long](LastScannedTxOffsetKey).map(_.getOrElse(NullOffset))
+
     def setLastScannedBoxOffset(n: Long): F[Unit] =
       cache.set(LastScannedBoxOffsetKey, n)
+
+    def setLastScannedTxOffset(n: Long): F[Unit] =
+      cache.set(LastScannedTxOffsetKey, n)
   }
 
   final class CacheTracing[F[_]: FlatMap: Logging] extends TrackerCache[Mid[F, *]] {
@@ -52,7 +63,13 @@ object TrackerCache {
     def lastScannedBoxOffset: Mid[F, Long] =
       _ >>= (r => trace"lastScannedBoxOffset = $r" as r)
 
+    def lastScannedTxOffset: Mid[F, Long] =
+      _ >>= (r => trace"lastScannedTxOffset = $r" as r)
+
     def setLastScannedBoxOffset(n: Long): Mid[F, Unit] =
       trace"setLastScannedBoxOffset(n=$n)" *> _
+
+    def setLastScannedTxOffset(n: Long): Mid[F, Unit] =
+      trace"setLastScannedTxOffset(n=$n)" *> _
   }
 }

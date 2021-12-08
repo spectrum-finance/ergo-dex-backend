@@ -11,7 +11,7 @@ import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-class N2TCFMMOpsParserSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks with CatsPlatform {
+class N2TCFMMOrdersParserSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks with CatsPlatform {
 
   property("N2T Deposit order parsing") {
     val res = parser.deposit(boxSample).unsafeRunSync()
@@ -19,7 +19,7 @@ class N2TCFMMOpsParserSpec extends AnyPropSpec with should.Matchers with ScalaCh
   }
 
   implicit val e: ErgoAddressEncoder = new ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
-  def parser                         = N2TCFMMOpsParser.make[IO]
+  def parser                         = N2TCFMMOrdersParser.make[IO]
 
   def boxSample =
     io.circe.parser

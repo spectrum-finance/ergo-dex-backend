@@ -9,6 +9,7 @@ import fs2.kafka.serde.{deserializerByDecoder, serializerByEncoder}
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.estatico.newtype.macros.newtype
 import org.ergoplatform.common.HexString
+import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.ergo.{BoxId, TokenId}
 import scodec.bits.ByteVector
 import sttp.tapir.{Codec, Schema, Validator}
@@ -17,11 +18,37 @@ import tofu.logging.derivation.loggable
 package object amm {
 
   @derive(show, loggable, encoder, decoder)
+  @newtype final case class PoolStateId(value: BoxId) {
+    def unwrapped: String = value.value
+  }
+
+  object PoolStateId {
+    implicit val put: Put[PoolStateId] = deriving
+    implicit val get: Get[PoolStateId] = deriving
+
+    def fromBoxId(boxId: BoxId): PoolStateId = PoolStateId(boxId)
+  }
+
+  @derive(show, loggable, encoder, decoder)
+  @newtype final case class ProtocolVersion(value: Int)
+
+  object ProtocolVersion {
+    implicit val put: Put[ProtocolVersion] = deriving
+    implicit val get: Get[ProtocolVersion] = deriving
+
+    val Initial: ProtocolVersion = ProtocolVersion(1)
+  }
+
+  @derive(show, loggable, encoder, decoder)
   @newtype final case class PoolId(value: TokenId) {
     def unwrapped: String = value.unwrapped
   }
 
   object PoolId {
+
+    implicit val put: Put[PoolId] = deriving
+    implicit val get: Get[PoolId] = deriving
+
     implicit def plainCodec: Codec.PlainCodec[PoolId] = deriving
 
     implicit def codec: scodec.Codec[PoolId] =

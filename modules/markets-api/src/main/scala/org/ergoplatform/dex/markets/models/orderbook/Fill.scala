@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.markets.models
+package org.ergoplatform.dex.markets.models.orderbook
 
 import derevo.derive
 import org.ergoplatform.ergo.{TokenId, TxId}

@@ -2,7 +2,6 @@ package org.ergoplatform.dex.tracker
 
 import cats.effect.{Blocker, Resource}
 import fs2.kafka.serde._
-import mouse.any._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
@@ -12,6 +11,7 @@ import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, OrderId, PoolId}
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.handlers.{CFMMOpsHandler, CFMMPoolsHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
+import org.ergoplatform.dex.tracker.processes.UtxoTracker.TrackerMode
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
 import org.ergoplatform.ergo.ErgoNetworkStreaming
@@ -22,8 +22,6 @@ import tofu.WithRun
 import tofu.concurrent.MakeRef
 import tofu.fs2Instances._
 import tofu.lift.IsoK
-import tofu.logging.derivation.loggable.generate
-import tofu.syntax.embed._
 import tofu.syntax.unlift._
 import zio.interop.catz._
 import zio.{ExitCode, URIO, ZEnv}
@@ -45,8 +43,6 @@ object App extends EnvApp[ConfigBundle] {
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
-//      implicit0(producer0: Producer[OrderId, AnyOrder, StreamF]) <-
-//        Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.ordersProducer)
       implicit0(producer1: Producer[OrderId, CFMMOrder, StreamF]) <-
         Producer.make[InitF, StreamF, RunF, OrderId, CFMMOrder](configs.cfmmOpsProducer)
       implicit0(producer2: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-
@@ -54,13 +50,12 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
       implicit0(cfmmRules: CFMMRules[RunF])                  = CFMMRules.make[RunF]
-      //limitOrdersHandler <- Resource.eval(OrdersHandler.make[LimitOrders, InitF, StreamF, RunF])
       t2tCfmmHandler                       <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF])
       cfmmPoolsHandler                     <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       tracker <-
-        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF]( /*limitOrdersHandler,*/ t2tCfmmHandler, cfmmPoolsHandler))
+        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Live, t2tCfmmHandler, cfmmPoolsHandler))
     } yield tracker -> configs
 
   private def makeBackend(

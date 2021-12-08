@@ -8,7 +8,7 @@ import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.ergo.models.Output
 import tofu.higherKind.Embed
 
-trait AMMOpsParser[+CT <: CFMMType, F[_]] {
+trait CFMMOrdersParser[+CT <: CFMMType, F[_]] {
 
   def deposit(box: Output): F[Option[Deposit]]
 
@@ -17,22 +17,22 @@ trait AMMOpsParser[+CT <: CFMMType, F[_]] {
   def swap(box: Output): F[Option[Swap]]
 }
 
-object AMMOpsParser {
+object CFMMOrdersParser {
 
-  def apply[CT <: CFMMType, F[_]](implicit ev: AMMOpsParser[CT, F]): AMMOpsParser[CT, F] = ev
+  def apply[CT <: CFMMType, F[_]](implicit ev: CFMMOrdersParser[CT, F]): CFMMOrdersParser[CT, F] = ev
 
-  implicit def embed[CT <: CFMMType]: Embed[AMMOpsParser[CT, *[_]]] = {
-    type Rep[F[_]] = AMMOpsParser[CT, F]
+  implicit def embed[CT <: CFMMType]: Embed[CFMMOrdersParser[CT, *[_]]] = {
+    type Rep[F[_]] = CFMMOrdersParser[CT, F]
     tofu.higherKind.derived.genEmbed[Rep]
   }
 
   implicit def t2tCfmmOps[F[_]: Monad: Clock](implicit
     e: ErgoAddressEncoder
-  ): AMMOpsParser[T2T_CFMM, F] =
-    T2TCFMMOpsParser.make[F]
+  ): CFMMOrdersParser[T2T_CFMM, F] =
+    T2TCFMMOrdersParser.make[F]
 
   implicit def n2tCfmmOps[F[_]: Monad: Clock](implicit
     e: ErgoAddressEncoder
-  ): AMMOpsParser[N2T_CFMM, F] =
-    N2TCFMMOpsParser.make[F]
+  ): CFMMOrdersParser[N2T_CFMM, F] =
+    N2TCFMMOrdersParser.make[F]
 }

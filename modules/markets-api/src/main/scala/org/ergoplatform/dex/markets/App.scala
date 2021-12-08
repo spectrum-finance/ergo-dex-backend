@@ -5,9 +5,7 @@ import cats.tagless.syntax.functorK._
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.dex.markets.configs.ConfigBundle
-import org.ergoplatform.dex.markets.processes.MarketsIndexer
 import org.ergoplatform.dex.markets.repositories.FillsRepo
-import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily
 import org.ergoplatform.ergo.ErgoNetworkStreaming
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
@@ -24,13 +22,9 @@ import zio.{ExitCode, URIO, ZEnv}
 
 object App extends EnvApp[ConfigBundle] {
 
-  def run(args: List[String]): URIO[ZEnv, ExitCode] =
-    resources(args.headOption).use { case (indexer, ctx) =>
-      val appF = indexer.run.compile.drain
-      appF.run(ctx) as ExitCode.success
-    }.orDie
+  def run(args: List[String]): URIO[ZEnv, ExitCode] = ???
 
-  private def resources(configPathOpt: Option[String]): Resource[InitF, (MarketsIndexer[StreamF], ConfigBundle)] =
+  private def resources(configPathOpt: Option[String]): Resource[InitF, ConfigBundle] =
     for {
       blocker <- Blocker[InitF]
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
@@ -43,8 +37,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(reposF: FillsRepo[RunF]) = repos.mapK(xa.trans)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
-      indexer <- Resource.eval(MarketsIndexer.make[InitF, StreamF, RunF, OrderContractFamily.LimitOrders])
-    } yield indexer -> configs
+    } yield configs
 
   private def makeBackend(
     configs: ConfigBundle,

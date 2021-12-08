@@ -16,9 +16,9 @@ import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.time._
 
-final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
+final class N2TCFMMOrdersParser[F[_]: Applicative](ts: Long)(implicit
   e: ErgoAddressEncoder
-) extends AMMOpsParser[N2T_CFMM, F] {
+) extends CFMMOrdersParser[N2T_CFMM, F] {
 
   def deposit(box: Output): F[Option[Deposit]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
@@ -94,8 +94,8 @@ final class N2TCFMMOpsParser[F[_]: Applicative](ts: Long)(implicit
     } yield Swap(poolId, maxMinerFee, ts, params, box)
 }
 
-object N2TCFMMOpsParser {
+object N2TCFMMOrdersParser {
 
-  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): AMMOpsParser[N2T_CFMM, F] =
-    now.millis.map(ts => new N2TCFMMOpsParser(ts): AMMOpsParser[N2T_CFMM, F]).embed
+  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): CFMMOrdersParser[N2T_CFMM, F] =
+    now.millis.map(ts => new N2TCFMMOrdersParser(ts): CFMMOrdersParser[N2T_CFMM, F]).embed
 }
