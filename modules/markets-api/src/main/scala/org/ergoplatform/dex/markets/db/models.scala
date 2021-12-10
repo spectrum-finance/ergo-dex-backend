@@ -1,8 +1,7 @@
 package org.ergoplatform.dex.markets.db
 
-import org.ergoplatform.dex.domain.Ticker
+import org.ergoplatform.dex.domain.FullAsset
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.ergo.TokenId
 
 object models {
 
@@ -16,12 +15,5 @@ object models {
     poolId: PoolId,
     volumeByX: FullAsset,
     volumeByY: FullAsset
-  )
-
-  final case class FullAsset(
-    id: TokenId,
-    amount: Long,
-    ticker: Option[Ticker],
-    decimals: Option[Int]
   )
 }
