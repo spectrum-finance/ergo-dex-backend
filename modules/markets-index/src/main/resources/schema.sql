@@ -1,6 +1,6 @@
 create domain public.hash32type as varchar(64);
 
-create domain public.ticker as varchar(128);
+create domain public.ticker as varchar;
 
 create table if not exists public.pools (
     pool_state_id public.hash32type primary key,
@@ -19,7 +19,7 @@ create table if not exists public.pools (
     protocol_version integer not null
 );
 
-ALTER TABLE public.pools OWNER TO ergo_admin;
+alter table public.pools owner to ergo_admin;
 
 create index pools__pool_id on public.pools using btree (pool_id);
 create index pools__protocol_version on public.pools using btree (protocol_version);
@@ -45,7 +45,7 @@ create table if not exists public.swaps (
     protocol_version integer not null
 );
 
-ALTER TABLE public.swaps OWNER TO ergo_admin;
+alter table public.swaps owner to ergo_admin;
 
 create index swaps__pool_id on public.swaps using btree (pool_id);
 create index swaps__pool_state_id on public.swaps using btree (pool_state_id);
@@ -69,7 +69,7 @@ create table if not exists public.redeems (
     protocol_version integer not null
 );
 
-ALTER TABLE public.redeems OWNER TO ergo_admin;
+alter table public.redeems owner to ergo_admin;
 
 create index redeems__pool_id on public.redeems using btree (pool_id);
 create index redeems__pool_state_id on public.redeems using btree (pool_state_id);
@@ -94,10 +94,21 @@ create table if not exists public.deposits (
     protocol_version integer not null
 );
 
-ALTER TABLE public.deposits OWNER TO ergo_admin;
+alter table public.deposits owner to ergo_admin;
 
 create index deposits__pool_id on public.deposits using btree (pool_id);
 create index deposits__pool_state_id on public.deposits using btree (pool_state_id);
 create index deposits__protocol_version on public.deposits using btree (protocol_version);
 create index deposits__input_id_x on public.deposits using btree (input_id_x);
 create index deposits__input_id_y on public.deposits using btree (input_id_y);
+
+create table if not exists public.assets (
+    id public.hash32type primary key,
+    ticker public.ticker,
+    description varchar,
+    decimals integer
+);
+
+alter table public.assets owner to ergo_admin;
+
+create index assets__ticker on public.assets using btree (ticker);

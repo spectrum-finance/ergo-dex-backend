@@ -5,7 +5,6 @@ import cats.tagless.syntax.functorK._
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.dex.markets.configs.ConfigBundle
-import org.ergoplatform.dex.markets.repositories.FillsRepo
 import org.ergoplatform.ergo.ErgoNetworkStreaming
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
@@ -33,8 +32,6 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(elh: EmbeddableLogHandler[xa.DB]) <-
         Resource.eval(doobieLogging.makeEmbeddableHandler[InitF, RunF, xa.DB]("matcher-db-logging"))
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
-      repos <- Resource.eval(FillsRepo.make[InitF, xa.DB])
-      implicit0(reposF: FillsRepo[RunF]) = repos.mapK(xa.trans)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
     } yield configs

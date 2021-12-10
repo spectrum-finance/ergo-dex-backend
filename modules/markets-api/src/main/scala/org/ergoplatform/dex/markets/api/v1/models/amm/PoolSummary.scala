@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.markets.models.amm
+package org.ergoplatform.dex.markets.api.v1.models.amm
 
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.PoolId

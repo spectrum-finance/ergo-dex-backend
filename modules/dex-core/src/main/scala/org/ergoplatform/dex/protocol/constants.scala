@@ -11,4 +11,6 @@ object constants {
     TokenId(HexString.fromBytes(Array.fill(32)(0: Byte)))
 
   val NativeAssetTicker = "ERG"
+
+  val NativeAssetDecimals = 9
 }
