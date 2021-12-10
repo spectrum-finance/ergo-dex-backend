@@ -1,8 +1,8 @@
 package org.ergoplatform.dex.markets.modules
 
-import org.ergoplatform.dex.domain.{AssetAmount, AssetEquiv, ValueUnits}
+import org.ergoplatform.dex.domain.{AssetEquiv, FullAsset, ValueUnits}
 
 trait PriceSolver[F[_]] {
 
-  def solve(asset: AssetAmount, targetUnits: ValueUnits): F[AssetEquiv]
+  def solve(asset: FullAsset, targetUnits: ValueUnits): F[AssetEquiv]
 }
