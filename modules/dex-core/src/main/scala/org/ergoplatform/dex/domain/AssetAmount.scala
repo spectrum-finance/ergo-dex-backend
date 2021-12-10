@@ -12,10 +12,10 @@ import sttp.tapir.{Schema, Validator}
 import tofu.logging.derivation.loggable
 
 @derive(show, encoder, decoder, loggable)
-final case class AssetAmount(id: TokenId, value: Long, name: Option[String]) {
+final case class AssetAmount(id: TokenId, value: Long) {
 
   def >=(that: AssetAmount): Boolean = value >= that.value
-  def <(that: AssetAmount): Boolean = value < that.value
+  def <(that: AssetAmount): Boolean  = value < that.value
 
   def withAmount(x: Long): AssetAmount = copy(value = x)
 
@@ -33,14 +33,14 @@ final case class AssetAmount(id: TokenId, value: Long, name: Option[String]) {
 object AssetAmount {
 
   def fromBoxAsset(boxAsset: BoxAsset): AssetAmount =
-    AssetAmount(boxAsset.tokenId, boxAsset.amount, boxAsset.name)
+    AssetAmount(boxAsset.tokenId, boxAsset.amount)
 
   def native(value: Long): AssetAmount =
-    AssetAmount(NativeAssetId, value, Some(NativeAssetTicker.value))
+    AssetAmount(NativeAssetId, value)
 
   implicit val schema: Schema[AssetAmount]       = Schema.derived[AssetAmount]
   implicit val validator: Validator[AssetAmount] = schema.validator
 
   implicit val codec: Codec[AssetAmount] =
-    (implicitly[Codec[TokenId]] :: int64 :: optional(bool, variableSizeBits(uint16, utf8))).as[AssetAmount]
+    (implicitly[Codec[TokenId]] :: int64).as[AssetAmount]
 }
