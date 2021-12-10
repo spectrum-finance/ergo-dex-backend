@@ -27,8 +27,8 @@ final class T2TCFMMOrdersParser[F[_]: Applicative: Clock](ts: Long)(implicit
         for {
           poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
           maxMinerFee <- tree.constants.parseLong(25)
-          inX         <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
-          inY         <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount, a.name))
+          inX         <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
+          inY         <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount))
           dexFee      <- tree.constants.parseLong(15)
           p2pk        <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
           params = DepositParams(inX, inY, dexFee, p2pk)
@@ -45,7 +45,7 @@ final class T2TCFMMOrdersParser[F[_]: Applicative: Clock](ts: Long)(implicit
         for {
           poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
           maxMinerFee <- tree.constants.parseLong(19)
-          inLP        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
+          inLP        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
           dexFee      <- tree.constants.parseLong(15)
           p2pk        <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
           params = RedeemParams(inLP, dexFee, p2pk)
@@ -62,10 +62,10 @@ final class T2TCFMMOrdersParser[F[_]: Applicative: Clock](ts: Long)(implicit
         for {
           poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
           maxMinerFee  <- tree.constants.parseLong(21)
-          inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount, a.name))
+          inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
           outId        <- tree.constants.parseBytea(2).map(TokenId.fromBytes)
           minOutAmount <- tree.constants.parseLong(15)
-          outAmount = AssetAmount(outId, minOutAmount, None)
+          outAmount = AssetAmount(outId, minOutAmount)
           dexFeePerTokenNum   <- tree.constants.parseLong(16)
           dexFeePerTokenDenom <- tree.constants.parseLong(17)
           p2pk                <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))

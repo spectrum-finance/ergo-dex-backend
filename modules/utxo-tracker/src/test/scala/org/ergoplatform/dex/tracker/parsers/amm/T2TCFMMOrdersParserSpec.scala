@@ -23,13 +23,11 @@ class T2TCFMMOrdersParserSpec extends AnyPropSpec with should.Matchers with Scal
         SwapParams(
           AssetAmount(
             TokenId.fromStringUnsafe("ef802b475c06189fdbf844153cdc1d449a5ba87cce13d11bb47b5a539f27f12b"),
-            1000000000,
-            Some("WT_ERG")
+            1000000000
           ),
           AssetAmount(
             TokenId.fromStringUnsafe("30974274078845f263b4f21787e33cc99e9ec19a17ad85a5bc6da2cca91c5a2e"),
-            1901019262,
-            None
+            1901019262
           ),
           dexFeePerTokenNum   = 2630167984063278L,
           dexFeePerTokenDenom = 1000000000000000000L,

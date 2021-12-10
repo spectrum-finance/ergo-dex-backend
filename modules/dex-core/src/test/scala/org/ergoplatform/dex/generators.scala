@@ -94,9 +94,8 @@ object generators {
 
   def assetAmountGen(value: Long): Gen[AssetAmount] =
     for {
-      id     <- tokenIdGen
-      ticker <- Gen.alphaNumStr.map(_.take(3).map(_.toUpper))
-    } yield AssetAmount(id, value, Some(ticker))
+      id <- tokenIdGen
+    } yield AssetAmount(id, value)
 
   def assetAmountGen: Gen[AssetAmount] =
     Gen.posNum[Long].flatMap(assetAmountGen)
@@ -107,9 +106,9 @@ object generators {
       lp     <- assetAmountGen
       x      <- assetAmountGen(reservesX)
       y      <- assetAmountGen(reservesY)
-      lpi = AssetInfo(lp.name.map(Ticker(_)), Some(0))
-      xi  = AssetInfo(x.name.map(Ticker(_)), Some(0))
-      yi  = AssetInfo(y.name.map(Ticker(_)), Some(0))
+      lpi = AssetInfo(Some(Ticker("LP")), Some(0))
+      xi  = AssetInfo(Some(Ticker("X")), Some(0))
+      yi  = AssetInfo(Some(Ticker("Y")), Some(0))
       feeNum <- Gen.const(995)
       boxId  <- boxIdGen
       box = BoxInfo(boxId, 1000000, gix)
