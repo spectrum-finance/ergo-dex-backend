@@ -34,7 +34,7 @@ object models {
     protocolVersion: ProtocolVersion
   )
 
-  implicit val poolView: DBView[CFMMPool, DBPool] =
+  implicit val poolView: Extract[CFMMPool, DBPool] =
     pool =>
       DBPool(
         PoolStateId.fromBoxId(pool.box.boxId),
@@ -70,7 +70,7 @@ object models {
     protocolVersion: ProtocolVersion
   )
 
-  implicit val swapView: DBView[EvaluatedCFMMOrder[Swap, SwapEvaluation], DBSwap] = {
+  implicit val swapView: Extract[EvaluatedCFMMOrder[Swap, SwapEvaluation], DBSwap] = {
     case EvaluatedCFMMOrder(swap, ev, pool) =>
       DBSwap(
         OrderId.fromBoxId(swap.box.boxId),
@@ -105,7 +105,7 @@ object models {
     protocolVersion: ProtocolVersion
   )
 
-  implicit val redeemView: DBView[EvaluatedCFMMOrder[Redeem, RedeemEvaluation], DBRedeem] = {
+  implicit val redeemView: Extract[EvaluatedCFMMOrder[Redeem, RedeemEvaluation], DBRedeem] = {
     case EvaluatedCFMMOrder(redeem, ev, pool) =>
       DBRedeem(
         OrderId.fromBoxId(redeem.box.boxId),
@@ -139,7 +139,7 @@ object models {
     protocolVersion: ProtocolVersion
   )
 
-  implicit val depositView: DBView[EvaluatedCFMMOrder[Deposit, DepositEvaluation], DBDeposit] = {
+  implicit val depositView: Extract[EvaluatedCFMMOrder[Deposit, DepositEvaluation], DBDeposit] = {
     case EvaluatedCFMMOrder(deposit, ev, pool) =>
       DBDeposit(
         OrderId.fromBoxId(deposit.box.boxId),
@@ -157,4 +157,20 @@ object models {
         ProtocolVersion.Initial
       )
   }
+
+  final case class DBAssetInfo(
+    tokenId: TokenId,
+    ticker: Option[Ticker],
+    decimals: Option[Int]
+  )
+
+  type PoolAssets = (DBAssetInfo, DBAssetInfo, DBAssetInfo)
+
+  implicit val extractAssets: Extract[CFMMPool, PoolAssets] =
+    pool =>
+      (
+        DBAssetInfo(pool.lp.id, pool.lpInfo.ticker, pool.lpInfo.decimals),
+        DBAssetInfo(pool.x.id, pool.xInfo.ticker, pool.xInfo.decimals),
+        DBAssetInfo(pool.y.id, pool.yInfo.ticker, pool.yInfo.decimals)
+      )
 }

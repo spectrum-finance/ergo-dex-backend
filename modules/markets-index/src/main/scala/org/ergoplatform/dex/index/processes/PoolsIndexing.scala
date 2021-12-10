@@ -3,8 +3,8 @@ package org.ergoplatform.dex.index.processes
 import cats.data.NonEmptyList
 import cats.syntax.foldable._
 import cats.{Foldable, Functor, Monad}
-import org.ergoplatform.dex.index.db.DBView.syntax.DBViewOps
-import org.ergoplatform.dex.index.db.models.DBPool
+import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
+import org.ergoplatform.dex.index.db.models.{DBPool, PoolAssets}
 import org.ergoplatform.dex.index.repos.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMPoolsConsumer
 import tofu.doobie.transactor.Txr
@@ -51,9 +51,21 @@ object PoolsIndexing {
     def run: S[Unit] =
       pools.stream.chunks.evalMap { rs =>
         val poolSnapshots = rs.map(r => r.message.confirmed).toList
+        def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
+          NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
         val insert =
-          NonEmptyList.fromList(poolSnapshots).fold(0.pure[D])(xs => repos.pools.insert(xs.map(_.dbView[DBPool])))
-        txr.trans(insert) >>= (n => info"[$n] pool snapshots indexed")
+          for {
+            pn <- insertNel(poolSnapshots)(xs => repos.pools.insert(xs.map(_.extract[DBPool])))
+            an <- insertNel(poolSnapshots) { xs =>
+                    repos.assets.insert(xs.flatMap { p =>
+                      val (lp, x, y) = p.extract[PoolAssets]
+                      NonEmptyList.of(lp, x, y)
+                    })
+                  }
+          } yield (pn, an)
+        txr.trans(insert) >>= { case (pn, an) =>
+          info"[$pn] pool snapshots indexed" >> info"[$an] assets indexed"
+        }
       }
   }
 }

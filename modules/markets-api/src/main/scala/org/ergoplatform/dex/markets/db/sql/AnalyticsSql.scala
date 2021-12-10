@@ -9,19 +9,31 @@ class AnalyticsSql(implicit lg: LogHandler) {
 
   def getPoolSnapshots: Query0[PoolSnapshot] =
     sql"""
-         |select p.pool_id, p.x_id, p.x_amount, p.x_ticker, p.y_id, p.y_amount, p.y_ticker
+         |select p.pool_id, p.x_id, p.x_amount, ax.ticker, ax.decimals, p.y_id, p.y_amount, ay.ticker, ay.decimals
          |from pools p
          |left join (
          |	select pool_id, max(gindex) as gindex
          |	from pools
          |	group by pool_id
          |) as px on p.pool_id = px.pool_id and p.gindex = px.gindex
+         |left join assets ax on ax.id = p.x_id
+         |left join assets ay on ay.id = p.y_id
          |where px.gindex = p.gindex
          """.stripMargin.query[PoolSnapshot]
 
   def getPoolVolumes(fromTs: Long): Query0[PoolVolumeSnapshot] =
     sql"""
-         |select distinct on (p.pool_id) p.pool_id, p.x_id, sx.tx, p.x_ticker, p.y_id, sx.ty, p.y_ticker from pools p
+         |select distinct on (p.pool_id)
+         |  p.pool_id,
+         |  p.x_id,
+         |  sx.tx,
+         |  ax.ticker,
+         |  ax.decimals,
+         |  p.y_id,
+         |  sx.ty,
+         |  ay.ticker,
+         |  ay.decimals
+         |from pools p
          |left join (
          |  select
          |    s.pool_id,
@@ -32,6 +44,8 @@ class AnalyticsSql(implicit lg: LogHandler) {
          |  where s.timestamp >= $fromTs
          |  group by s.pool_id
          |) as sx on sx.pool_id = p.pool_id
+         |left join assets ax on ax.id = p.x_id
+         |left join assets ay on ay.id = p.y_id
          |where sx.pool_id is not null
          """.query[PoolVolumeSnapshot]
 }

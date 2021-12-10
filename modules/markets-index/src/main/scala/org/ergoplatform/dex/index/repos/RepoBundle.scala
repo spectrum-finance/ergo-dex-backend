@@ -10,7 +10,8 @@ import tofu.syntax.monadic._
 
 final case class RepoBundle[F[_]](
   orders: CFMMOrdersRepo[F],
-  pools: PoolsRepo[F]
+  pools: PoolsRepo[F],
+  assets: AssetsRepo[F]
 )
 
 object RepoBundle {
@@ -19,7 +20,7 @@ object RepoBundle {
     new FunctorK[RepoBundle] {
 
       def mapK[F[_], G[_]](af: RepoBundle[F])(fk: F ~> G): RepoBundle[G] =
-        RepoBundle(af.orders.mapK(fk), af.pools.mapK(fk))
+        RepoBundle(af.orders.mapK(fk), af.pools.mapK(fk), af.assets.mapK(fk))
     }
 
   def make[I[_]: FlatMap, D[_]: FlatMap: LiftConnectionIO](implicit
@@ -29,5 +30,6 @@ object RepoBundle {
     for {
       orders <- CFMMOrdersRepo.make[I, D]
       pools  <- PoolsRepo.make[I, D]
-    } yield RepoBundle(orders, pools)
+      assets <- AssetsRepo.make[I, D]
+    } yield RepoBundle(orders, pools, assets)
 }

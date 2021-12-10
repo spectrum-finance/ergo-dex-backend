@@ -7,16 +7,10 @@ create table if not exists public.pools (
     pool_id public.hash32type not null,
     lp_id public.hash32type not null,
     lp_amount bigint not null,
-    lp_ticker public.ticker,
-    lp_decimals integer,
     x_id public.hash32type not null,
     x_amount bigint not null,
-    x_ticker public.ticker,
-    x_decimals integer,
     y_id public.hash32type not null,
     y_amount bigint not null,
-    y_ticker public.ticker,
-    y_decimals integer,
     fee_num integer not null,
     gindex bigint not null,
     protocol_version integer not null
@@ -99,3 +93,13 @@ create index deposits__pool_state_id on public.deposits using btree (pool_state_
 create index deposits__protocol_version on public.deposits using btree (protocol_version);
 create index deposits__input_id_x on public.deposits using btree (input_id_x);
 create index deposits__input_id_y on public.deposits using btree (input_id_y);
+
+create table if not exists public.assets (
+    id public.hash32type primary key,
+    ticker public.ticker,
+    decimals integer
+)
+
+alter table public.assets owner to ergo_admin;
+
+create index assets__ticker on public.assets using btree (ticker);

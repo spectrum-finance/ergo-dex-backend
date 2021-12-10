@@ -6,7 +6,7 @@ import cats.syntax.option._
 import cats.{Foldable, Functor, Monad}
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
 import org.ergoplatform.dex.domain.amm.{Deposit, EvaluatedCFMMOrder, Redeem, Swap}
-import org.ergoplatform.dex.index.db.DBView.syntax.DBViewOps
+import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
 import org.ergoplatform.dex.index.db.models.{DBDeposit, DBRedeem, DBSwap}
 import org.ergoplatform.dex.index.repos.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMHistConsumer
@@ -56,17 +56,17 @@ object HistoryIndexing {
         val orders = rs.map(r => r.message).toList
         val (swaps, others) = orders.partitionEither {
           case EvaluatedCFMMOrder(o: Swap, Some(ev: SwapEvaluation), p) =>
-            Left(EvaluatedCFMMOrder(o, Some(ev), p).dbView[DBSwap])
+            Left(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBSwap])
           case EvaluatedCFMMOrder(o: Swap, _, p) =>
-            Left(EvaluatedCFMMOrder(o, none[SwapEvaluation], p).dbView[DBSwap])
+            Left(EvaluatedCFMMOrder(o, none[SwapEvaluation], p).extract[DBSwap])
           case EvaluatedCFMMOrder(o: Deposit, Some(ev: DepositEvaluation), p) =>
-            Right(Left(EvaluatedCFMMOrder(o, Some(ev), p).dbView[DBDeposit]))
+            Right(Left(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBDeposit]))
           case EvaluatedCFMMOrder(o: Deposit, _, p) =>
-            Right(Left(EvaluatedCFMMOrder(o, none[DepositEvaluation], p).dbView[DBDeposit]))
+            Right(Left(EvaluatedCFMMOrder(o, none[DepositEvaluation], p).extract[DBDeposit]))
           case EvaluatedCFMMOrder(o: Redeem, Some(ev: RedeemEvaluation), p) =>
-            Right(Right(EvaluatedCFMMOrder(o, Some(ev), p).dbView[DBRedeem]))
+            Right(Right(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBRedeem]))
           case EvaluatedCFMMOrder(o: Redeem, _, p) =>
-            Right(Right(EvaluatedCFMMOrder(o, none[RedeemEvaluation], p).dbView[DBRedeem]))
+            Right(Right(EvaluatedCFMMOrder(o, none[RedeemEvaluation], p).extract[DBRedeem]))
         }
         val (deposits, redeems) = others.partitionEither(identity)
         def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
