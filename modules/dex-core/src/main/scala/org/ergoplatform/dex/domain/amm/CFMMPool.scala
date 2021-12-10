@@ -4,7 +4,7 @@ import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.dex.domain.amm.state.Predicted
-import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}
+import org.ergoplatform.dex.domain.{AssetAmount, AssetInfo, BoxInfo}
 import org.ergoplatform.dex.protocol.amm.constants
 import scodec.Codec
 import scodec.codecs._
@@ -17,6 +17,9 @@ final case class CFMMPool(
   lp: AssetAmount,
   x: AssetAmount,
   y: AssetAmount,
+  lpInfo: AssetInfo,
+  xInfo: AssetInfo,
+  yInfo: AssetInfo,
   feeNum: Int,
   box: BoxInfo
 ) {
@@ -61,11 +64,11 @@ final case class CFMMPool(
     val minByY = BigInt(inY.value) * supplyLP / y.value
     val change =
       if (minByX < minByY) {
-        val diff = minByY - minByX
+        val diff    = minByY - minByX
         val excessY = diff * y.value / supplyLP
         Some(inY.withAmount(excessY))
       } else if (minByX > minByY) {
-        val diff = minByX - minByY
+        val diff    = minByX - minByY
         val excessX = diff * x.value / supplyLP
         Some(inX.withAmount(excessX))
       } else None
@@ -87,6 +90,7 @@ final case class CFMMPool(
 }
 
 object CFMMPool {
+
   implicit val schema: Schema[CFMMPool]       = Schema.derived[CFMMPool]
   implicit val validator: Validator[CFMMPool] = schema.validator
 
@@ -96,6 +100,9 @@ object CFMMPool {
         implicitly[Codec[AssetAmount]] ::
         implicitly[Codec[AssetAmount]] ::
         implicitly[Codec[AssetAmount]] ::
+        implicitly[Codec[AssetInfo]] ::
+        implicitly[Codec[AssetInfo]] ::
+        implicitly[Codec[AssetInfo]] ::
         int32 ::
         implicitly[Codec[BoxInfo]]
     ).as[CFMMPool]

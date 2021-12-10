@@ -1,6 +1,7 @@
 package org.ergoplatform.dex.protocol
 
 import org.ergoplatform.common.HexString
+import org.ergoplatform.dex.domain.Ticker
 import org.ergoplatform.ergo.TokenId
 
 object constants {
@@ -10,7 +11,7 @@ object constants {
   val NativeAssetId: TokenId =
     TokenId(HexString.fromBytes(Array.fill(32)(0: Byte)))
 
-  val NativeAssetTicker = "ERG"
+  val NativeAssetTicker = Ticker("ERG")
 
   val NativeAssetDecimals = 9
 }
