@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.markets.services
 
 import org.ergoplatform.dex.domain.Market
-import org.ergoplatform.dsl.ContractSyntax.TokenId
+import org.ergoplatform.ergo.TokenId
 
 trait Markets[F[_]] {
 
