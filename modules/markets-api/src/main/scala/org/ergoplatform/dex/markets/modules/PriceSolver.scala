@@ -6,6 +6,7 @@ import org.ergoplatform.dex.domain._
 import org.ergoplatform.dex.markets.services.{FiatRates, Markets}
 import org.ergoplatform.dex.protocol.constants
 import tofu.syntax.monadic._
+import tofu.syntax.foption._
 
 sealed trait PriceSolverType { type AssetRepr }
 trait CryptoSolverType extends PriceSolverType { type AssetRepr = AssetClass }
@@ -39,12 +40,14 @@ object PriceSolver {
     def solve(asset: FullAsset, target: ValueUnits[AssetRepr]): F[Option[AssetEquiv[AssetRepr]]] =
       target match {
         case CryptoUnits(units) =>
-          markets
-            .getByAsset(asset.id)
-            .map(_.find(_.contains(units.tokenId)).map { market =>
-              val amountEquiv = asset.amount * market.priceBy(asset.id)
-              AssetEquiv(asset, target, amountEquiv)
-            })
+          if (asset.id != units.tokenId) {
+            markets
+              .getByAsset(asset.id)
+              .map(_.find(_.contains(units.tokenId)).map { market =>
+                val amountEquiv = asset.amount * market.priceBy(asset.id)
+                AssetEquiv(asset, target, amountEquiv)
+              })
+          } else AssetEquiv(asset, target, BigDecimal(asset.amount)).someF
       }
   }
 }
