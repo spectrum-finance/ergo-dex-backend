@@ -16,4 +16,10 @@ object models {
     volumeByX: FullAsset,
     volumeByY: FullAsset
   )
+
+  final case class PoolFeesSnapshot(
+    poolId: PoolId,
+    feesByX: FullAsset,
+    feesByY: FullAsset
+  )
 }

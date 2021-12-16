@@ -16,20 +16,23 @@ trait PriceSolver[F[_], T <: PriceSolverType] {
 
   type AssetRepr = T#AssetRepr
 
-  def solve(asset: FullAsset, target: ValueUnits[AssetRepr]): F[Option[AssetEquiv[AssetRepr]]]
+  def convert(asset: FullAsset, target: ValueUnits[AssetRepr]): F[Option[AssetEquiv[AssetRepr]]]
 }
 
 object PriceSolver {
 
+  type CryptoPriceSolver[F[_]] = PriceSolver[F, CryptoSolverType]
+  type FiatPriceSolver[F[_]]   = PriceSolver[F, FiatSolverType]
+
   final class ViaErgFiatSolver[F[_]: Monad](rates: FiatRates[F], cryptoSolver: CryptoSolver[F])
     extends PriceSolver[F, FiatSolverType] {
 
-    def solve(asset: FullAsset, target: ValueUnits[AssetRepr]): F[Option[AssetEquiv[AssetRepr]]] =
+    def convert(asset: FullAsset, target: ValueUnits[AssetRepr]): F[Option[AssetEquiv[AssetRepr]]] =
       target match {
         case fiat @ FiatUnits(_) =>
           (for {
-            ergEquiv <- OptionT(cryptoSolver.solve(asset, constants.NativeUnits))
-            ergRate  <- OptionT(rates.rateOf(constants.NativeAssetClass, fiat))
+            ergEquiv <- OptionT(cryptoSolver.convert(asset, constants.ErgoUnits))
+            ergRate  <- OptionT(rates.rateOf(constants.ErgoAssetClass, fiat))
             fiatEquiv = ergEquiv.value * ergRate / math.pow(10, fiat.currency.decimals.toDouble)
           } yield AssetEquiv(asset, fiat, fiatEquiv)).value
       }
@@ -37,7 +40,7 @@ object PriceSolver {
 
   final class CryptoSolver[F[_]: Monad](markets: Markets[F]) extends PriceSolver[F, CryptoSolverType] {
 
-    def solve(asset: FullAsset, target: ValueUnits[AssetRepr]): F[Option[AssetEquiv[AssetRepr]]] =
+    def convert(asset: FullAsset, target: ValueUnits[AssetRepr]): F[Option[AssetEquiv[AssetRepr]]] =
       target match {
         case CryptoUnits(units) =>
           if (asset.id != units.tokenId) {

@@ -3,7 +3,7 @@ package org.ergoplatform.dex.markets.services
 import cats.Monad
 import org.ergoplatform.dex.domain.{AssetClass, FiatUnits}
 import org.ergoplatform.dex.markets.currencies.UsdUnits
-import org.ergoplatform.dex.protocol.constants.NativeAssetClass
+import org.ergoplatform.dex.protocol.constants.ErgoAssetClass
 import org.ergoplatform.ergo.models.{RegisterId, SConstant}
 import org.ergoplatform.ergo.{ErgoNetwork, TokenId}
 import sigmastate.SLong
@@ -26,7 +26,7 @@ object FiatRates {
   final class ErgoOraclesRateSource[F[_]: Monad](network: ErgoNetwork[F]) extends FiatRates[F] {
 
     def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] =
-      if (asset == NativeAssetClass && units == UsdUnits) {
+      if (asset == ErgoAssetClass && units == UsdUnits) {
         network
           .getUtxoByToken(ErgUsdPoolNft, offset = 0, limit = 1)
           .map(_.headOption)

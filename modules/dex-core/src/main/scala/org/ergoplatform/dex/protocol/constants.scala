@@ -8,14 +8,14 @@ object constants {
 
   val PreGenesisHeight = 0
 
-  val NativeAssetId: TokenId =
+  val ErgoAssetId: TokenId =
     TokenId(HexString.fromBytes(Array.fill(32)(0: Byte)))
 
-  val NativeAssetTicker: Ticker = Ticker("ERG")
+  val ErgoAssetTicker: Ticker = Ticker("ERG")
 
-  val NativeAssetDecimals = 9
+  val ErgoAssetDecimals = 9
 
-  val NativeAssetClass: AssetClass = AssetClass(NativeAssetId, Some(NativeAssetTicker), Some(NativeAssetDecimals))
+  val ErgoAssetClass: AssetClass = AssetClass(ErgoAssetId, Some(ErgoAssetTicker), Some(ErgoAssetDecimals))
 
-  val NativeUnits: CryptoUnits = CryptoUnits(NativeAssetClass)
+  val ErgoUnits: CryptoUnits = CryptoUnits(ErgoAssetClass)
 }

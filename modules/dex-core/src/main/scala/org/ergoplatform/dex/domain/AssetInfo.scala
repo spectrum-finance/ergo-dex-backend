@@ -3,7 +3,7 @@ package org.ergoplatform.dex.domain
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import org.ergoplatform.dex.protocol.constants.{NativeAssetDecimals, NativeAssetTicker}
+import org.ergoplatform.dex.protocol.constants.{ErgoAssetDecimals, ErgoAssetTicker}
 import org.ergoplatform.ergo.models.BoxAsset
 import scodec.Codec
 import scodec.codecs.{bool, int32, optional}
@@ -17,7 +17,7 @@ object AssetInfo {
 
   def apply(ba: BoxAsset): AssetInfo = AssetInfo(ba.name.map(Ticker(_)), ba.decimals)
 
-  val native: AssetInfo = AssetInfo(Some(NativeAssetTicker), Some(NativeAssetDecimals))
+  val native: AssetInfo = AssetInfo(Some(ErgoAssetTicker), Some(ErgoAssetDecimals))
 
   implicit val codec: Codec[AssetInfo] =
     (optional(bool, implicitly[Codec[Ticker]]) :: optional(bool, int32)).as[AssetInfo]

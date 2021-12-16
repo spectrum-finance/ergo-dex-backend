@@ -35,7 +35,7 @@ object Fills {
           .flatMap { output =>
             val base = params.baseAsset
             val rewardAmountM =
-              if (base == constants.NativeAssetId) Some(output.value)
+              if (base == constants.ErgoAssetId) Some(output.value)
               else output.assets.find(_.tokenId == base).map(_.amount)
             rewardAmountM.map { rewardAmount =>
               val price  = params.price
