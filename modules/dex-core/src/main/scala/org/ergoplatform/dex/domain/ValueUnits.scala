@@ -1,8 +1,6 @@
 package org.ergoplatform.dex.domain
 
-sealed trait ValueUnits
+sealed trait ValueUnits[T]
 
-object ValueUnits {
-
-  case object USD extends ValueUnits
-}
+case class CryptoUnits(asset: AssetClass) extends ValueUnits[AssetClass]
+case class FiatUnits(currency: Currency) extends ValueUnits[Currency]

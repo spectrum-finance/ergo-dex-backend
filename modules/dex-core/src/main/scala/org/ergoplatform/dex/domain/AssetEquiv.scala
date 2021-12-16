@@ -1,3 +1,3 @@
 package org.ergoplatform.dex.domain
 
-final case class AssetEquiv(asset: FullAsset, units: String, value: Long)
+final case class AssetEquiv[T](asset: FullAsset, units: ValueUnits[T], value: BigDecimal)
