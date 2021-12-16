@@ -3,7 +3,7 @@ package org.ergoplatform.dex.domain
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import org.ergoplatform.dex.protocol.constants.{NativeAssetId, NativeAssetTicker}
+import org.ergoplatform.dex.protocol.constants.{ErgoAssetId, ErgoAssetTicker}
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.models.BoxAsset
 import scodec._
@@ -27,7 +27,7 @@ final case class AssetAmount(id: TokenId, value: Long) {
   def -(that: AssetAmount): AssetAmount = withAmount(value - that.value)
   def +(that: AssetAmount): AssetAmount = withAmount(value + that.value)
 
-  def isNative: Boolean = id == NativeAssetId
+  def isNative: Boolean = id == ErgoAssetId
 }
 
 object AssetAmount {
@@ -36,7 +36,7 @@ object AssetAmount {
     AssetAmount(boxAsset.tokenId, boxAsset.amount)
 
   def native(value: Long): AssetAmount =
-    AssetAmount(NativeAssetId, value)
+    AssetAmount(ErgoAssetId, value)
 
   implicit val schema: Schema[AssetAmount]       = Schema.derived[AssetAmount]
   implicit val validator: Validator[AssetAmount] = schema.validator

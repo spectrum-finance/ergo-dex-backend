@@ -7,4 +7,6 @@ final case class FullAsset(
   amount: Long,
   ticker: Option[Ticker],
   decimals: Option[Int]
-)
+) {
+  def assetClass: AssetClass = AssetClass(id, ticker, decimals)
+}
