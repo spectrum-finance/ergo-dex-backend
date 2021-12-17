@@ -9,9 +9,9 @@ import tofu.logging.Logs
 import tofu.syntax.monadic._
 
 final case class RepoBundle[F[_]](
-                                   orders: CFMMOrders[F],
-                                   pools: Pools[F],
-                                   assets: Assets[F]
+  orders: CFMMOrders[F],
+  pools: Pools[F],
+  assets: Assets[F]
 )
 
 object RepoBundle {

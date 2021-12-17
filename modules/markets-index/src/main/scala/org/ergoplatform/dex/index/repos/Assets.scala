@@ -7,7 +7,7 @@ import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
 import org.ergoplatform.dex.index.db.models.DBAssetInfo
-import org.ergoplatform.dex.index.sql.CFMMPoolSql
+import org.ergoplatform.dex.index.sql.{AssetSql, CFMMPoolSql}
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.higherKind.derived.representableK
@@ -33,6 +33,6 @@ object Assets {
   final class Live(implicit lh: LogHandler) extends Assets[ConnectionIO] {
 
     def insert(assets: NonEmptyList[DBAssetInfo]): ConnectionIO[Int] =
-      CFMMPoolSql.insertNoConflict[DBAssetInfo].updateMany(assets)
+      AssetSql.insertNoConflict[DBAssetInfo].updateMany(assets)
   }
 }
