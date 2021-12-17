@@ -85,7 +85,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |left join assets ax on ax.id = p.x_id
          |left join assets ay on ay.id = p.y_id
          |where sx.pool_id is not null
-         """.query[PoolVolumeSnapshot]
+         """.stripMargin.query[PoolVolumeSnapshot]
   }
 
   def getPoolVolumes(id: PoolId, tw: TimeWindow): Query0[PoolVolumeSnapshot] = {
@@ -118,7 +118,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |left join assets ax on ax.id = p.x_id
          |left join assets ay on ay.id = p.y_id
          |where sx.pool_id is not null
-         """.query[PoolVolumeSnapshot]
+         """.stripMargin.query[PoolVolumeSnapshot]
   }
 
   def getPoolFees(tw: TimeWindow): Query0[PoolFeesSnapshot] = {
@@ -152,7 +152,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |left join assets ax on ax.id = p.x_id
          |left join assets ay on ay.id = p.y_id
          |where sx.pool_id is not null
-         """.query[PoolFeesSnapshot]
+         """.stripMargin.query[PoolFeesSnapshot]
   }
 
   def getPoolFees(poolId: PoolId, tw: TimeWindow): Query0[PoolFeesSnapshot] = {
@@ -185,6 +185,6 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |left join assets ax on ax.id = p.x_id
          |left join assets ay on ay.id = p.y_id
          |where sx.pool_id is not null
-         """.query[PoolFeesSnapshot]
+         """.stripMargin.query[PoolFeesSnapshot]
   }
 }

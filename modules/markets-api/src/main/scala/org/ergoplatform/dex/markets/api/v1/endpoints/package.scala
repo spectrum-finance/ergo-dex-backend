@@ -4,7 +4,18 @@ import org.ergoplatform.common.http.HttpError
 import org.ergoplatform.common.models.TimeWindow
 import sttp.model.StatusCode
 import sttp.tapir.json.circe.jsonBody
-import sttp.tapir.{Endpoint, EndpointInput, Schema, Validator, emptyOutputAs, endpoint, oneOf, oneOfDefaultMapping, oneOfMapping, query}
+import sttp.tapir.{
+  emptyOutputAs,
+  endpoint,
+  oneOf,
+  oneOfDefaultMapping,
+  oneOfMapping,
+  query,
+  Endpoint,
+  EndpointInput,
+  Schema,
+  Validator
+}
 import sttp.tapir.generic.auto._
 import sttp.tapir.json.circe._
 
