@@ -11,4 +11,7 @@ package object syntax {
 
   implicit def toRoutesOps[F[_], A](fa: EitherT[F, HttpError, Option[A]]): RoutesOps[F, A] =
     new RoutesOps(fa)
+
+  implicit def toServiceOps[F[_], A](fa: F[A]): ServiceOps[F, A] =
+    new ServiceOps(fa)
 }

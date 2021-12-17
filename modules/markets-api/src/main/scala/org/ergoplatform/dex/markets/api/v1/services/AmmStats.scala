@@ -12,12 +12,9 @@ import org.ergoplatform.dex.markets.repositories.Pools
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 
-import scala.concurrent.duration.FiniteDuration
-import tofu.syntax.monadic._
-
 trait AmmStats[F[_]] {
 
-  def getPlatformSummary(tail: FiniteDuration): F[PlatformSummary]
+  def getPlatformSummary(window: TimeWindow): F[PlatformSummary]
 
   def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]]
 }
@@ -38,7 +35,7 @@ object AmmStats {
     fiatSolver: FiatPriceSolver[F]
   ) extends AmmStats[F] {
 
-    def getPlatformSummary(tail: FiniteDuration): F[PlatformSummary] = ???
+    def getPlatformSummary(window: TimeWindow): F[PlatformSummary] = ???
 
     def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {
       val poolStatsQuery =
