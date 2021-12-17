@@ -1,10 +1,21 @@
 package org.ergoplatform.dex.markets.repositories
 
+import cats.{FlatMap, Functor}
+import cats.tagless.syntax.functorK._
+import derevo.derive
+import doobie.ConnectionIO
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.{PoolFeesSnapshot, PoolSnapshot, PoolVolumeSnapshot}
+import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
 import org.ergoplatform.ergo.TokenId
+import tofu.doobie.LiftConnectionIO
+import tofu.doobie.log.EmbeddableLogHandler
+import tofu.higherKind.derived.representableK
+import tofu.logging.Logs
+import tofu.syntax.monadic._
 
+@derive(representableK)
 trait Pools[F[_]] {
 
   /** Get snapshots of all pools.
@@ -25,9 +36,48 @@ trait Pools[F[_]] {
 
   /** Get volumes by a given pool.
     */
-  def poolVolume(id: PoolId, window: TimeWindow): F[Option[PoolVolumeSnapshot]]
+  def volume(id: PoolId, window: TimeWindow): F[Option[PoolVolumeSnapshot]]
+
+  /** Get fees by all pools.
+    */
+  def fees(window: TimeWindow): F[List[PoolFeesSnapshot]]
 
   /** Get fees by a given pool.
     */
-  def poolFees(id: PoolId, window: TimeWindow): F[Option[PoolFeesSnapshot]]
+  def fees(id: PoolId, window: TimeWindow): F[Option[PoolFeesSnapshot]]
+}
+
+object Pools {
+
+  def make[I[_]: Functor, D[_]: FlatMap: LiftConnectionIO](implicit
+    elh: EmbeddableLogHandler[D],
+    logs: Logs[I, D]
+  ): I[Pools[D]] =
+    logs.forService[Pools[D]].map { implicit l =>
+      elh.embed(implicit lh => new Live(new AnalyticsSql()).mapK(LiftConnectionIO[D].liftF))
+    }
+
+  final class Live(sql: AnalyticsSql) extends Pools[ConnectionIO] {
+
+    def snapshots: ConnectionIO[List[PoolSnapshot]] =
+      sql.getPoolSnapshots.to[List]
+
+    def snapshotsByAsset(asset: TokenId): ConnectionIO[List[PoolSnapshot]] =
+      sql.getPoolSnapshotsByAsset(asset).to[List]
+
+    def snapshot(id: PoolId): ConnectionIO[Option[PoolSnapshot]] =
+      sql.getPoolSnapshot(id).option
+
+    def volumes(window: TimeWindow): ConnectionIO[List[PoolVolumeSnapshot]] =
+      sql.getPoolVolumes(window).to[List]
+
+    def volume(id: PoolId, window: TimeWindow): ConnectionIO[Option[PoolVolumeSnapshot]] =
+      sql.getPoolVolumes(id, window).option
+
+    def fees(window: TimeWindow): ConnectionIO[List[PoolFeesSnapshot]] =
+      sql.getPoolFees(window).to[List]
+
+    def fees(id: PoolId, window: TimeWindow): ConnectionIO[Option[PoolFeesSnapshot]] =
+      sql.getPoolFees(id, window).option
+  }
 }

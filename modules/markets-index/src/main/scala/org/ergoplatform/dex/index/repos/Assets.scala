@@ -1,38 +1,38 @@
 package org.ergoplatform.dex.index.repos
 
 import cats.data.NonEmptyList
+import cats.tagless.syntax.functorK._
 import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
-import org.ergoplatform.dex.index.db.models.DBPool
+import org.ergoplatform.dex.index.db.models.DBAssetInfo
 import org.ergoplatform.dex.index.sql.CFMMPoolSql
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.higherKind.derived.representableK
 import tofu.logging.Logs
 import tofu.syntax.monadic._
-import cats.tagless.syntax.functorK._
 
 @derive(representableK)
-trait PoolsRepo[F[_]] {
+trait Assets[F[_]] {
 
-  def insert(pools: NonEmptyList[DBPool]): F[Int]
+  def insert(assets: NonEmptyList[DBAssetInfo]): F[Int]
 }
 
-object PoolsRepo {
+object Assets {
 
   def make[I[_]: Functor, D[_]: FlatMap: LiftConnectionIO](implicit
     elh: EmbeddableLogHandler[D],
     logs: Logs[I, D]
-  ): I[PoolsRepo[D]] =
-    logs.forService[PoolsRepo[D]].map { implicit l =>
+  ): I[Assets[D]] =
+    logs.forService[Assets[D]].map { implicit l =>
       elh.embed(implicit lh => new Live().mapK(LiftConnectionIO[D].liftF))
     }
 
-  final class Live(implicit lh: LogHandler) extends PoolsRepo[ConnectionIO] {
+  final class Live(implicit lh: LogHandler) extends Assets[ConnectionIO] {
 
-    def insert(pools: NonEmptyList[DBPool]): ConnectionIO[Int] =
-      CFMMPoolSql.insertNoConflict[DBPool].updateMany(pools)
+    def insert(assets: NonEmptyList[DBAssetInfo]): ConnectionIO[Int] =
+      CFMMPoolSql.insertNoConflict[DBAssetInfo].updateMany(assets)
   }
 }
