@@ -49,3 +49,4 @@ object FiatRates {
       } else noneF
   }
 }
+

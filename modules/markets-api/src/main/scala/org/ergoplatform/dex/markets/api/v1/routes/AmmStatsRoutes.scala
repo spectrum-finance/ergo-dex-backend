@@ -23,6 +23,10 @@ final class AmmStatsRoutes[
   def getPoolStatsR: HttpRoutes[F] = interpreter.toRoutes(getPoolStats) { case (poolId, tw) =>
     service.getPoolSummary(poolId, tw).adaptThrowable.orNotFound(s"PoolStats{poolId=$poolId}").value
   }
+
+  def getPlatformStatsR: HttpRoutes[F] = interpreter.toRoutes(getPlatformStats) { tw =>
+    service.getPlatformSummary(tw).adaptThrowable.value
+  }
 }
 
 object AmmStatsRoutes {

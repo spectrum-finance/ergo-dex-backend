@@ -1,9 +1,8 @@
 package org.ergoplatform.dex.markets.db.sql
 
-import doobie.LogHandler
 import doobie.implicits._
-import doobie.util.fragment.Fragment
 import doobie.util.query.Query0
+import doobie.{Fragment, LogHandler}
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.{PoolFeesSnapshot, PoolSnapshot, PoolVolumeSnapshot}

@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.markets.repositories
 
-import cats.{FlatMap, Functor}
 import cats.tagless.syntax.functorK._
+import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
 import org.ergoplatform.common.models.TimeWindow
