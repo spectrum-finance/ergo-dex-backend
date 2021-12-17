@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.markets.db
 
 import com.google.common.base.Ticker
-import org.ergoplatform.dex.domain.{AssetAmount, FullAsset}
+import org.ergoplatform.dex.domain.FullAsset
 import org.ergoplatform.dex.domain.amm.{OrderId, PoolId}
 import org.ergoplatform.ergo.TokenId
 

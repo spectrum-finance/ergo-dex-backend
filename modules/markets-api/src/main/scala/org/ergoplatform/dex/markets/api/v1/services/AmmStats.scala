@@ -11,13 +11,12 @@ import org.ergoplatform.dex.markets.modules.PriceSolver.{CryptoPriceSolver, Fiat
 import org.ergoplatform.dex.markets.repositories.Pools
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
-
-import scala.concurrent.duration.FiniteDuration
+import cats.syntax.traverse._
 import tofu.syntax.monadic._
 
 trait AmmStats[F[_]] {
 
-  def getPlatformSummary(tail: FiniteDuration): F[PlatformSummary]
+  def getPlatformSummary(window: TimeWindow): F[PlatformSummary]
 
   def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]]
 }
@@ -38,7 +37,23 @@ object AmmStats {
     fiatSolver: FiatPriceSolver[F]
   ) extends AmmStats[F] {
 
-    def getPlatformSummary(tail: FiniteDuration): F[PlatformSummary] = ???
+    def getPlatformSummary(window: TimeWindow): F[PlatformSummary] = {
+      val statsQuery =
+        for {
+          poolSnapshots <- pools.snapshots
+          volumes <- pools.volumes(window)
+        } yield (poolSnapshots, volumes)
+      for {
+        (poolSnapshots, volumes) <- statsQuery ||> txr.trans
+        lockedX <- poolSnapshots.flatTraverse(pool => fiatSolver.convert(pool.lockedX, UsdUnits).map(_.toList))
+        lockedY <- poolSnapshots.flatTraverse(pool => fiatSolver.convert(pool.lockedY, UsdUnits).map(_.toList))
+        tvl = TotalValueLocked(lockedX.map(_.value).sum + lockedY.map(_.value).sum, UsdUnits)
+
+        volumeByX <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByX, UsdUnits).map(_.toList))
+        volumeByY <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByY, UsdUnits).map(_.toList))
+        volume = Volume(volumeByX.map(_.value).sum + volumeByY.map(_.value).sum, UsdUnits, window)
+      } yield PlatformSummary(tvl, volume)
+    }
 
     def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {
       val poolStatsQuery =

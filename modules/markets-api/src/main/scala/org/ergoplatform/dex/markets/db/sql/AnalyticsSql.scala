@@ -1,12 +1,12 @@
 package org.ergoplatform.dex.markets.db.sql
 
-import doobie.LogHandler
 import doobie.implicits._
-import doobie.util.fragment.Fragment
 import doobie.util.query.Query0
+import doobie.{Fragment, LogHandler}
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.{PoolFeesSnapshot, PoolSnapshot, PoolVolumeSnapshot}
+import org.ergoplatform.ergo.TokenId
 
 final class AnalyticsSql(implicit lg: LogHandler) {
 
@@ -120,14 +120,6 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |where sx.pool_id is not null
          """.query[PoolVolumeSnapshot]
   }
-
-  def getSwap: Query0[SwapSnapshot] =
-    sql"""
-         |select order_id, pool_id, input_id, input_value, input_ticker,
-         | min_output_id, min_output_amount, min_output_ticker, output_amount
-         |from swaps
-         |where to_timestamp(timestamp / 1000) >= now() - interval '24 hours'
-         """.stripMargin.query[SwapSnapshot]
 
   def getPoolFees(tw: TimeWindow): Query0[PoolFeesSnapshot] = {
     val tsCond =
