@@ -98,7 +98,7 @@ create table if not exists public.assets (
     id public.hash32type primary key,
     ticker public.ticker,
     decimals integer
-)
+);
 
 alter table public.assets owner to ergo_admin;
 

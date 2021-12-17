@@ -12,7 +12,6 @@ object RedeemOrdersSql extends QuerySet {
     "timestamp",
     "lp_id",
     "lp_amount",
-    "lp_ticker",
     "output_amount_x",
     "output_amount_y",
     "dex_fee",
