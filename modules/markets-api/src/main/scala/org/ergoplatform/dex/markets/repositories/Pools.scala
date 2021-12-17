@@ -1,12 +1,12 @@
 package org.ergoplatform.dex.markets.repositories
 
-import cats.{FlatMap, Functor}
 import cats.tagless.syntax.functorK._
+import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.db.models.{PoolFeesSnapshot, PoolSnapshot, PoolVolumeSnapshot, SwapSnapshot}
+import org.ergoplatform.dex.markets.db.models.{PoolFeesSnapshot, PoolSnapshot, PoolVolumeSnapshot}
 import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
 import org.ergoplatform.ergo.TokenId
 import tofu.doobie.LiftConnectionIO

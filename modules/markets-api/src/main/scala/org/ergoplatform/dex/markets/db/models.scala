@@ -1,9 +1,7 @@
 package org.ergoplatform.dex.markets.db
 
-import com.google.common.base.Ticker
 import org.ergoplatform.dex.domain.FullAsset
-import org.ergoplatform.dex.domain.amm.{OrderId, PoolId}
-import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.dex.domain.amm.PoolId
 
 object models {
 
@@ -23,17 +21,5 @@ object models {
     poolId: PoolId,
     feesByX: FullAsset,
     feesByY: FullAsset
-  )
-
-  final case class SwapSnapshot(
-    orderId: OrderId,
-    poolId: PoolId,
-    inputId: TokenId,
-    inputValue: Long,
-    inputTicker: Option[Ticker],
-    minOutputId: TokenId,
-    minOutputValue: Long,
-    minOutputTicker: Option[Ticker],
-    outputAmount: Long
   )
 }
