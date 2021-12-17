@@ -23,6 +23,9 @@ object FiatRates {
 
   val ErgUsdPoolNft = TokenId.fromStringUnsafe("011d3364de07e5a26f0c4eef0852cddb387039a921b7154ef3cab22c6eda887f")
 
+  def make[F[_]: Monad](implicit network: ErgoNetwork[F]): ErgoOraclesRateSource[F] =
+    new ErgoOraclesRateSource(network)
+
   final class ErgoOraclesRateSource[F[_]: Monad](network: ErgoNetwork[F]) extends FiatRates[F] {
 
     def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] =

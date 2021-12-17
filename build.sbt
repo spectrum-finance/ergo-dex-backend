@@ -177,7 +177,7 @@ lazy val marketsApi = utils
   .settings(commonSettings)
   .settings(
     assembly / mainClass := Some("org.ergoplatform.dex.markets.App"),
-    libraryDependencies ++= Tapir
+    libraryDependencies ++= TapirDocs
   )
   .settings(nativePackagerSettings("markets-api"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
