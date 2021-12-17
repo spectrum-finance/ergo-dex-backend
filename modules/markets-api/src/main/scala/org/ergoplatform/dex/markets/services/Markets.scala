@@ -1,10 +1,12 @@
 package org.ergoplatform.dex.markets.services
 
+import cats.tagless.syntax.functorK._
 import cats.Monad
 import derevo.derive
 import org.ergoplatform.dex.domain.Market
 import org.ergoplatform.dex.markets.repositories.Pools
 import org.ergoplatform.ergo.TokenId
+import tofu.doobie.transactor.Txr
 import tofu.higherKind.derived.representableK
 import tofu.syntax.monadic._
 
@@ -21,6 +23,9 @@ trait Markets[F[_]] {
 }
 
 object Markets {
+
+  def make[F[_]: Monad, D[_]](implicit txr: Txr.Aux[F, D], pools: Pools[D]): Markets[F] =
+    new Live(pools.mapK(txr.trans))
 
   final class Live[F[_]: Monad](pools: Pools[F]) extends Markets[F] {
 

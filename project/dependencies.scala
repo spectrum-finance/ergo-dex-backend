@@ -30,6 +30,13 @@ object dependencies {
     "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % TapirVersion
   )
 
+  val TapirDocs = List(
+    "com.softwaremill.sttp.tapir" %% "tapir-core"               % TapirVersion,
+    "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs"       % TapirVersion,
+    "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % TapirVersion,
+    "com.softwaremill.sttp.tapir" %% "tapir-redoc-http4s"       % TapirVersion
+  )
+
   val TapirHttp4s = List(
     "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % TapirVersion
   )

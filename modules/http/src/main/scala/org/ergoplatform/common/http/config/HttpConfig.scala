@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.resolver.config
+package org.ergoplatform.common.http.config
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader

@@ -22,9 +22,20 @@ trait PriceSolver[F[_], T <: PriceSolverType] {
 object PriceSolver {
 
   type CryptoPriceSolver[F[_]] = PriceSolver[F, CryptoSolverType]
-  type FiatPriceSolver[F[_]]   = PriceSolver[F, FiatSolverType]
 
-  final class ViaErgFiatSolver[F[_]: Monad](rates: FiatRates[F], cryptoSolver: CryptoSolver[F])
+  object CryptoPriceSolver {
+    def make[F[_]: Monad](implicit markets: Markets[F]): CryptoPriceSolver[F] = new CryptoSolver(markets)
+  }
+
+  type FiatPriceSolver[F[_]] = PriceSolver[F, FiatSolverType]
+
+  object FiatPriceSolver {
+
+    def make[F[_]: Monad](implicit rates: FiatRates[F], cryptoSolver: CryptoPriceSolver[F]): FiatPriceSolver[F] =
+      new ViaErgFiatSolver(rates, cryptoSolver)
+  }
+
+  final class ViaErgFiatSolver[F[_]: Monad](rates: FiatRates[F], cryptoSolver: CryptoPriceSolver[F])
     extends PriceSolver[F, FiatSolverType] {
 
     def convert(asset: FullAsset, target: ValueUnits[AssetRepr]): F[Option[AssetEquiv[AssetRepr]]] =

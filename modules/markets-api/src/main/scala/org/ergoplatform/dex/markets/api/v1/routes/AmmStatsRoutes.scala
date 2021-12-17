@@ -4,16 +4,16 @@ import cats.effect.{Concurrent, ContextShift, Timer}
 import org.ergoplatform.common.http.AdaptThrowable.AdaptThrowableEitherT
 import org.ergoplatform.common.http.HttpError
 import org.ergoplatform.common.http.syntax._
-import org.ergoplatform.dex.markets.api.v1.endpoints.AmmAnalyticsEndpoints
+import org.ergoplatform.dex.markets.api.v1.endpoints.AmmStatsEndpoints
 import org.ergoplatform.dex.markets.api.v1.services.AmmStats
 import org.http4s.HttpRoutes
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 
-final class AmmAnalyticsRoutes[
+final class AmmStatsRoutes[
   F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]
 ](service: AmmStats[F])(implicit opts: Http4sServerOptions[F, F]) {
 
-  private val endpoints = new AmmAnalyticsEndpoints()
+  private val endpoints = new AmmStatsEndpoints()
   import endpoints._
 
   private val interpreter = Http4sServerInterpreter(opts)
@@ -29,11 +29,11 @@ final class AmmAnalyticsRoutes[
   }
 }
 
-object AssetsRoutes {
+object AmmStatsRoutes {
 
   def make[F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]](implicit
     service: AmmStats[F],
     opts: Http4sServerOptions[F, F]
   ): HttpRoutes[F] =
-    new AmmAnalyticsRoutes[F](service).routes
+    new AmmStatsRoutes[F](service).routes
 }
