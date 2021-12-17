@@ -7,12 +7,12 @@ import org.ergoplatform.common.http.config.HttpConfig
 import org.ergoplatform.dex.configs.{ConfigBundleCompanion, NetworkConfig}
 import tofu.Context
 import tofu.logging.Loggable
-import tofu.optics.macros.{ClassyOptics, promote}
+import tofu.optics.macros.{promote, ClassyOptics}
 
 @derive(pureconfigReader)
 @ClassyOptics
 final case class ConfigBundle(
-  @promote pg: PgConfig,
+  @promote db: PgConfig,
   @promote network: NetworkConfig,
   http: HttpConfig
 )

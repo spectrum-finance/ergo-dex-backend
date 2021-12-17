@@ -39,7 +39,7 @@ object App extends EnvApp[AppContext] {
       blocker <- Blocker[InitF]
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       ctx = AppContext.init(configs)
-      trans <- PostgresTransactor.make("markets-api-pool", configs.pg)
+      trans <- PostgresTransactor.make("markets-api-pool", configs.db)
       implicit0(ul: Unlift[RunF, InitF])              = Unlift.byIso(IsoK.byFunK(wr.runContextK(ctx))(wr.liftF))
       implicit0(xa: Txr.Contextual[RunF, AppContext]) = Txr.contextual[RunF](trans)
       implicit0(elh: EmbeddableLogHandler[xa.DB]) <-

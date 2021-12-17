@@ -1,18 +1,8 @@
 package org.ergoplatform.dex.index.db
 
-import org.ergoplatform.dex.domain.{AssetInfo, Ticker}
+import org.ergoplatform.dex.domain.Ticker
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
-import org.ergoplatform.dex.domain.amm.{
-  CFMMPool,
-  Deposit,
-  EvaluatedCFMMOrder,
-  OrderId,
-  PoolId,
-  PoolStateId,
-  ProtocolVersion,
-  Redeem,
-  Swap
-}
+import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.ergo._
 
 object models {
@@ -22,13 +12,10 @@ object models {
     poolId: PoolId,
     lpId: TokenId,
     lpAmount: Long,
-    lpInfo: AssetInfo,
     xId: TokenId,
     xAmount: Long,
-    xInfo: AssetInfo,
     yId: TokenId,
     yAmount: Long,
-    yInfo: AssetInfo,
     feeNum: Int,
     globalIndex: Long,
     protocolVersion: ProtocolVersion
@@ -41,13 +28,10 @@ object models {
         pool.poolId,
         pool.lp.id,
         pool.lp.value,
-        pool.lpInfo,
         pool.x.id,
         pool.x.value,
-        pool.xInfo,
         pool.y.id,
         pool.y.value,
-        pool.yInfo,
         pool.feeNum,
         pool.box.lastConfirmedBoxGix,
         ProtocolVersion.Initial
