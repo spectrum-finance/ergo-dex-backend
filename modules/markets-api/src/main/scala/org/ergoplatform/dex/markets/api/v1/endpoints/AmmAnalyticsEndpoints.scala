@@ -24,9 +24,10 @@ final class AmmAnalyticsEndpoints {
       .name("Pool stats")
       .description("Get statistics on a pool with the given ID")
 
-  def getPlatformStats: Endpoint[Unit, HttpError, PlatformSummary, Any] =
+  def getPlatformStats: Endpoint[TimeWindow, HttpError, PlatformSummary, Any] =
     baseEndpoint.get
       .in(pathPrefix / "platform" / "stats")
+      .in(timeWindow)
       .out(jsonBody[PlatformSummary])
       .tag(group)
       .name("Platform stats")
