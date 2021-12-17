@@ -12,7 +12,6 @@ import tofu.optics.macros.{ClassyOptics, promote}
 @derive(pureconfigReader)
 @ClassyOptics
 final case class ConfigBundle(
-  @promote indexer: IndexerConfig,
   @promote pg: PgConfig,
   @promote network: NetworkConfig,
   http: HttpConfig
