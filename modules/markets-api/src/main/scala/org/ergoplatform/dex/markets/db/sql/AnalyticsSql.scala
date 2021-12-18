@@ -54,12 +54,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |where px.gindex = p.gindex
          """.stripMargin.query[PoolSnapshot]
 
-  def getPoolVolumes(tw: TimeWindow): Query0[PoolVolumeSnapshot] = {
-    val tsCond =
-      Fragment.const(
-        s"where ${tw.from.map(ts => s"s.timestamp >= $ts").getOrElse("")} ${if (tw.from.isDefined && tw.to.isDefined) "and"
-        else ""} ${tw.to.map(ts => s"s.timestamp <= $ts").getOrElse("")}"
-      )
+  def getPoolVolumes(tw: TimeWindow): Query0[PoolVolumeSnapshot] =
     sql"""
          |select distinct on (p.pool_id)
          |  p.pool_id,
@@ -79,14 +74,13 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |    cast(sum(case when (s.input_id = p.x_id) then s.output_amount else 0 end) as BIGINT) as ty
          |  from swaps s
          |  left join pools p on p.pool_state_id = s.pool_state_id
-         |  $tsCond
+         |  ${timeWindowCond(tw)}
          |  group by s.pool_id
          |) as sx on sx.pool_id = p.pool_id
          |left join assets ax on ax.id = p.x_id
          |left join assets ay on ay.id = p.y_id
          |where sx.pool_id is not null
          """.stripMargin.query[PoolVolumeSnapshot]
-  }
 
   def getPoolVolumes(id: PoolId, tw: TimeWindow): Query0[PoolVolumeSnapshot] = {
     val tsCond =
@@ -121,12 +115,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          """.stripMargin.query[PoolVolumeSnapshot]
   }
 
-  def getPoolFees(tw: TimeWindow): Query0[PoolFeesSnapshot] = {
-    val tsCond =
-      Fragment.const(
-        s"where ${tw.from.map(ts => s"s.timestamp >= $ts").getOrElse("")} ${if (tw.from.isDefined && tw.to.isDefined) "and"
-        else ""} ${tw.to.map(ts => s"s.timestamp <= $ts").getOrElse("")}"
-      )
+  def getPoolFees(tw: TimeWindow): Query0[PoolFeesSnapshot] =
     sql"""
          |select distinct on (p.pool_id)
          |  p.pool_id,
@@ -146,14 +135,13 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |    cast(sum(case when (s.input_id = p.x_id) then s.output_amount::decimal * p.fee_num / 1000 else 0 end) as bigint) as ty
          |  from swaps s
          |  left join pools p on p.pool_state_id = s.pool_state_id
-         |  $tsCond
+         |  ${timeWindowCond(tw)}
          |  group by s.pool_id
          |) as sx on sx.pool_id = p.pool_id
          |left join assets ax on ax.id = p.x_id
          |left join assets ay on ay.id = p.y_id
          |where sx.pool_id is not null
          """.stripMargin.query[PoolFeesSnapshot]
-  }
 
   def getPoolFees(poolId: PoolId, tw: TimeWindow): Query0[PoolFeesSnapshot] = {
     val tsCond =
@@ -187,4 +175,12 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |where sx.pool_id is not null
          """.stripMargin.query[PoolFeesSnapshot]
   }
+
+  private def timeWindowCond(tw: TimeWindow): Fragment =
+    if (tw.from.nonEmpty || tw.to.nonEmpty)
+      Fragment.const(
+        s"where ${tw.from.map(ts => s"s.timestamp >= $ts").getOrElse("")} ${if (tw.from.isDefined && tw.to.isDefined) "and"
+        else ""} ${tw.to.map(ts => s"s.timestamp <= $ts").getOrElse("")}"
+      )
+    else Fragment.empty
 }
