@@ -4,7 +4,7 @@ import cats.{FlatMap, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.dex.domain.{AssetClass, FiatUnits}
 import org.ergoplatform.dex.markets.currencies.{UsdDecimals, UsdUnits}
-import org.ergoplatform.dex.protocol.constants.ErgoAssetClass
+import org.ergoplatform.dex.protocol.constants.{ErgoAssetClass, ErgoAssetDecimals}
 import org.ergoplatform.ergo.models.{RegisterId, SConstant}
 import org.ergoplatform.ergo.{ErgoNetwork, TokenId}
 import sigmastate.SLong
@@ -17,6 +17,7 @@ import tofu.syntax.foption._
 import tofu.syntax.monadic._
 import tofu.syntax.logging._
 
+import java.math.MathContext
 import scala.util.Try
 
 @derive(representableK)
@@ -49,14 +50,12 @@ object FiatRates {
             for {
               out    <- _
               (_, r) <- out.additionalRegisters.find { case (r, _) => r == RegisterId.R4 }
-              rawValue = r match {
-                           case SConstant.ByteaConstant(raw) => Try(ValueSerializer.deserialize(raw.toBytes)).toOption
-                           case _                            => None
-                         }
-              rate <- rawValue
-                        .collect { case v: EvaluatedValue[_] => v -> v.tpe }
-                        .collect { case (v, SLong) => v.value.asInstanceOf[Long] }
-            } yield BigDecimal(rate) / math.pow(10, UsdDecimals.toDouble)
+              rate <- r match {
+                        case SConstant.LongConstant(v) => Some(v)
+                        case _                         => None
+                      }
+              oneErg = math.pow(10, ErgoAssetDecimals.toDouble)
+            } yield BigDecimal(oneErg) / BigDecimal(rate)
           }
       } else noneF
   }

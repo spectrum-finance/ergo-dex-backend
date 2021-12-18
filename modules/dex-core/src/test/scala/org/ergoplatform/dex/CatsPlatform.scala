@@ -1,10 +1,12 @@
 package org.ergoplatform.dex
 
-import cats.effect.{Clock, IO}
+import cats.effect.{Clock, ExitCode, IO, IOApp}
 
 import scala.concurrent.duration.TimeUnit
 
-trait CatsPlatform {
+trait CatsPlatform extends IOApp {
+
+  def run(args: List[String]): IO[ExitCode] = IO.pure(ExitCode.Success)
 
   val FixedTs = 1628107666776L
 

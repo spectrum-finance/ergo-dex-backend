@@ -7,7 +7,7 @@ lazy val commonSettings = List(
   scalacOptions ++= commonScalacOptions,
   scalaVersion := "2.12.15",
   organization := "org.ergoplatform",
-  version := "0.13.5",
+  version := "0.13.6",
   resolvers ++= Seq(
     Resolver.sonatypeRepo("public"),
     Resolver.sonatypeRepo("snapshots"),
@@ -177,7 +177,7 @@ lazy val marketsApi = utils
   .settings(commonSettings)
   .settings(
     assembly / mainClass := Some("org.ergoplatform.dex.markets.App"),
-    libraryDependencies ++= TapirDocs
+    libraryDependencies ++= TapirDocs ++ SttpClientCE
   )
   .settings(nativePackagerSettings("markets-api"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
