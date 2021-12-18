@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.markets.repositories
 
 import cats.tagless.syntax.functorK._
-import cats.{FlatMap, Functor}
+import cats.{FlatMap, Functor, Monad}
 import derevo.derive
 import doobie.ConnectionIO
 import org.ergoplatform.common.models.TimeWindow
@@ -11,9 +11,11 @@ import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
 import org.ergoplatform.ergo.TokenId
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
+import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
-import tofu.logging.Logs
+import tofu.logging.{Logging, Logs}
 import tofu.syntax.monadic._
+import tofu.syntax.logging._
 
 @derive(representableK)
 trait Pools[F[_]] {
@@ -54,7 +56,7 @@ object Pools {
     logs: Logs[I, D]
   ): I[Pools[D]] =
     logs.forService[Pools[D]].map { implicit l =>
-      elh.embed(implicit lh => new Live(new AnalyticsSql()).mapK(LiftConnectionIO[D].liftF))
+      elh.embed(implicit lh => new PoolsTracing[D] attach new Live(new AnalyticsSql()).mapK(LiftConnectionIO[D].liftF))
     }
 
   final class Live(sql: AnalyticsSql) extends Pools[ConnectionIO] {
@@ -79,5 +81,57 @@ object Pools {
 
     def fees(id: PoolId, window: TimeWindow): ConnectionIO[Option[PoolFeesSnapshot]] =
       sql.getPoolFees(id, window).option
+  }
+
+  final class PoolsTracing[F[_]: FlatMap: Logging] extends Pools[Mid[F, *]] {
+
+    def snapshots: Mid[F, List[PoolSnapshot]] =
+      for {
+        _ <- trace"snapshots"
+        r <- _
+        _ <- trace"snapshots -> ${r.size} snapshots selected"
+      } yield r
+
+    def snapshotsByAsset(asset: TokenId): Mid[F, List[PoolSnapshot]] =
+      for {
+        _ <- trace"snapshotsByAsset(asset=$asset)"
+        r <- _
+        _ <- trace"snapshotsByAsset(asset=$asset) -> ${r.size} snapshots selected"
+      } yield r
+
+    def snapshot(poolId: PoolId): Mid[F, Option[PoolSnapshot]] =
+      for {
+        _ <- trace"snapshot(poolId=$poolId)"
+        r <- _
+        _ <- trace"snapshot(poolId=$poolId) -> ${r.size} snapshots selected"
+      } yield r
+
+    def volumes(window: TimeWindow): Mid[F, List[PoolVolumeSnapshot]] =
+      for {
+        _ <- trace"volumes(window=$window)"
+        r <- _
+        _ <- trace"volumes(window=$window) -> ${r.size} volume snapshots selected"
+      } yield r
+
+    def volume(poolId: PoolId, window: TimeWindow): Mid[F, Option[PoolVolumeSnapshot]] =
+      for {
+        _ <- trace"volume(poolId=$poolId, window=$window)"
+        r <- _
+        _ <- trace"volume(poolId=$poolId, window=$window) -> ${r.size} volume snapshots selected"
+      } yield r
+
+    def fees(window: TimeWindow): Mid[F, List[PoolFeesSnapshot]] =
+      for {
+        _ <- trace"fees(window=$window)"
+        r <- _
+        _ <- trace"fees(window=$window) -> ${r.size} fees snapshots selected"
+      } yield r
+
+    def fees(poolId: PoolId, window: TimeWindow): Mid[F, Option[PoolFeesSnapshot]] =
+      for {
+        _ <- trace"fees(poolId=$poolId, window=$window)"
+        r <- _
+        _ <- trace"fees(poolId=$poolId, window=$window) -> ${r.size} fees snapshots selected"
+      } yield r
   }
 }

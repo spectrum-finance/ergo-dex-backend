@@ -1,6 +1,7 @@
 package org.ergoplatform.dex.markets.api.v1.routes
 
 import cats.effect.{Concurrent, ContextShift, Timer}
+import cats.syntax.semigroupk._
 import org.ergoplatform.common.http.AdaptThrowable.AdaptThrowableEitherT
 import org.ergoplatform.common.http.HttpError
 import org.ergoplatform.common.http.syntax._
@@ -18,7 +19,7 @@ final class AmmStatsRoutes[
 
   private val interpreter = Http4sServerInterpreter(opts)
 
-  def routes: HttpRoutes[F] = getPoolStatsR
+  def routes: HttpRoutes[F] = getPlatformStatsR <+> getPoolStatsR
 
   def getPoolStatsR: HttpRoutes[F] = interpreter.toRoutes(getPoolStats) { case (poolId, tw) =>
     service.getPoolSummary(poolId, tw).adaptThrowable.orNotFound(s"PoolStats{poolId=$poolId}").value

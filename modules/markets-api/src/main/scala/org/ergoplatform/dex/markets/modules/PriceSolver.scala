@@ -1,12 +1,15 @@
 package org.ergoplatform.dex.markets.modules
 
-import cats.Monad
+import cats.{FlatMap, Functor, Monad}
 import cats.data.OptionT
 import org.ergoplatform.dex.domain._
 import org.ergoplatform.dex.markets.services.{FiatRates, Markets}
 import org.ergoplatform.dex.protocol.constants
+import tofu.higherKind.{Mid, RepresentableK}
+import tofu.logging.{Logging, Logs}
 import tofu.syntax.monadic._
 import tofu.syntax.foption._
+import tofu.syntax.logging._
 
 sealed trait PriceSolverType { type AssetRepr }
 trait CryptoSolverType extends PriceSolverType { type AssetRepr = AssetClass }
@@ -24,15 +27,37 @@ object PriceSolver {
   type CryptoPriceSolver[F[_]] = PriceSolver[F, CryptoSolverType]
 
   object CryptoPriceSolver {
-    def make[F[_]: Monad](implicit markets: Markets[F]): CryptoPriceSolver[F] = new CryptoSolver(markets)
+
+    implicit def representableK: RepresentableK[CryptoPriceSolver] =
+      tofu.higherKind.derived.genRepresentableK
+
+    def make[I[_]: Functor, F[_]: Monad](implicit markets: Markets[F], logs: Logs[I, F]): I[CryptoPriceSolver[F]] =
+      logs
+        .forService[CryptoPriceSolver[F]]
+        .map(implicit l =>
+          Mid.attach[CryptoPriceSolver, F](new PriceSolverTracing[F, CryptoSolverType])(new CryptoSolver(markets))
+        )
   }
 
   type FiatPriceSolver[F[_]] = PriceSolver[F, FiatSolverType]
 
   object FiatPriceSolver {
 
-    def make[F[_]: Monad](implicit rates: FiatRates[F], cryptoSolver: CryptoPriceSolver[F]): FiatPriceSolver[F] =
-      new ViaErgFiatSolver(rates, cryptoSolver)
+    implicit def representableK: RepresentableK[FiatPriceSolver] =
+      tofu.higherKind.derived.genRepresentableK
+
+    def make[I[_]: Functor, F[_]: Monad](implicit
+      rates: FiatRates[F],
+      cryptoSolver: CryptoPriceSolver[F],
+      logs: Logs[I, F]
+    ): I[FiatPriceSolver[F]] =
+      logs
+        .forService[FiatPriceSolver[F]]
+        .map(implicit l =>
+          Mid.attach[FiatPriceSolver, F](new PriceSolverTracing[F, FiatSolverType])(
+            new ViaErgFiatSolver(rates, cryptoSolver)
+          )
+        )
   }
 
   final class ViaErgFiatSolver[F[_]: Monad](rates: FiatRates[F], cryptoSolver: CryptoPriceSolver[F])
@@ -63,5 +88,15 @@ object PriceSolver {
               })
           } else AssetEquiv(asset, target, BigDecimal(asset.amount)).someF
       }
+  }
+
+  final class PriceSolverTracing[F[_]: FlatMap: Logging, T <: PriceSolverType] extends PriceSolver[Mid[F, *], T] {
+
+    def convert(asset: FullAsset, target: ValueUnits[AssetRepr]): Mid[F, Option[AssetEquiv[AssetRepr]]] =
+      for {
+        _ <- trace"convert(asset=$asset, target=$target)"
+        r <- _
+        _ <- trace"convert(asset=$asset, target=$target) -> $r"
+      } yield r
   }
 }

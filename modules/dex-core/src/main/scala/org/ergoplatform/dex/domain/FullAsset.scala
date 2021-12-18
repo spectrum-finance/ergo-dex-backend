@@ -4,8 +4,9 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.ergo.TokenId
 import sttp.tapir.Schema
+import tofu.logging.derivation.loggable
 
-@derive(encoder, decoder)
+@derive(encoder, decoder, loggable)
 final case class FullAsset(
   id: TokenId,
   amount: Long,
