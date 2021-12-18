@@ -5,11 +5,14 @@ import cats.data.OptionT
 import org.ergoplatform.dex.domain._
 import org.ergoplatform.dex.markets.services.{FiatRates, Markets}
 import org.ergoplatform.dex.protocol.constants
+import org.ergoplatform.dex.protocol.constants.ErgoAssetDecimals
 import tofu.higherKind.{Mid, RepresentableK}
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.monadic._
 import tofu.syntax.foption._
 import tofu.syntax.logging._
+
+import scala.math.BigDecimal.RoundingMode
 
 sealed trait PriceSolverType { type AssetRepr }
 trait CryptoSolverType extends PriceSolverType { type AssetRepr = AssetClass }
@@ -69,8 +72,9 @@ object PriceSolver {
           (for {
             ergEquiv <- OptionT(cryptoSolver.convert(asset, constants.ErgoUnits))
             ergRate  <- OptionT(rates.rateOf(constants.ErgoAssetClass, fiat))
-            fiatEquiv = ergEquiv.value * ergRate / math.pow(10, fiat.currency.decimals.toDouble)
-          } yield AssetEquiv(asset, fiat, fiatEquiv)).value
+            fiatEquiv    = ergEquiv.value / math.pow(10, ErgoAssetDecimals - fiat.currency.decimals) * ergRate
+            fiatEquivFmt = fiatEquiv.setScale(0, RoundingMode.FLOOR)
+          } yield AssetEquiv(asset, fiat, fiatEquivFmt)).value
       }
   }
 
