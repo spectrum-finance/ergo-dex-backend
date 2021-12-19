@@ -6,7 +6,7 @@ import cats.syntax.either._
 import cats.syntax.option._
 import cats.syntax.semigroupk._
 import org.ergoplatform.common.http.HttpError
-import org.ergoplatform.dex.markets.api.v1.endpoints.{AmmStatsEndpoints, DocsEndpoints}
+import org.ergoplatform.dex.markets.api.v1.endpoints.{AmmStatsEndpoints, DocsEndpoints, VersionPrefix}
 import org.http4s.HttpRoutes
 import sttp.tapir.apispec.Tag
 import sttp.tapir.docs.openapi._
@@ -36,7 +36,7 @@ final class DocsRoutes[F[_]: Concurrent: ContextShift: Timer](implicit
 
   private val docsAsYaml =
     OpenAPIDocsInterpreter()
-      .toOpenAPI(allEndpoints, "Cardano Explorer API v1", "1.0")
+      .toOpenAPI(allEndpoints, "ErgoDEX API v1", "1.0")
       .tags(tags)
       .toYaml
 
@@ -52,7 +52,7 @@ final class DocsRoutes[F[_]: Concurrent: ContextShift: Timer](implicit
       "Redoc",
       docsAsYaml,
       "openapi",
-      contextPath = "docs" :: Nil
+      contextPath = VersionPrefix :: "docs" :: Nil
     ).routes
 }
 
