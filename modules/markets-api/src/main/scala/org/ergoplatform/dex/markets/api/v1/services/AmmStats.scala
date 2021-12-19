@@ -37,13 +37,13 @@ object AmmStats {
   ) extends AmmStats[F] {
 
     def getPlatformSummary(window: TimeWindow): F[PlatformSummary] = {
-      val statsQuery =
+      val queryPlatformStats =
         for {
           poolSnapshots <- pools.snapshots
           volumes       <- pools.volumes(window)
         } yield (poolSnapshots, volumes)
       for {
-        (poolSnapshots, volumes) <- statsQuery ||> txr.trans
+        (poolSnapshots, volumes) <- queryPlatformStats ||> txr.trans
         lockedX                  <- poolSnapshots.flatTraverse(pool => fiatSolver.convert(pool.lockedX, UsdUnits).map(_.toList))
         lockedY                  <- poolSnapshots.flatTraverse(pool => fiatSolver.convert(pool.lockedY, UsdUnits).map(_.toList))
         tvl = TotalValueLocked(lockedX.map(_.value).sum + lockedY.map(_.value).sum, UsdUnits)
@@ -55,14 +55,14 @@ object AmmStats {
     }
 
     def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {
-      val poolStatsQuery =
+      val queryPoolStats =
         (for {
           pool     <- OptionT(pools.snapshot(poolId))
           vol      <- OptionT(pools.volume(poolId, window))
           feesSnap <- OptionT(pools.fees(poolId, window))
         } yield (pool, vol, feesSnap)).value
       (for {
-        (pool, vol, feesSnap) <- OptionT(poolStatsQuery ||> txr.trans)
+        (pool, vol, feesSnap) <- OptionT(queryPoolStats ||> txr.trans)
         lockedX               <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits))
         lockedY               <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits))
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)

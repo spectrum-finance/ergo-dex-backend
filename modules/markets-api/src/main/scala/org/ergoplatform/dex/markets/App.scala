@@ -47,8 +47,8 @@ object App extends EnvApp[AppContext] {
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
-      implicit0(pools: Pools[xa.DB]) <- Resource.eval(Pools.make[InitF, xa.DB])
-      implicit0(markets: Markets[RunF]) = Markets.make[RunF, xa.DB]
+      implicit0(pools: Pools[xa.DB])                   <- Resource.eval(Pools.make[InitF, xa.DB])
+      implicit0(markets: Markets[RunF])                <- Resource.eval(Markets.make[InitF, RunF, xa.DB])
       implicit0(rates: FiatRates[RunF])                <- Resource.eval(FiatRates.make[InitF, RunF])
       implicit0(cryptoSolver: CryptoPriceSolver[RunF]) <- Resource.eval(CryptoPriceSolver.make[InitF, RunF])
       implicit0(fiatSolver: FiatPriceSolver[RunF])     <- Resource.eval(FiatPriceSolver.make[InitF, RunF])
