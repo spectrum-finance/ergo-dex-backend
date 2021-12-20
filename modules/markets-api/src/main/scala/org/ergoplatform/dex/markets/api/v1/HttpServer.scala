@@ -8,6 +8,7 @@ import org.ergoplatform.common.http.routes.unliftRoutes
 import org.ergoplatform.dex.markets.api.v1.routes.{AmmStatsRoutes, DocsRoutes}
 import org.ergoplatform.dex.markets.api.v1.services.AmmStats
 import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.server.middleware.CORS
 import org.http4s.server.{Router, Server}
 import org.http4s.syntax.kleisli._
 import sttp.tapir.server.http4s.Http4sServerOptions
@@ -26,7 +27,7 @@ object HttpServer {
   ): Resource[I, Server] = {
     val ammStatsR = AmmStatsRoutes.make[F]
     val docsR     = DocsRoutes.make[F]
-    val api       = Router("/" -> unliftRoutes[F, I](ammStatsR <+> docsR)).orNotFound
+    val api       = Router("/" -> CORS(unliftRoutes[F, I](ammStatsR <+> docsR))).orNotFound
     BlazeServerBuilder[I](ec).bindHttp(conf.port, conf.host).withHttpApp(api).resource
   }
 }
