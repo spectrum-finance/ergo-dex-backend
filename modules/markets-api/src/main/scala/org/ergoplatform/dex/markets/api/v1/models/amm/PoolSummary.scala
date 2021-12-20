@@ -4,7 +4,7 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.dex.domain.FullAsset
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.domain.{Fees, TotalValueLocked, Volume}
+import org.ergoplatform.dex.markets.domain.{FeePercentProjection, Fees, TotalValueLocked, Volume}
 import sttp.tapir.Schema
 
 @derive(encoder, decoder)
@@ -14,7 +14,8 @@ final case class PoolSummary(
   lockedY: FullAsset,
   tvl: TotalValueLocked,
   volume: Volume,
-  fees: Fees
+  fees: Fees,
+  yearlyFeesPercent: FeePercentProjection
 )
 
 object PoolSummary {

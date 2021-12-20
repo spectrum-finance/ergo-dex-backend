@@ -6,7 +6,7 @@ import derevo.derive
 import doobie.ConnectionIO
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.db.models.{PoolFeesSnapshot, PoolSnapshot, PoolVolumeSnapshot}
+import org.ergoplatform.dex.markets.db.models.{PoolFeesSnapshot, PoolInfo, PoolSnapshot, PoolVolumeSnapshot}
 import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
 import org.ergoplatform.ergo.TokenId
 import tofu.doobie.LiftConnectionIO
@@ -19,6 +19,10 @@ import tofu.syntax.logging._
 
 @derive(representableK)
 trait Pools[F[_]] {
+
+  /** Get general info about the pool with the given `id`.
+    */
+  def info(id: PoolId): F[Option[PoolInfo]]
 
   /** Get snapshots of all pools.
     */
@@ -61,6 +65,9 @@ object Pools {
 
   final class Live(sql: AnalyticsSql) extends Pools[ConnectionIO] {
 
+    def info(id: PoolId): ConnectionIO[Option[PoolInfo]] =
+      sql.getInfo(id).option
+
     def snapshots: ConnectionIO[List[PoolSnapshot]] =
       sql.getPoolSnapshots.to[List]
 
@@ -84,6 +91,13 @@ object Pools {
   }
 
   final class PoolsTracing[F[_]: FlatMap: Logging] extends Pools[Mid[F, *]] {
+
+    def info(poolId: PoolId): Mid[F, Option[PoolInfo]] =
+      for {
+        _ <- trace"info(poolId=$poolId)"
+        r <- _
+        _ <- trace"info(poolId=$poolId) -> ${r.size} info entities selected"
+      } yield r
 
     def snapshots: Mid[F, List[PoolSnapshot]] =
       for {

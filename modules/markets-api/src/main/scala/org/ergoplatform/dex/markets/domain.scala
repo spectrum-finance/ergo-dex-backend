@@ -2,6 +2,7 @@ package org.ergoplatform.dex.markets
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
+import io.estatico.newtype.macros.newtype
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.FiatUnits
 import sttp.tapir.Schema
@@ -22,4 +23,10 @@ object domain {
   final case class Fees(value: BigDecimal, units: FiatUnits, window: TimeWindow)
 
   implicit val schemaFees: Schema[Fees] = Schema.derived
+
+  @derive(encoder, decoder)
+  @newtype final case class FeePercentProjection(value: Double)
+  object FeePercentProjection {
+    implicit val schema: Schema[FeePercentProjection] = deriving
+  }
 }

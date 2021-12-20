@@ -5,10 +5,15 @@ import doobie.util.query.Query0
 import doobie.{Fragment, LogHandler}
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.db.models.{PoolFeesSnapshot, PoolSnapshot, PoolVolumeSnapshot}
+import org.ergoplatform.dex.markets.db.models.{PoolFeesSnapshot, PoolInfo, PoolSnapshot, PoolVolumeSnapshot}
 import org.ergoplatform.ergo.TokenId
 
 final class AnalyticsSql(implicit lg: LogHandler) {
+
+  def getInfo(id: PoolId): Query0[PoolInfo] =
+    sql"""
+         |select s.timestamp from swaps s where s.pool_id = $id order by s.timestamp asc limit 1
+         """.stripMargin.query
 
   def getPoolSnapshot(id: PoolId): Query0[PoolSnapshot] =
     sql"""

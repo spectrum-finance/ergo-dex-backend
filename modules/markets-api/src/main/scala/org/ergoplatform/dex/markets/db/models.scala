@@ -5,6 +5,8 @@ import org.ergoplatform.dex.domain.amm.PoolId
 
 object models {
 
+  final case class PoolInfo(confirmedAt: Long)
+
   final case class PoolSnapshot(
     id: PoolId,
     lockedX: FullAsset,

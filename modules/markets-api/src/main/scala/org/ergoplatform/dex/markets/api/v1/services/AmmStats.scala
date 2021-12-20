@@ -2,6 +2,7 @@ package org.ergoplatform.dex.markets.api.v1.services
 
 import cats.Monad
 import cats.data.OptionT
+import cats.effect.Clock
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
@@ -13,7 +14,12 @@ import org.ergoplatform.dex.markets.repositories.Pools
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
+import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import tofu.syntax.monadic._
+import tofu.syntax.time.now._
+
+import scala.concurrent.duration._
+import scala.math.BigDecimal.RoundingMode
 
 trait AmmStats[F[_]] {
 
@@ -24,7 +30,9 @@ trait AmmStats[F[_]] {
 
 object AmmStats {
 
-  def make[F[_]: Monad, D[_]: Monad](implicit
+  val MillisInYear: FiniteDuration = 365.days
+
+  def make[F[_]: Monad: Clock, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
     fiatSolver: FiatPriceSolver[F]
@@ -33,7 +41,8 @@ object AmmStats {
   final class Live[F[_]: Monad, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
-    fiatSolver: FiatPriceSolver[F]
+    fiatSolver: FiatPriceSolver[F],
+    ammMath: AmmStatsMath[F]
   ) extends AmmStats[F] {
 
     def getPlatformSummary(window: TimeWindow): F[PlatformSummary] = {
@@ -57,14 +66,15 @@ object AmmStats {
     def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {
       val queryPoolStats =
         (for {
+          info     <- OptionT(pools.info(poolId))
           pool     <- OptionT(pools.snapshot(poolId))
           vol      <- OptionT(pools.volume(poolId, window))
           feesSnap <- OptionT(pools.fees(poolId, window))
-        } yield (pool, vol, feesSnap)).value
+        } yield (info, pool, vol, feesSnap)).value
       (for {
-        (pool, vol, feesSnap) <- OptionT(queryPoolStats ||> txr.trans)
-        lockedX               <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits))
-        lockedY               <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits))
+        (info, pool, vol, feesSnap) <- OptionT(queryPoolStats ||> txr.trans)
+        lockedX                     <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits))
+        lockedY                     <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits))
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
 
         volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits))
@@ -74,7 +84,8 @@ object AmmStats {
         feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits))
         feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits))
         fees = Fees(feesX.value + feesY.value, UsdUnits, window)
-      } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees)).value
+        yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
+      } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
     }
   }
 }
