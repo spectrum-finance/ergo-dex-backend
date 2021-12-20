@@ -136,8 +136,8 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |left join (
          |  select
          |    s.pool_id,
-         |    cast(sum(case when (s.input_id = p.y_id) then s.output_amount::decimal * p.fee_num / 1000 else 0 end) as bigint) as tx,
-         |    cast(sum(case when (s.input_id = p.x_id) then s.output_amount::decimal * p.fee_num / 1000 else 0 end) as bigint) as ty
+         |    cast(sum(case when (s.input_id = p.y_id) then s.output_amount::decimal * (1000 - p.fee_num) / 1000 else 0 end) as bigint) as tx,
+         |    cast(sum(case when (s.input_id = p.x_id) then s.output_amount::decimal * (1000 - p.fee_num) / 1000 else 0 end) as bigint) as ty
          |  from swaps s
          |  left join pools p on p.pool_state_id = s.pool_state_id
          |  ${timeWindowCond(tw)}
@@ -168,8 +168,8 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |left join (
          |  select
          |    s.pool_id,
-         |    cast(sum(case when (s.input_id = p.y_id) then s.output_amount::decimal * p.fee_num / 1000 else 0 end) as bigint) as tx,
-         |    cast(sum(case when (s.input_id = p.x_id) then s.output_amount::decimal * p.fee_num / 1000 else 0 end) as bigint) as ty
+         |    cast(sum(case when (s.input_id = p.y_id) then s.output_amount::decimal * (1000 - p.fee_num) / 1000 else 0 end) as bigint) as tx,
+         |    cast(sum(case when (s.input_id = p.x_id) then s.output_amount::decimal * (1000 - p.fee_num) / 1000 else 0 end) as bigint) as ty
          |  from swaps s
          |  left join pools p on p.pool_state_id = s.pool_state_id
          |  where p.pool_id = $poolId $tsCond
