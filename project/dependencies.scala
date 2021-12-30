@@ -89,7 +89,7 @@ object dependencies {
   )
 
   val Tofu: List[ModuleID] = List(
-    "tf.tofu" %% "tofu-core-ce2"     % TofuVersion,
+    "tf.tofu" %% "tofu-core"         % TofuVersion,
     "tf.tofu" %% "tofu-concurrent"   % TofuVersion,
     "tf.tofu" %% "tofu-optics-core"  % TofuVersion,
     "tf.tofu" %% "tofu-optics-macro" % TofuVersion,
@@ -104,10 +104,10 @@ object dependencies {
   val Magnolia = List("com.propensive" %% "magnolia" % MagnoliaVersion)
 
   val Derevo: List[ModuleID] = List(
-    "tf.tofu" %% "derevo-cats"         % DerevoVersion,
-    "tf.tofu" %% "derevo-cats-tagless" % DerevoVersion,
-    "tf.tofu" %% "derevo-circe"        % DerevoVersion,
-    "tf.tofu" %% "derevo-pureconfig"   % DerevoVersion
+    "tf.tofu" %% "derevo-cats"              % DerevoVersion,
+    "tf.tofu" %% "derevo-cats-tagless"      % DerevoVersion,
+    "tf.tofu" %% "derevo-circe"             % DerevoVersion,
+    "tf.tofu" %% "derevo-pureconfig-legacy" % DerevoVersion
   )
 
   val Ergo: List[ModuleID] = List(
@@ -146,8 +146,8 @@ object dependencies {
   )
 
   val Config: List[ModuleID] = List(
-    "com.github.pureconfig" %% "pureconfig"              % PureConfigVersion,
-    "com.github.pureconfig" %% "pureconfig-cats-effect2" % PureConfigVersion
+    "com.github.pureconfig" %% "pureconfig"             % PureConfigVersion,
+    "com.github.pureconfig" %% "pureconfig-cats-effect" % PureConfigVersion
   )
 
   val Simulacrum: List[ModuleID] = List(

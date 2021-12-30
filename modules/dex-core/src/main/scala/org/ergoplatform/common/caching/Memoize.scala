@@ -36,16 +36,16 @@ object Memoize {
 
     def memoize(a: A, ttl: FiniteDuration): F[Unit] =
       for {
-        ts <- millis[F]
+        ts <- millis
         expiresAt = ts + ttl.toMillis
         _ <- store.set(Some(a -> expiresAt))
-      } yield ()
+      } yield ts
 
     def read: F[Option[A]] =
       for {
         memoized <- store.get
         res <- memoized.flatTraverse { case (a, ts0) =>
-                 millis[F] map (ts => if (ts < ts0) Some(a) else None)
+                 millis map (ts => if (ts < ts0) Some(a) else None)
                }
       } yield res
   }

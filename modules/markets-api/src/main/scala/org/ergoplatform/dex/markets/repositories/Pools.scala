@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.markets.repositories
 
 import cats.tagless.syntax.functorK._
-import cats.{FlatMap, Functor}
+import cats.{FlatMap, Functor, Monad}
 import derevo.derive
 import doobie.ConnectionIO
 import org.ergoplatform.common.models.TimeWindow
@@ -14,8 +14,8 @@ import tofu.doobie.log.EmbeddableLogHandler
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
-import tofu.syntax.logging._
 import tofu.syntax.monadic._
+import tofu.syntax.logging._
 
 @derive(representableK)
 trait Pools[F[_]] {
