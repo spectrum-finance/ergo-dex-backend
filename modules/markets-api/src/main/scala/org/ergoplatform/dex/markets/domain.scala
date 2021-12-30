@@ -17,16 +17,24 @@ object domain {
   @derive(encoder, decoder)
   final case class Volume(value: BigDecimal, units: FiatUnits, window: TimeWindow)
 
-  implicit val schemaVolume: Schema[Volume] = Schema.derived
+  object Volume {
+    implicit val schemaVolume: Schema[Volume]               = Schema.derived
+    def empty(units: FiatUnits, window: TimeWindow): Volume = Volume(BigDecimal(0), units, window)
+  }
 
   @derive(encoder, decoder)
   final case class Fees(value: BigDecimal, units: FiatUnits, window: TimeWindow)
 
-  implicit val schemaFees: Schema[Fees] = Schema.derived
+  object Fees {
+    implicit val schemaFees: Schema[Fees]                 = Schema.derived
+    def empty(units: FiatUnits, window: TimeWindow): Fees = Fees(BigDecimal(0), units, window)
+  }
 
   @derive(encoder, decoder)
   @newtype final case class FeePercentProjection(value: Double)
+
   object FeePercentProjection {
     implicit val schema: Schema[FeePercentProjection] = deriving
+    def empty: FeePercentProjection                   = FeePercentProjection(0.0)
   }
 }

@@ -19,7 +19,6 @@ import tofu.syntax.monadic._
 import tofu.syntax.time.now._
 
 import scala.concurrent.duration._
-import scala.math.BigDecimal.RoundingMode
 
 trait AmmStats[F[_]] {
 
@@ -68,8 +67,8 @@ object AmmStats {
         (for {
           info     <- OptionT(pools.info(poolId))
           pool     <- OptionT(pools.snapshot(poolId))
-          vol      <- OptionT(pools.volume(poolId, window))
-          feesSnap <- OptionT(pools.fees(poolId, window))
+          vol      <- OptionT.liftF(pools.volume(poolId, window))
+          feesSnap <- OptionT.liftF(pools.fees(poolId, window))
         } yield (info, pool, vol, feesSnap)).value
       (for {
         (info, pool, vol, feesSnap) <- OptionT(queryPoolStats ||> txr.trans)
@@ -77,13 +76,24 @@ object AmmStats {
         lockedY                     <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits))
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
 
-        volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits))
-        volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits))
-        volume = Volume(volX.value + volY.value, UsdUnits, window)
+        volume <- vol match {
+                    case Some(vol) =>
+                      for {
+                        volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits))
+                        volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits))
+                      } yield Volume(volX.value + volY.value, UsdUnits, window)
+                    case None => OptionT.pure[F](Volume.empty(UsdUnits, window))
+                  }
 
-        feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits))
-        feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits))
-        fees = Fees(feesX.value + feesY.value, UsdUnits, window)
+        fees <- feesSnap match {
+                  case Some(feesSnap) =>
+                    for {
+                      feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits))
+                      feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits))
+                    } yield Fees(feesX.value + feesY.value, UsdUnits, window)
+                  case None => OptionT.pure[F](Fees.empty(UsdUnits, window))
+                }
+
         yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
       } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
     }
