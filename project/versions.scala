@@ -19,8 +19,8 @@ object versions {
   val FlywayVersion      = "5.1.1"
   val MonixVersion       = "3.3.0"
   val MonocleVersion     = "2.0.3"
-  val TofuVersion        = "0.10.2"
-  val DerevoVersion      = "0.12.5"
+  val TofuVersion        = "0.10.6"
+  val DerevoVersion      = "0.13.0"
   val MagnoliaVersion    = "0.17.0"
   val Redis4CatsVersion  = "0.14.0"
   val Rocks4CatsVersion  = "0.1.3"
@@ -34,7 +34,7 @@ object versions {
   val LogbackVersion  = "1.2.3"
   val Slf4jVersion    = "1.7.25"
 
-  val PureConfigVersion = "0.14.1"
+  val PureConfigVersion = "0.17.1"
 
   val NewtypeVersion = "0.4.3"
   val RefinedVersion = "0.9.10"

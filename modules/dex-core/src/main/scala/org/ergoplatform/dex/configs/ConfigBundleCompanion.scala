@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.configs
 
 import cats.effect.{Blocker, ContextShift, Sync}
-import pureconfig.module.catseffect.syntax._
+import pureconfig.module.catseffect2.syntax._
 import pureconfig.{ConfigReader, ConfigSource}
 
 import scala.reflect.ClassTag
