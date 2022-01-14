@@ -1,8 +1,8 @@
 package org.ergoplatform.dex.markets.modules
 
 import cats.Applicative
-import org.ergoplatform.dex.markets.models.orderbook.Side
-import org.ergoplatform.dex.markets.models.orderbook.Fill
+import org.ergoplatform.dex.markets.api.v1.models.orderbook.Side
+import org.ergoplatform.dex.markets.api.v1.models.orderbook.Fill
 import org.ergoplatform.dex.protocol.orderbook.{OrderContractFamily, OrderContracts, OrderParams}
 import org.ergoplatform.dex.protocol.constants
 import org.ergoplatform.ergo.models.Transaction
@@ -35,7 +35,7 @@ object Fills {
           .flatMap { output =>
             val base = params.baseAsset
             val rewardAmountM =
-              if (base == constants.NativeAssetId) Some(output.value)
+              if (base == constants.ErgoAssetId) Some(output.value)
               else output.assets.find(_.tokenId == base).map(_.amount)
             rewardAmountM.map { rewardAmount =>
               val price  = params.price

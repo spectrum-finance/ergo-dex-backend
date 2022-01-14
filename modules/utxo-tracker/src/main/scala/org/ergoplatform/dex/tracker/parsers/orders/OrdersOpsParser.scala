@@ -67,7 +67,7 @@ object OrdersOpsParser {
     private[tracker] def makeAsk(tree: ErgoTree, output: Output): F[Ask] =
       for {
         params <- parseSellerContractParameters(tree).orRaise(BadParams(tree))
-        baseAsset  = constants.NativeAssetId
+        baseAsset  = constants.ErgoAssetId
         quoteAsset = TokenId.fromBytes(params.tokenId)
         amount <- output.assets
                     .collectFirst { case a if a.tokenId == quoteAsset => a.amount }
@@ -86,7 +86,7 @@ object OrdersOpsParser {
         _ <- if (output.value % (params.tokenPrice + params.dexFeePerToken) != 0)
                InvalidBidValue(output.value, params.tokenPrice, params.dexFeePerToken).raise
              else unit
-        baseAsset   = constants.NativeAssetId
+        baseAsset   = constants.ErgoAssetId
         quoteAsset  = TokenId.fromBytes(params.tokenId)
         price       = params.tokenPrice
         feePerToken = params.dexFeePerToken

@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.parsers.amm
 
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
-import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}
+import org.ergoplatform.dex.domain.{AssetAmount, AssetInfo, BoxInfo}
 import org.ergoplatform.dex.protocol.amm.AMMType.N2T_CFMM
 import org.ergoplatform.dex.protocol.amm.constants
 import org.ergoplatform.ergo.models.SConstant.IntConstant
@@ -22,6 +22,9 @@ object N2TCFMMPoolsParser extends CFMMPoolsParser[N2T_CFMM] {
         AssetAmount.fromBoxAsset(lp),
         AssetAmount.native(box.value),
         AssetAmount.fromBoxAsset(y),
+        AssetInfo(lp),
+        AssetInfo.native,
+        AssetInfo(y),
         fee,
         BoxInfo.fromBox(box)
       )

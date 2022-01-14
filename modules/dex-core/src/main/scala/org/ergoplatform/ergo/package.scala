@@ -160,6 +160,13 @@ package object ergo {
     implicit val loggable: Loggable[TokenType] = Loggable.show
   }
 
+  @derive(show, encoder, decoder, loggable)
+  @newtype case class CurrencyId(value: String)
+
+  object CurrencyId {
+    implicit val schema: Schema[CurrencyId] = deriving
+  }
+
   // Ergo Address
   @newtype case class Address(value: AddressType) {
     final def unwrapped: String = value.value

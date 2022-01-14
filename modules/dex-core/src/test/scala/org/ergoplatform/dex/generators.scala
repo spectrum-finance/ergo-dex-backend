@@ -9,7 +9,7 @@ import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.contracts.{DexBuyerContractParameters, DexSellerContractParameters}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.domain.orderbook.{Order, OrderMeta}
-import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}
+import org.ergoplatform.dex.domain.{AssetAmount, AssetInfo, BoxInfo, Ticker}
 import org.ergoplatform.dex.implicits._
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{Address, BoxId, TokenId}
@@ -94,9 +94,8 @@ object generators {
 
   def assetAmountGen(value: Long): Gen[AssetAmount] =
     for {
-      id     <- tokenIdGen
-      ticker <- Gen.alphaNumStr.map(_.take(3).map(_.toUpper))
-    } yield AssetAmount(id, value, Some(ticker))
+      id <- tokenIdGen
+    } yield AssetAmount(id, value)
 
   def assetAmountGen: Gen[AssetAmount] =
     Gen.posNum[Long].flatMap(assetAmountGen)
@@ -107,10 +106,13 @@ object generators {
       lp     <- assetAmountGen
       x      <- assetAmountGen(reservesX)
       y      <- assetAmountGen(reservesY)
+      lpi = AssetInfo(Some(Ticker("LP")), Some(0))
+      xi  = AssetInfo(Some(Ticker("X")), Some(0))
+      yi  = AssetInfo(Some(Ticker("Y")), Some(0))
       feeNum <- Gen.const(995)
       boxId  <- boxIdGen
       box = BoxInfo(boxId, 1000000, gix)
-    } yield CFMMPool(poolId, lp, x, y, feeNum, box)
+    } yield CFMMPool(poolId, lp, x, y, lpi, xi, yi, feeNum, box)
 
   def cfmmPoolGen(gix: Long): Gen[CFMMPool] =
     for {

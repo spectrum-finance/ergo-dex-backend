@@ -15,22 +15,22 @@ import tofu.syntax.monadic._
 import cats.tagless.syntax.functorK._
 
 @derive(representableK)
-trait PoolsRepo[F[_]] {
+trait Pools[F[_]] {
 
   def insert(pools: NonEmptyList[DBPool]): F[Int]
 }
 
-object PoolsRepo {
+object Pools {
 
   def make[I[_]: Functor, D[_]: FlatMap: LiftConnectionIO](implicit
     elh: EmbeddableLogHandler[D],
     logs: Logs[I, D]
-  ): I[PoolsRepo[D]] =
-    logs.forService[PoolsRepo[D]].map { implicit l =>
+  ): I[Pools[D]] =
+    logs.forService[Pools[D]].map { implicit l =>
       elh.embed(implicit lh => new Live().mapK(LiftConnectionIO[D].liftF))
     }
 
-  final class Live(implicit lh: LogHandler) extends PoolsRepo[ConnectionIO] {
+  final class Live(implicit lh: LogHandler) extends Pools[ConnectionIO] {
 
     def insert(pools: NonEmptyList[DBPool]): ConnectionIO[Int] =
       CFMMPoolSql.insertNoConflict[DBPool].updateMany(pools)

@@ -42,7 +42,7 @@ object OrderContracts {
             box.assets.find(_.tokenId == quote).map { asset =>
               orderbook.OrderParams(
                 orderType     = OrderType.Ask,
-                baseAsset     = constants.NativeAssetId,
+                baseAsset     = constants.ErgoAssetId,
                 quoteAsset    = quote,
                 amount        = asset.amount,
                 price         = params.tokenPrice,
@@ -57,7 +57,7 @@ object OrderContracts {
           .map { params =>
             orderbook.OrderParams(
               orderType     = OrderType.Ask,
-              baseAsset     = constants.NativeAssetId,
+              baseAsset     = constants.ErgoAssetId,
               quoteAsset    = TokenId.fromBytes(params.tokenId),
               amount        = box.value / params.tokenPrice,
               price         = params.tokenPrice,
