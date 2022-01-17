@@ -8,6 +8,7 @@ import org.ergoplatform.dex.domain.orderbook.Order.AnyOrder
 import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.domain.orderbook._
 import org.ergoplatform.dex.matcher.configs.ConfigBundle
+import org.ergoplatform.dex.matcher.configs.ConfigBundle.promoteContextStructure
 import org.ergoplatform.dex.matcher.processes.Matcher
 import org.ergoplatform.dex.matcher.repositories.OrdersRepo
 import org.ergoplatform.dex.matcher.services.{LimitOrderBook, OrderBook}
@@ -43,7 +44,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(ordersRepo: OrdersRepo[xa.DB]) <- Resource.eval(OrdersRepo.make[InitF, xa.DB])
       implicit0(orderBook: OrderBook[RunF])    <- Resource.eval(LimitOrderBook.make[InitF, RunF, xa.DB])
       implicit0(mc: MakeKafkaConsumer[RunF, OrderId, AnyOrder]) = MakeKafkaConsumer.make[InitF, RunF, OrderId, AnyOrder]
-      consumer                                                  = Consumer.make[StreamF, RunF, OrderId, AnyOrder]
+      consumer                                                  = Consumer.make[StreamF, RunF, OrderId, AnyOrder](configs.consumer)
       producer <- Producer.make[InitF, StreamF, RunF, TradeId, AnyTrade](configs.producer)
       implicit0(bundle: StreamingBundle[StreamF, RunF]) = StreamingBundle(consumer, producer)
       matcher <- Resource.eval(Matcher.make[InitF, StreamF, RunF, Chunk])

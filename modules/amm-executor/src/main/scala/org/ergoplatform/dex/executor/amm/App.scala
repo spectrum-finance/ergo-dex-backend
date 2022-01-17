@@ -8,6 +8,7 @@ import org.ergoplatform.common.streaming._
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, OrderId}
 import org.ergoplatform.dex.executor.amm.config.ConfigBundle
 import org.ergoplatform.dex.executor.amm.context.AppContext
+import org.ergoplatform.dex.executor.amm.context.AppContext._
 import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, N2TCFMMInterpreter, T2TCFMMInterpreter}
 import org.ergoplatform.dex.executor.amm.processes.Executor
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools

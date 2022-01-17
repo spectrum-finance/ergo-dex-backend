@@ -4,10 +4,10 @@ import derevo.derive
 import derevo.pureconfig.pureconfigReader
 import org.ergoplatform.common.sttp.instances._
 import sttp.model.Uri
-import tofu.Context
+import tofu.{Context, WithContext}
 import tofu.logging.derivation.loggable
 
 @derive(pureconfigReader, loggable)
 final case class NetworkConfig(explorerUri: Uri, nodeUri: Uri)
 
-object NetworkConfig extends Context.Companion[NetworkConfig]
+object NetworkConfig extends WithContext.Companion[NetworkConfig]

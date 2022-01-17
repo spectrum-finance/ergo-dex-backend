@@ -1,6 +1,5 @@
 package org.ergoplatform.dex.executor.modules
 
-import cats.Eval
 import cats.data.{NonEmptyList, ReaderT}
 import cats.effect.IO
 import org.ergoplatform.ergo.BoxId
@@ -9,7 +8,7 @@ import org.ergoplatform.dex.domain.orderbook.{FilledOrder, Trade}
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.dex.executor.orders.config.ExchangeConfig
 import org.ergoplatform.dex.executor.orders.context.BlockchainContext
-import org.ergoplatform.dex.executor.orders.modules.{TestCtx, TradeInterpreter}
+import org.ergoplatform.dex.executor.orders.modules.TradeInterpreter
 import org.ergoplatform.dex.generators._
 import org.ergoplatform.dex.protocol.Network
 import org.scalacheck.Gen
@@ -39,11 +38,14 @@ class TradeInterpreterSpec extends AnyPropSpec with should.Matchers with ScalaCh
       val blockchainContext = BlockchainContext(currentHeight = 100, nanoErgsPerByte = 1L)
       val ctx               = TestCtx(exConf, protoConf, blockchainContext)
       val tx                = TradeInterpreter.instance[RIO].trade(trade).run(ctx).unsafeRunSync()
-      tx.inputs.map(i => BoxId.fromErgo(i.boxId)) should contain theSameElementsAs trade.orders.map(_.base.meta.boxId).toList
+      tx.inputs
+        .map(i => BoxId.fromErgo(i.boxId)) should contain theSameElementsAs trade.orders.map(_.base.meta.boxId).toList
       trade.orders.toList.foreach {
         case order if order.base.`type`.isAsk =>
           val orderReward = tx.outputCandidates.find { o =>
-            o.value == order.base.amount * order.executionPrice && o.ergoTree == ErgoTree.fromSigmaBoolean(order.base.meta.pk)
+            o.value == order.base.amount * order.executionPrice && o.ergoTree == ErgoTree.fromSigmaBoolean(
+              order.base.meta.pk
+            )
           }
           orderReward should not be empty
         case order =>

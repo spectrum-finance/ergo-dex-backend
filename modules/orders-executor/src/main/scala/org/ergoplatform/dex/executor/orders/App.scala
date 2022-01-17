@@ -9,6 +9,7 @@ import org.ergoplatform.dex.domain.orderbook.Trade.AnyTrade
 import org.ergoplatform.dex.domain.orderbook.{OrderId, TradeId}
 import org.ergoplatform.dex.executor.orders.config.ConfigBundle
 import org.ergoplatform.dex.executor.orders.context.AppContext
+import org.ergoplatform.dex.executor.orders.context.AppContext.promoteContextStructure
 import org.ergoplatform.dex.executor.orders.processes.Executor
 import org.ergoplatform.dex.executor.orders.services.Execution
 import org.ergoplatform.dex.executor.orders.streaming.StreamingBundle
@@ -38,7 +39,7 @@ object App extends EnvApp[AppContext] {
       ctx                                                       = AppContext.init(configs)
       implicit0(mc: MakeKafkaConsumer[RunF, TradeId, AnyTrade]) = MakeKafkaConsumer.make[InitF, RunF, TradeId, AnyTrade]
       implicit0(isoKRun: IsoK[RunF, InitF])                     = IsoK.byFunK(wr.runContextK(ctx))(wr.liftF)
-      consumer                                                  = Consumer.make[StreamF, RunF, TradeId, AnyTrade]
+      consumer                                                  = Consumer.make[StreamF, RunF, TradeId, AnyTrade](configs.consumer)
       producer <- Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.producer)
       implicit0(streaming: StreamingBundle[StreamF, RunF]) = StreamingBundle(consumer, producer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)

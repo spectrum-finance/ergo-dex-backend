@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.configs
 
 import derevo.derive
 import derevo.pureconfig.pureconfigReader
-import tofu.Context
+import tofu.{Context, WithContext}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -13,4 +13,4 @@ final case class TxTrackerConfig(
   retryDelay: FiniteDuration
 )
 
-object TxTrackerConfig extends Context.Companion[TxTrackerConfig]
+object TxTrackerConfig extends WithContext.Companion[TxTrackerConfig]

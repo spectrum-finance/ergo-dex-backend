@@ -28,7 +28,7 @@ final case class ConfigBundle(
   redis: RedisConfig
 )
 
-object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {
+object ConfigBundle extends WithContext.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {
 
   implicit val loggable: Loggable[ConfigBundle] = Loggable.empty
 }

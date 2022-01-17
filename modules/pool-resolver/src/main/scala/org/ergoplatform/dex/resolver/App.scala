@@ -13,6 +13,7 @@ import org.ergoplatform.dex.resolver.http.HttpServer
 import org.ergoplatform.dex.resolver.processes.PoolTracker
 import org.ergoplatform.dex.resolver.repositories.CFMMPools
 import org.ergoplatform.dex.resolver.services.Resolver
+import org.ergoplatform.dex.resolver.AppContext._
 import sttp.tapir.server.http4s.Http4sServerOptions
 import tofu.fs2Instances._
 import tofu.lift.{IsoK, Unlift}
@@ -39,7 +40,7 @@ object App extends EnvApp[AppContext] {
         MakeKafkaConsumer.make[InitF, RunF, PoolId, Confirmed[CFMMPool]]
       implicit0(ul: Unlift[RunF, InitF]) = Unlift.byIso(IsoK.byFunK(wr.runContextK(ctx))(wr.liftF))
       implicit0(consumer: Consumer[PoolId, Confirmed[CFMMPool], StreamF, RunF]) =
-        Consumer.make[StreamF, RunF, PoolId, Confirmed[CFMMPool]]
+        Consumer.make[StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.consumer)
       implicit0(rocks: TxRocksDB[RunF])   <- TxRocksDB.make[InitF, RunF](configs.rocks.path)
       implicit0(pools: CFMMPools[RunF])   <- Resource.eval(CFMMPools.make[InitF, RunF])
       implicit0(resolver: Resolver[RunF]) <- Resource.eval(Resolver.make[InitF, RunF])

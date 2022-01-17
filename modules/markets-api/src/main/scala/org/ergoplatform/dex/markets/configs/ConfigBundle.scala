@@ -5,9 +5,9 @@ import derevo.pureconfig.pureconfigReader
 import org.ergoplatform.common.db.PgConfig
 import org.ergoplatform.common.http.config.HttpConfig
 import org.ergoplatform.dex.configs.{ConfigBundleCompanion, NetworkConfig}
-import tofu.Context
+import tofu.{Context, WithContext}
 import tofu.logging.Loggable
-import tofu.optics.macros.{promote, ClassyOptics}
+import tofu.optics.macros.{ClassyOptics, promote}
 
 @derive(pureconfigReader)
 @ClassyOptics
@@ -17,7 +17,7 @@ final case class ConfigBundle(
   http: HttpConfig
 )
 
-object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {
+object ConfigBundle extends WithContext.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {
 
   implicit val loggable: Loggable[ConfigBundle] = Loggable.empty
 }

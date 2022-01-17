@@ -1,9 +1,9 @@
-package org.ergoplatform.dex.executor.orders.modules
+package org.ergoplatform.dex.executor.modules
 
 import org.ergoplatform.dex.configs.ProtocolConfig
 import org.ergoplatform.dex.executor.orders.config.ExchangeConfig
 import org.ergoplatform.dex.executor.orders.context.BlockchainContext
-import tofu.Context
+import tofu.{Context, WithContext}
 import tofu.optics.macros.{ClassyOptics, promote}
 
 @ClassyOptics
@@ -12,4 +12,4 @@ final case class TestCtx(
   @promote protocol: ProtocolConfig,
   @promote blockchain: BlockchainContext
 )
-object TestCtx extends Context.Companion[TestCtx]
+object TestCtx extends WithContext.Companion[TestCtx]

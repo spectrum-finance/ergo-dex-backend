@@ -34,7 +34,7 @@ object AmmStatsMath {
         for {
           windowSizeMillis <-
             for {
-              ub <- fees.window.to.fold(millis)(_.pure[F])
+              ub <- fees.window.to.fold(millis[F])(_.pure[F])
               lb = fees.window.from.getOrElse(poolInfo.confirmedAt)
             } yield ub - lb
           periodFees        = fees.value * (BigDecimal(projectionPeriod.toMillis) / windowSizeMillis)

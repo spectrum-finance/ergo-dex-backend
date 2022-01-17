@@ -9,6 +9,7 @@ import org.ergoplatform.common.streaming.Producer
 import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, OrderId, PoolId}
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
+import org.ergoplatform.dex.tracker.configs.ConfigBundle._
 import org.ergoplatform.dex.tracker.handlers.{CFMMOpsHandler, CFMMPoolsHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
 import org.ergoplatform.dex.tracker.processes.UtxoTracker.TrackerMode

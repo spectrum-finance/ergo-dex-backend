@@ -11,6 +11,7 @@ import org.ergoplatform.dex.markets.modules.PriceSolver.{CryptoPriceSolver, Fiat
 import org.ergoplatform.dex.markets.repositories.Pools
 import org.ergoplatform.dex.markets.services.{FiatRates, Markets}
 import org.ergoplatform.ergo.ErgoNetworkStreaming
+import org.ergoplatform.dex.markets.AppContext._
 import org.http4s.server.Server
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend

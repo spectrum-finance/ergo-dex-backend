@@ -4,9 +4,9 @@ import derevo.derive
 import derevo.pureconfig.pureconfigReader
 import org.ergoplatform.common.streaming.RotationConfig
 import org.ergoplatform.dex.configs._
-import tofu.Context
+import tofu.{Context, WithContext}
 import tofu.logging.derivation.loggable
-import tofu.optics.macros.{promote, ClassyOptics}
+import tofu.optics.macros.{ClassyOptics, promote}
 
 @derive(pureconfigReader, loggable)
 @ClassyOptics
@@ -24,4 +24,4 @@ final case class ConfigBundle(
   @promote resolver: ResolverConfig
 )
 
-object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle]
+object ConfigBundle extends WithContext.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle]
