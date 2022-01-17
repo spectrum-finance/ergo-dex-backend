@@ -74,10 +74,10 @@ object Order {
     io.circe.derivation.deriveDecoder[AnyOrder]
 
   implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, AnyOrder] =
-    fs2.kafka.serde.serializerByEncoder
+    fs2.kafka.serde.serializerViaCirceEncoder
 
   implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, AnyOrder] =
-    fs2.kafka.serde.deserializerByDecoder
+    fs2.kafka.serde.deserializerViaKafkaDecoder
 
   def mkBid(
     quoteAsset: TokenId,

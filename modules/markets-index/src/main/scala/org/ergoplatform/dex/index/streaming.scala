@@ -6,6 +6,6 @@ import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, EvaluatedCFMMOrder, OrderId, PoolId}
 
 object streaming {
-  type CFMMHistConsumer[F[_], G[_]]  = Consumer.Aux[OrderId, EvaluatedCFMMOrder.Any, KafkaOffset, F, G]
+  type CFMMHistConsumer[F[_], G[_]]  = Consumer.Aux[OrderId, Option[EvaluatedCFMMOrder.Any], KafkaOffset, F, G]
   type CFMMPoolsConsumer[F[_], G[_]] = Consumer.Aux[PoolId, Confirmed[CFMMPool], KafkaOffset, F, G]
 }

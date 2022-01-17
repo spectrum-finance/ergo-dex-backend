@@ -61,7 +61,7 @@ package object ergo {
     implicit val get: Get[TxId] = deriving
     implicit val put: Put[TxId] = deriving
 
-    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TxId] = deserializerByDecoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TxId] = deserializerViaKafkaDecoder
   }
 
   @newtype case class BlockId(value: String)
