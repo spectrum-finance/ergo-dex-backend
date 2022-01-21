@@ -73,7 +73,8 @@ lazy val dexBackend = project
     ammExecutor,
     poolResolver,
     marketsIndex,
-    marketsApi
+    marketsApi,
+    dexTools
   )
 
 lazy val core = utils
@@ -182,3 +183,9 @@ lazy val marketsApi = utils
   .settings(nativePackagerSettings("markets-api"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(Seq(core, db, http).map(_ % allConfigDependency): _*)
+
+lazy val dexTools = utils
+  .mkModule("dex-tools", "DexTools")
+  .settings(commonSettings)
+  .settings(libraryDependencies ++= OkHttp)
+  .dependsOn(Seq(core, utxoTracker, ammExecutor).map(_ % allConfigDependency): _*)
