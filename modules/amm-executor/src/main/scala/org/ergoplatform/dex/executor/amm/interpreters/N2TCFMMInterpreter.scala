@@ -131,25 +131,26 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         ),
         additionalRegisters = mkPoolRegs(pool)
       )
-      val minerFee    = execution.minerFee min swap.maxMinerFee
-      val minerFeeBox = new ErgoBoxCandidate(minerFee, minerFeeProp, ctx.currentHeight)
-      val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
+      val minerFee       = execution.minerFee min swap.maxMinerFee
+      val minerFeeBox    = new ErgoBoxCandidate(minerFee, minerFeeProp, ctx.currentHeight)
+      val dexFeeBox      = if (dexFee > 0) Some(new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)) else None
+      val dexFeeBoxValue = dexFeeBox.map(_.value).getOrElse(0L)
       val rewardBox =
         if (swap.params.input.isNative)
           new ErgoBoxCandidate(
-            value            = swapBox.value - input.value - minerFeeBox.value - dexFeeBox.value,
+            value            = swapBox.value - input.value - minerFeeBox.value - dexFeeBoxValue,
             ergoTree         = swap.params.p2pk.toErgoTree,
             creationHeight   = ctx.currentHeight,
             additionalTokens = mkTokens(swap.params.minOutput.id -> output.value)
           )
         else
           new ErgoBoxCandidate(
-            value          = swapBox.value + output.value - minerFeeBox.value - dexFeeBox.value,
+            value          = swapBox.value + output.value - minerFeeBox.value - dexFee,
             ergoTree       = swap.params.p2pk.toErgoTree,
             creationHeight = ctx.currentHeight
           )
       val inputs      = Vector(poolIn, swapIn)
-      val outs        = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
+      val outs        = Vector(poolBox1, rewardBox) ++ dexFeeBox ++ Vector(minerFeeBox)
       val tx          = ErgoLikeTransaction(inputs, outs)
       val nextPoolBox = poolBox1.toBox(tx.id, 0)
       val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value, poolBox0.lastConfirmedBoxGix)

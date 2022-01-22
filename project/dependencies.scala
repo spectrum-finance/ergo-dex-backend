@@ -6,10 +6,12 @@ object dependencies {
 
   val SttpCore =
     List(
-      "com.softwaremill.sttp.client3" %% "core"           % versions.SttpVersion,
-      "com.softwaremill.sttp.client3" %% "circe"          % versions.SttpVersion,
+      "com.softwaremill.sttp.client3" %% "core"           % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "circe"          % SttpVersion,
       "com.softwaremill.sttp.client3" %% "okhttp-backend" % SttpVersion % Test
     )
+
+  val OkHttp = List("com.softwaremill.sttp.client3" %% "okhttp-backend" % SttpVersion)
 
   val SttpClientFs2 =
     List(
