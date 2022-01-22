@@ -255,4 +255,30 @@ package object ergo {
 
     def unsafeFromString(s: String): ErgoTreeTemplate = ErgoTreeTemplate(HexString.unsafeFromString(s))
   }
+
+  @newtype case class PubKey(value: HexString) {
+    final def unwrapped: String    = value.unwrapped
+    final def toBytes: Array[Byte] = value.toBytes
+    final def hash: HexString      = HexString.fromBytes(Sha256.hash(toBytes))
+  }
+
+  object PubKey {
+    // circe instances
+    implicit val encoder: Encoder[PubKey] = deriving
+    implicit val decoder: Decoder[PubKey] = deriving
+
+    implicit val show: Show[PubKey]         = deriving
+    implicit val loggable: Loggable[PubKey] = deriving
+
+    implicit val get: Get[PubKey] = deriving
+    implicit val put: Put[PubKey] = deriving
+
+    def fromBytes(bytes: Array[Byte]): PubKey = PubKey(HexString.fromBytes(bytes))
+
+    def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
+      s: String
+    ): F[PubKey] = HexString.fromString(s).map(PubKey.apply)
+
+    def unsafeFromString(s: String): PubKey = PubKey(HexString.unsafeFromString(s))
+  }
 }

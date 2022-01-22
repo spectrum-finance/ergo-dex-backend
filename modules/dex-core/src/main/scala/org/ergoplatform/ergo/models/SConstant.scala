@@ -4,6 +4,7 @@ import derevo.circe.encoder
 import derevo.derive
 import io.circe.Decoder
 import org.ergoplatform.common.HexString
+import org.ergoplatform.ergo.PubKey
 import org.ergoplatform.ergo.models.SigmaType.SimpleKindSigmaType._
 import org.ergoplatform.ergo.models.SigmaType._
 import tofu.logging.derivation.loggable
@@ -23,6 +24,9 @@ object SConstant {
   final case class ByteaConstant(value: HexString) extends SConstant
 
   @derive(encoder, loggable)
+  final case class SigmaPropConstant(value: PubKey) extends SConstant
+
+  @derive(encoder, loggable)
   final case class UnresolvedConstant(raw: String) extends SConstant
 
   implicit val decoder: Decoder[SConstant] = { c =>
@@ -30,6 +34,7 @@ object SConstant {
       c.downField("sigmaType").as[SigmaType].map {
         case SInt               => IntConstant(value.toInt)
         case SLong              => LongConstant(value.toLong)
+        case SSigmaProp         => SigmaPropConstant(PubKey.unsafeFromString(value))
         case SCollection(SByte) => ByteaConstant(HexString.unsafeFromString(value))
         case _                  => UnresolvedConstant(value)
       }
