@@ -50,7 +50,7 @@ object PoolsIndexing {
 
     def run: S[Unit] =
       pools.stream.chunks.evalMap { rs =>
-        val poolSnapshots = rs.map(r => r.message.confirmed).toList
+        val poolSnapshots = rs.map(r => r.message.entity).toList
         def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
           NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
         val insert =

@@ -2,7 +2,9 @@ package org.ergoplatform.dex.tracker.parsers.locks
 
 import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 import org.ergoplatform.dex.domain.AssetAmount
+import org.ergoplatform.dex.domain.amm.state.Confirmed
 import org.ergoplatform.dex.domain.locks.LiquidityLock
+import org.ergoplatform.dex.domain.locks.types.LockId
 import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, ProtoVer}
 import org.ergoplatform.dex.protocol.locks.LiquidityLockTemplates
 import org.ergoplatform.ergo.{Address, ErgoTreeTemplate}
@@ -14,7 +16,7 @@ import sigmastate.serialization.GroupElementSerializer
 import scala.util.Try
 
 trait LiquidityLockParser[V <: ProtoVer] {
-  def parse(out: Output): Option[LiquidityLock]
+  def parse(out: Output): Option[Confirmed[LiquidityLock]]
 }
 
 object LiquidityLockParser {
@@ -24,7 +26,7 @@ object LiquidityLockParser {
   final class ImplV0(implicit templates: LiquidityLockTemplates[ProtoVer.V0], e: ErgoAddressEncoder)
     extends LiquidityLockParser[ProtoVer.V0] {
 
-    def parse(out: Output): Option[LiquidityLock] = {
+    def parse(out: Output): Option[Confirmed[LiquidityLock]] = {
       val tree     = ErgoTreeSerializer.default.deserialize(out.ergoTree)
       val template = ErgoTreeTemplate.fromBytes(tree.template)
       if (template == templates.lock) {
@@ -34,7 +36,7 @@ object LiquidityLockParser {
           amount        <- out.assets.headOption.map(AssetAmount.fromBoxAsset)
           redeemerPoint <- Try(GroupElementSerializer.fromBytes(redeemer.toBytes)).toOption
           redeemerAddress = Address.fromStringUnsafe(e.toString(P2PKAddress(ProveDlog(redeemerPoint))))
-        } yield LiquidityLock(deadline, amount, redeemerAddress)
+        } yield Confirmed(LiquidityLock(LockId.fromBoxId(out.boxId), deadline, amount, redeemerAddress))
       } else None
     }
   }
