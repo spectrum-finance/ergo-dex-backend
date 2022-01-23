@@ -73,9 +73,9 @@ object HistoryIndexing {
           NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
         val insert =
           for {
-            ss <- insertNel(swaps)(repos.orders.insertSwaps)
-            ds <- insertNel(deposits)(repos.orders.insertDeposits)
-            rs <- insertNel(redeems)(repos.orders.insertRedeems)
+            ss <- insertNel(swaps)(repos.swaps.insert)
+            ds <- insertNel(deposits)(repos.deposits.insert)
+            rs <- insertNel(redeems)(repos.redeems.insert)
           } yield ss + ds + rs
         txr.trans(insert) >>= (n => info"[$n] orders indexed")
       }

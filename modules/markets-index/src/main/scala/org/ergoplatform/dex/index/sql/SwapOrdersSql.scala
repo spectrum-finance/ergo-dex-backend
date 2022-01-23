@@ -1,8 +1,9 @@
 package org.ergoplatform.dex.index.sql
 
 import org.ergoplatform.common.sql.QuerySet
+import org.ergoplatform.dex.index.db.models.DBSwap
 
-object SwapOrdersSql extends QuerySet {
+object SwapOrdersSql extends QuerySet[DBSwap] {
 
   val fields: List[String] = List(
     "order_id",

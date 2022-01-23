@@ -1,8 +1,9 @@
 package org.ergoplatform.dex.index.sql
 
 import org.ergoplatform.common.sql.QuerySet
+import org.ergoplatform.dex.index.db.models.DBDeposit
 
-object DepositOrdersSql extends QuerySet {
+object DepositOrdersSql extends QuerySet[DBDeposit] {
 
   val fields: List[String] = List(
     "order_id",
