@@ -86,7 +86,7 @@ object App extends EnvApp[ConfigBundle] {
       historyIndexer                      <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       poolsIndexer                        <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       locksIndexer                        <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      processes = utxoTracker.run :: txTracker.run :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: Nil
+      processes = utxoTracker.run :: txTracker.run :: poolsIndexer.run :: historyIndexer.run :: Nil
     } yield (processes, configs)
 
   private def makeConsumer[K: RecordDeserializer[RunF, *], V: RecordDeserializer[RunF, *]](conf: ConsumerConfig) = {
