@@ -2,11 +2,11 @@ package org.ergoplatform.dex.markets.services
 
 import cats.effect.Clock
 import cats.tagless.syntax.functorK._
-import cats.{FlatMap, Functor, Monad}
+import cats.{Functor, Monad}
 import derevo.derive
 import org.ergoplatform.common.caching.Memoize
 import org.ergoplatform.dex.domain.Market
-import org.ergoplatform.dex.markets.db.models.PoolSnapshot
+import org.ergoplatform.dex.markets.db.models.amm.PoolSnapshot
 import org.ergoplatform.dex.markets.repositories.Pools
 import org.ergoplatform.ergo.TokenId
 import tofu.concurrent.MakeRef

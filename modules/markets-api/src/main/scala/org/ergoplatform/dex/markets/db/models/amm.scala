@@ -1,9 +1,9 @@
-package org.ergoplatform.dex.markets.db
+package org.ergoplatform.dex.markets.db.models
 
 import org.ergoplatform.dex.domain.FullAsset
 import org.ergoplatform.dex.domain.amm.PoolId
 
-object models {
+object amm {
 
   final case class PoolInfo(confirmedAt: Long)
 
