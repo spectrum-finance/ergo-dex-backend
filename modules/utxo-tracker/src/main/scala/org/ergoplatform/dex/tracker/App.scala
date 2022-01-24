@@ -46,11 +46,11 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
       implicit0(producer1: Producer[OrderId, CFMMOrder, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, CFMMOrder](configs.publishers.ammOrders)
+        Producer.make[InitF, StreamF, RunF, OrderId, CFMMOrder](configs.producers.ammOrders)
       implicit0(producer2: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.publishers.ammPools)
+        Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.producers.ammPools)
       implicit0(producer3: Producer[LockId, Confirmed[LiquidityLock], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]](configs.publishers.lqLocks)
+        Producer.make[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]](configs.producers.lqLocks)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
       implicit0(cfmmRules: CFMMRules[RunF])                  = CFMMRules.make[RunF]

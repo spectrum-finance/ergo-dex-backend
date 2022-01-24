@@ -5,7 +5,7 @@ import derevo.pureconfig.pureconfigReader
 import org.ergoplatform.dex.configs.ProducerConfig
 
 @derive(pureconfigReader)
-final case class Publishers(
+final case class Producers(
   ammOrders: ProducerConfig,
   ammPools: ProducerConfig,
   lqLocks: ProducerConfig

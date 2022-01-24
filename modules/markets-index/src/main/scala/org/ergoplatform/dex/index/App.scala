@@ -61,15 +61,15 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
       implicit0(poolCons: CFMMPoolsConsumer[StreamF, RunF]) =
-        makeConsumer[PoolId, Confirmed[CFMMPool]](configs.cfmmPoolsConsumer)
+        makeConsumer[PoolId, Confirmed[CFMMPool]](configs.consumers.cfmmPools)
       implicit0(ammHistCons: CFMMHistConsumer[StreamF, RunF]) =
-        makeConsumer[OrderId, Option[EvaluatedCFMMOrder.Any]](configs.cfmmHistoryConsumer)
+        makeConsumer[OrderId, Option[EvaluatedCFMMOrder.Any]](configs.consumers.cfmmHistory)
       implicit0(locksCons: LqLocksConsumer[StreamF, RunF]) =
-        makeConsumer[LockId, Confirmed[LiquidityLock]](configs.cfmmHistoryConsumer)
+        makeConsumer[LockId, Confirmed[LiquidityLock]](configs.consumers.lqLocks)
       implicit0(orderProd: Producer[OrderId, EvaluatedCFMMOrder.Any, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any](configs.cfmmHistoryProducer)
+        Producer.make[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any](configs.producers.cfmmHistory)
       implicit0(poolProd: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.cfmmPoolsProducer)
+        Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.producers.cfmmPools)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
       cfmmPoolsHandler                     <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF])
