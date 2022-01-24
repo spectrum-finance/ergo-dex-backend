@@ -7,6 +7,5 @@ import org.ergoplatform.dex.configs.ProducerConfig
 @derive(pureconfigReader)
 final case class Producers(
   ammOrders: ProducerConfig,
-  ammPools: ProducerConfig,
-  lqLocks: ProducerConfig
+  ammPools: ProducerConfig
 )

@@ -49,18 +49,15 @@ object App extends EnvApp[ConfigBundle] {
         Producer.make[InitF, StreamF, RunF, OrderId, CFMMOrder](configs.producers.ammOrders)
       implicit0(producer2: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.producers.ammPools)
-      implicit0(producer3: Producer[LockId, Confirmed[LiquidityLock], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]](configs.producers.lqLocks)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
       implicit0(cfmmRules: CFMMRules[RunF])                  = CFMMRules.make[RunF]
       ammOrderHandler                      <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF])
       ammPoolsHandler                      <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF])
-      lqLocksHandler                       <- Resource.eval(LiquidityLocksHandler.make[InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       tracker <-
-        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Live, ammOrderHandler, ammPoolsHandler, lqLocksHandler))
+        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Live, ammOrderHandler, ammPoolsHandler))
     } yield tracker -> configs
 
   private def makeBackend(

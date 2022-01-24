@@ -7,7 +7,7 @@ import fs2.kafka.serde._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
-import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
+import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.dex.configs.ConsumerConfig
 import org.ergoplatform.dex.domain.amm.state.Confirmed
@@ -18,7 +18,8 @@ import org.ergoplatform.dex.index.configs.ConfigBundle
 import org.ergoplatform.dex.index.processes.{HistoryIndexing, LocksIndexing, PoolsIndexing}
 import org.ergoplatform.dex.index.repos.RepoBundle
 import org.ergoplatform.dex.index.streaming.{CFMMHistConsumer, CFMMPoolsConsumer, LqLocksConsumer}
-import org.ergoplatform.dex.tracker.handlers.{CFMMHistoryHandler, CFMMPoolsHandler}
+import org.ergoplatform.dex.tracker.App.{InitF, RunF, StreamF}
+import org.ergoplatform.dex.tracker.handlers.{CFMMHistoryHandler, CFMMPoolsHandler, LiquidityLocksHandler}
 import org.ergoplatform.dex.tracker.processes.{TxTracker, UtxoTracker}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker.TrackerMode
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
@@ -70,14 +71,17 @@ object App extends EnvApp[ConfigBundle] {
         Producer.make[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any](configs.producers.cfmmHistory)
       implicit0(poolProd: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.producers.cfmmPools)
+      implicit0(producer3: Producer[LockId, Confirmed[LiquidityLock], StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]](configs.producers.lqLocks)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
       cfmmPoolsHandler                     <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF])
       cfmmHistoryHandler                   <- Resource.eval(CFMMHistoryHandler.make[InitF, StreamF, RunF])
+      lqLocksHandler                       <- Resource.eval(LiquidityLocksHandler.make[InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       utxoTracker <-
-        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Historical, cfmmPoolsHandler))
+        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Historical, cfmmPoolsHandler, lqLocksHandler))
       txTracker                           <- Resource.eval(TxTracker.make[InitF, StreamF, RunF](cfmmHistoryHandler))
       implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])
       historyIndexer                      <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
