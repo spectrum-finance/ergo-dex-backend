@@ -1,7 +1,5 @@
 create domain public.hash32type as varchar(64);
 
-create domain public.address as varchar(64);
-
 create domain public.ticker as varchar;
 
 create table if not exists public.pools (
@@ -38,7 +36,7 @@ create table if not exists public.swaps (
     output_amount bigint,
     dex_fee_per_token_num bigint not null,
     dex_fee_per_token_denom bigint not null,
-    p2pk public.address not null,
+    p2pk public.hash32type not null,
     protocol_version integer not null
 );
 
@@ -61,7 +59,7 @@ create table if not exists public.redeems (
     output_amount_x bigint,
     output_amount_y bigint,
     dex_fee bigint not null,
-    p2pk public.address not null,
+    p2pk public.hash32type not null,
     protocol_version integer not null
 );
 
@@ -84,7 +82,7 @@ create table if not exists public.deposits (
     input_amount_y bigint not null,
     output_amount_lp bigint,
     dex_fee bigint not null,
-    p2pk public.address not null,
+    p2pk public.hash32type not null,
     protocol_version integer not null
 );
 
@@ -105,15 +103,3 @@ create table if not exists public.assets (
 alter table public.assets owner to ergo_admin;
 
 create index assets__ticker on public.assets using btree (ticker);
-
-create table if not exists public.lq_locks (
-    id public.hash32type primary key,
-    deadline integer not null,
-    asset_id public.hash32type not null,
-    amount bigint not null,
-    redeemer public.address not null
-);
-
-alter table public.lq_locks owner to ergo_admin;
-
-create index lq_locks__asset_id on public.lq_locks using btree (asset_id);
