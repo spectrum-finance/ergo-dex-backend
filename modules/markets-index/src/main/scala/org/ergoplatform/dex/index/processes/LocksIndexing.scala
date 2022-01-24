@@ -50,7 +50,7 @@ object LocksIndexing {
 
     def run: S[Unit] =
       locks.stream.chunks.evalMap { rs =>
-        val locks = rs.map(r => r.message.entity).toList
+        val locks = rs.map(r => r.message.confirmed).toList
         def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
           NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
         val insert =

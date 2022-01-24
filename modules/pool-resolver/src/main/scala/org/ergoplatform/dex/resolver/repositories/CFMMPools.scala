@@ -108,7 +108,7 @@ object CFMMPools {
       }
 
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
-      rocks.put(LastConfirmedKey(pool.entity.poolId), pool)
+      rocks.put(LastConfirmedKey(pool.confirmed.poolId), pool)
 
     def existsPrediction(id: BoxId): F[Boolean] =
       rocks.get[String, PredictionLink[Predicted[CFMMPool]]](PredictedKey(id)).map(_.isDefined)
@@ -152,7 +152,7 @@ object CFMMPools {
     def update(pool: Predicted[CFMMPool]): F[Unit] = put(pool)
 
     def put(pool: Confirmed[CFMMPool]): F[Unit] =
-      store.update(_.updated(LastConfirmedKey(pool.entity.poolId), pool.asJson))
+      store.update(_.updated(LastConfirmedKey(pool.confirmed.poolId), pool.asJson))
 
     def existsPrediction(id: BoxId): F[Boolean] =
       store.get.map(_.contains(PredictedKey(id)))

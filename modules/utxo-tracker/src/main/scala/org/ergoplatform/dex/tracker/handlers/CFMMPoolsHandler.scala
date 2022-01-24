@@ -23,7 +23,7 @@ final class CFMMPoolsHandler[
   def handler: BoxHandler[F] =
     _.map(o => parsers.map(_.pool(o)).reduce(_ orElse _)).unNone
       .evalTap(pool => info"CFMM pool update detected [$pool]")
-      .map(pool => Record[PoolId, Confirmed[CFMMPool]](pool.entity.poolId, pool))
+      .map(pool => Record[PoolId, Confirmed[CFMMPool]](pool.confirmed.poolId, pool))
       .thrush(producer.produce)
 }
 
