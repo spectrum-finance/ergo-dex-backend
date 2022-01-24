@@ -18,7 +18,6 @@ import org.ergoplatform.dex.index.configs.ConfigBundle
 import org.ergoplatform.dex.index.processes.{HistoryIndexing, LocksIndexing, PoolsIndexing}
 import org.ergoplatform.dex.index.repos.RepoBundle
 import org.ergoplatform.dex.index.streaming.{CFMMHistConsumer, CFMMPoolsConsumer, LqLocksConsumer}
-import org.ergoplatform.dex.tracker.App.{InitF, RunF, StreamF}
 import org.ergoplatform.dex.tracker.handlers.{CFMMHistoryHandler, CFMMPoolsHandler, LiquidityLocksHandler}
 import org.ergoplatform.dex.tracker.processes.{TxTracker, UtxoTracker}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker.TrackerMode
