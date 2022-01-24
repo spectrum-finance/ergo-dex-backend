@@ -65,7 +65,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(ammHistCons: CFMMHistConsumer[StreamF, RunF]) =
         makeConsumer[OrderId, Option[EvaluatedCFMMOrder.Any]](configs.consumers.cfmmHistory)
       implicit0(locksCons: LqLocksConsumer[StreamF, RunF]) =
-        makeConsumer[LockId, Confirmed[LiquidityLock]](configs.consumers.lqLocks)
+        makeConsumer[LockId, Option[Confirmed[LiquidityLock]]](configs.consumers.lqLocks)
       implicit0(orderProd: Producer[OrderId, EvaluatedCFMMOrder.Any, StreamF]) <-
         Producer.make[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any](configs.producers.cfmmHistory)
       implicit0(poolProd: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-

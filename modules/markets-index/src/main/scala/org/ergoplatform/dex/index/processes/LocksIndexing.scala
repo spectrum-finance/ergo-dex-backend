@@ -23,7 +23,7 @@ object LocksIndexing {
 
   def make[
     I[_]: Functor,
-    S[_]: Evals[*[_], F]: Chunks[*[_], C],
+    S[_]: Functor: Evals[*[_], F]: Chunks[*[_], C],
     F[_]: Monad,
     D[_]: Monad,
     C[_]: Functor: Foldable
@@ -38,7 +38,7 @@ object LocksIndexing {
     }
 
   final class Live[
-    S[_]: Evals[*[_], F]: Chunks[*[_], C],
+    S[_]: Functor: Evals[*[_], F]: Chunks[*[_], C],
     F[_]: Monad: Logging,
     D[_]: Monad,
     C[_]: Functor: Foldable
@@ -49,15 +49,18 @@ object LocksIndexing {
   ) extends LocksIndexing[S] {
 
     def run: S[Unit] =
-      locks.stream.chunks.evalMap { rs =>
-        val locks = rs.map(r => r.message.entity).toList
-        def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
-          NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
-        val insert =
-          insertNel(locks)(xs => repos.locks.insert(xs.map(_.extract[DBLiquidityLock])))
-        txr.trans(insert) >>= { ls =>
-          info"[$ls] locks indexed"
+      locks.stream.chunks
+        .map(_.map(r => r.message).toList)
+        .evalTap(xs => warn"[${xs.count(_.isEmpty)}] records discarded.")
+        .evalMap { rs =>
+          val locks = rs.flatten.map(_.entity)
+          def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
+            NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
+          val insert =
+            insertNel(locks)(xs => repos.locks.insert(xs.map(_.extract[DBLiquidityLock])))
+          txr.trans(insert) >>= { ls =>
+            info"[$ls] locks indexed"
+          }
         }
-      }
   }
 }
