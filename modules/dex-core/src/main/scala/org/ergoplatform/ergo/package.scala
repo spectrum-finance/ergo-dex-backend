@@ -22,6 +22,7 @@ import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 import org.ergoplatform.common.HexString
 import org.ergoplatform.common.errors.RefinementFailed
+import org.ergoplatform.ergo.CurrencyId
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import scodec.bits.ByteVector
@@ -32,6 +33,8 @@ import tofu.Raise
 import tofu.logging.Loggable
 import tofu.logging.derivation.loggable
 import tofu.syntax.raise._
+
+import scala.util.Try
 
 package object ergo {
 
@@ -181,6 +184,8 @@ package object ergo {
 
     implicit val put: Put[Address] =
       Put[String].contramap[Address](_.unwrapped)
+
+    implicit val schema: Schema[Address] = Schema.schemaForString.map(fromString[Try](_).toOption)(_.unwrapped)
 
     implicit val show: Show[Address]         = _.unwrapped
     implicit val loggable: Loggable[Address] = Loggable.show

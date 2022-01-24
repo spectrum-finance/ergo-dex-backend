@@ -8,17 +8,17 @@ import org.ergoplatform.dex.markets.repositories.Locks
 import tofu.doobie.transactor.Txr
 import tofu.syntax.monadic._
 
-trait LqLockStats[F[_]] {
+trait LqLocks[F[_]] {
 
   def byPool(poolId: PoolId): F[List[LiquidityLockInfo]]
 }
 
-object LqLockStats {
+object LqLocks {
 
-  def make[F[_], D[_]: Functor](implicit txr: Txr.Aux[F, D], locks: Locks[D]): LqLockStats[F] =
+  def make[F[_], D[_]: Functor](implicit txr: Txr.Aux[F, D], locks: Locks[D]): LqLocks[F] =
     new Live()
 
-  final class Live[F[_], D[_]: Functor](implicit txr: Txr.Aux[F, D], locks: Locks[D]) extends LqLockStats[F] {
+  final class Live[F[_], D[_]: Functor](implicit txr: Txr.Aux[F, D], locks: Locks[D]) extends LqLocks[F] {
 
     def byPool(poolId: PoolId): F[List[LiquidityLockInfo]] =
       locks.byPool(poolId).map(_.map(LiquidityLockInfo(_))) ||> txr.trans
