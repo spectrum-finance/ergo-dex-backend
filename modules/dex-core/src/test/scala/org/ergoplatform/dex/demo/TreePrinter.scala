@@ -4,6 +4,7 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, sigmaUtils}
 import org.ergoplatform.dex.sources.{n2tContracts, t2tContracts}
 import org.ergoplatform.ergo.{ErgoTreeTemplate, SErgoTree}
+import scorex.crypto.hash.Sha256
 import scorex.util.encode.Base16
 import sigmastate.Values.ErgoTree
 import sigmastate.basics.DLogProtocol.DLogProverInput
@@ -41,8 +42,9 @@ object TreePrinter extends App {
     println(s"[$signature] Constants:")
     tree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
     println("* " * 40)
-    println(s"[$signature] ErgoTree:         " + ErgoTreeSerializer.default.serialize(tree))
-    println(s"[$signature] ErgoTreeTemplate: " + ErgoTreeTemplate.fromBytes(tree.template))
+    println(s"[$signature] ErgoTree:             " + ErgoTreeSerializer.default.serialize(tree))
+    println(s"[$signature] ErgoTreeTemplate:     " + ErgoTreeTemplate.fromBytes(tree.template))
+    println(s"[$signature] ErgoTreeTemplateHash: " + Base16.encode(Sha256.hash(tree.template)))
     println("-" * 80)
     println()
   }
