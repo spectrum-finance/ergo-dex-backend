@@ -5,7 +5,7 @@ import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import doobie.{Get, Put}
-import fs2.kafka.serde.{deserializerByDecoder, serializerByEncoder}
+import fs2.kafka.serde.{deserializerViaKafkaDecoder, serializerViaCirceEncoder}
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.estatico.newtype.macros.newtype
 import org.ergoplatform.common.HexString
@@ -62,8 +62,8 @@ package object amm {
     implicit def validator: Validator[PoolId] =
       implicitly[Validator[TokenId]].contramap[PoolId](_.value)
 
-    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, PoolId]     = serializerByEncoder
-    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, PoolId] = deserializerByDecoder
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, PoolId]     = serializerViaCirceEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, PoolId] = deserializerViaKafkaDecoder
 
     def fromBytes(bytes: Array[Byte]): PoolId =
       PoolId(TokenId.fromBytes(bytes))
@@ -83,7 +83,7 @@ package object amm {
     implicit val get: Get[OrderId] = deriving
     implicit val put: Put[OrderId] = deriving
 
-    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OrderId]     = serializerByEncoder
-    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OrderId] = deserializerByDecoder
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OrderId]     = serializerViaCirceEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OrderId] = deserializerViaKafkaDecoder
   }
 }

@@ -26,7 +26,7 @@ object HistoryIndexing {
 
   def make[
     I[_]: Functor,
-    S[_]: Evals[*[_], F]: Chunks[*[_], C],
+    S[_]: Functor: Evals[*[_], F]: Chunks[*[_], C],
     F[_]: Monad,
     D[_]: Monad,
     C[_]: Functor: Foldable
@@ -41,7 +41,7 @@ object HistoryIndexing {
     }
 
   final class CFMMIndexing[
-    S[_]: Evals[*[_], F]: Chunks[*[_], C],
+    S[_]: Functor: Evals[*[_], F]: Chunks[*[_], C],
     F[_]: Monad: Logging,
     D[_]: Monad,
     C[_]: Functor: Foldable
@@ -52,8 +52,11 @@ object HistoryIndexing {
   ) extends HistoryIndexing[S] {
 
     def run: S[Unit] =
-      orders.stream.chunks.evalMap { rs =>
-        val orders = rs.map(r => r.message).toList
+      orders.stream.chunks
+        .map(_.map(r => r.message).toList)
+        .evalTap(xs => warn"[${xs.count(_.isEmpty)}] records discarded.")
+        .evalMap { rs =>
+        val orders = rs.flatten
         val (swaps, others) = orders.partitionEither {
           case EvaluatedCFMMOrder(o: Swap, Some(ev: SwapEvaluation), p) =>
             Left(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBSwap])
