@@ -5,7 +5,7 @@ import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import doobie.{Get, Put}
-import fs2.kafka.serde.{deserializerByDecoder, serializerByEncoder}
+import fs2.kafka.serde._
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.estatico.newtype.macros.newtype
 import org.ergoplatform.ergo.BoxId
@@ -34,8 +34,8 @@ object types {
     implicit def validator: Validator[LockId] =
       implicitly[Validator[BoxId]].contramap[LockId](_.value)
 
-    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, LockId]     = serializerByEncoder
-    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, LockId] = deserializerByDecoder
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, LockId]     = serializerViaCirceEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, LockId] = deserializerViaKafkaDecoder
 
     def fromStringUnsafe(s: String): LockId = LockId(BoxId.fromStringUnsafe(s))
 
