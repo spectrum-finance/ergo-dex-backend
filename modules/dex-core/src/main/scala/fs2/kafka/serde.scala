@@ -1,24 +1,22 @@
 package fs2.kafka
 
 import cats.effect.Sync
+import io.circe.Encoder
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder}
 import tofu.syntax.monadic._
-import tofu.syntax.raise._
 
 object serde {
 
   private val charset = "UTF-8"
 
-  implicit def deserializerByDecoder[F[_]: Sync, A: Decoder]: RecordDeserializer[F, A] =
+  implicit def deserializerViaKafkaDecoder[F[_]: Sync, A](implicit
+    decoder: KafkaDecoder[A, F]
+  ): RecordDeserializer[F, A] =
     RecordDeserializer.lift {
-      Deserializer.lift { xs =>
-        val raw = new String(xs, charset)
-        io.circe.parser.decode(raw).toRaise
-      }
+      Deserializer.lift(decoder.decode)
     }
 
-  implicit def serializerByEncoder[F[_]: Sync, A: Encoder]: RecordSerializer[F, A] =
+  implicit def serializerViaCirceEncoder[F[_]: Sync, A: Encoder]: RecordSerializer[F, A] =
     RecordSerializer.lift {
       Serializer.lift { a =>
         a.asJson.noSpacesSortKeys.getBytes(charset).pure

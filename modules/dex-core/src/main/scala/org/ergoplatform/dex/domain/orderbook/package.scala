@@ -2,7 +2,7 @@ package org.ergoplatform.dex.domain
 
 import cats.effect.Sync
 import doobie.{Get, Put}
-import fs2.kafka.serde.{deserializerByDecoder, serializerByEncoder}
+import fs2.kafka.serde.{deserializerViaKafkaDecoder, serializerViaCirceEncoder}
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
@@ -23,8 +23,8 @@ package object orderbook {
     implicit val encoder: Encoder[OrderId] = deriving
     implicit val decoder: Decoder[OrderId] = deriving
 
-    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OrderId]     = serializerByEncoder
-    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OrderId] = deserializerByDecoder
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OrderId]     = serializerViaCirceEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OrderId] = deserializerViaKafkaDecoder
   }
 
   @newtype case class TradeId(value: String)
@@ -40,7 +40,7 @@ package object orderbook {
     implicit val encoder: Encoder[TradeId] = deriving
     implicit val decoder: Decoder[TradeId] = deriving
 
-    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, TradeId]     = serializerByEncoder
-    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TradeId] = deserializerByDecoder
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, TradeId]     = serializerViaCirceEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TradeId] = deserializerViaKafkaDecoder
   }
 }

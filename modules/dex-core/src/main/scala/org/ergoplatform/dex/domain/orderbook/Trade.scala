@@ -41,8 +41,8 @@ object Trade {
   implicit def decoder: Decoder[AnyTrade] = io.circe.derivation.deriveDecoder
 
   implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, AnyTrade] =
-    fs2.kafka.serde.serializerByEncoder
+    fs2.kafka.serde.serializerViaCirceEncoder
 
   implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, AnyTrade] =
-    fs2.kafka.serde.deserializerByDecoder
+    fs2.kafka.serde.deserializerViaKafkaDecoder
 }
