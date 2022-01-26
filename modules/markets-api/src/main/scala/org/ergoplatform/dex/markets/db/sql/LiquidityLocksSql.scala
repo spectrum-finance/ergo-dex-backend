@@ -21,9 +21,9 @@ final class LiquidityLocksSql(implicit lg: LogHandler) {
          |left join (
          |  select p.pool_id, ${cfmm.TotalEmissionLP} - p.lp_amount as lp_emission from pools p
          |  where p.pool_id = $poolId
-         |  order by p.gindex desc limit 1;
+         |  order by p.gindex desc limit 1
          |) as p on p.pool_id = $poolId
-         |where p.pool_id = $poolId
+         |where p.pool_id is not null
          |order by lq.deadline asc
          """.stripMargin.query
 }

@@ -39,7 +39,7 @@ object Memoize {
         ts <- millis
         expiresAt = ts + ttl.toMillis
         _ <- store.set(Some(a -> expiresAt))
-      } yield ts
+      } yield ()
 
     def read: F[Option[A]] =
       for {

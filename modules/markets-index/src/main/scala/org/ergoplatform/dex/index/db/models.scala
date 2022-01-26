@@ -21,7 +21,7 @@ object models {
   final case class DBLiquidityLock(
     id: LockId,
     deadline: Int,
-    assetId: TokenId,
+    tokenId: TokenId,
     amount: Long,
     redeemer: Address
   )

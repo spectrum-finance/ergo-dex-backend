@@ -109,7 +109,7 @@ create index assets__ticker on public.assets using btree (ticker);
 create table if not exists public.lq_locks (
     id public.hash32type primary key,
     deadline integer not null,
-    asset_id public.hash32type not null,
+    token_id public.hash32type not null,
     amount bigint not null,
     redeemer public.address not null
 );
