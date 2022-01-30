@@ -111,7 +111,7 @@ object generators {
       yi  = AssetInfo(Some(Ticker("Y")), Some(0))
       feeNum <- Gen.const(995)
       boxId  <- boxIdGen
-      box = BoxInfo(boxId, 1000000, gix)
+      box = BoxInfo(boxId, 1000000)
     } yield CFMMPool(poolId, lp, x, y, lpi, xi, yi, feeNum, box)
 
   def cfmmPoolGen(gix: Long): Gen[CFMMPool] =
@@ -132,6 +132,6 @@ object generators {
   def cfmmPoolPredictionsGen(len: Int): Gen[List[CFMMPool]] =
     for {
       root  <- cfmmPoolGen
-      pools <- Gen.listOfN(len, cfmmPoolGen(root.box.lastConfirmedBoxGix)).map(_.map(_.copy(poolId = root.poolId)))
+      pools <- Gen.listOfN(len, cfmmPoolGen(???)).map(_.map(_.copy(poolId = root.poolId)))
     } yield root :: pools
 }

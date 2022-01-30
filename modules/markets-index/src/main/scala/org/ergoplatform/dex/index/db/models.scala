@@ -61,7 +61,7 @@ object models {
         pool.y.id,
         pool.y.value,
         pool.feeNum,
-        pool.box.lastConfirmedBoxGix,
+        ???,
         ProtocolVersion.Initial
       )
 

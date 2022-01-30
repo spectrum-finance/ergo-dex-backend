@@ -11,15 +11,15 @@ import sttp.tapir.{Schema, Validator}
 import tofu.logging.derivation.loggable
 
 @derive(show, encoder, decoder, loggable)
-final case class BoxInfo(boxId: BoxId, value: Long, lastConfirmedBoxGix: Long)
+final case class BoxInfo(boxId: BoxId, value: Long)
 
 object BoxInfo {
 
   def fromBox(box: Output): BoxInfo =
-    BoxInfo(box.boxId, box.value, box.globalIndex)
+    BoxInfo(box.boxId, box.value)
 
   implicit val schema: Schema[BoxInfo]       = Schema.derived[BoxInfo]
   implicit val validator: Validator[BoxInfo] = schema.validator
 
-  implicit val codec: Codec[BoxInfo] = (implicitly[Codec[BoxId]] :: int64 :: int64).as[BoxInfo]
+  implicit val codec: Codec[BoxInfo] = (implicitly[Codec[BoxId]] :: int64).as[BoxInfo]
 }

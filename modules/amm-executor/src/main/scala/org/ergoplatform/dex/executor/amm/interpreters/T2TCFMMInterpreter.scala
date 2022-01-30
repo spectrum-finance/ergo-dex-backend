@@ -69,7 +69,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
     val tx          = ErgoLikeTransaction(inputs, outs)
     val nextPoolBox = poolBox1.toBox(tx.id, 0)
-    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value, poolBox0.lastConfirmedBoxGix)
+    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
     val nextPool    = pool.deposit(inX, inY, boxInfo)
     (tx, nextPool).pure
   }
@@ -110,7 +110,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
     val tx          = ErgoLikeTransaction(inputs, outs)
     val nextPoolBox = poolBox1.toBox(tx.id, 0)
-    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value, poolBox0.lastConfirmedBoxGix)
+    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
     val nextPool    = pool.redeem(inLP, boxInfo)
     (tx, nextPool).pure
   }
@@ -149,7 +149,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       val outs        = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
       val tx          = ErgoLikeTransaction(inputs, outs)
       val nextPoolBox = poolBox1.toBox(tx.id, 0)
-      val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value, poolBox0.lastConfirmedBoxGix)
+      val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
       val nextPool    = pool.swap(input, boxInfo)
       tx -> nextPool
     }
