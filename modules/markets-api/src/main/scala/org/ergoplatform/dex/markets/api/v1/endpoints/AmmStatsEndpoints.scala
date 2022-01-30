@@ -19,7 +19,7 @@ final class AmmStatsEndpoints {
   def getPoolLocks: Endpoint[(PoolId, Int), HttpError, List[LiquidityLockInfo], Any] =
     baseEndpoint.get
       .in(PathPrefix / "pool" / path[PoolId].description("Asset reference") / "locks")
-      .in(query[Int]("leastDeadline"))
+      .in(query[Int]("leastDeadline").default(0).description("Least LQ Lock deadline"))
       .out(jsonBody[List[LiquidityLockInfo]])
       .tag(Group)
       .name("Pool locks")

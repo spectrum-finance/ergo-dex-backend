@@ -5,7 +5,7 @@ import doobie.implicits._
 import doobie.util.query.Query0
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.locks.LiquidityLockStats
-import org.ergoplatform.dex.protocol.amm.constants.cfmm
+import org.ergoplatform.dex.protocol.amm.constants.cfmm.TotalEmissionLP
 
 final class LiquidityLocksSql(implicit lg: LogHandler) {
 
@@ -19,10 +19,10 @@ final class LiquidityLocksSql(implicit lg: LogHandler) {
          |  lq.redeemer
          |from lq_locks lq
          |left join (
-         |  select p.pool_id, ${cfmm.TotalEmissionLP} - p.lp_amount as lp_emission from pools p
+         |  select p.pool_id, p.lp_id, $TotalEmissionLP - p.lp_amount as lp_emission from pools p
          |  where p.pool_id = $poolId
          |  order by p.gindex desc limit 1
-         |) as p on p.pool_id = $poolId
+         |) as p on p.lp_id = lq.token_id
          |where p.pool_id is not null and lq.deadline >= $leastDeadline
          |order by lq.deadline asc
          """.stripMargin.query
