@@ -5,7 +5,7 @@ import doobie.util.Write
 
 /** Database table access operations layer.
   */
-trait QuerySet {
+trait QuerySet[T] {
 
   /** Name of the table according to a database schema.
     */
@@ -15,11 +15,11 @@ trait QuerySet {
     */
   val fields: List[String]
 
-  final def insert[M: Write]: Update[M] =
-    Update[M](s"insert into $tableName ($fieldsString) values ($holdersString)")
+  final def insert(implicit w: Write[T]): Update[T] =
+    Update[T](s"insert into $tableName ($fieldsString) values ($holdersString)")
 
-  final def insertNoConflict[M: Write]: Update[M] =
-    Update[M](s"insert into $tableName ($fieldsString) values ($holdersString) on conflict do nothing")
+  final def insertNoConflict(implicit w: Write[T]): Update[T] =
+    Update[T](s"insert into $tableName ($fieldsString) values ($holdersString) on conflict do nothing")
 
   private def fieldsString: String =
     fields.mkString(", ")

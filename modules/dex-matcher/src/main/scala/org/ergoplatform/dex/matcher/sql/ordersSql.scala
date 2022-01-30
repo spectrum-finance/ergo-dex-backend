@@ -6,13 +6,13 @@ import doobie.util.log.LogHandler
 import doobie.util.query.Query0
 import doobie.util.update.Update0
 import doobie.Fragments
-import org.ergoplatform.dex.domain.orderbook.Order.{Ask, Bid}
+import org.ergoplatform.dex.domain.orderbook.Order.{AnyOrder, Ask, Bid}
 import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.common.sql.QuerySet
 import org.ergoplatform.dex.domain.PairId
 import org.ergoplatform.dex.domain.orderbook.OrderId
 
-object ordersSql extends QuerySet {
+object ordersSql extends QuerySet[AnyOrder] {
 
   val tableName: String = "orders"
 

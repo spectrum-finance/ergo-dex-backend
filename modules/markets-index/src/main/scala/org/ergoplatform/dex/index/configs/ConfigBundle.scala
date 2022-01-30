@@ -15,10 +15,8 @@ import tofu.optics.macros.{promote, ClassyOptics}
 @ClassyOptics
 final case class ConfigBundle(
   @promote commitPolicy: CommitPolicy,
-  cfmmHistoryConsumer: ConsumerConfig,
-  cfmmPoolsConsumer: ConsumerConfig,
-  cfmmHistoryProducer: ProducerConfig,
-  cfmmPoolsProducer: ProducerConfig,
+  consumers: Consumers,
+  producers: Producers,
   @promote db: PgConfig,
   @promote kafka: KafkaConfig,
   @promote protocol: ProtocolConfig,

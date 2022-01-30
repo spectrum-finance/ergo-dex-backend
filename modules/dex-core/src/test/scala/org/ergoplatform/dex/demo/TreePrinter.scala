@@ -2,8 +2,9 @@ package org.ergoplatform.dex.demo
 
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, sigmaUtils}
-import org.ergoplatform.dex.sources.{n2tContracts, t2tContracts}
+import org.ergoplatform.dex.sources.{lockContracts, n2tContracts, t2tContracts}
 import org.ergoplatform.ergo.{ErgoTreeTemplate, SErgoTree}
+import scorex.crypto.hash.Sha256
 import scorex.util.encode.Base16
 import sigmastate.Values.ErgoTree
 import sigmastate.basics.DLogProtocol.DLogProverInput
@@ -41,8 +42,9 @@ object TreePrinter extends App {
     println(s"[$signature] Constants:")
     tree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
     println("* " * 40)
-    println(s"[$signature] ErgoTree:         " + ErgoTreeSerializer.default.serialize(tree))
-    println(s"[$signature] ErgoTreeTemplate: " + ErgoTreeTemplate.fromBytes(tree.template))
+    println(s"[$signature] ErgoTree:             " + ErgoTreeSerializer.default.serialize(tree))
+    println(s"[$signature] ErgoTreeTemplate:     " + ErgoTreeTemplate.fromBytes(tree.template))
+    println(s"[$signature] ErgoTreeTemplateHash: " + Base16.encode(Sha256.hash(tree.template)))
     println("-" * 80)
     println()
   }
@@ -62,6 +64,10 @@ object TreePrinter extends App {
     "Pool"     -> n2tContracts.pool
   )
 
+  val Primitives_Trees = List(
+    "LqLock"  -> lockContracts.lock,
+  )
+
   def printAll(cat: String, trees: List[(String, String)]): Unit = {
     println(cat)
     println("^" * 80)
@@ -70,9 +76,10 @@ object TreePrinter extends App {
 
   printAll("N2T", N2T_Trees)
   printAll("T2T", T2T_Trees)
+  printAll("DeFi_Prims", Primitives_Trees)
 
-//  printTree("deposit", n2tContracts.deposit)
-//  val src = "tree_encoded"
+  //printTree("deposit", n2tContracts.deposit)
+//  val src = "195e03040004000400d802d601b2a5730000d602e4c6a70404ea02e4c6a70508d19593c27201c2a7d802d603b2db63087201730100d604b2db6308a7730200eded92e4c6720104047202938c7203018c720401928c7203028c7204028f7202a3"
 //  val tree = ErgoTreeSerializer.default.deserialize(SErgoTree.unsafeFromString(src))
 //  tree.constants.zipWithIndex.foreach { case (c, i) => println(s"{$i} -> $c") }
 }

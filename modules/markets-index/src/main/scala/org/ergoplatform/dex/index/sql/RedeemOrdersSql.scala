@@ -1,8 +1,9 @@
 package org.ergoplatform.dex.index.sql
 
 import org.ergoplatform.common.sql.QuerySet
+import org.ergoplatform.dex.index.db.models.DBRedeem
 
-object RedeemOrdersSql extends QuerySet {
+object RedeemOrdersSql extends QuerySet[DBRedeem] {
 
   val fields: List[String] = List(
     "order_id",

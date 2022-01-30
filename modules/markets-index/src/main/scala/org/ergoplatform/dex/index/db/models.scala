@@ -1,11 +1,37 @@
 package org.ergoplatform.dex.index.db
 
+import org.ergoplatform.common.sql.QuerySet
 import org.ergoplatform.dex.domain.Ticker
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
 import org.ergoplatform.dex.domain.amm._
+import org.ergoplatform.dex.domain.locks.LiquidityLock
+import org.ergoplatform.dex.domain.locks.types.LockId
+import org.ergoplatform.dex.index.sql.{
+  AssetSql,
+  CFMMPoolSql,
+  DepositOrdersSql,
+  LqLocksSql,
+  RedeemOrdersSql,
+  SwapOrdersSql
+}
 import org.ergoplatform.ergo._
 
 object models {
+
+  final case class DBLiquidityLock(
+    id: LockId,
+    deadline: Int,
+    tokenId: TokenId,
+    amount: Long,
+    redeemer: Address
+  )
+
+  implicit val lqLockQs: QuerySet[DBLiquidityLock] = LqLocksSql
+
+  implicit val lqLockView: Extract[LiquidityLock, DBLiquidityLock] = {
+    case LiquidityLock(id, deadline, amount, redeemer) =>
+      DBLiquidityLock(id, deadline, amount.id, amount.value, redeemer)
+  }
 
   final case class DBPool(
     stateId: PoolStateId,
@@ -20,6 +46,8 @@ object models {
     globalIndex: Long,
     protocolVersion: ProtocolVersion
   )
+
+  implicit val poolQs: QuerySet[DBPool] = CFMMPoolSql
 
   implicit val poolView: Extract[CFMMPool, DBPool] =
     pool =>
@@ -53,6 +81,8 @@ object models {
     p2pk: Address,
     protocolVersion: ProtocolVersion
   )
+
+  implicit val swapQs: QuerySet[DBSwap] = SwapOrdersSql
 
   implicit val swapView: Extract[EvaluatedCFMMOrder[Swap, SwapEvaluation], DBSwap] = {
     case EvaluatedCFMMOrder(swap, ev, pool) =>
@@ -89,6 +119,8 @@ object models {
     protocolVersion: ProtocolVersion
   )
 
+  implicit val redeemQs: QuerySet[DBRedeem] = RedeemOrdersSql
+
   implicit val redeemView: Extract[EvaluatedCFMMOrder[Redeem, RedeemEvaluation], DBRedeem] = {
     case EvaluatedCFMMOrder(redeem, ev, pool) =>
       DBRedeem(
@@ -123,6 +155,8 @@ object models {
     protocolVersion: ProtocolVersion
   )
 
+  implicit val depositQs: QuerySet[DBDeposit] = DepositOrdersSql
+
   implicit val depositView: Extract[EvaluatedCFMMOrder[Deposit, DepositEvaluation], DBDeposit] = {
     case EvaluatedCFMMOrder(deposit, ev, pool) =>
       DBDeposit(
@@ -147,6 +181,8 @@ object models {
     ticker: Option[Ticker],
     decimals: Option[Int]
   )
+
+  implicit val assetQs: QuerySet[DBAssetInfo] = AssetSql
 
   type PoolAssets = (DBAssetInfo, DBAssetInfo, DBAssetInfo)
 

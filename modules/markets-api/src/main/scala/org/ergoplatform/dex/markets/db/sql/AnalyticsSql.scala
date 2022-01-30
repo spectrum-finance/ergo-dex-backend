@@ -5,7 +5,7 @@ import doobie.util.query.Query0
 import doobie.{Fragment, LogHandler}
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.db.models.{PoolFeesSnapshot, PoolInfo, PoolSnapshot, PoolVolumeSnapshot}
+import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.ergo.TokenId
 
 final class AnalyticsSql(implicit lg: LogHandler) {
@@ -19,15 +19,10 @@ final class AnalyticsSql(implicit lg: LogHandler) {
     sql"""
          |select p.pool_id, p.x_id, p.x_amount, ax.ticker, ax.decimals, p.y_id, p.y_amount, ay.ticker, ay.decimals
          |from pools p
-         |left join (
-         |	select pool_id, max(gindex) as gindex
-         |	from pools
-         |  where pool_id = $id
-         |	group by pool_id
-         |) as px on p.pool_id = px.pool_id and p.gindex = px.gindex
          |left join assets ax on ax.id = p.x_id
          |left join assets ay on ay.id = p.y_id
-         |where px.gindex = p.gindex
+         |where p.pool_id = $id
+         |order by p.gindex desc limit 1;
          """.stripMargin.query[PoolSnapshot]
 
   def getPoolSnapshots: Query0[PoolSnapshot] =

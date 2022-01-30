@@ -2,7 +2,7 @@ package org.ergoplatform.dex.markets.modules
 
 import cats.Monad
 import cats.effect.Clock
-import org.ergoplatform.dex.markets.db.models.PoolInfo
+import org.ergoplatform.dex.markets.db.models.amm.PoolInfo
 import org.ergoplatform.dex.markets.domain.{FeePercentProjection, Fees, TotalValueLocked}
 import tofu.syntax.time.now._
 import tofu.syntax.monadic._

@@ -22,6 +22,7 @@ import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 import org.ergoplatform.common.HexString
 import org.ergoplatform.common.errors.RefinementFailed
+import org.ergoplatform.ergo.CurrencyId
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import scodec.bits.ByteVector
@@ -32,6 +33,8 @@ import tofu.Raise
 import tofu.logging.Loggable
 import tofu.logging.derivation.loggable
 import tofu.syntax.raise._
+
+import scala.util.Try
 
 package object ergo {
 
@@ -182,6 +185,8 @@ package object ergo {
     implicit val put: Put[Address] =
       Put[String].contramap[Address](_.unwrapped)
 
+    implicit val schema: Schema[Address] = Schema.schemaForString.map(fromString[Try](_).toOption)(_.unwrapped)
+
     implicit val show: Show[Address]         = _.unwrapped
     implicit val loggable: Loggable[Address] = Loggable.show
 
@@ -254,5 +259,31 @@ package object ergo {
     ): F[ErgoTreeTemplate] = HexString.fromString(s).map(ErgoTreeTemplate.apply)
 
     def unsafeFromString(s: String): ErgoTreeTemplate = ErgoTreeTemplate(HexString.unsafeFromString(s))
+  }
+
+  @newtype case class PubKey(value: HexString) {
+    final def unwrapped: String    = value.unwrapped
+    final def toBytes: Array[Byte] = value.toBytes
+    final def hash: HexString      = HexString.fromBytes(Sha256.hash(toBytes))
+  }
+
+  object PubKey {
+    // circe instances
+    implicit val encoder: Encoder[PubKey] = deriving
+    implicit val decoder: Decoder[PubKey] = deriving
+
+    implicit val show: Show[PubKey]         = deriving
+    implicit val loggable: Loggable[PubKey] = deriving
+
+    implicit val get: Get[PubKey] = deriving
+    implicit val put: Put[PubKey] = deriving
+
+    def fromBytes(bytes: Array[Byte]): PubKey = PubKey(HexString.fromBytes(bytes))
+
+    def fromString[F[_]: Raise[*[_], RefinementFailed]: Applicative](
+      s: String
+    ): F[PubKey] = HexString.fromString(s).map(PubKey.apply)
+
+    def unsafeFromString(s: String): PubKey = PubKey(HexString.unsafeFromString(s))
   }
 }
