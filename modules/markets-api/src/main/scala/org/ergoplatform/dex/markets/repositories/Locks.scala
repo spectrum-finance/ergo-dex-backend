@@ -20,7 +20,7 @@ trait Locks[F[_]] {
 
   /** Get liquidity locks by the pool with the given `id`.
     */
-  def byPool(poolId: PoolId): F[List[LiquidityLockStats]]
+  def byPool(poolId: PoolId, leastDeadline: Int): F[List[LiquidityLockStats]]
 }
 
 object Locks {
@@ -37,17 +37,17 @@ object Locks {
 
   final class Live(sql: LiquidityLocksSql) extends Locks[ConnectionIO] {
 
-    def byPool(poolId: PoolId): ConnectionIO[List[LiquidityLockStats]] =
-      sql.getLocksByPool(poolId).to[List]
+    def byPool(poolId: PoolId, leastDeadline: Int): ConnectionIO[List[LiquidityLockStats]] =
+      sql.getLocksByPool(poolId, leastDeadline).to[List]
   }
 
   final class LocksTracing[F[_]: FlatMap: Logging] extends Locks[Mid[F, *]] {
 
-    def byPool(poolId: PoolId): Mid[F, List[LiquidityLockStats]] =
+    def byPool(poolId: PoolId, leastDeadline: Int): Mid[F, List[LiquidityLockStats]] =
       for {
-        _ <- trace"byPool(poolId=$poolId)"
+        _ <- trace"byPool(poolId=$poolId, leastDeadline=$leastDeadline)"
         r <- _
-        _ <- trace"byPool(poolId=$poolId) -> ${r.size} info entities selected"
+        _ <- trace"byPool(poolId=$poolId, leastDeadline=$leastDeadline) -> ${r.size} info entities selected"
       } yield r
   }
 }

@@ -9,7 +9,7 @@ import org.ergoplatform.dex.protocol.amm.constants.cfmm
 
 final class LiquidityLocksSql(implicit lg: LogHandler) {
 
-  def getLocksByPool(poolId: PoolId): Query0[LiquidityLockStats] =
+  def getLocksByPool(poolId: PoolId, leastDeadline: Int): Query0[LiquidityLockStats] =
     sql"""
          |select
          |  p.pool_id,
@@ -23,7 +23,7 @@ final class LiquidityLocksSql(implicit lg: LogHandler) {
          |  where p.pool_id = $poolId
          |  order by p.gindex desc limit 1
          |) as p on p.pool_id = $poolId
-         |where p.pool_id is not null
+         |where p.pool_id is not null and lq.deadline >= $leastDeadline
          |order by lq.deadline asc
          """.stripMargin.query
 }

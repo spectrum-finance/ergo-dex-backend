@@ -21,8 +21,8 @@ final class AmmStatsRoutes[
 
   def routes: HttpRoutes[F] = getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR
 
-  def getPoolLocksR: HttpRoutes[F] = interpreter.toRoutes(getPoolLocks) { poolId =>
-    locks.byPool(poolId).adaptThrowable.value
+  def getPoolLocksR: HttpRoutes[F] = interpreter.toRoutes(getPoolLocks) { case (poolId, leastDeadline) =>
+    locks.byPool(poolId, leastDeadline).adaptThrowable.value
   }
 
   def getPoolStatsR: HttpRoutes[F] = interpreter.toRoutes(getPoolStats) { case (poolId, tw) =>

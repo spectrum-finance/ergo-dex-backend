@@ -10,7 +10,7 @@ import tofu.syntax.monadic._
 
 trait LqLocks[F[_]] {
 
-  def byPool(poolId: PoolId): F[List[LiquidityLockInfo]]
+  def byPool(poolId: PoolId, leastDeadline: Int): F[List[LiquidityLockInfo]]
 }
 
 object LqLocks {
@@ -20,7 +20,7 @@ object LqLocks {
 
   final class Live[F[_], D[_]: Functor](implicit txr: Txr.Aux[F, D], locks: Locks[D]) extends LqLocks[F] {
 
-    def byPool(poolId: PoolId): F[List[LiquidityLockInfo]] =
-      locks.byPool(poolId).map(_.map(LiquidityLockInfo(_))) ||> txr.trans
+    def byPool(poolId: PoolId, leastDeadline: Int): F[List[LiquidityLockInfo]] =
+      locks.byPool(poolId, leastDeadline).map(_.map(LiquidityLockInfo(_))) ||> txr.trans
   }
 }
