@@ -5,7 +5,7 @@ import cats.syntax.option._
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, Deposit, Redeem, Swap}
-import org.ergoplatform.ergo.models.Output
+import org.ergoplatform.ergo.domain.Output
 import tofu.syntax.monadic._
 
 trait CFMMOrderEvaluationParser[F[_]] {

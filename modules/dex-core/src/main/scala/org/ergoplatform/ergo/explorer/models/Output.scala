@@ -1,13 +1,13 @@
-package org.ergoplatform.ergo.models
+package org.ergoplatform.ergo.explorer.models
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
+import org.ergoplatform.ergo.domain.{RegisterId, SConstant}
 import org.ergoplatform.ergo.{Address, BoxId, SErgoTree, TxId}
-import org.ergoplatform.ergo.models.ErgoBox._
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
-final case class MempoolOutput(
+final case class Output(
   boxId: BoxId,
   transactionId: TxId,
   value: Long,
@@ -17,4 +17,4 @@ final case class MempoolOutput(
   address: Address,
   assets: List[BoxAsset],
   additionalRegisters: Map[RegisterId, SConstant]
-) extends ErgoBox
+)

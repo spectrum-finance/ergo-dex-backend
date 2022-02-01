@@ -1,12 +1,12 @@
-package org.ergoplatform.ergo.models
+package org.ergoplatform.ergo.domain
 
 import derevo.circe.encoder
 import derevo.derive
 import io.circe.Decoder
 import org.ergoplatform.common.HexString
 import org.ergoplatform.ergo.PubKey
-import org.ergoplatform.ergo.models.SigmaType.SimpleKindSigmaType._
-import org.ergoplatform.ergo.models.SigmaType._
+import org.ergoplatform.ergo.domain.SigmaType.SimpleKindSigmaType._
+import org.ergoplatform.ergo.domain.SigmaType._
 import tofu.logging.derivation.loggable
 
 @derive(encoder, loggable)

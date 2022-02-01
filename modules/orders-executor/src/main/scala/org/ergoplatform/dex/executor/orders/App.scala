@@ -12,7 +12,7 @@ import org.ergoplatform.dex.executor.orders.context.AppContext
 import org.ergoplatform.dex.executor.orders.processes.Executor
 import org.ergoplatform.dex.executor.orders.services.Execution
 import org.ergoplatform.dex.executor.orders.streaming.StreamingBundle
-import org.ergoplatform.ergo.{ErgoNetwork, ErgoNetworkStreaming}
+import org.ergoplatform.ergo.services.{ErgoNetwork, ErgoNetworkStreaming}
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend

@@ -6,7 +6,7 @@ import io.circe.Encoder
 import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.ErgoBox.TokenId
 import org.ergoplatform._
-import org.ergoplatform.ergo.models.{ErgoBox, Output}
+import org.ergoplatform.ergo.domain.{ErgoBox, Output}
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16
 import sigmastate.basics.DLogProtocol

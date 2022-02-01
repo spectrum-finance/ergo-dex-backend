@@ -3,7 +3,7 @@ package org.ergoplatform.dex.resolver.processes
 import cats.{Functor, Monad}
 import org.ergoplatform.common.streaming.Consumer
 import org.ergoplatform.common.streaming.syntax._
-import org.ergoplatform.dex.domain.amm.state.{Confirmed, OnChainIndexed}
+import org.ergoplatform.ergo.state.{Confirmed, ConfirmedIndexed}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.resolver.repositories.CFMMPools
 import tofu.streams.Evals
@@ -20,7 +20,7 @@ object PoolTracker {
     F[_]: Monad: Evals[*[_], G],
     G[_]: Functor
   ](implicit
-    consumer: Consumer[PoolId, OnChainIndexed[CFMMPool], F, G],
+    consumer: Consumer[PoolId, ConfirmedIndexed[CFMMPool], F, G],
     pools: CFMMPools[G]
   ): PoolTracker[F] = new Live[F, G]
 
@@ -28,7 +28,7 @@ object PoolTracker {
     F[_]: Monad: Evals[*[_], G],
     G[_]: Functor
   ](implicit
-    consumer: Consumer[PoolId, OnChainIndexed[CFMMPool], F, G],
+    consumer: Consumer[PoolId, ConfirmedIndexed[CFMMPool], F, G],
     pools: CFMMPools[G]
   ) extends PoolTracker[F] {
 

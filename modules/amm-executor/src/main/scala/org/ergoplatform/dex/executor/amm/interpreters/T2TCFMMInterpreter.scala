@@ -4,7 +4,7 @@ import cats.{Functor, Monad}
 import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.dex.domain.amm.state.Predicted
+import org.ergoplatform.ergo.state.Predicted
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
@@ -12,7 +12,8 @@ import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterp
 import org.ergoplatform.dex.protocol.amm.AMMContracts
 import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.ergo.{BoxId, ErgoNetwork}
+import org.ergoplatform.ergo.BoxId
+import org.ergoplatform.ergo.services.ErgoNetwork
 import sigmastate.interpreter.ProverResult
 import tofu.logging.Logs
 import tofu.syntax.embed._

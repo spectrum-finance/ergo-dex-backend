@@ -6,7 +6,7 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
 import org.ergoplatform.common.streaming.Producer
-import org.ergoplatform.dex.domain.amm.state.Confirmed
+import org.ergoplatform.ergo.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, OrderId, PoolId}
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.handlers.{CFMMOpsHandler, CFMMPoolsHandler}
@@ -14,7 +14,7 @@ import org.ergoplatform.dex.tracker.processes.UtxoTracker
 import org.ergoplatform.dex.tracker.processes.UtxoTracker.TrackerMode
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
-import org.ergoplatform.ergo.ErgoNetworkStreaming
+import org.ergoplatform.ergo.services.ErgoNetworkStreaming
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend

@@ -5,7 +5,7 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.dex.protocol.constants.{ErgoAssetId, ErgoAssetTicker}
 import org.ergoplatform.ergo.TokenId
-import org.ergoplatform.ergo.models.BoxAsset
+import org.ergoplatform.ergo.domain.BoxAsset
 import scodec._
 import scodec.codecs._
 import sttp.tapir.{Schema, Validator}

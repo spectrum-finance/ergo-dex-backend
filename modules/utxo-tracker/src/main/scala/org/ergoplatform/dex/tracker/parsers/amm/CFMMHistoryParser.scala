@@ -7,7 +7,7 @@ import cats.instances.list._
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, Deposit, EvaluatedCFMMOrder, OrderEvaluation, Redeem, Swap}
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.ergo.models.{Output, Transaction}
+import org.ergoplatform.ergo.domain.{Output, Transaction}
 import tofu.higherKind.Embed
 import tofu.syntax.monadic._
 import tofu.syntax.foption._

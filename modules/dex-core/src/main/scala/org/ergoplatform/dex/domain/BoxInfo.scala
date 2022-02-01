@@ -4,7 +4,7 @@ import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.ergo.BoxId
-import org.ergoplatform.ergo.models.Output
+import org.ergoplatform.ergo.domain.Output
 import scodec.Codec
 import scodec.codecs._
 import sttp.tapir.{Schema, Validator}

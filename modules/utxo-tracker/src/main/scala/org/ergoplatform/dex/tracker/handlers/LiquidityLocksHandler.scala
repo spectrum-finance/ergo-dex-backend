@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.handlers
 
 import cats.{Functor, FunctorFilter, Monad}
 import org.ergoplatform.common.streaming.{Producer, Record}
-import org.ergoplatform.dex.domain.amm.state.Confirmed
+import org.ergoplatform.ergo.state.Confirmed
 import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
 import org.ergoplatform.dex.protocol.ProtoVer

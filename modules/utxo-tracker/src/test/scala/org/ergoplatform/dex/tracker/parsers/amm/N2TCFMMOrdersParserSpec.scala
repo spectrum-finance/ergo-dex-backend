@@ -6,7 +6,7 @@ import org.ergoplatform.dex.CatsPlatform
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.{PoolId, Swap, SwapParams}
 import org.ergoplatform.ergo._
-import org.ergoplatform.ergo.models.{BoxAsset, Output}
+import org.ergoplatform.ergo.domain.{BoxAsset, Output}
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks

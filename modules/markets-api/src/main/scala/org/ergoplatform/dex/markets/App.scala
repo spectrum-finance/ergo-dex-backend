@@ -3,14 +3,14 @@ package org.ergoplatform.dex.markets
 import cats.effect.{Blocker, Resource}
 import cats.tagless.syntax.functorK._
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
+import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.dex.markets.api.v1.HttpServer
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
 import org.ergoplatform.dex.markets.configs.ConfigBundle
 import org.ergoplatform.dex.markets.modules.PriceSolver.{CryptoPriceSolver, FiatPriceSolver}
 import org.ergoplatform.dex.markets.repositories.{Locks, Pools}
 import org.ergoplatform.dex.markets.services.{FiatRates, Markets}
-import org.ergoplatform.ergo.ErgoNetworkStreaming
+import org.ergoplatform.ergo.services.ErgoNetworkStreaming
 import org.http4s.server.Server
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend

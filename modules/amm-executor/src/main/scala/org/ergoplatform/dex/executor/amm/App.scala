@@ -12,14 +12,9 @@ import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, N2TCFMMI
 import org.ergoplatform.dex.executor.amm.processes.Executor
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.executor.amm.services.Execution
-import org.ergoplatform.dex.executor.amm.streaming.{
-  CFMMCircuit,
-  CFMMConsumerIn,
-  CFMMConsumerRetries,
-  CFMMProducerRetries
-}
+import org.ergoplatform.dex.executor.amm.streaming.{CFMMCircuit, CFMMConsumerIn, CFMMConsumerRetries, CFMMProducerRetries}
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.ergo.ErgoNetwork
+import org.ergoplatform.ergo.services.ErgoNetwork
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import tofu.WithRun

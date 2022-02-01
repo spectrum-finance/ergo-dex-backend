@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.resolver.http
 
 import org.ergoplatform.common.http.{HttpError, baseEndpoint}
-import org.ergoplatform.dex.domain.amm.state.OffChainIndexed
+import org.ergoplatform.ergo.state.PredictedIndexed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.ergo.BoxId
 import sttp.tapir._
@@ -18,10 +18,10 @@ object Endpoints {
       .in("resolve" / path[PoolId])
       .out(jsonBody[CFMMPool])
 
-  def putPredicted: Endpoint[OffChainIndexed[CFMMPool], HttpError, Unit, Any] =
+  def putPredicted: Endpoint[PredictedIndexed[CFMMPool], HttpError, Unit, Any] =
     endpoint.post
       .in("predicted")
-      .in(jsonBody[OffChainIndexed[CFMMPool]])
+      .in(jsonBody[PredictedIndexed[CFMMPool]])
 
   def invalidate: Endpoint[BoxId, HttpError, Unit, Any] =
     endpoint.post

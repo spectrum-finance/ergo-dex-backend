@@ -3,7 +3,7 @@ package org.ergoplatform.dex.tracker.handlers
 import cats.{Functor, FunctorFilter, Monad}
 import mouse.any._
 import org.ergoplatform.common.streaming.{Producer, Record}
-import org.ergoplatform.dex.domain.amm.state.Confirmed
+import org.ergoplatform.ergo.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.dex.tracker.parsers.amm.CFMMPoolsParser

@@ -5,7 +5,7 @@ import derevo.derive
 import org.ergoplatform.dex.tracker.configs.TxTrackerConfig
 import org.ergoplatform.dex.tracker.handlers.TxHandler
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
-import org.ergoplatform.ergo.ErgoNetworkStreaming
+import org.ergoplatform.ergo.services.ErgoNetworkStreaming
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}

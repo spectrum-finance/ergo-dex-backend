@@ -2,7 +2,7 @@ package org.ergoplatform.dex.executor.amm.interpreters
 
 import cats.FlatMap
 import org.ergoplatform.ErgoLikeTransaction
-import org.ergoplatform.dex.domain.amm.state.Predicted
+import org.ergoplatform.ergo.state.Predicted
 import org.ergoplatform.dex.domain.amm.{CFMMPool, Deposit, Redeem, Swap}
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.dex.protocol.instances._

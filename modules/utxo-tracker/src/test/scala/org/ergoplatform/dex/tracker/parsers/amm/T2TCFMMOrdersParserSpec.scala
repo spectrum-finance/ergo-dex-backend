@@ -5,7 +5,7 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.CatsPlatform
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.{PoolId, Swap, SwapParams}
-import org.ergoplatform.ergo.models.{BoxAsset, Output}
+import org.ergoplatform.ergo.domain.{BoxAsset, Output}
 import org.ergoplatform.ergo._
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
@@ -40,7 +40,6 @@ class T2TCFMMOrdersParserSpec extends AnyPropSpec with should.Matchers with Scal
           0,
           5972866,
           508928,
-          547184,
           SErgoTree.unsafeFromString(
             "19a2031308cd02c3f56e66191a903758f53a4b90d07cef80f93e7a4f17d106098ad0caf189722a04000e2030974274078845f263b4f21787e33cc99e9ec19a17ad85a5bc6da2cca91c5a2e04c80f04d00f040404080402040004040400040606010104000e20f1fb942ebd039dc782fd9109acdb60aabea4dc7e75e9c813b6528c62692fc78105fc81fa940e05dc8c9ec6f687ac09058080a0f6f4acdbe01b0100d805d6017300d602b2a4730100d6037302d6047303d6057304eb027201d195ed93b1a4730593b1db630872027306d80ad606db63087202d607b2a5730700d608b2db63087207730800d6098c720802d60a7e720906d60bb27206730900d60c7e8c720b0206d60d7e8cb2db6308a7730a000206d60e7e8cb27206730b000206d60f9a720a730cededededed938cb27206730d0001730e93c27207d07201938c7208017203927209730f927ec1720706997ec1a7069d9c720a7e7310067e73110695938c720b017203909c9c720c720d7e7204069c720f9a9c720e7e7205069c720d7e720406909c9c720e720d7e7204069c720f9a9c720c7e7205069c720d7e7204067312"
           ),

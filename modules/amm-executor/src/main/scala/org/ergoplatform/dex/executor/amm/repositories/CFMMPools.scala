@@ -5,7 +5,7 @@ import cats.{FlatMap, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.common.TraceId
 import org.ergoplatform.common.http.Tracing
-import org.ergoplatform.dex.domain.amm.state.Predicted
+import org.ergoplatform.ergo.state.Predicted
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.executor.amm.config.ResolverConfig
 import org.ergoplatform.ergo.BoxId

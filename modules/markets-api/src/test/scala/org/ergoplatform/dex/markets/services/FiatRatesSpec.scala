@@ -8,7 +8,7 @@ import org.ergoplatform.dex.configs.NetworkConfig
 import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.markets.services.FiatRates.ErgoOraclesRateSource
 import org.ergoplatform.dex.protocol.constants.ErgoAssetClass
-import org.ergoplatform.ergo.ErgoNetwork
+import org.ergoplatform.ergo.services.ErgoNetwork
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend

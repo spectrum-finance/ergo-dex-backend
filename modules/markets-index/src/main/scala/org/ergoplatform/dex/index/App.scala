@@ -10,7 +10,7 @@ import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
 import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.dex.configs.ConsumerConfig
-import org.ergoplatform.dex.domain.amm.state.Confirmed
+import org.ergoplatform.ergo.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, EvaluatedCFMMOrder, OrderId, PoolId}
 import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
@@ -22,7 +22,7 @@ import org.ergoplatform.dex.tracker.handlers.{CFMMHistoryHandler, CFMMPoolsHandl
 import org.ergoplatform.dex.tracker.processes.{TxTracker, UtxoTracker}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker.TrackerMode
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
-import org.ergoplatform.ergo.ErgoNetworkStreaming
+import org.ergoplatform.ergo.services.ErgoNetworkStreaming
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend

@@ -3,7 +3,7 @@ package org.ergoplatform.dex.domain.amm
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import org.ergoplatform.dex.domain.amm.state.Predicted
+import org.ergoplatform.ergo.state.Predicted
 import org.ergoplatform.dex.domain.{AssetAmount, AssetInfo, BoxInfo}
 import org.ergoplatform.dex.protocol.amm.constants
 import scodec.Codec

@@ -2,7 +2,7 @@ package org.ergoplatform.dex.index
 
 import fs2.kafka.types.KafkaOffset
 import org.ergoplatform.common.streaming.Consumer
-import org.ergoplatform.dex.domain.amm.state.Confirmed
+import org.ergoplatform.ergo.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMPool, EvaluatedCFMMOrder, OrderId, PoolId}
 import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId

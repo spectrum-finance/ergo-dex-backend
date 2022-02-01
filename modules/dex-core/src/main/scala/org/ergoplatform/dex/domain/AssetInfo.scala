@@ -4,7 +4,7 @@ import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.dex.protocol.constants.{ErgoAssetDecimals, ErgoAssetTicker}
-import org.ergoplatform.ergo.models.BoxAsset
+import org.ergoplatform.ergo.domain.BoxAsset
 import scodec.Codec
 import scodec.codecs.{bool, int32, optional}
 import sttp.tapir.{Schema, Validator}

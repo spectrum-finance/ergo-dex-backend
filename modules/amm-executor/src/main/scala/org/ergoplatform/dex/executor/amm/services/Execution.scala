@@ -8,8 +8,8 @@ import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.protocol.amm.AMMType.CFMMType
-import org.ergoplatform.ergo.ErgoNetwork
 import org.ergoplatform.ergo.explorer.TxSubmissionErrorParser
+import org.ergoplatform.ergo.services.ErgoNetwork
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.handle._
 import tofu.syntax.logging._

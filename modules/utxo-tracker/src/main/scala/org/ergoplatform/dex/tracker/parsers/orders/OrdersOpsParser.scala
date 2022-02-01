@@ -13,7 +13,7 @@ import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily
 import org.ergoplatform.dex.protocol.orderbook.OrderContractFamily.LimitOrders
 import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, constants}
 import org.ergoplatform.dex.tracker.domain.errors._
-import org.ergoplatform.ergo.models.Output
+import org.ergoplatform.ergo.domain.Output
 import sigmastate.Values.ErgoTree
 import tofu.higherKind.RepresentableK
 import tofu.syntax.context._

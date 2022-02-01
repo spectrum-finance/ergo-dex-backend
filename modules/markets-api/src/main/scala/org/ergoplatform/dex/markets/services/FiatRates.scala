@@ -7,8 +7,9 @@ import org.ergoplatform.common.caching.Memoize
 import org.ergoplatform.dex.domain.{AssetClass, FiatUnits}
 import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.protocol.constants.{ErgoAssetClass, ErgoAssetDecimals}
-import org.ergoplatform.ergo.models.{RegisterId, SConstant}
-import org.ergoplatform.ergo.{ErgoNetwork, TokenId}
+import org.ergoplatform.ergo.domain.{RegisterId, SConstant}
+import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.services.ErgoNetwork
 import tofu.concurrent.MakeRef
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK

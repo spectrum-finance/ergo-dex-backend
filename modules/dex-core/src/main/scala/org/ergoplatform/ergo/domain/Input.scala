@@ -1,10 +1,10 @@
-package org.ergoplatform.ergo.models
+package org.ergoplatform.ergo.domain
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.common.HexString
 import org.ergoplatform.ergo._
-import org.ergoplatform.ergo.models.ErgoBox._
+import tofu.logging.Loggable
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
@@ -22,16 +22,14 @@ final case class Input(
   address: Address,
   assets: List[BoxAsset],
   additionalRegisters: Map[RegisterId, SConstant]
-) extends ErgoBox {
+) {
 
   def asOutput: Output = Output(
     boxId,
     outputTransactionId,
     value,
     outputIndex,
-    outputGlobalIndex,
     outputCreatedAt,
-    outputSettledAt,
     ergoTree,
     address,
     assets,

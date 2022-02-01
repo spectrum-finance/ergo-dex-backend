@@ -9,7 +9,7 @@ import derevo.derive
 import io.circe.Json
 import io.circe.syntax._
 import io.github.oskin1.rocksdb.scodec.TxRocksDB
-import org.ergoplatform.dex.domain.amm.state.{Confirmed, OffChainIndexed, OnChainIndexed, Predicted, PredictionLink}
+import org.ergoplatform.ergo.state.{Confirmed, PredictedIndexed, ConfirmedIndexed, Predicted, PredictionLink}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.ergo.BoxId
 import scodec.Codec
@@ -27,23 +27,23 @@ trait CFMMPools[F[_]] {
 
   /** Get last predicted state of a pool with the given `id`.
     */
-  def getLastPredicted(id: PoolId): F[Option[OffChainIndexed[CFMMPool]]]
+  def getLastPredicted(id: PoolId): F[Option[PredictedIndexed[CFMMPool]]]
 
   /** Get last confirmed state of a pool with the given `id`.
     */
-  def getLastConfirmed(id: PoolId): F[Option[OnChainIndexed[CFMMPool]]]
+  def getLastConfirmed(id: PoolId): F[Option[ConfirmedIndexed[CFMMPool]]]
 
   /** Persist predicted pool.
     */
-  def put(pool: OffChainIndexed[CFMMPool]): F[Unit]
+  def put(pool: PredictedIndexed[CFMMPool]): F[Unit]
 
   /** Update predicted pool.
     */
-  def update(pool: OffChainIndexed[CFMMPool]): F[Unit]
+  def update(pool: PredictedIndexed[CFMMPool]): F[Unit]
 
   /** Persist confirmed pool state.
     */
-  def put(pool: OnChainIndexed[CFMMPool]): F[Unit]
+  def put(pool: ConfirmedIndexed[CFMMPool]): F[Unit]
 
   /** Check whether a pool state prediction with the given `id` exists.
     */
@@ -79,16 +79,16 @@ object CFMMPools {
     implicit val codecString: Codec[String] = utf8
     implicit val codecBool: Codec[Boolean]  = bool
 
-    def getLastPredicted(id: PoolId): F[Option[OffChainIndexed[CFMMPool]]] =
-      rocks.get[String, OffChainIndexed[CFMMPool]](LastPredictedKey(id))
+    def getLastPredicted(id: PoolId): F[Option[PredictedIndexed[CFMMPool]]] =
+      rocks.get[String, PredictedIndexed[CFMMPool]](LastPredictedKey(id))
 
-    def getLastConfirmed(id: PoolId): F[Option[OnChainIndexed[CFMMPool]]] =
-      rocks.get[String, OnChainIndexed[CFMMPool]](LastConfirmedKey(id))
+    def getLastConfirmed(id: PoolId): F[Option[ConfirmedIndexed[CFMMPool]]] =
+      rocks.get[String, ConfirmedIndexed[CFMMPool]](LastConfirmedKey(id))
 
-    def put(pool: OffChainIndexed[CFMMPool]): F[Unit] =
+    def put(pool: PredictedIndexed[CFMMPool]): F[Unit] =
       rocks.beginTransaction.use { tx =>
         for {
-          prevStateRef <- tx.get[String, OffChainIndexed[CFMMPool]](LastPredictedKey(pool.entity.poolId))
+          prevStateRef <- tx.get[String, PredictedIndexed[CFMMPool]](LastPredictedKey(pool.entity.poolId))
                             .mapIn(_.entity.box.boxId)
           _ <- tx.put(LastPredictedKey(pool.entity.poolId), pool)
           _ <- tx.put(PredictedKey(pool.entity.box.boxId), PredictionLink(pool, prevStateRef))
@@ -96,7 +96,7 @@ object CFMMPools {
         } yield ()
       }
 
-    def update(pool: OffChainIndexed[CFMMPool]): F[Unit] =
+    def update(pool: PredictedIndexed[CFMMPool]): F[Unit] =
       rocks.beginTransaction.use { tx =>
         (for {
           link <- OptionT(tx.get[String, PredictionLink[CFMMPool]](PredictedKey(pool.entity.box.boxId)))
@@ -107,7 +107,7 @@ object CFMMPools {
         } yield ()).value.void
       }
 
-    def put(pool: OnChainIndexed[CFMMPool]): F[Unit] =
+    def put(pool: ConfirmedIndexed[CFMMPool]): F[Unit] =
       rocks.put(LastConfirmedKey(pool.entity.poolId), pool)
 
     def existsPrediction(id: BoxId): F[Boolean] =
@@ -137,21 +137,21 @@ object CFMMPools {
 
   final class InMemory[F[_]: Functor](store: Ref[F, Map[String, Json]]) extends CFMMPools[F] {
 
-    def getLastPredicted(id: PoolId): F[Option[OffChainIndexed[CFMMPool]]] =
-      store.get.map(_.get(LastPredictedKey(id)) >>= (_.as[OffChainIndexed[CFMMPool]].toOption))
+    def getLastPredicted(id: PoolId): F[Option[PredictedIndexed[CFMMPool]]] =
+      store.get.map(_.get(LastPredictedKey(id)) >>= (_.as[PredictedIndexed[CFMMPool]].toOption))
 
-    def getLastConfirmed(id: PoolId): F[Option[OnChainIndexed[CFMMPool]]] =
-      store.get.map(_.get(LastConfirmedKey(id)) >>= (_.as[OnChainIndexed[CFMMPool]].toOption))
+    def getLastConfirmed(id: PoolId): F[Option[ConfirmedIndexed[CFMMPool]]] =
+      store.get.map(_.get(LastConfirmedKey(id)) >>= (_.as[ConfirmedIndexed[CFMMPool]].toOption))
 
-    def put(pool: OffChainIndexed[CFMMPool]): F[Unit] =
+    def put(pool: PredictedIndexed[CFMMPool]): F[Unit] =
       store.update {
         _.updated(LastPredictedKey(pool.entity.poolId), pool.asJson)
           .updated(PredictedKey(pool.entity.box.boxId), Json.Null)
       }
 
-    def update(pool: OffChainIndexed[CFMMPool]): F[Unit] = put(pool)
+    def update(pool: PredictedIndexed[CFMMPool]): F[Unit] = put(pool)
 
-    def put(pool: OnChainIndexed[CFMMPool]): F[Unit] =
+    def put(pool: ConfirmedIndexed[CFMMPool]): F[Unit] =
       store.update(_.updated(LastConfirmedKey(pool.entity.poolId), pool.asJson))
 
     def existsPrediction(id: BoxId): F[Boolean] =
@@ -163,35 +163,35 @@ object CFMMPools {
 
   final class CFMMPoolsTracing[F[_]: FlatMap: Logging] extends CFMMPools[Mid[F, *]] {
 
-    def getLastPredicted(id: PoolId): Mid[F, Option[OffChainIndexed[CFMMPool]]] =
+    def getLastPredicted(id: PoolId): Mid[F, Option[PredictedIndexed[CFMMPool]]] =
       for {
         _ <- trace"getLastPredicted(id=$id)"
         r <- _
         _ <- trace"getLastPredicted(id=$id) -> $r"
       } yield r
 
-    def getLastConfirmed(id: PoolId): Mid[F, Option[OnChainIndexed[CFMMPool]]] =
+    def getLastConfirmed(id: PoolId): Mid[F, Option[ConfirmedIndexed[CFMMPool]]] =
       for {
         _ <- trace"getLastConfirmed(id=$id)"
         r <- _
         _ <- trace"getLastConfirmed(id=$id) -> $r"
       } yield r
 
-    def put(pool: OffChainIndexed[CFMMPool]): Mid[F, Unit] =
+    def put(pool: PredictedIndexed[CFMMPool]): Mid[F, Unit] =
       for {
         _ <- trace"put(pool=$pool)"
         r <- _
         _ <- trace"put(pool=$pool) -> $r"
       } yield r
 
-    def put(pool: OnChainIndexed[CFMMPool]): Mid[F, Unit] =
+    def put(pool: ConfirmedIndexed[CFMMPool]): Mid[F, Unit] =
       for {
         _ <- trace"put(pool=$pool)"
         r <- _
         _ <- trace"put(pool=$pool) -> $r"
       } yield r
 
-    def update(pool: OffChainIndexed[CFMMPool]): Mid[F, Unit] =
+    def update(pool: PredictedIndexed[CFMMPool]): Mid[F, Unit] =
       for {
         _ <- trace"update(pool=$pool)"
         r <- _

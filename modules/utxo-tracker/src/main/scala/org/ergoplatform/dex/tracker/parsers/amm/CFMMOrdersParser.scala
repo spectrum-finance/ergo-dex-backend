@@ -5,7 +5,7 @@ import cats.effect.Clock
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.ergo.models.Output
+import org.ergoplatform.ergo.domain.Output
 import tofu.higherKind.Embed
 
 trait CFMMOrdersParser[+CT <: CFMMType, F[_]] {

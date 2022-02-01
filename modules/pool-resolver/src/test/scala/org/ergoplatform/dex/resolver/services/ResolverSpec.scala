@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.instances.list._
 import cats.syntax.foldable._
 import monocle.macros.syntax.lens._
-import org.ergoplatform.dex.domain.amm.state.{Confirmed, OffChainIndexed, OnChainIndexed, Predicted}
+import org.ergoplatform.ergo.state.{Confirmed, PredictedIndexed, ConfirmedIndexed, Predicted}
 import org.ergoplatform.dex.generators._
 import org.ergoplatform.dex.resolver.repositories.CFMMPools
 import org.scalatest.matchers.should
@@ -28,8 +28,8 @@ class ResolverSpec extends AnyPropSpec with should.Matchers with ScalaCheckPrope
   property("Trivial resolving") {
     forAll(cfmmPoolGen) { pool =>
       val testResultF = make.flatMap { case (pools, resolver) =>
-        pools.put(OnChainIndexed(pool, ???)) >>
-          pools.put(OffChainIndexed(pool, ???)) >>
+        pools.put(ConfirmedIndexed(pool, ???)) >>
+          pools.put(PredictedIndexed(pool, ???)) >>
           resolver.resolve(pool.poolId)
       }
       val testResult = testResultF.unsafeRunSync()
@@ -42,8 +42,8 @@ class ResolverSpec extends AnyPropSpec with should.Matchers with ScalaCheckPrope
       val root = predictions.head
       val last = predictions.last
       val testResultF = make.flatMap { case (pools, resolver) =>
-        pools.put(OnChainIndexed(root, ???)) >>
-          predictions.traverse_(p => pools.put(OffChainIndexed(p, ???))) >>
+        pools.put(ConfirmedIndexed(root, ???)) >>
+          predictions.traverse_(p => pools.put(PredictedIndexed(p, ???))) >>
           resolver.resolve(last.poolId)
       }
       val testResult = testResultF.unsafeRunSync()
@@ -62,8 +62,8 @@ class ResolverSpec extends AnyPropSpec with should.Matchers with ScalaCheckPrope
         val root = predictions.head
         val last = predictions.last
         val testResultF = make.flatMap { case (pools, resolver) =>
-          pools.put(OnChainIndexed(root, ???)) >>
-            predictions.traverse_(p => pools.put(OffChainIndexed(p, ???))) >>
+          pools.put(ConfirmedIndexed(root, ???)) >>
+            predictions.traverse_(p => pools.put(PredictedIndexed(p, ???))) >>
             resolver.resolve(last.poolId)
         }
         val testResult = testResultF.unsafeRunSync()
@@ -81,8 +81,8 @@ class ResolverSpec extends AnyPropSpec with should.Matchers with ScalaCheckPrope
         val root = predictions.head
         val last = predictions.last
         val testResultF = make.flatMap { case (pools, resolver) =>
-          pools.put(OnChainIndexed(root, ???)) >>
-            predictions.traverse_(p => pools.put(OffChainIndexed(p, ???))) >>
+          pools.put(ConfirmedIndexed(root, ???)) >>
+            predictions.traverse_(p => pools.put(PredictedIndexed(p, ???))) >>
             resolver.resolve(last.poolId)
         }
         val testResult = testResultF.unsafeRunSync()

@@ -3,7 +3,7 @@ package org.ergoplatform.dex.tracker.validation
 import cats.{FlatMap, Monad}
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm.CFMMOrder
-import org.ergoplatform.ergo.ErgoNetwork
+import org.ergoplatform.ergo.services.ErgoNetwork
 import tofu.higherKind.Embed
 import tofu.syntax.context._
 import tofu.syntax.embed._

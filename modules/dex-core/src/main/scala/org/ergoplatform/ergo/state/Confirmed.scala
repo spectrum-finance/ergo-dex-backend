@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.domain.amm.state
+package org.ergoplatform.ergo.state
 
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}

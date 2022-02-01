@@ -1,8 +1,8 @@
 package org.ergoplatform.dex.domain
 
 import cats.FlatMap
-import org.ergoplatform.ergo.ErgoNetwork
-import org.ergoplatform.ergo.models.EpochParams
+import org.ergoplatform.ergo.domain.EpochParams
+import org.ergoplatform.ergo.services.ErgoNetwork
 import tofu.syntax.monadic._
 
 final case class NetworkContext(currentHeight: Int, params: EpochParams)

@@ -6,7 +6,7 @@ import fs2.kafka.serde._
 import io.github.oskin1.rocksdb.scodec.TxRocksDB
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer}
-import org.ergoplatform.dex.domain.amm.state.{Confirmed, OnChainIndexed}
+import org.ergoplatform.ergo.state.{Confirmed, ConfirmedIndexed}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.resolver.config.ConfigBundle
 import org.ergoplatform.dex.resolver.http.HttpServer
@@ -35,11 +35,11 @@ object App extends EnvApp[AppContext] {
       blocker <- Blocker[InitF]
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       ctx = AppContext.init(configs)
-      implicit0(mc: MakeKafkaConsumer[RunF, PoolId, OnChainIndexed[CFMMPool]]) =
-        MakeKafkaConsumer.make[InitF, RunF, PoolId, OnChainIndexed[CFMMPool]]
+      implicit0(mc: MakeKafkaConsumer[RunF, PoolId, ConfirmedIndexed[CFMMPool]]) =
+        MakeKafkaConsumer.make[InitF, RunF, PoolId, ConfirmedIndexed[CFMMPool]]
       implicit0(ul: Unlift[RunF, InitF]) = Unlift.byIso(IsoK.byFunK(wr.runContextK(ctx))(wr.liftF))
-      implicit0(consumer: Consumer[PoolId, OnChainIndexed[CFMMPool], StreamF, RunF]) =
-        Consumer.make[StreamF, RunF, PoolId, OnChainIndexed[CFMMPool]]
+      implicit0(consumer: Consumer[PoolId, ConfirmedIndexed[CFMMPool], StreamF, RunF]) =
+        Consumer.make[StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]]
       implicit0(rocks: TxRocksDB[RunF])   <- TxRocksDB.make[InitF, RunF](configs.rocks.path)
       implicit0(pools: CFMMPools[RunF])   <- Resource.eval(CFMMPools.make[InitF, RunF])
       implicit0(resolver: Resolver[RunF]) <- Resource.eval(Resolver.make[InitF, RunF])

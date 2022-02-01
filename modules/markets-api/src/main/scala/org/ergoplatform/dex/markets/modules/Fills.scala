@@ -5,7 +5,7 @@ import org.ergoplatform.dex.markets.api.v1.models.orderbook.Side
 import org.ergoplatform.dex.markets.api.v1.models.orderbook.Fill
 import org.ergoplatform.dex.protocol.orderbook.{OrderContractFamily, OrderContracts, OrderParams}
 import org.ergoplatform.dex.protocol.constants
-import org.ergoplatform.ergo.models.Transaction
+import org.ergoplatform.ergo.domain.Transaction
 import tofu.syntax.monadic._
 
 trait Fills[F[_], CT <: OrderContractFamily] {
@@ -22,9 +22,9 @@ object Fills {
 
     def extract(tx: Transaction): F[List[Fill]] = {
       val asksIn     = tx.inputs.filter(in => scripts.isAsk(in.ergoTree))
-      val asksErased = asksIn.flatMap(scripts.parseAsk)
+      val asksErased = asksIn.map(_.asOutput).flatMap(scripts.parseAsk)
       val bidsIn     = tx.inputs.filter(in => scripts.isBid(in.ergoTree))
-      val bidsErased = bidsIn.flatMap(scripts.parseBid)
+      val bidsErased = bidsIn.map(_.asOutput).flatMap(scripts.parseBid)
       (collectSellFills(tx, asksErased) ++ collectBuyFills(tx, bidsErased)).pure
     }
 

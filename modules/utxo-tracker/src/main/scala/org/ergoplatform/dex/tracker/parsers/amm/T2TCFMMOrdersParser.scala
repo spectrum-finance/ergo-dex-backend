@@ -7,7 +7,7 @@ import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.dex.protocol.amm.{T2TCFMMTemplates => templates}
-import org.ergoplatform.ergo.models.Output
+import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{Address, ErgoTreeTemplate, TokenId}
 import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}

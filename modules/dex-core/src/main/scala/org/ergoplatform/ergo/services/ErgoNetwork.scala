@@ -1,4 +1,4 @@
-package org.ergoplatform.ergo
+package org.ergoplatform.ergo.services
 
 import cats.syntax.either._
 import cats.syntax.option._
@@ -20,7 +20,8 @@ import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.ergo.errors.ResponseError
 import org.ergoplatform.ergo.explorer.models._
 import org.ergoplatform.ergo.explorer.paths._
-import org.ergoplatform.ergo.models.{EpochParams, NetworkInfo, Output, Transaction}
+import org.ergoplatform.ergo.domain.{EpochParams, NetworkInfo, Output, Transaction}
+import org.ergoplatform.ergo.{TokenId, TxId, node}
 import org.typelevel.jawn.Facade
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3._
