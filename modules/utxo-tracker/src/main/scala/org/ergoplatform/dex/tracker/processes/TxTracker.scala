@@ -5,7 +5,7 @@ import derevo.derive
 import org.ergoplatform.dex.tracker.configs.TxTrackerConfig
 import org.ergoplatform.dex.tracker.handlers.TxHandler
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
-import org.ergoplatform.ergo.services.ErgoNetworkStreaming
+import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
@@ -29,9 +29,9 @@ object TxTracker {
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches: TxTrackerConfig.Has,
     G[_]: Monad
   ](handlers: TxHandler[F]*)(implicit
-    cache: TrackerCache[G],
-    client: ErgoNetworkStreaming[F, G],
-    logs: Logs[I, G]
+                             cache: TrackerCache[G],
+                             client: ErgoExplorerStreaming[F, G],
+                             logs: Logs[I, G]
   ): I[TxTracker[F]] =
     logs.forService[TxTracker[F]].map { implicit l =>
       (TxTrackerConfig.access map (conf => new StreamingTxTracker[F, G](conf, handlers.toList): TxTracker[F])).embed
@@ -42,7 +42,7 @@ object TxTracker {
     G[_]: Monad: Logging
   ](conf: TxTrackerConfig, handlers: List[TxHandler[F]])(implicit
     cache: TrackerCache[G],
-    client: ErgoNetworkStreaming[F, G]
+    client: ErgoExplorerStreaming[F, G]
   ) extends TxTracker[F] {
 
     def run: F[Unit] =

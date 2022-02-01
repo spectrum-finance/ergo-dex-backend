@@ -1,4 +1,4 @@
-package org.ergoplatform.ergo.services
+package org.ergoplatform.ergo.services.explorer
 
 import cats.syntax.either._
 import cats.syntax.option._
@@ -13,15 +13,14 @@ import jawnfs2._
 import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.common.{ConstrainedEmbed, HexString}
 import org.ergoplatform.dex.configs.NetworkConfig
-import org.ergoplatform.dex.domain.errors.TxFailed
 import org.ergoplatform.dex.protocol
 import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.ergo.errors.ResponseError
-import org.ergoplatform.ergo.explorer.models._
-import org.ergoplatform.ergo.explorer.paths._
-import org.ergoplatform.ergo.domain.{EpochParams, NetworkInfo, Output, Transaction}
-import org.ergoplatform.ergo.{TokenId, TxId, node}
+import org.ergoplatform.ergo.services.explorer.models._
+import org.ergoplatform.ergo.services.explorer.paths._
+import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.domain.{EpochParams, NetworkInfo}
 import org.typelevel.jawn.Facade
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3._
@@ -40,11 +39,7 @@ import tofu.syntax.monadic._
 import tofu.syntax.raise._
 
 @derive(representableK)
-trait ErgoNetwork[F[_]] {
-
-  /** Submit a transaction to the network.
-    */
-  def submitTransaction(tx: ErgoLikeTransaction): F[TxId]
+trait ErgoExplorer[F[_]] {
 
   /** Check a given transaction.
     * @return None if transaction is valid, Some(error_description) otherwise.
@@ -72,24 +67,17 @@ trait ErgoNetwork[F[_]] {
   def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]]
 }
 
-object ErgoNetwork {
+object ErgoExplorer {
 
   def make[
     I[_]: Functor,
     F[_]: MonadThrow: NetworkConfig.Has
-  ](implicit backend: SttpBackend[F, Any], logs: Logs[I, F]): I[ErgoNetwork[F]] =
-    logs.forService[ErgoNetwork[F]] map
-    (implicit l => (context map (conf => new ErgoNetworkTracing[F] attach new CombinedErgoNetwork[F](conf))).embed)
+  ](implicit backend: SttpBackend[F, Any], logs: Logs[I, F]): I[ErgoExplorer[F]] =
+    logs.forService[ErgoExplorer[F]] map
+    (implicit l => (context map (conf => new ErgoExplorerTracing[F] attach new CombinedErgoExplorer[F](conf))).embed)
 }
 
-final class ErgoNetworkTracing[F[_]: Logging: FlatMap] extends ErgoNetwork[Mid[F, *]] {
-
-  def submitTransaction(tx: ErgoLikeTransaction): Mid[F, TxId] =
-    for {
-      _    <- trace"submitTransaction(tx=$tx)"
-      txId <- _
-      _    <- trace"submitTransaction(..) -> $txId"
-    } yield txId
+final class ErgoExplorerTracing[F[_]: Logging: FlatMap] extends ErgoExplorer[Mid[F, *]] {
 
   def checkTransaction(tx: ErgoLikeTransaction): Mid[F, Option[String]] =
     for {
@@ -122,31 +110,10 @@ final class ErgoNetworkTracing[F[_]: Logging: FlatMap] extends ErgoNetwork[Mid[F
     } yield os
 }
 
-class CombinedErgoNetwork[F[_]: MonadThrow](config: NetworkConfig)(implicit backend: SttpBackend[F, Any])
-  extends ErgoNetwork[F] {
+class CombinedErgoExplorer[F[_]: MonadThrow](config: NetworkConfig)(implicit backend: SttpBackend[F, Any])
+  extends ErgoExplorer[F] {
 
   private val explorerUri = config.explorerUri
-
-  def submitTransaction(tx: ErgoLikeTransaction): F[TxId] =
-    basicRequest
-      .post(config.nodeUri withPathSegment node.paths.submitTransactionPathSeg)
-      .contentType(MediaType.ApplicationJson)
-      .body(tx)
-      .response(asEither(asJsonAlways[node.models.ApiError], asString))
-      .send(backend)
-      .flatMap { res =>
-        res.body match {
-          case Left(err) =>
-            err
-              .leftMap(e => ResponseError(e.getMessage))
-              .toRaise
-              .flatMap(e => TxFailed(e.detail).raise)
-          case Right(r) =>
-            r.leftMap(ResponseError(_))
-              .toRaise
-              .map(s => TxId(s.replace("\"", "")))
-        }
-      }
 
   def checkTransaction(tx: ErgoLikeTransaction): F[Option[String]] =
     basicRequest
@@ -214,7 +181,7 @@ class CombinedErgoNetwork[F[_]: MonadThrow](config: NetworkConfig)(implicit back
       .map(_.items)
 }
 
-trait ErgoNetworkStreaming[S[_], F[_]] extends ErgoNetwork[F] {
+trait ErgoExplorerStreaming[S[_], F[_]] extends ErgoExplorer[F] {
 
   /** Get a stream of unspent outputs at the given global offset.
     */
@@ -229,14 +196,11 @@ trait ErgoNetworkStreaming[S[_], F[_]] extends ErgoNetwork[F] {
   def streamTransactions(txGixOffset: Long, limit: Int): S[Transaction]
 }
 
-object ErgoNetworkStreaming {
+object ErgoExplorerStreaming {
 
-  final private class StreamingContainer[S[_]: FlatMap, F[_]: FlatMap](tft: F[ErgoNetworkStreaming[S, F]])(implicit
+  final private class StreamingContainer[S[_]: FlatMap, F[_]: FlatMap](tft: F[ErgoExplorerStreaming[S, F]])(implicit
     evals: Evals[S, F]
-  ) extends ErgoNetworkStreaming[S, F] {
-
-    def submitTransaction(tx: ErgoLikeTransaction): F[TxId] =
-      tft.flatMap(_.submitTransaction(tx))
+  ) extends ErgoExplorerStreaming[S, F] {
 
     def checkTransaction(tx: ErgoLikeTransaction): F[Option[String]] =
       tft.flatMap(_.checkTransaction(tx))
@@ -266,36 +230,36 @@ object ErgoNetworkStreaming {
       evals.eval(tft.map(_.streamTransactions(txGixOffset, limit))).flatten
   }
 
-  implicit def functorK[F[_]]: FunctorK[ErgoNetworkStreaming[*[_], F]] = {
-    type Mod[S[_]] = ErgoNetworkStreaming[S, F]
+  implicit def functorK[F[_]]: FunctorK[ErgoExplorerStreaming[*[_], F]] = {
+    type Mod[S[_]] = ErgoExplorerStreaming[S, F]
     cats.tagless.Derive.functorK[Mod]
   }
 
-  implicit def constEmbed[S[_]: FlatMap]: ConstrainedEmbed[ErgoNetworkStreaming[S, *[_]], Evals[S, *[_]]] =
-    new ConstrainedEmbed[ErgoNetworkStreaming[S, *[_]], Evals[S, *[_]]] {
+  implicit def constEmbed[S[_]: FlatMap]: ConstrainedEmbed[ErgoExplorerStreaming[S, *[_]], Evals[S, *[_]]] =
+    new ConstrainedEmbed[ErgoExplorerStreaming[S, *[_]], Evals[S, *[_]]] {
 
       def embed[F[_]: FlatMap: Evals[S, *[_]]](
-        ft: F[ErgoNetworkStreaming[S, F]]
-      ): ErgoNetworkStreaming[S, F] =
+        ft: F[ErgoExplorerStreaming[S, F]]
+      ): ErgoExplorerStreaming[S, F] =
         new StreamingContainer[S, F](ft)
     }
 
   def make[
     S[_]: FlatMap: Evals[*[_], F]: LiftStream[*[_], F],
     F[_]: MonadThrow: NetworkConfig.Has
-  ](implicit backend: SttpBackend[F, Fs2Streams[F]]): ErgoNetworkStreaming[S, F] =
+  ](implicit backend: SttpBackend[F, Fs2Streams[F]]): ErgoExplorerStreaming[S, F] =
     constEmbed[S].embed(
       context
-        .map(conf => new ErgoExplorerStreaming[F](conf))
+        .map(conf => new ExplorerStreaming[F](conf))
         .map(client => functorK.mapK(client)(LiftStream[S, F].liftF))
     )
 
-  final class ErgoExplorerStreaming[
+  final class ExplorerStreaming[
     F[_]: MonadThrow
   ](config: NetworkConfig)(implicit
     backend: SttpBackend[F, Fs2Streams[F]]
-  ) extends CombinedErgoNetwork[F](config)
-    with ErgoNetworkStreaming[Stream[F, *], F] {
+  ) extends CombinedErgoExplorer[F](config)
+    with ErgoExplorerStreaming[Stream[F, *], F] {
 
     private val uri                           = config.explorerUri
     implicit private val facade: Facade[Json] = new CirceSupportParser(None, allowDuplicateKeys = false).facade

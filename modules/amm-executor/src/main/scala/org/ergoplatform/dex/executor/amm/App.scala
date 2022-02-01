@@ -14,7 +14,7 @@ import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.executor.amm.services.Execution
 import org.ergoplatform.dex.executor.amm.streaming.{CFMMCircuit, CFMMConsumerIn, CFMMConsumerRetries, CFMMProducerRetries}
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.ergo.services.ErgoNetwork
+import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import tofu.WithRun
@@ -51,7 +51,7 @@ object App extends EnvApp[AppContext] {
         Producer.make[InitF, StreamF, RunF, OrderId, Delayed[CFMMOrder]](configs.ordersRetryOut)
       implicit0(consumer: CFMMCircuit[StreamF, RunF]) = StreamingCircuit.make[StreamF, RunF, OrderId, CFMMOrder]
       implicit0(backend: SttpBackend[RunF, Any])         <- makeBackend(ctx)
-      implicit0(client: ErgoNetwork[RunF])               <- Resource.eval(ErgoNetwork.make[InitF, RunF])
+      implicit0(client: ErgoExplorer[RunF])               <- Resource.eval(ErgoExplorer.make[InitF, RunF])
       implicit0(pools: CFMMPools[RunF])                  <- Resource.eval(CFMMPools.make[InitF, RunF])
       implicit0(t2tInt: CFMMInterpreter[T2T_CFMM, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
       implicit0(n2tInt: CFMMInterpreter[N2T_CFMM, RunF]) <- Resource.eval(N2TCFMMInterpreter.make[InitF, RunF])

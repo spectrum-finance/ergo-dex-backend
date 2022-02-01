@@ -13,7 +13,7 @@ import org.ergoplatform.dex.protocol.amm.AMMContracts
 import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.BoxId
-import org.ergoplatform.ergo.services.ErgoNetwork
+import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import sigmastate.interpreter.ProverResult
 import tofu.logging.Logs
 import tofu.syntax.embed._
@@ -167,10 +167,10 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 object T2TCFMMInterpreter {
 
   def make[I[_]: Functor, F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has: MonetaryConfig.Has](implicit
-    network: ErgoNetwork[F],
-    contracts: AMMContracts[T2T_CFMM],
-    encoder: ErgoAddressEncoder,
-    logs: Logs[I, F]
+                                                                                                      network: ErgoExplorer[F],
+                                                                                                      contracts: AMMContracts[T2T_CFMM],
+                                                                                                      encoder: ErgoAddressEncoder,
+                                                                                                      logs: Logs[I, F]
   ): I[CFMMInterpreter[T2T_CFMM, F]] =
     logs.forService[CFMMInterpreter[T2T_CFMM, F]].map { implicit l =>
       (

@@ -11,7 +11,7 @@ import org.ergoplatform.dex.domain.amm.CFMMOrder
 import org.ergoplatform.dex.executor.amm.config.ExecutionConfig
 import org.ergoplatform.dex.executor.amm.services.Execution
 import org.ergoplatform.dex.executor.amm.streaming.CFMMCircuit
-import org.ergoplatform.ergo.explorer.TxSubmissionErrorParser
+import org.ergoplatform.ergo.services.explorer.TxSubmissionErrorParser
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}

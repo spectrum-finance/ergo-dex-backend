@@ -1,4 +1,4 @@
-package org.ergoplatform.ergo.node.models
+package org.ergoplatform.ergo.services.node.models
 
 import derevo.circe.decoder
 import derevo.derive

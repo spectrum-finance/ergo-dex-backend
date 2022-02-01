@@ -1,4 +1,4 @@
-package org.ergoplatform.ergo.explorer
+package org.ergoplatform.ergo.services.explorer
 
 import org.ergoplatform.ergo.BoxId
 

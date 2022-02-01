@@ -1,8 +1,11 @@
 package org.ergoplatform.ergo.modules
 
+import derevo.derive
 import org.ergoplatform.ergo.domain.SettledOutput
+import tofu.higherKind.derived.representableK
 
-trait NetworkStreaming[F[_]] {
+@derive(representableK)
+trait LedgerStreaming[F[_]] {
 
   /** Get a stream of unspent outputs at the given global offset.
    */

@@ -1,4 +1,4 @@
-package org.ergoplatform.ergo.explorer.models
+package org.ergoplatform.ergo.services.explorer.models
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
@@ -22,17 +22,4 @@ final case class Input(
   address: Address,
   assets: List[BoxAsset],
   additionalRegisters: Map[RegisterId, SConstant]
-) {
-
-  def asOutput: Output = Output(
-    boxId,
-    outputTransactionId,
-    value,
-    outputIndex,
-    outputCreatedAt,
-    ergoTree,
-    address,
-    assets,
-    additionalRegisters
-  )
-}
+)

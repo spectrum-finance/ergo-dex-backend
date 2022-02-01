@@ -5,8 +5,8 @@ import derevo.derive
 import org.ergoplatform.dex.tracker.configs.UtxoTrackerConfig
 import org.ergoplatform.dex.tracker.handlers.{BoxHandler, SettledBoxHandler}
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
-import org.ergoplatform.ergo.modules.NetworkStreaming
-import org.ergoplatform.ergo.services.ErgoNetworkStreaming
+import org.ergoplatform.ergo.modules.LedgerStreaming
+import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
@@ -40,7 +40,7 @@ object UtxoTracker {
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: UtxoTrackerConfig.Has: Catches,
     G[_]: Monad
   ](mode: TrackerMode, handlers: SettledBoxHandler[F]*)(implicit
-    client: ErgoNetworkStreaming[F, G],
+    client: ErgoExplorerStreaming[F, G],
     cache: TrackerCache[G],
     logs: Logs[I, G]
   ): I[UtxoTracker[F]] =
@@ -53,8 +53,8 @@ object UtxoTracker {
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging
   ](mode: TrackerMode, cache: TrackerCache[G], conf: UtxoTrackerConfig, handlers: List[SettledBoxHandler[F]])(implicit
-    client: ErgoNetworkStreaming[F, G],
-    stream: NetworkStreaming[F]
+    client: ErgoExplorerStreaming[F, G],
+    stream: LedgerStreaming[F]
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =

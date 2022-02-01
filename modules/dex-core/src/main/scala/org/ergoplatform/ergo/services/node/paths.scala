@@ -1,4 +1,4 @@
-package org.ergoplatform.ergo.node
+package org.ergoplatform.ergo.services.node
 
 import sttp.model.Uri.Segment
 

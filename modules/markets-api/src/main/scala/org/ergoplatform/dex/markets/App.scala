@@ -10,7 +10,7 @@ import org.ergoplatform.dex.markets.configs.ConfigBundle
 import org.ergoplatform.dex.markets.modules.PriceSolver.{CryptoPriceSolver, FiatPriceSolver}
 import org.ergoplatform.dex.markets.repositories.{Locks, Pools}
 import org.ergoplatform.dex.markets.services.{FiatRates, Markets}
-import org.ergoplatform.ergo.services.ErgoNetworkStreaming
+import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import org.http4s.server.Server
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
@@ -46,7 +46,7 @@ object App extends EnvApp[AppContext] {
         Resource.eval(doobieLogging.makeEmbeddableHandler[InitF, RunF, xa.DB]("matcher-db-logging"))
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
-      implicit0(client: ErgoNetworkStreaming[StreamF, RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
+      implicit0(client: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(pools: Pools[xa.DB])                   <- Resource.eval(Pools.make[InitF, xa.DB])
       implicit0(locks: Locks[xa.DB])                   <- Resource.eval(Locks.make[InitF, xa.DB])
       implicit0(markets: Markets[RunF])                <- Resource.eval(Markets.make[InitF, RunF, xa.DB])

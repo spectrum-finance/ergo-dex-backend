@@ -9,7 +9,7 @@ import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.protocol.constants.{ErgoAssetClass, ErgoAssetDecimals}
 import org.ergoplatform.ergo.domain.{RegisterId, SConstant}
 import org.ergoplatform.ergo.TokenId
-import org.ergoplatform.ergo.services.ErgoNetwork
+import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import tofu.concurrent.MakeRef
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
@@ -34,16 +34,16 @@ object FiatRates {
   val MemoTtl: FiniteDuration = 2.minutes
 
   def make[I[_]: FlatMap, F[_]: Monad: Clock](implicit
-    network: ErgoNetwork[F],
-    logs: Logs[I, F],
-    makeRef: MakeRef[I, F]
+                                              network: ErgoExplorer[F],
+                                              logs: Logs[I, F],
+                                              makeRef: MakeRef[I, F]
   ): I[FiatRates[F]] =
     for {
       implicit0(l: Logging[F]) <- logs.forService[FiatRates[F]]
       memo                     <- Memoize.make[I, F, BigDecimal]
     } yield new FiatRatesTracing[F] attach new ErgoOraclesRateSource(network, memo)
 
-  final class ErgoOraclesRateSource[F[_]: Monad](network: ErgoNetwork[F], memo: Memoize[F, BigDecimal])
+  final class ErgoOraclesRateSource[F[_]: Monad](network: ErgoExplorer[F], memo: Memoize[F, BigDecimal])
     extends FiatRates[F] {
 
     def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] =
