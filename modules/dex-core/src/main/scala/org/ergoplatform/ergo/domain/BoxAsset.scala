@@ -3,23 +3,24 @@ package org.ergoplatform.ergo.domain
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import doobie.util.Write
-import org.ergoplatform.ergo.{TokenId, TokenType}
+import org.ergoplatform.ergo.TokenId
 import shapeless.Lazy
 import tofu.logging.derivation.loggable
+import org.ergoplatform.ergo.services.explorer.models.{BoxAsset => ExplorerBoxAsset}
+import org.ergoplatform.ergo.services.node.models.{BoxAsset => NodeAsset}
 
-/** A model mirroring Asset entity from Ergo node REST API.
-  * See `Asset` in https://github.com/ergoplatform/ergo/blob/master/src/main/resources/api/openapi.yaml
-  */
 @derive(encoder, decoder, loggable)
 final case class BoxAsset(
   tokenId: TokenId,
-  index: Int,
-  amount: Long,
-  name: Option[String],
-  decimals: Option[Int],
-  `type`: Option[TokenType]
+  amount: Long
 )
 
 object BoxAsset {
   implicit def write: Write[BoxAsset] = Lazy(implicitly[Write[BoxAsset]]).value
+
+  def fromExplorer(a: ExplorerBoxAsset): BoxAsset =
+    BoxAsset(a.tokenId, a.amount)
+
+  def fromNode(a: NodeAsset): BoxAsset =
+    BoxAsset(a.tokenId, a.amount)
 }

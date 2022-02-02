@@ -22,9 +22,6 @@ object N2TCFMMPoolsParser extends CFMMPoolsParser[N2T_CFMM] {
         AssetAmount.fromBoxAsset(lp),
         AssetAmount.native(box.value),
         AssetAmount.fromBoxAsset(y),
-        AssetInfo(lp),
-        AssetInfo.native,
-        AssetInfo(y),
         fee,
         BoxInfo.fromBox(box)
       )

@@ -4,7 +4,6 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.common.HexString
 import org.ergoplatform.ergo._
-import tofu.logging.Loggable
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
@@ -31,7 +30,6 @@ final case class Input(
     outputIndex,
     outputCreatedAt,
     ergoTree,
-    address,
     assets,
     additionalRegisters
   )

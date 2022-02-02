@@ -99,7 +99,7 @@ object models {
         ev.map(_.output.value),
         swap.params.dexFeePerTokenNum,
         swap.params.dexFeePerTokenDenom,
-        swap.params.p2pk,
+        swap.params.redeemer,
         ProtocolVersion.Initial
       )
   }
@@ -134,7 +134,7 @@ object models {
         ev.map(_.outputX.value),
         ev.map(_.outputY.value),
         redeem.params.dexFee,
-        redeem.params.p2pk,
+        redeem.params.redeemer,
         ProtocolVersion.Initial
       )
   }
@@ -171,7 +171,7 @@ object models {
         deposit.params.inY.value,
         ev.map(_.outputLP.value),
         deposit.params.dexFee,
-        deposit.params.p2pk,
+        deposit.params.redeemer,
         ProtocolVersion.Initial
       )
   }

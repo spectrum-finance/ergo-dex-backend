@@ -23,9 +23,6 @@ object T2TCFMMPoolsParser extends CFMMPoolsParser[T2T_CFMM] {
         AssetAmount.fromBoxAsset(lp),
         AssetAmount.fromBoxAsset(x),
         AssetAmount.fromBoxAsset(y),
-        AssetInfo(lp),
-        AssetInfo(x),
-        AssetInfo(y),
         fee,
         BoxInfo.fromBox(box)
       )

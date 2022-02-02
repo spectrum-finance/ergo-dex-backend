@@ -25,7 +25,7 @@ object CFMMOrderEvaluationParser {
   final class UniversalParser[F[_]: Applicative] extends CFMMOrderEvaluationParser[F] {
 
     def parseSwapEval(output: Output, order: Swap): F[Option[SwapEvaluation]] =
-      if (output.address == order.params.p2pk) {
+      if (output.address == order.params.redeemer) {
         val outputAmount =
           if (order.params.minOutput.isNative) Some(AssetAmount.native(output.value))
           else output.assets.find(_.tokenId == order.params.minOutput.id).map(AssetAmount.fromBoxAsset)
@@ -33,14 +33,14 @@ object CFMMOrderEvaluationParser {
       } else none[SwapEvaluation].pure
 
     def parseDepositEval(output: Output, pool: CFMMPool, order: Deposit): F[Option[DepositEvaluation]] =
-      if (output.address == order.params.p2pk) {
+      if (output.address == order.params.redeemer) {
         val outputAmountLP =
           output.assets.find(_.tokenId == pool.lp.id).map(AssetAmount.fromBoxAsset)
         outputAmountLP.map(out => DepositEvaluation(out)).pure
       } else none[DepositEvaluation].pure
 
     def parseRedeemEval(output: Output, pool: CFMMPool, order: Redeem): F[Option[RedeemEvaluation]] =
-      if (output.address == order.params.p2pk) {
+      if (output.address == order.params.redeemer) {
         val outputAmountX =
           if (pool.x.isNative) Some(AssetAmount.native(output.value))
           else output.assets.find(_.tokenId == pool.x.id).map(AssetAmount.fromBoxAsset)

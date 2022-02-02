@@ -15,8 +15,6 @@ final case class AssetInfo(ticker: Option[Ticker], decimals: Option[Int])
 
 object AssetInfo {
 
-  def apply(ba: BoxAsset): AssetInfo = AssetInfo(ba.name.map(Ticker(_)), ba.decimals)
-
   val native: AssetInfo = AssetInfo(Some(ErgoAssetTicker), Some(ErgoAssetDecimals))
 
   implicit val codec: Codec[AssetInfo] =

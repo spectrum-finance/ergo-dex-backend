@@ -17,9 +17,6 @@ final case class CFMMPool(
   lp: AssetAmount,
   x: AssetAmount,
   y: AssetAmount,
-  lpInfo: AssetInfo,
-  xInfo: AssetInfo,
-  yInfo: AssetInfo,
   feeNum: Int,
   box: BoxInfo
 ) {
@@ -100,9 +97,6 @@ object CFMMPool {
         implicitly[Codec[AssetAmount]] ::
         implicitly[Codec[AssetAmount]] ::
         implicitly[Codec[AssetAmount]] ::
-        implicitly[Codec[AssetInfo]] ::
-        implicitly[Codec[AssetInfo]] ::
-        implicitly[Codec[AssetInfo]] ::
         int32 ::
         implicitly[Codec[BoxInfo]]
     ).as[CFMMPool]

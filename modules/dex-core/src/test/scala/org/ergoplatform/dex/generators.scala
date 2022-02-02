@@ -106,13 +106,10 @@ object generators {
       lp     <- assetAmountGen
       x      <- assetAmountGen(reservesX)
       y      <- assetAmountGen(reservesY)
-      lpi = AssetInfo(Some(Ticker("LP")), Some(0))
-      xi  = AssetInfo(Some(Ticker("X")), Some(0))
-      yi  = AssetInfo(Some(Ticker("Y")), Some(0))
       feeNum <- Gen.const(995)
       boxId  <- boxIdGen
       box = BoxInfo(boxId, 1000000)
-    } yield CFMMPool(poolId, lp, x, y, lpi, xi, yi, feeNum, box)
+    } yield CFMMPool(poolId, lp, x, y, feeNum, box)
 
   def cfmmPoolGen(gix: Long): Gen[CFMMPool] =
     for {

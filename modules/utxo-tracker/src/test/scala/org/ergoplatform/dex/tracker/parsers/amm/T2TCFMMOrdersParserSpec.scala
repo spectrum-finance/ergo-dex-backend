@@ -31,7 +31,7 @@ class T2TCFMMOrdersParserSpec extends AnyPropSpec with should.Matchers with Scal
           ),
           dexFeePerTokenNum   = 2630167984063278L,
           dexFeePerTokenDenom = 1000000000000000000L,
-          p2pk                = Address.fromStringUnsafe("9g1N1xqhrNG1b2TkmFcQGTFZ47EquUYUZAiWWCBEbZaBcsMhXJU")
+          redeemer                = Address.fromStringUnsafe("9g1N1xqhrNG1b2TkmFcQGTFZ47EquUYUZAiWWCBEbZaBcsMhXJU")
         ),
         Output(
           BoxId("e419674609fe037d98d07e9c7074b3ad25f2c4e69a9bf844c389117a332fa87d"),

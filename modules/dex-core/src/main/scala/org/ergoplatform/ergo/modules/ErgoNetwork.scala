@@ -4,6 +4,8 @@ import derevo.derive
 import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.ergo.TxId
 import org.ergoplatform.ergo.domain.{EpochParams, NetworkInfo}
+import org.ergoplatform.ergo.services.explorer.ErgoExplorer
+import org.ergoplatform.ergo.services.node.ErgoNode
 import tofu.higherKind.derived.representableK
 
 @derive(representableK)
@@ -29,4 +31,18 @@ trait ErgoNetwork[F[_]] {
   /** Get latest network info.
     */
   def getNetworkInfo: F[NetworkInfo]
+}
+
+object ErgoNetwork {
+
+  def make[F[_]](implicit explorer: ErgoExplorer[F], node: ErgoNode[F]): ErgoNetwork[F] =
+    new CombinedErgoNetwork(explorer, node)
+
+  final class CombinedErgoNetwork[F[_]](explorer: ErgoExplorer[F], node: ErgoNode[F]) extends ErgoNetwork[F] {
+    def submitTransaction(tx: ErgoLikeTransaction): F[TxId]          = node.submitTransaction(tx)
+    def checkTransaction(tx: ErgoLikeTransaction): F[Option[String]] = explorer.checkTransaction(tx)
+    def getCurrentHeight: F[Int]                                     = explorer.getCurrentHeight
+    def getEpochParams: F[EpochParams]                               = explorer.getEpochParams
+    def getNetworkInfo: F[NetworkInfo]                               = explorer.getNetworkInfo
+  }
 }

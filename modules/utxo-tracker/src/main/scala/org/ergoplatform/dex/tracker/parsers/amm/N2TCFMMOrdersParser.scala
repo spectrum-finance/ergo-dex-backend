@@ -9,7 +9,7 @@ import org.ergoplatform.dex.protocol.amm.AMMType.N2T_CFMM
 import org.ergoplatform.dex.protocol.amm.{N2TCFMMTemplates => templates}
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.ergo.{Address, ErgoTreeTemplate, TokenId}
+import org.ergoplatform.ergo.{Address, ErgoTreeTemplate, PubKey, TokenId}
 import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 import sigmastate.Values.ErgoTree
 import tofu.syntax.embed._
@@ -31,8 +31,8 @@ final class N2TCFMMOrdersParser[F[_]: Applicative](ts: Long)(implicit
           inX         <- tree.constants.parseLong(16).map(AssetAmount.native)
           inY         <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
           dexFee      <- tree.constants.parseLong(15)
-          p2pk        <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
-          params = DepositParams(inX, inY, dexFee, p2pk)
+          redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
+          params = DepositParams(inX, inY, dexFee, redeemer)
         } yield Deposit(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
@@ -48,8 +48,8 @@ final class N2TCFMMOrdersParser[F[_]: Applicative](ts: Long)(implicit
           maxMinerFee <- tree.constants.parseLong(16)
           inLP        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
           dexFee      <- tree.constants.parseLong(12)
-          p2pk        <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
-          params = RedeemParams(inLP, dexFee, p2pk)
+          redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
+          params = RedeemParams(inLP, dexFee, redeemer)
         } yield Redeem(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
@@ -75,8 +75,8 @@ final class N2TCFMMOrdersParser[F[_]: Applicative](ts: Long)(implicit
       outAmount = AssetAmount(outId, minOutAmount)
       dexFeePerTokenNum   <- tree.constants.parseLong(11)
       dexFeePerTokenDenom <- tree.constants.parseLong(12)
-      p2pk                <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
-      params = SwapParams(baseAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, p2pk)
+      redeemer            <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
+      params = SwapParams(baseAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
     } yield Swap(poolId, maxMinerFee, ts, params, box)
 
   private def swapBuy(box: Output, tree: ErgoTree) =
@@ -89,8 +89,8 @@ final class N2TCFMMOrdersParser[F[_]: Applicative](ts: Long)(implicit
       dexFeePerTokenDenom   <- tree.constants.parseLong(5)
       dexFeePerTokenNumDiff <- tree.constants.parseLong(6)
       dexFeePerTokenNum = dexFeePerTokenDenom - dexFeePerTokenNumDiff
-      p2pk <- tree.constants.parsePk(0).map(pk => Address.fromStringUnsafe(P2PKAddress(pk).toString))
-      params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, p2pk)
+      redeemer <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
+      params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
     } yield Swap(poolId, maxMinerFee, ts, params, box)
 }
 

@@ -60,7 +60,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
     val returnBox = new ErgoBoxCandidate(
       value          = depositBox.value - inX.value - minerFeeBox.value - dexFeeBox.value + changeX,
-      ergoTree       = deposit.params.p2pk.toErgoTree,
+      ergoTree       = deposit.params.redeemer.toErgoTree,
       creationHeight = ctx.currentHeight,
       additionalTokens =
         if (changeY > 0) mkTokens(rewardLP.id -> rewardLP.value, inY.id -> changeY)
@@ -99,7 +99,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
     val returnBox = new ErgoBoxCandidate(
       value            = redeemBox.value + shareX.value - minerFeeBox.value - dexFeeBox.value,
-      ergoTree         = redeem.params.p2pk.toErgoTree,
+      ergoTree         = redeem.params.redeemer.toErgoTree,
       creationHeight   = ctx.currentHeight,
       additionalTokens = mkTokens(shareY.id -> shareY.value)
     )
@@ -140,14 +140,14 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         if (swap.params.input.isNative)
           new ErgoBoxCandidate(
             value            = swapBox.value - input.value - minerFeeBox.value - dexFeeBoxValue,
-            ergoTree         = swap.params.p2pk.toErgoTree,
+            ergoTree         = swap.params.redeemer.toErgoTree,
             creationHeight   = ctx.currentHeight,
             additionalTokens = mkTokens(swap.params.minOutput.id -> output.value)
           )
         else
           new ErgoBoxCandidate(
             value          = swapBox.value + output.value - minerFeeBox.value - dexFee,
-            ergoTree       = swap.params.p2pk.toErgoTree,
+            ergoTree       = swap.params.redeemer.toErgoTree,
             creationHeight = ctx.currentHeight
           )
       val inputs      = Vector(poolIn, swapIn)
