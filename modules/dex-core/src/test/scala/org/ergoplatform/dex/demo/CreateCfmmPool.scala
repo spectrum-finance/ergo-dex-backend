@@ -55,7 +55,7 @@ object GenWallet extends App {
 
   def genSecret(): Array[Byte] = scorex.util.Random.randomBytes(32)
 
-  val secret = genSecret()
+  val secret                         = genSecret()
   val sk: DLogProverInput            = DLogProverInput(BigIntegers.fromUnsignedByteArray(genSecret()))
   def selfPk: DLogProtocol.ProveDlog = sk.publicImage
   def selfAddress: P2PKAddress       = P2PKAddress(selfPk)
@@ -90,7 +90,7 @@ object CreateCfmmPool extends App with SigmaPlatform {
   val depositSigRSV = 1000L // 15600 // todo: Adjust deposit amount
 
   val Ergopad = getToken("d71693c49a84fbbecd4908c94813b46514b18b67a99952dc1e6e4791556de413", inputs)
-  val SigUSD = getToken("03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04", inputs)
+  val SigUSD  = getToken("03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04", inputs)
 
   require(Ergopad._2 >= depositSigUSD)
   require(SigUSD._2 >= depositSigRSV)
@@ -156,10 +156,10 @@ object CreateCfmmPool extends App with SigmaPlatform {
     ergoTree       = poolTree,
     creationHeight = height,
     additionalTokens = Colls.fromItems(
-      poolNFT   -> 1L,
-      lpId      -> (emissionLP - shareLP),
+      poolNFT    -> 1L,
+      lpId       -> (emissionLP - shareLP),
       Ergopad._1 -> depositSigUSD,
-      SigUSD._1 -> depositSigRSV
+      SigUSD._1  -> depositSigRSV
     ),
     additionalRegisters = poolRegisters
   )
@@ -206,7 +206,7 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
   val minValue  = 500000L
 
   val depositNErgs  = 2906976740L // todo: Adjust deposit amount
-  val depositSigRSV = 25000L      // todo: Adjust deposit amount
+  val depositSigRSV = 25000L // todo: Adjust deposit amount
 
   val bootInputNErg = minerFeeNErg + lockNErgs + minValue + depositNErgs
 
@@ -273,8 +273,8 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
     ergoTree       = poolTree,
     creationHeight = height,
     additionalTokens = Colls.fromItems(
-      poolNFT   -> 1L,
-      lpId      -> (emissionLP - shareLP),
+      poolNFT    -> 1L,
+      lpId       -> (emissionLP - shareLP),
       Ergopad._1 -> depositSigRSV
     ),
     additionalRegisters = poolRegisters
