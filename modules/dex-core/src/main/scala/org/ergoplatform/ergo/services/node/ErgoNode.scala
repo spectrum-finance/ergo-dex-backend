@@ -10,6 +10,7 @@ import org.ergoplatform.ergo.TxId
 import org.ergoplatform.ergo.errors.ResponseError
 import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.dex.protocol.instances._
+import org.ergoplatform.ergo.services.node.models.Transaction
 import sttp.client3.{asEither, asString, basicRequest, SttpBackend}
 import sttp.client3._
 import sttp.client3.circe._
@@ -29,6 +30,8 @@ trait ErgoNode[F[_]] {
   /** Submit a transaction to the network.
     */
   def submitTransaction(tx: ErgoLikeTransaction): F[TxId]
+
+  def unconfirmedTransactions(offset: Int, limit: Int): F[Vector[Transaction]]
 }
 
 object ErgoNode {
@@ -62,6 +65,8 @@ object ErgoNode {
                 .map(s => TxId(s.replace("\"", "")))
           }
         }
+
+    def unconfirmedTransactions(offset: Int, limit: Int): F[Vector[Transaction]] = ???
   }
 
   final class ErgoNodeTracing[F[_]: Logging: FlatMap] extends ErgoNode[Mid[F, *]] {
@@ -72,5 +77,12 @@ object ErgoNode {
         txId <- _
         _    <- trace"submitTransaction(..) -> $txId"
       } yield txId
+
+    def unconfirmedTransactions(offset: Int, limit: Int): Mid[F, Vector[Transaction]] =
+      for {
+        _   <- trace"unconfirmedTransactions(offset=$offset, limit=$limit)"
+        txs <- _
+        _   <- trace"unconfirmedTransactions(offset=$offset, limit=$limit) -> List(..){n=${txs.size}}"
+      } yield txs
   }
 }
