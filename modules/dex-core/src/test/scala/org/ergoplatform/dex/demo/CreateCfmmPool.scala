@@ -16,14 +16,11 @@ import sigmastate.Values.{ByteArrayConstant, ErgoTree, EvaluatedValue, IntConsta
 import sigmastate.basics.DLogProtocol
 import sigmastate.basics.DLogProtocol.DLogProverInput
 import sigmastate.eval._
-import sigmastate.lang.SigmaCompiler
 import sigmastate.lang.Terms.ValueOps
 import io.circe.syntax._
 import org.ergoplatform._
-import org.ergoplatform.dex.demo.CreateNativeCfmmPool.{tx0, tx1}
 
 import java.math.BigInteger
-import java.security.SecureRandom
 
 object Utils {
 
@@ -49,9 +46,6 @@ import Utils._
 object GenWallet extends App {
   implicit def IR: IRContext                      = new CompiletimeIRContext()
   implicit def addressEncoder: ErgoAddressEncoder = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
-  def sigma: SigmaCompiler                        = SigmaCompiler(ErgoAddressEncoder.MainnetNetworkPrefix)
-
-  val rnd = new SecureRandom()
 
   def genSecret(): Array[Byte] = scorex.util.Random.randomBytes(32)
 
@@ -68,9 +62,9 @@ object CreateCfmmPool extends App with SigmaPlatform {
 
   val secretHex = "" // todo: Paste your secret in HEX here
 
-  val inputsIds = List() // todo: Paste your inputs here
+  val inputIds = List() // todo: Paste your inputs here
 
-  val inputs       = inputsIds.map(inputId => getInput(inputId).get)
+  val inputs       = inputIds.map(inputId => getInput(inputId).get)
   val totalNErgsIn = inputs.map(_.value).sum
   val tokensIn     = extractTokens(inputs)
 
@@ -86,14 +80,14 @@ object CreateCfmmPool extends App with SigmaPlatform {
 
   val bootInputNErg = minerFeeNErg + lockNErgs + minValue
 
-  val depositSigUSD = 25000L // 100  // todo: Adjust deposit amount
-  val depositSigRSV = 1000L // 15600 // todo: Adjust deposit amount
+  val depositErgopad = 25000L // 100  // todo: Adjust deposit amount
+  val depositSigUSD = 1000L // 15600 // todo: Adjust deposit amount
 
   val Ergopad = getToken("d71693c49a84fbbecd4908c94813b46514b18b67a99952dc1e6e4791556de413", inputs)
   val SigUSD  = getToken("03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04", inputs)
 
-  require(Ergopad._2 >= depositSigUSD)
-  require(SigUSD._2 >= depositSigRSV)
+  require(Ergopad._2 >= depositErgopad)
+  require(SigUSD._2 >= depositSigUSD)
 
   val height = currentHeight()
 
@@ -103,7 +97,7 @@ object CreateCfmmPool extends App with SigmaPlatform {
     value            = bootInputNErg,
     ergoTree         = selfAddress.script,
     creationHeight   = height,
-    additionalTokens = Colls.fromItems(lpId -> emissionLP, Ergopad._1 -> depositSigUSD, SigUSD._1 -> depositSigRSV),
+    additionalTokens = Colls.fromItems(lpId -> emissionLP, Ergopad._1 -> depositErgopad, SigUSD._1 -> depositSigUSD),
     additionalRegisters = scala.Predef.Map(
       R4 -> ByteArrayConstant(lpName.getBytes()),
       R5 -> ByteArrayConstant(lpDesc.getBytes()),
@@ -115,9 +109,11 @@ object CreateCfmmPool extends App with SigmaPlatform {
     value          = totalNErgsIn - bootInputNErg - minerFeeNErg,
     ergoTree       = selfAddress.script,
     creationHeight = height,
-    additionalTokens = Colls.fromItems(tokensIn.filterNot { case (tid, _) =>
-      java.util.Arrays.equals(tid, Ergopad._1) || java.util.Arrays.equals(tid, SigUSD._1)
-    }: _*)
+    additionalTokens = Colls.fromItems(tokensIn.map { case (tid, amt) =>
+      if (java.util.Arrays.equals(tid, Ergopad._1)) tid -> (amt - depositErgopad)
+      else if (java.util.Arrays.equals(tid, SigUSD._1)) tid -> (amt - depositSigUSD)
+      else tid -> amt
+    }.filter { case (_, amt) => amt > 0 }: _*)
   )
 
   val inputs0 = inputs.map(input => new UnsignedInput(ADKey @@ Base16.decode(input.boxId.value).get)).toVector
@@ -127,9 +123,9 @@ object CreateCfmmPool extends App with SigmaPlatform {
 
   // Pool TX
 
-  val shareLP = math.sqrt((depositSigUSD * depositSigRSV).toDouble).toLong
+  val shareLP = math.sqrt((depositErgopad * depositSigUSD).toDouble).toLong
 
-  require(shareLP * shareLP <= depositSigUSD * depositSigRSV)
+  require(shareLP * shareLP <= depositErgopad * depositSigUSD)
 
   val lpOut = new ErgoBoxCandidate(
     value            = minValue,
@@ -158,8 +154,8 @@ object CreateCfmmPool extends App with SigmaPlatform {
     additionalTokens = Colls.fromItems(
       poolNFT    -> 1L,
       lpId       -> (emissionLP - shareLP),
-      Ergopad._1 -> depositSigUSD,
-      SigUSD._1  -> depositSigRSV
+      Ergopad._1 -> depositErgopad,
+      SigUSD._1  -> depositSigUSD
     ),
     additionalRegisters = poolRegisters
   )
@@ -205,8 +201,8 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
   val lockNErgs = 0L
   val minValue  = 500000L
 
-  val depositNErgs  = 2906976740L // todo: Adjust deposit amount
-  val depositSigRSV = 25000L // todo: Adjust deposit amount
+  val depositNErgs   = 2906976740L // todo: Adjust deposit amount
+  val depositErgopad = 25000L      // todo: Adjust deposit amount
 
   val bootInputNErg = minerFeeNErg + lockNErgs + minValue + depositNErgs
 
@@ -220,7 +216,7 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
     value            = bootInputNErg,
     ergoTree         = selfAddress.script,
     creationHeight   = height,
-    additionalTokens = Colls.fromItems(lpId -> emissionLP, Ergopad._1 -> depositSigRSV),
+    additionalTokens = Colls.fromItems(lpId -> emissionLP, Ergopad._1 -> depositErgopad),
     additionalRegisters = scala.Predef.Map(
       R4 -> ByteArrayConstant(lpName.getBytes()),
       R5 -> ByteArrayConstant(lpDesc.getBytes()),
@@ -232,9 +228,10 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
     value          = totalNErgsIn - bootInputNErg - minerFeeNErg,
     ergoTree       = selfAddress.script,
     creationHeight = height,
-    additionalTokens = Colls.fromItems(tokensIn.filterNot { case (tid, _) =>
-      java.util.Arrays.equals(tid, Ergopad._1)
-    }: _*)
+    additionalTokens = Colls.fromItems(tokensIn.map { case (tid, amt) =>
+      if (java.util.Arrays.equals(tid, Ergopad._1)) tid -> (amt - depositErgopad)
+      else tid -> amt
+    }.filter { case (_, amt) => amt > 0 }: _*)
   )
 
   val inputs0 = inputs.map(input => new UnsignedInput(ADKey @@ Base16.decode(input.boxId.value).get)).toVector
@@ -244,9 +241,9 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
 
   // Pool TX
 
-  val shareLP = sqrt(((BigInt(depositNErgs) + lockNErgs) * depositSigRSV).bigInteger).toLong
+  val shareLP = sqrt(((BigInt(depositNErgs) + lockNErgs) * depositErgopad).bigInteger).toLong
 
-  require(shareLP * shareLP <= (depositNErgs + lockNErgs) * depositSigRSV)
+  require(shareLP * shareLP <= (depositNErgs + lockNErgs) * depositErgopad)
 
   val lpOut = new ErgoBoxCandidate(
     value            = minValue,
@@ -275,7 +272,7 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
     additionalTokens = Colls.fromItems(
       poolNFT    -> 1L,
       lpId       -> (emissionLP - shareLP),
-      Ergopad._1 -> depositSigRSV
+      Ergopad._1 -> depositErgopad
     ),
     additionalRegisters = poolRegisters
   )
