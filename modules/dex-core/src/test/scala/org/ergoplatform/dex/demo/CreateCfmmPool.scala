@@ -297,3 +297,42 @@ object CreateNativeCfmmPool extends App with SigmaPlatform {
 //  val s1 = submitTx(tx1)
 //  println(s1.map(id => s"Done. $id"))
 }
+
+// todo: Use this to transfer tokens from your temporal wallet
+object TransferAll extends App with SigmaPlatform {
+
+  val secretHex = "" // todo: Paste your secret in HEX here
+  val transferToAddress = "" // todo: Paste an address you would like to transfer all funds from temporal wallet to
+
+  val inputsIds = List() // todo: Paste your inputs here
+
+  val inputs       = inputsIds.map(inputId => getInput(inputId).get)
+  val totalNErgsIn = inputs.map(_.value).sum
+  val tokensIn     = extractTokens(inputs)
+
+  val transferToAddr = addressEncoder.fromString(transferToAddress).get
+
+  val height = currentHeight()
+
+  val out0 = new ErgoBoxCandidate(
+    value          = totalNErgsIn - minerFeeNErg,
+    ergoTree       = transferToAddr.script,
+    creationHeight = height,
+    additionalTokens = Colls.fromItems(tokensIn: _*)
+  )
+
+  val inputs0 = inputs.map(input => new UnsignedInput(ADKey @@ Base16.decode(input.boxId.value).get)).toVector
+  val outs0   = Vector(out0, minerFeeBox)
+  val utx0    = UnsignedErgoLikeTransaction(inputs0, outs0)
+  val tx0     = ErgoUnsafeProver.prove(utx0, sk)
+
+  // todo: First check the resulting transactions:
+  println("Init TX:")
+  println(tx0.asJson.spaces2SortKeys)
+  println()
+
+  // todo: Then uncomment this:
+  //  println("Submitting tx")
+  //  val s0 = submitTx(tx0)
+  //  println(s0.map(id => s"Done. $id"))
+}
