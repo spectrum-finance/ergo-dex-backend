@@ -15,15 +15,13 @@ final case class Market(x: AssetClass, y: AssetClass, price: Price) {
 
 object Market {
 
-  val Base10 = BigDecimal(10)
-
   def fromReserves(rx: FullAsset, ry: FullAsset): Market =
     Market(
       rx.assetClass,
       ry.assetClass,
       Price(
-        BigDecimal(ry.amount) / rx.amount * Base10.pow(rx.evalDecimals - ry.evalDecimals),
-        BigDecimal(rx.amount) / ry.amount * Base10.pow(ry.evalDecimals - rx.evalDecimals)
+        BigDecimal(ry.amount) / rx.amount,
+        BigDecimal(rx.amount) / ry.amount
       )
     )
 }
