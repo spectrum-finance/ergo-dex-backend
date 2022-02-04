@@ -27,7 +27,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
 
   def getPoolSnapshots: Query0[PoolSnapshot] =
     sql"""
-         |select p.pool_id, p.x_id, p.x_amount, ax.ticker, ax.decimals, p.y_id, p.y_amount, ay.ticker, ay.decimals, 0
+         |select p.pool_id, p.x_id, p.x_amount, ax.ticker, ax.decimals, p.y_id, p.y_amount, ay.ticker, ay.decimals, (p.x_amount::decimal) * p.y_amount as lq
          |from pools p
          |left join (
          |	select pool_id, max(gindex) as gindex
@@ -37,6 +37,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |left join assets ax on ax.id = p.x_id
          |left join assets ay on ay.id = p.y_id
          |where px.gindex = p.gindex
+         |order by lq desc
          """.stripMargin.query[PoolSnapshot]
 
   def getPoolSnapshotsByAsset(asset: TokenId): Query0[PoolSnapshot] =
