@@ -1,7 +1,10 @@
 package org.ergoplatform.dex.domain
 
+import derevo.derive
 import org.ergoplatform.ergo.TokenId
+import tofu.logging.derivation.loggable
 
+@derive(loggable)
 final case class Market(x: AssetClass, y: AssetClass, price: Price) {
   def contains(asset: TokenId): Boolean = x.tokenId == asset || y.tokenId == asset
 
