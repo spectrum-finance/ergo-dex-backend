@@ -1,24 +1,24 @@
 package org.ergoplatform.dex.tracker.parsers.amm
 
 import cats.Monad
-import cats.syntax.traverse._
-import cats.syntax.option._
 import cats.instances.list._
+import cats.syntax.option._
+import cats.syntax.traverse._
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
-import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, Deposit, EvaluatedCFMMOrder, OrderEvaluation, Redeem, Swap}
+import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.ergo.domain.{Output, Transaction, SettledTransaction}
+import org.ergoplatform.ergo.domain.{Output, SettledTransaction}
 import tofu.higherKind.Embed
-import tofu.syntax.monadic._
 import tofu.syntax.foption._
+import tofu.syntax.monadic._
 
 trait CFMMHistoryParser[+CT <: CFMMType, F[_]] {
 
-  def swap(tx: Transaction): F[Option[EvaluatedCFMMOrder[Swap, SwapEvaluation]]]
+  def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Swap, SwapEvaluation]]]
 
-  def deposit(tx: Transaction): F[Option[EvaluatedCFMMOrder[Deposit, DepositEvaluation]]]
+  def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Deposit, DepositEvaluation]]]
 
-  def redeem(tx: Transaction): F[Option[EvaluatedCFMMOrder[Redeem, RedeemEvaluation]]]
+  def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Redeem, RedeemEvaluation]]]
 }
 
 object CFMMHistoryParser {

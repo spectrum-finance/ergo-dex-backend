@@ -78,7 +78,7 @@ object models {
     outputAmount: Option[Long],
     dexFeePerTokenNum: Long,
     dexFeePerTokenDenom: Long,
-    p2pk: Address,
+    redeemer: PubKey,
     protocolVersion: ProtocolVersion
   )
 
@@ -115,7 +115,7 @@ object models {
     outputAmountX: Option[Long],
     outputAmountY: Option[Long],
     dexFee: Long,
-    p2pk: Address,
+    redeemer: PubKey,
     protocolVersion: ProtocolVersion
   )
 
@@ -151,7 +151,7 @@ object models {
     inputAmountY: Long,
     outputAmountLP: Option[Long],
     dexFee: Long,
-    p2pk: Address,
+    redeemer: PubKey,
     protocolVersion: ProtocolVersion
   )
 

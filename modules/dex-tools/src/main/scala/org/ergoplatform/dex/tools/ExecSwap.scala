@@ -41,7 +41,7 @@ object ExecSwap extends IOApp with SigmaPlatform {
                minOutput           = AssetAmount(SigUSD, 0L),
                dexFeePerTokenNum   = 0L,
                dexFeePerTokenDenom = 1L,
-               redeemer                = RecvAddr
+               redeemer            = ???
              )
       order = Swap(pool.poolId, monetaryConfig.minerFee, ts, swap, userIn)
 

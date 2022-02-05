@@ -24,7 +24,7 @@ package object amm {
 
   object CFMMRules {
 
-    def make[F[_]: Monad: MonetaryConfig.Has](implicit network: ErgoExplorer[F]): CFMMRules[F] =
-      (context map (conf => new CfmmRuleDefs[F](conf).rules)).embed
+    def make[F[_]: Monad: MonetaryConfig.Has]: CFMMRules[F] =
+      (MonetaryConfig.access map (conf => new CfmmRuleDefs[F](conf).rules)).embed
   }
 }

@@ -2,7 +2,7 @@ package org.ergoplatform.ergo.modules
 
 import cats.Functor
 import derevo.derive
-import org.ergoplatform.ergo.domain.{SettledOutput, SettledTransaction, Transaction}
+import org.ergoplatform.ergo.domain.{SettledOutput, SettledTransaction}
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import tofu.higherKind.derived.representableK
 import tofu.syntax.monadic._

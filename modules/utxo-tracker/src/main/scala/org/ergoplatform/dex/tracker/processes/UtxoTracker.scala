@@ -3,10 +3,9 @@ package org.ergoplatform.dex.tracker.processes
 import cats.{Defer, FlatMap, Monad, MonoidK}
 import derevo.derive
 import org.ergoplatform.dex.tracker.configs.UtxoTrackerConfig
-import org.ergoplatform.dex.tracker.handlers.{BoxHandler, SettledBoxHandler}
+import org.ergoplatform.dex.tracker.handlers.SettledBoxHandler
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming}
-import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
