@@ -6,7 +6,7 @@ import cats.effect.Clock
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolStats, PoolSummary}
 import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.markets.domain.{Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
@@ -14,6 +14,7 @@ import org.ergoplatform.dex.markets.repositories.Pools
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
+import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTokenInfo, PoolVolumeSnapshot}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import tofu.syntax.monadic._
 import tofu.syntax.time.now._
@@ -25,6 +26,8 @@ trait AmmStats[F[_]] {
   def getPlatformSummary(window: TimeWindow): F[PlatformSummary]
 
   def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]]
+
+  def getPoolsStats(window: TimeWindow): F[Map[String, PoolStats]]
 }
 
 object AmmStats {
@@ -97,5 +100,35 @@ object AmmStats {
         yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
       } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
     }
+
+    def getPoolsStats(window: TimeWindow): F[Map[String, PoolStats]] = {
+      val queryPoolStats = for {
+        reports <- pools.tokenInfo
+        volumes <- pools.volumes(window)
+        snapshots <- pools.snapshots
+      } yield (reports, volumes, snapshots)
+
+      for {
+        (tokensInfo: List[PoolTokenInfo], volumes: List[PoolVolumeSnapshot], snapshots: List[PoolSnapshot]) <- queryPoolStats ||> txr.trans
+
+      } yield tokensInfo.flatMap { ti =>
+        volumes.flatMap { vol =>
+          snapshots.flatMap { snapshot =>
+            Map(
+              ti.baseId + "_" + ti.quoteId -> PoolStats(
+                ti.baseId,
+                ti.baseSymbol,
+                ti.quoteId,
+                ti.quoteSymbol,
+                BigDecimal(snapshot.lockedX.amount) / snapshot.lockedY.amount,
+                BigDecimal(vol.volumeByX.amount),
+                BigDecimal(vol.volumeByY.amount)
+              )
+            )
+          }
+        }
+      }.toMap
+    }
+
   }
 }

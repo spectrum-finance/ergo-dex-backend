@@ -19,7 +19,7 @@ final class AmmStatsRoutes[
 
   private val interpreter = Http4sServerInterpreter(opts)
 
-  def routes: HttpRoutes[F] = getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR
+  def routes: HttpRoutes[F] = getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAllPoolsStatsR
 
   def getPoolLocksR: HttpRoutes[F] = interpreter.toRoutes(getPoolLocks) { case (poolId, leastDeadline) =>
     locks.byPool(poolId, leastDeadline).adaptThrowable.value
@@ -32,6 +32,11 @@ final class AmmStatsRoutes[
   def getPlatformStatsR: HttpRoutes[F] = interpreter.toRoutes(getPlatformStats) { tw =>
     stats.getPlatformSummary(tw).adaptThrowable.value
   }
+
+  def getAllPoolsStatsR: HttpRoutes[F] = interpreter.toRoutes(getAllPoolsStats) { tw =>
+    stats.getPoolsStats(tw).adaptThrowable.value
+  }
+
 }
 
 object AmmStatsRoutes {
