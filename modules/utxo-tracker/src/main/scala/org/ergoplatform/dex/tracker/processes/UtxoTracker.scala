@@ -5,7 +5,7 @@ import derevo.derive
 import org.ergoplatform.dex.tracker.configs.UtxoTrackerConfig
 import org.ergoplatform.dex.tracker.handlers.{BoxHandler, SettledBoxHandler}
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
-import org.ergoplatform.ergo.modules.LedgerStreaming
+import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming}
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import tofu.Catches
 import tofu.higherKind.derived.representableK
@@ -40,7 +40,8 @@ object UtxoTracker {
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: UtxoTrackerConfig.Has: Catches,
     G[_]: Monad
   ](mode: TrackerMode, handlers: SettledBoxHandler[F]*)(implicit
-    client: ErgoExplorerStreaming[F, G],
+    network: ErgoNetwork[G],
+    ledger: LedgerStreaming[F],
     cache: TrackerCache[G],
     logs: Logs[I, G]
   ): I[UtxoTracker[F]] =
@@ -53,21 +54,21 @@ object UtxoTracker {
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging
   ](mode: TrackerMode, cache: TrackerCache[G], conf: UtxoTrackerConfig, handlers: List[SettledBoxHandler[F]])(implicit
-    client: ErgoExplorerStreaming[F, G],
-    stream: LedgerStreaming[F]
+    network: ErgoNetwork[G],
+    ledger: LedgerStreaming[F]
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =
       eval(info"Starting UTXO tracker in mode [${mode.toString}] ..") >>
       eval(cache.lastScannedBoxOffset).repeat
         .flatMap { lastOffset =>
-          eval(client.getNetworkInfo).flatMap { networkParams =>
+          eval(network.getNetworkInfo).flatMap { networkParams =>
             val offset     = lastOffset max conf.initialOffset
             val maxOffset  = networkParams.maxBoxGix
             val nextOffset = (offset + conf.batchSize) min maxOffset
             val outputsStream = mode match {
-              case TrackerMode.Historical => stream.streamOutputs(offset, conf.batchSize)
-              case TrackerMode.Live       => stream.streamUnspentOutputs(offset, conf.batchSize)
+              case TrackerMode.Historical => ledger.streamOutputs(offset, conf.batchSize)
+              case TrackerMode.Live       => ledger.streamUnspentOutputs(offset, conf.batchSize)
             }
             val scan =
               eval(info"Requesting UTXO batch {offset=$offset, maxOffset=$maxOffset, batchSize=${conf.batchSize} ..") >>

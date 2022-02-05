@@ -4,33 +4,31 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.common.HexString
 import org.ergoplatform.ergo._
+import org.ergoplatform.ergo.services.explorer.models.{Input => ExplorerIn}
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
 final case class Input(
   boxId: BoxId,
-  value: Long,
-  index: Int,
   spendingProof: Option[HexString],
-  outputTransactionId: TxId,
-  outputIndex: Int,
-  outputGlobalIndex: Long,
-  outputCreatedAt: Int,
-  outputSettledAt: Int,
-  ergoTree: SErgoTree,
-  address: Address,
-  assets: List[BoxAsset],
-  additionalRegisters: Map[RegisterId, SConstant]
-) {
+  output: Output
+)
 
-  def asOutput: Output = Output(
-    boxId,
-    outputTransactionId,
-    value,
-    outputIndex,
-    outputCreatedAt,
-    ergoTree,
-    assets,
-    additionalRegisters
-  )
+object Input {
+
+  def fromExplorer(in: ExplorerIn): Input =
+    Input(
+      in.boxId,
+      in.spendingProof,
+      Output(
+        in.boxId,
+        in.outputTransactionId,
+        in.value,
+        in.outputIndex,
+        in.outputCreatedAt,
+        in.ergoTree,
+        in.assets.map(BoxAsset.fromExplorer),
+        in.additionalRegisters
+      )
+    )
 }

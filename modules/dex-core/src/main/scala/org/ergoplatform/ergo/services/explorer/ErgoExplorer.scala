@@ -185,15 +185,15 @@ trait ErgoExplorerStreaming[S[_], F[_]] extends ErgoExplorer[F] {
 
   /** Get a stream of unspent outputs at the given global offset.
     */
-  def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output]
+  def streamUnspentOutputs(gOffset: Long, limit: Int): S[Output]
 
   /** Get a stream of unspent outputs at the given global offset.
     */
-  def streamOutputs(boxGixOffset: Long, limit: Int): S[Output]
+  def streamOutputs(gOffset: Long, limit: Int): S[Output]
 
   /** Get a stream of transactions at the given global offset.
     */
-  def streamTransactions(txGixOffset: Long, limit: Int): S[Transaction]
+  def streamTransactions(gOffset: Long, limit: Int): S[Transaction]
 }
 
 object ErgoExplorerStreaming {
@@ -220,14 +220,14 @@ object ErgoExplorerStreaming {
     def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]] =
       tft.flatMap(_.getUtxoByToken(tokenId, offset, limit))
 
-    def streamUnspentOutputs(boxGixOffset: Long, limit: Int): S[Output] =
-      evals.eval(tft.map(_.streamUnspentOutputs(boxGixOffset, limit))).flatten
+    def streamUnspentOutputs(gOffset: Long, limit: Int): S[Output] =
+      evals.eval(tft.map(_.streamUnspentOutputs(gOffset, limit))).flatten
 
-    def streamOutputs(boxGixOffset: Long, limit: Int): S[Output] =
-      evals.eval(tft.map(_.streamOutputs(boxGixOffset, limit))).flatten
+    def streamOutputs(gOffset: Long, limit: Int): S[Output] =
+      evals.eval(tft.map(_.streamOutputs(gOffset, limit))).flatten
 
-    def streamTransactions(txGixOffset: Long, limit: Int): S[Transaction] =
-      evals.eval(tft.map(_.streamTransactions(txGixOffset, limit))).flatten
+    def streamTransactions(gOffset: Long, limit: Int): S[Transaction] =
+      evals.eval(tft.map(_.streamTransactions(gOffset, limit))).flatten
   }
 
   implicit def functorK[F[_]]: FunctorK[ErgoExplorerStreaming[*[_], F]] = {
@@ -264,16 +264,16 @@ object ErgoExplorerStreaming {
     private val uri                           = config.explorerUri
     implicit private val facade: Facade[Json] = new CirceSupportParser(None, allowDuplicateKeys = false).facade
 
-    def streamUnspentOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] =
-      streamSomeOutputs(utxoPathSeg)(boxGixOffset, limit)
+    def streamUnspentOutputs(gOffset: Long, limit: Int): Stream[F, Output] =
+      streamSomeOutputs(utxoPathSeg)(gOffset, limit)
 
-    def streamOutputs(boxGixOffset: Long, limit: Int): Stream[F, Output] =
-      streamSomeOutputs(txoPathSeg)(boxGixOffset, limit)
+    def streamOutputs(gOffset: Long, limit: Int): Stream[F, Output] =
+      streamSomeOutputs(txoPathSeg)(gOffset, limit)
 
-    def streamTransactions(txGixOffset: Long, limit: Int): Stream[F, Transaction] = {
+    def streamTransactions(gOffset: Long, limit: Int): Stream[F, Transaction] = {
       val req =
         basicRequest
-          .get(uri.withPathSegment(txPathSeg).addParams("minGix" -> txGixOffset.toString, "limit" -> limit.toString))
+          .get(uri.withPathSegment(txPathSeg).addParams("minGix" -> gOffset.toString, "limit" -> limit.toString))
           .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
           .send(backend)
           .map(_.body)

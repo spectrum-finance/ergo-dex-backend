@@ -23,11 +23,15 @@ import io.estatico.newtype.ops._
 import org.ergoplatform.common.HexString
 import org.ergoplatform.common.errors.RefinementFailed
 import org.ergoplatform.ergo.CurrencyId
+import org.ergoplatform.ergo.syntax.PubKeyOps
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
 import scodec.bits.ByteVector
 import scorex.crypto.hash.Sha256
 import scorex.util.encode.Base16
+import sigmastate.Values.{ErgoTree, SigmaPropConstant}
+import sigmastate.basics.DLogProtocol.ProveDlog
+import sigmastate.serialization.{GroupElementSerializer, SigmaSerializer}
 import sttp.tapir.{Codec, Schema, Validator}
 import tofu.Raise
 import tofu.logging.Loggable
@@ -265,6 +269,7 @@ package object ergo {
     final def unwrapped: String    = value.unwrapped
     final def toBytes: Array[Byte] = value.toBytes
     final def hash: HexString      = HexString.fromBytes(Sha256.hash(toBytes))
+    final def ergoTree: SErgoTree  = SErgoTree.fromBytes(PubKey(value).toErgoTree.bytes)
   }
 
   object PubKey {

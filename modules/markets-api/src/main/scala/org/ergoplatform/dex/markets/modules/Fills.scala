@@ -15,16 +15,19 @@ trait Fills[F[_], CT <: OrderContractFamily] {
 
 object Fills {
 
-  implicit def instance[F[_]: Applicative, CT <: OrderContractFamily](implicit scripts: OrderContracts[CT]): Fills[F, CT] =
+  implicit def instance[F[_]: Applicative, CT <: OrderContractFamily](implicit
+    scripts: OrderContracts[CT]
+  ): Fills[F, CT] =
     new Live[F, CT]
 
-  final class Live[F[_]: Applicative, CT <: OrderContractFamily](implicit scripts: OrderContracts[CT]) extends Fills[F, CT] {
+  final class Live[F[_]: Applicative, CT <: OrderContractFamily](implicit scripts: OrderContracts[CT])
+    extends Fills[F, CT] {
 
     def extract(tx: Transaction): F[List[Fill]] = {
-      val asksIn     = tx.inputs.filter(in => scripts.isAsk(in.ergoTree))
-      val asksErased = asksIn.map(_.asOutput).flatMap(scripts.parseAsk)
-      val bidsIn     = tx.inputs.filter(in => scripts.isBid(in.ergoTree))
-      val bidsErased = bidsIn.map(_.asOutput).flatMap(scripts.parseBid)
+      val asksIn     = tx.inputs.filter(in => scripts.isAsk(in.output.ergoTree))
+      val asksErased = asksIn.map(_.output).flatMap(scripts.parseAsk)
+      val bidsIn     = tx.inputs.filter(in => scripts.isBid(in.output.ergoTree))
+      val bidsErased = bidsIn.map(_.output).flatMap(scripts.parseBid)
       (collectSellFills(tx, asksErased) ++ collectBuyFills(tx, bidsErased)).pure
     }
 
@@ -44,13 +47,11 @@ object Fills {
               Fill(
                 Side.Sell,
                 tx.id,
-                tx.inclusionHeight,
                 params.quoteAsset,
                 params.baseAsset,
                 amount,
                 price,
-                fee,
-                tx.timestamp
+                fee
               )
             }
           }
@@ -71,13 +72,11 @@ object Fills {
                 Fill(
                   Side.Buy,
                   tx.id,
-                  tx.inclusionHeight,
                   params.quoteAsset,
                   params.baseAsset,
                   purchaseAmount,
                   params.price,
-                  fee,
-                  tx.timestamp
+                  fee
                 )
               }
           }

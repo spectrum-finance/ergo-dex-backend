@@ -8,11 +8,9 @@ import tofu.logging.derivation.loggable
 final case class Fill(
   side: Side,
   txId: TxId,
-  height: Int,
   quoteAsset: TokenId,
   baseAsset: TokenId,
   amount: Long,
   price: Long,
-  fee: Long,
-  ts: Long
+  fee: Long
 )

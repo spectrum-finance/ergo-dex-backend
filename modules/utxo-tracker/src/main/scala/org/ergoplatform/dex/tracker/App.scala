@@ -15,6 +15,7 @@ import org.ergoplatform.dex.tracker.processes.UtxoTracker.TrackerMode
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
+import org.ergoplatform.dex.tracker.handlers.lift
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
@@ -55,7 +56,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       tracker <-
-        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Live, ammOrderHandler, ammPoolsHandler))
+        Resource.eval(UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Live, lift(ammOrderHandler), lift(ammPoolsHandler)))
     } yield tracker -> configs
 
   private def makeBackend(
