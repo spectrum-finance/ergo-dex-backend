@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.index.repos
+package org.ergoplatform.dex.index.repositories
 
 import cats.data.NonEmptyList
 import cats.tagless.syntax.functorK._

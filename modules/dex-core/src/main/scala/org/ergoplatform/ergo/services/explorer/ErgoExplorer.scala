@@ -12,6 +12,7 @@ import io.circe.jawn.CirceSupportParser
 import jawnfs2._
 import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.common.{ConstrainedEmbed, HexString}
+import org.ergoplatform.common.sttp.syntax._
 import org.ergoplatform.dex.configs.NetworkConfig
 import org.ergoplatform.dex.protocol
 import org.ergoplatform.dex.protocol.codecs._
@@ -65,6 +66,10 @@ trait ErgoExplorer[F[_]] {
   /** Get unspent outputs containing a given token.
     */
   def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]]
+
+  /** Get token info by token id.
+    */
+  def getTokenInfo(tokenId: TokenId): F[TokenInfo]
 }
 
 object ErgoExplorer {
@@ -108,6 +113,13 @@ final class ErgoExplorerTracing[F[_]: Logging: FlatMap] extends ErgoExplorer[Mid
       os <- _
       _  <- trace"getUtxoByToken(..) -> $os"
     } yield os
+
+  def getTokenInfo(tokenId: TokenId): Mid[F, TokenInfo] =
+    for {
+      _  <- trace"getTokenInfo(tokenId=$tokenId)"
+      os <- _
+      _  <- trace"getTokenInfo(..) -> $os"
+    } yield os
 }
 
 class CombinedErgoExplorer[F[_]: MonadThrow](config: NetworkConfig)(implicit backend: SttpBackend[F, Any])
@@ -139,7 +151,7 @@ class CombinedErgoExplorer[F[_]: MonadThrow](config: NetworkConfig)(implicit bac
       .get(explorerUri.withPathSegment(blocksPathSeg).addParams("limit" -> "1", "order" -> "desc"))
       .response(asJson[Items[BlockInfo]])
       .send(backend)
-      .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
+      .absorbError
       .map(_.items.headOption.map(_.height).getOrElse(protocol.constants.PreGenesisHeight))
 
   def getEpochParams: F[EpochParams] =
@@ -147,14 +159,14 @@ class CombinedErgoExplorer[F[_]: MonadThrow](config: NetworkConfig)(implicit bac
       .get(explorerUri.withPathSegment(paramsPathSeg))
       .response(asJson[EpochParams])
       .send(backend)
-      .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
+      .absorbError
 
   def getNetworkInfo: F[NetworkInfo] =
     basicRequest
       .get(explorerUri.withPathSegment(infoPathSeg))
       .response(asJson[NetworkInfo])
       .send(backend)
-      .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
+      .absorbError
 
   def getTransactionsByInputScript(templateHash: HexString, offset: Int, limit: Int): F[List[Transaction]] =
     basicRequest
@@ -165,7 +177,7 @@ class CombinedErgoExplorer[F[_]: MonadThrow](config: NetworkConfig)(implicit bac
       )
       .response(asJson[Items[Transaction]])
       .send(backend)
-      .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
+      .absorbError
       .map(_.items)
 
   def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]] =
@@ -177,8 +189,15 @@ class CombinedErgoExplorer[F[_]: MonadThrow](config: NetworkConfig)(implicit bac
       )
       .response(asJson[Items[Output]])
       .send(backend)
-      .flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
+      .absorbError
       .map(_.items)
+
+  def getTokenInfo(tokenId: TokenId): F[TokenInfo] =
+    basicRequest
+      .get(explorerUri.withPathSegment(tokenInfoPathSeg(tokenId)))
+      .response(asJson[TokenInfo])
+      .send(backend)
+      .absorbError
 }
 
 trait ErgoExplorerStreaming[S[_], F[_]] extends ErgoExplorer[F] {
@@ -219,6 +238,9 @@ object ErgoExplorerStreaming {
 
     def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]] =
       tft.flatMap(_.getUtxoByToken(tokenId, offset, limit))
+
+    def getTokenInfo(tokenId: TokenId): F[TokenInfo] =
+      tft.flatMap(_.getTokenInfo(tokenId))
 
     def streamUnspentOutputs(gOffset: Long, limit: Int): S[Output] =
       evals.eval(tft.map(_.streamUnspentOutputs(gOffset, limit))).flatten

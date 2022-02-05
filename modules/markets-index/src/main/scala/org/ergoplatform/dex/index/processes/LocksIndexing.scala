@@ -4,9 +4,9 @@ import cats.data.NonEmptyList
 import cats.syntax.foldable._
 import cats.{Foldable, Functor, Monad}
 import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
-import org.ergoplatform.dex.index.db.models.{DBLiquidityLock, DBPool, PoolAssets}
-import org.ergoplatform.dex.index.repos.RepoBundle
-import org.ergoplatform.dex.index.streaming.{CFMMPoolsConsumer, LqLocksConsumer}
+import org.ergoplatform.dex.index.db.models.DBLiquidityLock
+import org.ergoplatform.dex.index.repositories.RepoBundle
+import org.ergoplatform.dex.index.streaming.LqLocksConsumer
 import tofu.doobie.transactor.Txr
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Chunks, Evals}

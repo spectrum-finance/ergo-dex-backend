@@ -19,4 +19,7 @@ object paths {
 
   def utxoByTokenIdPathSeg(tokenId: TokenId): Segment =
     Segment(s"api/v1/boxes/unspent/byTokenId/$tokenId", identity)
+
+  def tokenInfoPathSeg(tokenId: TokenId): Segment =
+    Segment(s"api/v1/tokens/$tokenId", identity)
 }

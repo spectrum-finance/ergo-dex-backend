@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.index.repos
+package org.ergoplatform.dex.index.repositories
 
 import cats.{~>, FlatMap}
 import cats.tagless.FunctorK
@@ -14,7 +14,7 @@ final case class RepoBundle[F[_]](
   deposits: MonoRepo[DBDeposit, F],
   redeems: MonoRepo[DBRedeem, F],
   pools: MonoRepo[DBPool, F],
-  assets: MonoRepo[DBAssetInfo, F],
+  assets: AssetRepo[F],
   locks: MonoRepo[DBLiquidityLock, F]
 )
 
@@ -43,7 +43,7 @@ object RepoBundle {
       deposits <- MonoRepo.make[I, D, DBDeposit]
       redeems  <- MonoRepo.make[I, D, DBRedeem]
       pools    <- MonoRepo.make[I, D, DBPool]
-      assets   <- MonoRepo.make[I, D, DBAssetInfo]
+      assets   <- AssetRepo.make[I, D]
       locks    <- MonoRepo.make[I, D, DBLiquidityLock]
     } yield RepoBundle(swaps, deposits, redeems, pools, assets, locks)
 }

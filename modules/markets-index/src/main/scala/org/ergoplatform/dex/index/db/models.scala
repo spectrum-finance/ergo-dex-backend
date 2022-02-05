@@ -6,15 +6,9 @@ import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, Redee
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
-import org.ergoplatform.dex.index.sql.{
-  AssetSql,
-  CFMMPoolSql,
-  DepositOrdersSql,
-  LqLocksSql,
-  RedeemOrdersSql,
-  SwapOrdersSql
-}
+import org.ergoplatform.dex.index.sql.{AssetSql, CFMMPoolSql, DepositOrdersSql, LqLocksSql, RedeemOrdersSql, SwapOrdersSql}
 import org.ergoplatform.ergo._
+import org.ergoplatform.ergo.services.explorer.models.TokenInfo
 
 object models {
 
@@ -182,15 +176,6 @@ object models {
     decimals: Option[Int]
   )
 
-  implicit val assetQs: QuerySet[DBAssetInfo] = AssetSql
-
-  type PoolAssets = (DBAssetInfo, DBAssetInfo, DBAssetInfo)
-
-  implicit val extractAssets: Extract[CFMMPool, PoolAssets] =
-    pool =>
-      (
-        DBAssetInfo(pool.lp.id, pool.lpInfo.ticker, pool.lpInfo.decimals),
-        DBAssetInfo(pool.x.id, pool.xInfo.ticker, pool.xInfo.decimals),
-        DBAssetInfo(pool.y.id, pool.yInfo.ticker, pool.yInfo.decimals)
-      )
+  implicit val extractAssets: Extract[TokenInfo, DBAssetInfo] =
+    ti => DBAssetInfo(ti.id, ti.name.map(Ticker.apply), ti.decimals)
 }
