@@ -14,6 +14,7 @@ import tofu.logging.derivation.loggable
 
 package object domain {
 
+  @derive(loggable)
   final case class Price(byX: BigDecimal, byY: BigDecimal)
 
   @derive(loggable)

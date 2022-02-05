@@ -2,7 +2,7 @@ package org.ergoplatform.dex.markets.services
 
 import cats.effect.Clock
 import cats.tagless.syntax.functorK._
-import cats.{Functor, Monad}
+import cats.{FlatMap, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.common.caching.Memoize
 import org.ergoplatform.dex.domain.Market
@@ -13,7 +13,9 @@ import tofu.concurrent.MakeRef
 import tofu.doobie.transactor.Txr
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
+import tofu.logging.{Logging, Logs}
 import tofu.syntax.monadic._
+import tofu.syntax.logging._
 
 import scala.concurrent.duration._
 
@@ -33,14 +35,17 @@ object Markets {
 
   val MemoTtl: FiniteDuration = 4.minutes
 
-  def make[I[_]: Functor, F[_]: Monad: Clock, D[_]](implicit
+  def make[I[_]: FlatMap, F[_]: Monad: Clock, D[_]](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
-    makeRef: MakeRef[I, F]
+    makeRef: MakeRef[I, F],
+    logs: Logs[I, F]
   ): I[Markets[F]] =
-    Memoize.make[I, F, List[Market]].map { memo =>
-      val poolsF = pools.mapK(txr.trans)
-      new MarketsMemo(poolsF, memo) attach new Live(poolsF)
+    logs.forService[Markets[F]].flatMap { implicit l =>
+      Memoize.make[I, F, List[Market]].map { memo =>
+        val poolsF = pools.mapK(txr.trans)
+        new MarketsTracing[F] attach (new MarketsMemo(poolsF, memo) attach new Live(poolsF))
+      }
     }
 
   private def parsePools(pools: List[PoolSnapshot]): List[Market] =
@@ -76,5 +81,22 @@ object Markets {
                    case None          => fa.flatTap(_ => pools.snapshots.map(parsePools) >>= (memo.memoize(_, MemoTtl)))
                  }
         } yield res
+  }
+
+  final class MarketsTracing[F[_]: Monad: Logging] extends Markets[Mid[F, *]] {
+
+    def getAll: Mid[F, List[Market]] =
+      for {
+        _ <- trace"getAll()"
+        r <- _
+        _ <- trace"getAll() -> $r"
+      } yield r
+
+    def getByAsset(tokenId: TokenId): Mid[F, List[Market]] =
+      for {
+        _ <- trace"getByAsset(tokenId=$tokenId)"
+        r <- _
+        _ <- trace"getByAsset(tokenId=$tokenId) -> $r"
+      } yield r
   }
 }

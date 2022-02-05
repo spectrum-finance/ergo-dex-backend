@@ -37,8 +37,12 @@ object AmmStatsMath {
               ub <- fees.window.to.fold(millis)(_.pure[F])
               lb = fees.window.from.getOrElse(poolInfo.confirmedAt)
             } yield ub - lb
-          periodFees        = fees.value * (BigDecimal(projectionPeriod.toMillis) / windowSizeMillis)
-          periodFeesPercent = (periodFees * 100 / tvl.value).setScale(2, RoundingMode.HALF_UP).toDouble
+          periodFees =
+            if (windowSizeMillis > 0) fees.value * (BigDecimal(projectionPeriod.toMillis) / windowSizeMillis)
+            else BigDecimal(0)
+          periodFeesPercent =
+            if (tvl.value > 0) (periodFees * 100 / tvl.value).setScale(2, RoundingMode.HALF_UP).toDouble
+            else .0
         } yield FeePercentProjection(periodFeesPercent)
     }
 }
