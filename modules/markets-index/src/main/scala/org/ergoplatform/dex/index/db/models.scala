@@ -9,6 +9,7 @@ import org.ergoplatform.dex.domain.locks.types.LockId
 import org.ergoplatform.dex.index.sql.{AssetSql, CFMMPoolSql, DepositOrdersSql, LqLocksSql, RedeemOrdersSql, SwapOrdersSql}
 import org.ergoplatform.ergo._
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo
+import org.ergoplatform.ergo.state.ConfirmedIndexed
 
 object models {
 
@@ -43,8 +44,8 @@ object models {
 
   implicit val poolQs: QuerySet[DBPool] = CFMMPoolSql
 
-  implicit val poolView: Extract[CFMMPool, DBPool] =
-    pool =>
+  implicit val poolView: Extract[ConfirmedIndexed[CFMMPool], DBPool] = {
+    case ConfirmedIndexed(pool, gix) =>
       DBPool(
         PoolStateId.fromBoxId(pool.box.boxId),
         pool.poolId,
@@ -55,9 +56,10 @@ object models {
         pool.y.id,
         pool.y.value,
         pool.feeNum,
-        ???,
+        gix,
         ProtocolVersion.Initial
       )
+  }
 
   final case class DBSwap(
     orderId: OrderId,

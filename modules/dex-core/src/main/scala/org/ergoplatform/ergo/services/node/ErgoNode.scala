@@ -8,6 +8,7 @@ import org.ergoplatform.dex.configs.NetworkConfig
 import org.ergoplatform.dex.domain.errors.TxFailed
 import org.ergoplatform.ergo.TxId
 import org.ergoplatform.ergo.errors.ResponseError
+import org.ergoplatform.common.sttp.syntax._
 import org.ergoplatform.dex.protocol.codecs._
 import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.ergo.services.node.models.Transaction
@@ -31,6 +32,8 @@ trait ErgoNode[F[_]] {
     */
   def submitTransaction(tx: ErgoLikeTransaction): F[TxId]
 
+  /** Get transactions from mempool.
+    */
   def unconfirmedTransactions(offset: Int, limit: Int): F[Vector[Transaction]]
 }
 
@@ -66,7 +69,11 @@ object ErgoNode {
           }
         }
 
-    def unconfirmedTransactions(offset: Int, limit: Int): F[Vector[Transaction]] = ???
+    def unconfirmedTransactions(offset: Int, limit: Int): F[Vector[Transaction]] =
+      basicRequest.get(config.nodeUri withPathSegment paths.unconfirmedTransactionsPathSeg)
+        .response(asJson[Vector[Transaction]])
+        .send(backend)
+        .absorbError
   }
 
   final class ErgoNodeTracing[F[_]: Logging: FlatMap] extends ErgoNode[Mid[F, *]] {

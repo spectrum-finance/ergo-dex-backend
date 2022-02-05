@@ -7,10 +7,10 @@ import fs2.kafka.serde._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
-import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
+import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.dex.configs.ConsumerConfig
-import org.ergoplatform.ergo.state.Confirmed
+import org.ergoplatform.ergo.state.{Confirmed, ConfirmedIndexed}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, EvaluatedCFMMOrder, OrderId, PoolId}
 import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
@@ -65,7 +65,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
       implicit0(poolCons: CFMMPoolsConsumer[StreamF, RunF]) =
-        makeConsumer[PoolId, Confirmed[CFMMPool]](configs.consumers.cfmmPools)
+        makeConsumer[PoolId, ConfirmedIndexed[CFMMPool]](configs.consumers.cfmmPools)
       implicit0(ammHistCons: CFMMHistConsumer[StreamF, RunF]) =
         makeConsumer[OrderId, Option[EvaluatedCFMMOrder.Any]](configs.consumers.cfmmHistory)
       implicit0(locksCons: LqLocksConsumer[StreamF, RunF]) =

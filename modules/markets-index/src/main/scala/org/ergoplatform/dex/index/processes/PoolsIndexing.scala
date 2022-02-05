@@ -55,13 +55,13 @@ object PoolsIndexing {
 
     def run: S[Unit] =
       pools.stream.chunks.evalMap { rs =>
-        val poolSnapshots = rs.map(r => r.message.confirmed).toList
-        val assets        = poolSnapshots.flatMap(p => List(p.lp.id, p.x.id, p.y.id)).distinct
+        val poolSnapshots = rs.map(r => r.message).toList
+        val assets        = poolSnapshots.flatMap(p => List(p.entity.lp.id, p.entity.x.id, p.entity.y.id)).distinct
 
         val resolveNewAssets =
           for {
             existingAssets <-
-              txr.trans(NonEmptyList.fromList(assets).fold[D[List[TokenId]]](List.empty.pure[D])(repos.assets.existing))
+              txr.trans(NonEmptyList.fromList(assets).fold(List.empty[TokenId].pure[D])(repos.assets.existing))
             unknownAssets = assets.diff(existingAssets)
             assetsInfo <- unknownAssets.traverse(explorer.getTokenInfo)
           } yield assetsInfo
