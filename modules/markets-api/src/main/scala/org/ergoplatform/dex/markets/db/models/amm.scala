@@ -18,7 +18,8 @@ object amm {
   final case class PoolSnapshot(
     id: PoolId,
     lockedX: FullAsset,
-    lockedY: FullAsset
+    lockedY: FullAsset,
+    dummy: String
   )
 
   final case class PoolVolumeSnapshot(

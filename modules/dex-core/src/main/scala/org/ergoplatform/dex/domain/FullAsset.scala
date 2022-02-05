@@ -13,6 +13,7 @@ final case class FullAsset(
   ticker: Option[Ticker],
   decimals: Option[Int]
 ) {
+  def evalDecimals: Int = decimals getOrElse 0
   def assetClass: AssetClass = AssetClass(id, ticker, decimals)
 }
 

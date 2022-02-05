@@ -1,7 +1,10 @@
 package org.ergoplatform.dex.domain
 
+import derevo.derive
 import org.ergoplatform.ergo.TokenId
+import tofu.logging.derivation.loggable
 
+@derive(loggable)
 final case class Market(x: AssetClass, y: AssetClass, price: Price) {
   def contains(asset: TokenId): Boolean = x.tokenId == asset || y.tokenId == asset
 
@@ -13,5 +16,12 @@ final case class Market(x: AssetClass, y: AssetClass, price: Price) {
 object Market {
 
   def fromReserves(rx: FullAsset, ry: FullAsset): Market =
-    Market(rx.assetClass, ry.assetClass, Price(BigDecimal(ry.amount) / rx.amount, BigDecimal(rx.amount) / ry.amount))
+    Market(
+      rx.assetClass,
+      ry.assetClass,
+      Price(
+        BigDecimal(ry.amount) / rx.amount,
+        BigDecimal(rx.amount) / ry.amount
+      )
+    )
 }

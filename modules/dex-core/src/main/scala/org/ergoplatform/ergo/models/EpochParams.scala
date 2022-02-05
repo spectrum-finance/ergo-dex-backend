@@ -6,7 +6,6 @@ import tofu.logging.derivation.loggable
 
 @derive(decoder, loggable)
 final case class EpochParams(
-  id: Int,
   height: Int,
   storageFeeFactor: Int,
   minValuePerByte: Int,
