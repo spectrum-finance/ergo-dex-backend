@@ -87,7 +87,7 @@ object PriceSolver {
             markets
               .getByAsset(asset.id)
               .map(_.find(_.contains(units.tokenId)).map { market =>
-                val amountEquiv = asset.amount * market.priceBy(asset.id)
+                val amountEquiv = BigDecimal(asset.amount) * market.priceBy(asset.id)
                 AssetEquiv(asset, target, amountEquiv)
               })
           } else AssetEquiv(asset, target, BigDecimal(asset.amount)).someF
