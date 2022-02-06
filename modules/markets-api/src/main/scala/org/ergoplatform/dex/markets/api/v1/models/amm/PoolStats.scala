@@ -2,18 +2,21 @@ package org.ergoplatform.dex.markets.api.v1.models.amm
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
+import org.ergoplatform.dex.domain.Ticker
+import org.ergoplatform.dex.markets.api.v1.models.amm.types.RealPrice
+import org.ergoplatform.dex.markets.domain.CryptoVolume
 import org.ergoplatform.ergo.TokenId
 import sttp.tapir.Schema
 
 @derive(encoder, decoder)
 case class PoolStats(
   baseId: TokenId,
-  baseSymbol: String,
+  baseSymbol: Option[Ticker],
   quoteId: TokenId,
-  quoteSymbol: String,
-  lastPrice: BigDecimal,
-  baseVolume: BigDecimal,
-  quoteVolume: BigDecimal
+  quoteSymbol: Option[Ticker],
+  lastPrice: RealPrice,
+  baseVolume: CryptoVolume,
+  quoteVolume: CryptoVolume
 )
 
 object PoolStats {

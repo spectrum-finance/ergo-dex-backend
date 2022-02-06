@@ -8,12 +8,26 @@ object amm {
 
   final case class PoolInfo(confirmedAt: Long)
 
+  final case class PoolTokenInfoQuery(
+    poolId: PoolId,
+    baseId: TokenId,
+    baseSymbol: String,
+    quoteId: TokenId,
+    quoteSymbol: String
+  )
+
   final case class PoolTokenInfo(
     baseId: TokenId,
     baseSymbol: String,
     quoteId: TokenId,
     quoteSymbol: String
   )
+
+  object PoolTokenInfo {
+
+    def apply(dbObj: PoolTokenInfoQuery): PoolTokenInfo =
+      new PoolTokenInfo(dbObj.baseId, dbObj.baseSymbol, dbObj.quoteId, dbObj.quoteSymbol)
+  }
 
   final case class PoolSnapshot(
     id: PoolId,

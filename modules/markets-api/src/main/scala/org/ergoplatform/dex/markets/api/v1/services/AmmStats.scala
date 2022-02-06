@@ -7,14 +7,16 @@ import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolStats, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm.types._
 import org.ergoplatform.dex.markets.currencies.UsdUnits
-import org.ergoplatform.dex.markets.domain.{Fees, TotalValueLocked, Volume}
+import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
 import org.ergoplatform.dex.markets.repositories.Pools
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
-import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTokenInfo, PoolVolumeSnapshot}
+import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits}
+import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTokenInfo, PoolTokenInfoQuery, PoolVolumeSnapshot}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import tofu.syntax.monadic._
 import tofu.syntax.time.now._
@@ -103,32 +105,45 @@ object AmmStats {
 
     def getPoolsStats(window: TimeWindow): F[Map[String, PoolStats]] = {
       val queryPoolStats = for {
-        reports <- pools.tokenInfo
-        volumes <- pools.volumes(window)
+        volumes   <- pools.volumes(window)
         snapshots <- pools.snapshots
-      } yield (reports, volumes, snapshots)
+      } yield (volumes, snapshots)
 
-      for {
-        (tokensInfo: List[PoolTokenInfo], volumes: List[PoolVolumeSnapshot], snapshots: List[PoolSnapshot]) <- queryPoolStats ||> txr.trans
-
-      } yield tokensInfo.flatMap { ti =>
-        volumes.flatMap { vol =>
+      txr
+        .trans(queryPoolStats)
+        .map { case (volumes: List[PoolVolumeSnapshot], snapshots: List[PoolSnapshot]) =>
           snapshots.flatMap { snapshot =>
-            Map(
-              ti.baseId + "_" + ti.quoteId -> PoolStats(
-                ti.baseId,
-                ti.baseSymbol,
-                ti.quoteId,
-                ti.quoteSymbol,
-                BigDecimal(snapshot.lockedX.amount) / snapshot.lockedY.amount,
-                BigDecimal(vol.volumeByX.amount),
-                BigDecimal(vol.volumeByY.amount)
-              )
-            )
-          }
-        }
-      }.toMap
-    }
+            val currentOpt = volumes
+              .find(_.poolId == snapshot.id)
 
+            currentOpt.toList.map { vol =>
+              val tx = snapshot.lockedX
+              val ty = snapshot.lockedY
+              val vx = vol.volumeByX
+              val vy = vol.volumeByY
+              (
+                tx.id.toString + "_" + ty.id.toString,
+                PoolStats(
+                  tx.id,
+                  tx.ticker,
+                  ty.id,
+                  ty.ticker,
+                  RealPrice.calculate(tx, ty),
+                  CryptoVolume(
+                    BigDecimal(vx.amount),
+                    CryptoUnits(AssetClass(vx.id, vx.ticker, vx.decimals)),
+                    window
+                  ),
+                  CryptoVolume(
+                    BigDecimal(vy.amount),
+                    CryptoUnits(AssetClass(vy.id, vy.ticker, vy.decimals)),
+                    window
+                  )
+                )
+              )
+            }
+          }.toMap
+        }
+    }
   }
 }

@@ -15,22 +15,6 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |select s.timestamp from swaps s where s.pool_id = $id order by s.timestamp asc limit 1
          """.stripMargin.query
 
-  def getPoolsTokenInfo: Query0[PoolTokenInfo] =
-    sql"""
-         |select p.x_id, ax.ticker, p.y_id, ay.ticker
-         |from pools p
-         |left join (
-         |	select pool_id, max(gindex) as gindex
-         |	from pools
-         |	group by pool_id
-         |) as px on p.pool_id = px.pool_id and p.gindex = px.gindex
-         |left join assets ax on ax.id = p.x_id
-         |left join assets ay on ay.id = p.y_id
-         |where px.gindex = p.gindex
-         |and ax.ticker is not null
-         |and ay.ticker is not null
-         """.stripMargin.query[PoolTokenInfo]
-
   def getPoolSnapshot(id: PoolId): Query0[PoolSnapshot] =
     sql"""
          |select p.pool_id, p.x_id, p.x_amount, ax.ticker, ax.decimals, p.y_id, p.y_amount, ay.ticker, ay.decimals, 0
