@@ -7,7 +7,7 @@ import org.ergoplatform.ergo.domain.Output
 
 trait CFMMPoolsParser[+CT <: CFMMType] {
 
-  def pool(box: Output): Option[Confirmed[CFMMPool]]
+  def pool(box: Output): Option[CFMMPool]
 }
 
 object CFMMPoolsParser {

@@ -2,10 +2,11 @@ package org.ergoplatform.dex.resolver.services
 
 import cats.{Functor, Monad}
 import monocle.macros.syntax.lens._
-import org.ergoplatform.ergo.state.{Confirmed, PredictedIndexed, ConfirmedIndexed, Predicted}
+import org.ergoplatform.ergo.state.{Confirmed, ConfirmedIndexed, Predicted, PredictedIndexed}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.resolver.repositories.CFMMPools
 import org.ergoplatform.ergo.BoxId
+import org.ergoplatform.ergo.domain.LedgerMetadata
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
@@ -37,7 +38,7 @@ object Resolver {
         confirmedOpt <- pools.getLastConfirmed(id)
         predictedOpt <- pools.getLastPredicted(id)
         pool <- (confirmedOpt, predictedOpt) match {
-                  case (Some(ConfirmedIndexed(confirmed, newGix)), Some(pps @ PredictedIndexed(predicted, currentGix))) =>
+                  case (Some(ConfirmedIndexed(confirmed, LedgerMetadata(newGix, _))), Some(pps @ PredictedIndexed(predicted, currentGix))) =>
                     val upToDate = newGix <= currentGix
                     for {
                       consistentChain <- pools.existsPrediction(confirmed.box.boxId)

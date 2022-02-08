@@ -15,6 +15,7 @@ create table if not exists public.pools (
     y_amount bigint not null,
     fee_num integer not null,
     gindex bigint not null,
+    height bigint not null,
     protocol_version integer not null
 );
 

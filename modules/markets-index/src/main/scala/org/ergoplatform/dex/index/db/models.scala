@@ -6,8 +6,9 @@ import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, Redee
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
-import org.ergoplatform.dex.index.sql.{AssetSql, CFMMPoolSql, DepositOrdersSql, LqLocksSql, RedeemOrdersSql, SwapOrdersSql}
+import org.ergoplatform.dex.index.sql._
 import org.ergoplatform.ergo._
+import org.ergoplatform.ergo.domain.LedgerMetadata
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo
 import org.ergoplatform.ergo.state.ConfirmedIndexed
 
@@ -28,7 +29,7 @@ object models {
       DBLiquidityLock(id, deadline, amount.id, amount.value, redeemer)
   }
 
-  final case class DBPool(
+  final case class DBPoolSnapshot(
     stateId: PoolStateId,
     poolId: PoolId,
     lpId: TokenId,
@@ -39,14 +40,15 @@ object models {
     yAmount: Long,
     feeNum: Int,
     globalIndex: Long,
+    settlementHeight: Int,
     protocolVersion: ProtocolVersion
   )
 
-  implicit val poolQs: QuerySet[DBPool] = CFMMPoolSql
+  implicit val poolQs: QuerySet[DBPoolSnapshot] = CFMMPoolSql
 
-  implicit val poolView: Extract[ConfirmedIndexed[CFMMPool], DBPool] = {
-    case ConfirmedIndexed(pool, gix) =>
-      DBPool(
+  implicit val poolView: Extract[ConfirmedIndexed[CFMMPool], DBPoolSnapshot] = {
+    case ConfirmedIndexed(pool, LedgerMetadata(gix, height)) =>
+      DBPoolSnapshot(
         PoolStateId.fromBoxId(pool.box.boxId),
         pool.poolId,
         pool.lp.id,
@@ -57,6 +59,7 @@ object models {
         pool.y.value,
         pool.feeNum,
         gix,
+        height,
         ProtocolVersion.Initial
       )
   }

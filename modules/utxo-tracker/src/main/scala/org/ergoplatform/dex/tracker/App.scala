@@ -6,18 +6,17 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
 import org.ergoplatform.common.streaming.Producer
-import org.ergoplatform.ergo.state.Confirmed
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, OrderId, PoolId}
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
-import org.ergoplatform.dex.tracker.handlers.{CFMMOpsHandler, CFMMPoolsHandler}
+import org.ergoplatform.dex.tracker.handlers.{lift, CFMMOpsHandler, SettledCFMMPoolsHandler}
 import org.ergoplatform.dex.tracker.processes.UtxoTracker
 import org.ergoplatform.dex.tracker.processes.UtxoTracker.TrackerMode
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
-import org.ergoplatform.ergo.services.explorer.{ErgoExplorer, ErgoExplorerStreaming}
-import org.ergoplatform.dex.tracker.handlers.lift
 import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming}
+import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import org.ergoplatform.ergo.services.node.ErgoNode
+import org.ergoplatform.ergo.state.ConfirmedIndexed
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
@@ -48,8 +47,8 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
       implicit0(producer1: Producer[OrderId, CFMMOrder, StreamF]) <-
         Producer.make[InitF, StreamF, RunF, OrderId, CFMMOrder](configs.producers.ammOrders)
-      implicit0(producer2: Producer[PoolId, Confirmed[CFMMPool], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, PoolId, Confirmed[CFMMPool]](configs.producers.ammPools)
+      implicit0(producer2: Producer[PoolId, ConfirmedIndexed[CFMMPool], StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]](configs.producers.ammPools)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(explorer: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
@@ -57,12 +56,12 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(ledger: LedgerStreaming[StreamF]) = LedgerStreaming.make[StreamF, RunF]
       implicit0(cfmmRules: CFMMRules[RunF])       = CFMMRules.make[RunF]
       ammOrderHandler                      <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF])
-      ammPoolsHandler                      <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF])
+      ammPoolsHandler                      <- Resource.eval(SettledCFMMPoolsHandler.make[InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       tracker <-
         Resource.eval(
-          UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Live, lift(ammOrderHandler), lift(ammPoolsHandler))
+          UtxoTracker.make[InitF, StreamF, RunF](TrackerMode.Live, lift(ammOrderHandler), ammPoolsHandler)
         )
     } yield tracker -> configs
 

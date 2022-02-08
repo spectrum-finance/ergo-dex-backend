@@ -73,9 +73,9 @@ object CFMMHistoryParser {
         inputs.map(pools.pool).collectFirst { case Some(p) => p } match {
           case Some(p) =>
             tx.tx.outputs
-              .traverse(o => evalParse(o, p.confirmed, order))
+              .traverse(o => evalParse(o, p, order))
               .map(_.collectFirst { case Some(c) => c })
-              .map(eval => EvaluatedCFMMOrder(order, eval, p.confirmed.some).some)
+              .map(eval => EvaluatedCFMMOrder(order, eval, p.some).some)
           case None => EvaluatedCFMMOrder(order, none, none).someF[F]
         }
       inputs

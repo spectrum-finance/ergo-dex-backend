@@ -5,7 +5,7 @@ import cats.syntax.foldable._
 import cats.syntax.traverse._
 import cats.{Foldable, Functor, Monad}
 import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
-import org.ergoplatform.dex.index.db.models.{DBAssetInfo, DBPool}
+import org.ergoplatform.dex.index.db.models.{DBAssetInfo, DBPoolSnapshot}
 import org.ergoplatform.dex.index.repositories.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMPoolsConsumer
 import org.ergoplatform.ergo.TokenId
@@ -73,7 +73,7 @@ object PoolsIndexing {
           newAssets <- resolveNewAssets
           insert =
             for {
-              pn <- insertNel(poolSnapshots)(xs => repos.pools.insert(xs.map(_.extract[DBPool])))
+              pn <- insertNel(poolSnapshots)(xs => repos.pools.insert(xs.map(_.extract[DBPoolSnapshot])))
               an <- insertNel(newAssets)(xs => repos.assets.insert(xs.map(_.extract[DBAssetInfo])))
             } yield (pn, an)
           (pn, an) <- txr.trans(insert)
