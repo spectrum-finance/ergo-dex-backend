@@ -16,7 +16,7 @@ import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
 import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits}
-import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTokenInfo, PoolTokenInfoQuery, PoolVolumeSnapshot}
+import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolVolumeSnapshot}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import tofu.syntax.monadic._
 import tofu.syntax.time.now._

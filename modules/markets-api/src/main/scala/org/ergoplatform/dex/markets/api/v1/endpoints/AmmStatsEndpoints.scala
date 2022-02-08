@@ -24,7 +24,7 @@ final class AmmStatsEndpoints {
       .out(jsonBody[List[LiquidityLockInfo]])
       .tag(Group)
       .name("Pool locks")
-      .description("Get liquidity locks for tjhe pool with the given ID")
+      .description("Get liquidity locks for the pool with the given ID")
 
   def getPoolStats: Endpoint[(PoolId, TimeWindow), HttpError, PoolSummary, Any] =
     baseEndpoint.get
