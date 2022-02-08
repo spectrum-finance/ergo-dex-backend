@@ -12,14 +12,14 @@ import tofu.optics.macros.{promote, ClassyOptics}
 @derive(pureconfigReader)
 @ClassyOptics
 final case class ConfigBundle(
-  @promote commitPolicy: CommitPolicy,
-  producers: Producers,
-  @promote kafka: KafkaConfig,
-  @promote protocol: ProtocolConfig,
-  @promote network: NetworkConfig,
-  @promote tracker: UtxoTrackerConfig,
-  @promote monetary: MonetaryConfig,
-  redis: RedisConfig
+                               @promote commitPolicy: CommitPolicy,
+                               producers: Producers,
+                               @promote kafka: KafkaConfig,
+                               @promote protocol: ProtocolConfig,
+                               @promote network: NetworkConfig,
+                               @promote tracker: LedgerTrackingConfig,
+                               @promote monetary: MonetaryConfig,
+                               redis: RedisConfig
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {

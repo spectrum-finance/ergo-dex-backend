@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.processes
 
 import cats.{Defer, FlatMap, Monad, MonoidK}
 import derevo.derive
-import org.ergoplatform.dex.tracker.configs.UtxoTrackerConfig
+import org.ergoplatform.dex.tracker.configs.LedgerTrackingConfig
 import org.ergoplatform.dex.tracker.handlers.SettledBoxHandler
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming}
@@ -36,7 +36,7 @@ object UtxoTracker {
 
   def make[
     I[_]: FlatMap,
-    F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: UtxoTrackerConfig.Has: Catches,
+    F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: LedgerTrackingConfig.Has: Catches,
     G[_]: Monad
   ](mode: TrackerMode, handlers: SettledBoxHandler[F]*)(implicit
     network: ErgoNetwork[G],
@@ -46,19 +46,20 @@ object UtxoTracker {
   ): I[UtxoTracker[F]] =
     logs.forService[UtxoTracker[F]].map { implicit l =>
       (context map
-      (conf => new StreamingTracker[F, G](mode, cache, conf, handlers.toList): UtxoTracker[F])).embed
+      (conf => new LedgerTracker[F, G](mode, cache, conf, handlers.toList): UtxoTracker[F])).embed
     }
 
-  final private[dex] class StreamingTracker[
+  final class LedgerTracker[
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging
-  ](mode: TrackerMode, cache: TrackerCache[G], conf: UtxoTrackerConfig, handlers: List[SettledBoxHandler[F]])(implicit
+  ](mode: TrackerMode, cache: TrackerCache[G], conf: LedgerTrackingConfig, handlers: List[SettledBoxHandler[F]])(
+    implicit
     network: ErgoNetwork[G],
     ledger: LedgerStreaming[F]
   ) extends UtxoTracker[F] {
 
     def run: F[Unit] =
-      eval(info"Starting UTXO tracker in mode [${mode.toString}] ..") >>
+      eval(info"Starting Ledger Tracker in mode [${mode.toString}] ..") >>
       eval(cache.lastScannedBoxOffset).repeat
         .flatMap { lastOffset =>
           eval(network.getNetworkInfo).flatMap { networkParams =>
