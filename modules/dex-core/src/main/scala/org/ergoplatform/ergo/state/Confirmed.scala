@@ -13,4 +13,9 @@ final case class Confirmed[T](confirmed: T)
 
 object Confirmed {
   implicit def codec[T: Codec]: Codec[Confirmed[T]] = implicitly[Codec[T]].as[Confirmed[T]]
+
+  implicit def ledgerStatus: LedgerStatus[Confirmed] =
+    new LedgerStatus[Confirmed] {
+      def lift[A](a: A): Confirmed[A] = Confirmed(a)
+    }
 }

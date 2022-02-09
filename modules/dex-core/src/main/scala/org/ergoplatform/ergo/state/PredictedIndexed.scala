@@ -11,7 +11,7 @@ import tofu.logging.derivation.loggable
 /** Off-chain entity state.
   */
 @derive(loggable, encoder, decoder, show)
-final case class PredictedIndexed[T](entity: T, lastGix: Long)
+final case class PredictedIndexed[T](entity: T, predecessorGix: Long)
 
 object PredictedIndexed {
   implicit def schema[T: Schema]: Schema[PredictedIndexed[T]]          = Schema.derived[PredictedIndexed[T]]

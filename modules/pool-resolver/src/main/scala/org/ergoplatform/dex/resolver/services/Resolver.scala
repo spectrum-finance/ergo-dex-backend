@@ -44,7 +44,7 @@ object Resolver {
                       consistentChain <- pools.existsPrediction(confirmed.box.boxId)
                       pessimistic =
                         if (consistentChain) {
-                          val updatedPool = pps.copy(lastGix = newGix)
+                          val updatedPool = pps.copy(predecessorGix = newGix)
                           debug"Updating consistent chain for Pool{id='$id'}" >>
                           pools.update(updatedPool) as predicted
                         } else warn"Prediction chain is inconsistent for Pool{id='$id'}" as confirmed
