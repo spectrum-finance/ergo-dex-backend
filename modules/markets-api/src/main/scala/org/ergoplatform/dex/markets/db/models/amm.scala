@@ -25,4 +25,12 @@ object amm {
     feesByX: FullAsset,
     feesByY: FullAsset
   )
+
+  final case class PoolTrace(
+    id: PoolId,
+    lockedX: FullAsset,
+    lockedY: FullAsset,
+    height: Long,
+    gindex: Long
+  )
 }

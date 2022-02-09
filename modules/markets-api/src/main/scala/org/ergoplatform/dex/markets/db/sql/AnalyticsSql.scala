@@ -178,6 +178,16 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          """.stripMargin.query[PoolFeesSnapshot]
   }
 
+  def getPoolTrace(id: PoolId, depth: Long): Query0[PoolTrace] =
+    sql"""
+         |select p.pool_id, p.x_id, p.x_amount, ax.ticker, ax.decimals, p.y_id, p.y_amount, ay.ticker, ay.decimals, p.height, p.gindex
+         |from pools p
+         |left join assets ax on ax.id = p.x_id
+         |left join assets ay on ay.id = p.y_id
+         |where p.pool_id = $id
+         |and p.height >= p.height - $depth
+         """.stripMargin.query[PoolTrace]
+
   private def timeWindowCond(tw: TimeWindow): Fragment =
     if (tw.from.nonEmpty || tw.to.nonEmpty)
       Fragment.const(

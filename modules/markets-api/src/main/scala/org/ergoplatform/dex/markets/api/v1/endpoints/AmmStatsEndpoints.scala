@@ -5,7 +5,7 @@ import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSummary}
 import org.ergoplatform.dex.markets.api.v1.models.locks.LiquidityLockInfo
-import sttp.tapir.{path, Endpoint}
+import sttp.tapir.{Endpoint, path}
 import sttp.tapir._
 import sttp.tapir.json.circe.jsonBody
 
@@ -42,4 +42,13 @@ final class AmmStatsEndpoints {
       .tag(Group)
       .name("Platform stats")
       .description("Get statistics on whole AMM")
+
+  def getAvgPoolSlippage: Endpoint[(PoolId, Long), HttpError, BigDecimal, Any] =
+    baseEndpoint.get
+      .in(PathPrefix / "pool" / path[PoolId].description("Asset reference") / "slippage")
+      .in(query[Long]("blockDepth").default(10L).validate(Validator.min(1L)).validate(Validator.max(128L)))
+      .out(jsonBody[BigDecimal])
+      .tag(Group)
+      .name("Pool slippage")
+      .description("Get average slippage by pool")
 }

@@ -14,6 +14,7 @@ import org.ergoplatform.dex.markets.repositories.Pools
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
+import org.ergoplatform.dex.markets.db.models.amm.PoolTrace
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import tofu.syntax.monadic._
 import tofu.syntax.time.now._
@@ -25,6 +26,8 @@ trait AmmStats[F[_]] {
   def getPlatformSummary(window: TimeWindow): F[PlatformSummary]
 
   def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]]
+
+  def getAvgPoolSlippage(poolId: PoolId, depth: Long): F[Option[BigDecimal]]
 }
 
 object AmmStats {
@@ -97,5 +100,28 @@ object AmmStats {
         yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
       } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
     }
+
+    def getAvgPoolSlippage(poolId: PoolId, depth: Long): F[Option[BigDecimal]] =
+      txr.trans(pools.trace(poolId, depth)).map { xs: List[PoolTrace] =>
+        if (xs.isEmpty)
+          None
+        else {
+          val slippageBySegment = xs
+            .groupBy(_.height)
+            .map { case (_, traces) =>
+              val max = traces.maxBy(_.gindex)
+              val min = traces.minBy(_.gindex)
+              val minPrice = BigDecimal(min.lockedY.amount) / min.lockedX.amount * BigDecimal(10).pow(
+                min.lockedX.evalDecimals - min.lockedY.evalDecimals
+              )
+              val maxPrice = BigDecimal(max.lockedY.amount) / max.lockedX.amount * BigDecimal(10).pow(
+                max.lockedX.evalDecimals - max.lockedY.evalDecimals
+              )
+              (maxPrice - minPrice) / (minPrice / 100)
+            }
+            .toList
+          Some(slippageBySegment.sum / slippageBySegment.size)
+        }
+      }
   }
 }
