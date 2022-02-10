@@ -34,7 +34,7 @@ final class AmmStatsRoutes[
   }
 
   def getAllPoolsStatsR: HttpRoutes[F] = interpreter.toRoutes(getAllPoolsStats) { tw =>
-    stats.getPoolsStats(tw).adaptThrowable.value
+    stats.getMarkets(tw).adaptThrowable.value
   }
 
 }
