@@ -61,10 +61,10 @@ object Execution {
                              val poolBoxId     = pool.box.boxId
                              val invalidPool   = invalidInputs.exists { case (boxId, _) => boxId == poolBoxId }
                              if (invalidPool)
-                               warnCause"PoolState{poolId=${order.poolId}, boxId=$poolBoxId} is invalidated. Validation result: $errText" (
+                               warnCause"PoolState{poolId=${pool.poolId}, boxId=$poolBoxId} is invalidated. Validation result: $errText" (
                                  e
                                ) >>
-                               pools.invalidate(poolBoxId) as Some(order)
+                               pools.invalidate(pool.poolId, poolBoxId) as Some(order)
                              else
                                warnCause"Order{id=${order.id}} is discarded due to TX error. Validation result: $errText" (
                                  e
