@@ -5,6 +5,7 @@ import derevo.derive
 import doobie.{Get, Put}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
+import org.ergoplatform.dex.domain.Ticker
 import org.ergoplatform.ergo.TokenId
 import scodec.Codec
 import scodec.codecs.{uint16, utf8, variableSizeBits}
@@ -19,6 +20,24 @@ package object domain {
 
   @derive(loggable)
   final case class PairId(quoteId: TokenId, baseId: TokenId)
+
+  @newtype
+  final case class MarketId(value: String)
+
+  object MarketId {
+
+    def apply(baseId: TokenId, quoteId: TokenId): MarketId =
+      MarketId(s"${baseId}_$quoteId")
+
+    implicit val encoder: Encoder[MarketId] = deriving
+    implicit val decoder: Decoder[MarketId] = deriving
+
+    implicit val show: Show[MarketId]         = _.value
+    implicit val loggable: Loggable[MarketId] = Loggable.show
+
+    implicit val schema: Schema[MarketId]       = deriving
+    implicit val validator: Validator[MarketId] = schema.validator
+  }
 
   @newtype
   final case class Ticker(value: String)
