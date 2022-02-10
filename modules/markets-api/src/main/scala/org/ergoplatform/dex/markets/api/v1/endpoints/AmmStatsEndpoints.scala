@@ -1,9 +1,10 @@
 package org.ergoplatform.dex.markets.api.v1.endpoints
 
+import io.circe.Encoder.AsArray.importedAsArrayEncoder
 import org.ergoplatform.common.http.HttpError
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, PlatformSummary, PoolSummary}
 import org.ergoplatform.dex.markets.api.v1.models.locks.LiquidityLockInfo
 import sttp.tapir.{path, Endpoint}
 import sttp.tapir._
@@ -23,7 +24,7 @@ final class AmmStatsEndpoints {
       .out(jsonBody[List[LiquidityLockInfo]])
       .tag(Group)
       .name("Pool locks")
-      .description("Get liquidity locks for tjhe pool with the given ID")
+      .description("Get liquidity locks for the pool with the given ID")
 
   def getPoolStats: Endpoint[(PoolId, TimeWindow), HttpError, PoolSummary, Any] =
     baseEndpoint.get
@@ -42,4 +43,13 @@ final class AmmStatsEndpoints {
       .tag(Group)
       .name("Platform stats")
       .description("Get statistics on whole AMM")
+
+  def getAllPoolsStats: Endpoint[TimeWindow, HttpError, List[AmmMarketSummary], Any] =
+    baseEndpoint.get
+      .in(PathPrefix / "markets")
+      .in(timeWindow)
+      .out(jsonBody[List[AmmMarketSummary]])
+      .tag(Group)
+      .name("All pools stats")
+      .description("Get statistics on all pools")
 }
