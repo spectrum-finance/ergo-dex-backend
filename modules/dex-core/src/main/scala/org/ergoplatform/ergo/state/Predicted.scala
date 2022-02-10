@@ -10,7 +10,7 @@ import tofu.logging.derivation.loggable
 /** Predicted entity state.
   */
 @derive(loggable, encoder, decoder, show)
-final case class Predicted[T](predicted: T)
+final case class Predicted[T](entity: T)
 
 object Predicted {
   implicit def schema[T: Schema]: Schema[Predicted[T]]          = Schema.derived[Predicted[T]]

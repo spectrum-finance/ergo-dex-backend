@@ -12,7 +12,7 @@ import tofu.optics.macros.{ClassyOptics, promote}
 final case class ConfigBundle(
   http: HttpConfig,
   @promote kafka: KafkaConfig,
-  @promote consumer: ConsumerConfig,
+  consumers: Consumers,
   rocks: RocksConfig
 )
 

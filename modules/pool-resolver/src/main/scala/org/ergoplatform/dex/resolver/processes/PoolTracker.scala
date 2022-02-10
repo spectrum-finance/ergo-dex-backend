@@ -3,10 +3,10 @@ package org.ergoplatform.dex.resolver.processes
 import cats.{Functor, Monad}
 import org.ergoplatform.common.streaming.Consumer
 import org.ergoplatform.common.streaming.syntax._
-import org.ergoplatform.ergo.state.{Confirmed, ConfirmedIndexed}
+import org.ergoplatform.ergo.state.{Confirmed, ConfirmedIndexed, Unconfirmed}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.resolver.repositories.CFMMPools
-import tofu.streams.Evals
+import tofu.streams.{Evals, ParFlatten}
 import tofu.syntax.streams.all._
 
 trait PoolTracker[F[_]] {
@@ -17,24 +17,27 @@ trait PoolTracker[F[_]] {
 object PoolTracker {
 
   def make[
-    F[_]: Monad: Evals[*[_], G],
+    F[_]: Monad: Evals[*[_], G]: ParFlatten,
     G[_]: Functor
   ](implicit
-    consumer: Consumer[PoolId, ConfirmedIndexed[CFMMPool], F, G],
+    confirmedPools: Consumer[PoolId, ConfirmedIndexed[CFMMPool], F, G],
+    unconfirmedPools: Consumer[PoolId, Unconfirmed[CFMMPool], F, G],
     pools: CFMMPools[G]
   ): PoolTracker[F] = new Live[F, G]
 
   final class Live[
-    F[_]: Monad: Evals[*[_], G],
+    F[_]: Monad: Evals[*[_], G]: ParFlatten,
     G[_]: Functor
   ](implicit
-    consumer: Consumer[PoolId, ConfirmedIndexed[CFMMPool], F, G],
+    confirmedPools: Consumer[PoolId, ConfirmedIndexed[CFMMPool], F, G],
+    unconfirmedPools: Consumer[PoolId, Unconfirmed[CFMMPool], F, G],
     pools: CFMMPools[G]
   ) extends PoolTracker[F] {
 
     def run: F[Unit] =
-      consumer.stream
-        .evalTap(rec => pools.put(rec.message))
-        .evalMap(_.commit)
+      emits(List(
+        confirmedPools.stream.evalTap(rec => pools.put(rec.message)).evalMap(_.commit),
+        unconfirmedPools.stream.evalTap(rec => pools.put(rec.message)).evalMap(_.commit)
+      )).parFlattenUnbounded
   }
 }
