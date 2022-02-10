@@ -4,7 +4,7 @@ import cats.{Functor, Monad}
 import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.ergo.state.Predicted
+import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
@@ -33,7 +33,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
   import helpers._
 
-  def deposit(deposit: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
+  def deposit(deposit: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = {
     val poolBox0           = pool.box
     val depositBox         = deposit.box
     val depositIn          = new Input(depositBox.boxId.toErgo, ProverResult.empty)
@@ -75,7 +75,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     (tx, nextPool).pure
   }
 
-  def redeem(redeem: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
+  def redeem(redeem: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = {
     val poolBox0         = pool.box
     val redeemBox        = redeem.box
     val redeemIn         = new Input(redeemBox.boxId.toErgo, ProverResult.empty)
@@ -112,7 +112,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     (tx, nextPool).pure
   }
 
-  def swap(swap: Swap, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] =
+  def swap(swap: Swap, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
     swapParams(swap, pool).toRaise.map { case (input, output, dexFee) =>
       val poolBox0 = pool.box
       val swapBox  = swap.box

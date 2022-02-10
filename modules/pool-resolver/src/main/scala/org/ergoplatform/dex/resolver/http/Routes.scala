@@ -33,7 +33,7 @@ final class Routes[
     }
 
   def invalidateR: HttpRoutes[F] =
-    interpreter.toRoutes(Endpoints.invalidate) { boxId =>
-      service.invalidate(boxId).adaptThrowable.value
+    interpreter.toRoutes(Endpoints.invalidate) { case (poolId, boxId) =>
+      service.invalidate(poolId, boxId).adaptThrowable.value
     }
 }

@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.instances.list._
 import cats.syntax.foldable._
 import monocle.macros.syntax.lens._
-import org.ergoplatform.ergo.state.{Confirmed, PredictedIndexed, ConfirmedIndexed, Predicted}
+import org.ergoplatform.ergo.state.{Confirmed, Traced, ConfirmedIndexed, Predicted}
 import org.ergoplatform.dex.generators._
 import org.ergoplatform.dex.resolver.repositories.CFMMPools
 import org.scalatest.matchers.should
@@ -29,7 +29,7 @@ class ResolverSpec extends AnyPropSpec with should.Matchers with ScalaCheckPrope
     forAll(cfmmPoolGen) { pool =>
       val testResultF = make.flatMap { case (pools, resolver) =>
         pools.put(ConfirmedIndexed(pool, ???)) >>
-          pools.put(PredictedIndexed(pool, ???)) >>
+          pools.put(Traced(Predicted(pool), ???)) >>
           resolver.resolve(pool.poolId)
       }
       val testResult = testResultF.unsafeRunSync()
@@ -43,7 +43,7 @@ class ResolverSpec extends AnyPropSpec with should.Matchers with ScalaCheckPrope
       val last = predictions.last
       val testResultF = make.flatMap { case (pools, resolver) =>
         pools.put(ConfirmedIndexed(root, ???)) >>
-          predictions.traverse_(p => pools.put(PredictedIndexed(p, ???))) >>
+          predictions.traverse_(p => pools.put(Traced(Predicted(p), ???))) >>
           resolver.resolve(last.poolId)
       }
       val testResult = testResultF.unsafeRunSync()
@@ -63,7 +63,7 @@ class ResolverSpec extends AnyPropSpec with should.Matchers with ScalaCheckPrope
         val last = predictions.last
         val testResultF = make.flatMap { case (pools, resolver) =>
           pools.put(ConfirmedIndexed(root, ???)) >>
-            predictions.traverse_(p => pools.put(PredictedIndexed(p, ???))) >>
+            predictions.traverse_(p => pools.put(Traced(Predicted(p), ???))) >>
             resolver.resolve(last.poolId)
         }
         val testResult = testResultF.unsafeRunSync()
@@ -82,7 +82,7 @@ class ResolverSpec extends AnyPropSpec with should.Matchers with ScalaCheckPrope
         val last = predictions.last
         val testResultF = make.flatMap { case (pools, resolver) =>
           pools.put(ConfirmedIndexed(root, ???)) >>
-            predictions.traverse_(p => pools.put(PredictedIndexed(p, ???))) >>
+            predictions.traverse_(p => pools.put(Traced(Predicted(p), ???))) >>
             resolver.resolve(last.poolId)
         }
         val testResult = testResultF.unsafeRunSync()

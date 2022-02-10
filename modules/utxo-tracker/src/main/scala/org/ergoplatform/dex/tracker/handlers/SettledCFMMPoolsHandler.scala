@@ -7,7 +7,7 @@ import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.dex.tracker.parsers.amm.CFMMPoolsParser
 import org.ergoplatform.ergo.domain.LedgerMetadata
-import org.ergoplatform.ergo.state.{Confirmed, ConfirmedIndexed}
+import org.ergoplatform.ergo.state.ConfirmedIndexed
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
 import tofu.syntax.logging._

@@ -1,57 +1,58 @@
 package org.ergoplatform.dex.resolver.repositories
 
-import cats.data.OptionT
 import cats.effect.concurrent.Ref
 import cats.effect.{BracketThrow, Concurrent, Timer}
-import cats.syntax.show._
 import cats.{FlatMap, Functor, Parallel}
 import derevo.derive
 import io.circe.Json
 import io.circe.syntax._
 import io.github.oskin1.rocksdb.scodec.TxRocksDB
-import org.ergoplatform.ergo.state.{Confirmed, PredictedIndexed, ConfirmedIndexed, Predicted, PredictionLink}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.ergo.BoxId
+import org.ergoplatform.ergo.state.{ConfirmedIndexed, Predicted, Traced, Unconfirmed}
 import scodec.Codec
 import scodec.codecs.{bool, utf8}
 import tofu.concurrent.MakeRef
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
-import tofu.syntax.foption._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 
 @derive(representableK)
 trait CFMMPools[F[_]] {
 
+  /** Get predicted state with the given `id`.
+    */
+  def getPrediction(id: BoxId): F[Option[Traced[Predicted[CFMMPool]]]]
+
   /** Get last predicted state of a pool with the given `id`.
     */
-  def getLastPredicted(id: PoolId): F[Option[PredictedIndexed[CFMMPool]]]
+  def getLastPredicted(id: PoolId): F[Option[Predicted[CFMMPool]]]
 
   /** Get last confirmed state of a pool with the given `id`.
     */
   def getLastConfirmed(id: PoolId): F[Option[ConfirmedIndexed[CFMMPool]]]
 
+  /** Get last unconfirmed state of a pool with the given `id`.
+    */
+  def getLastUnconfirmed(id: PoolId): F[Option[Unconfirmed[CFMMPool]]]
+
   /** Persist predicted pool.
     */
-  def put(pool: PredictedIndexed[CFMMPool]): F[Unit]
-
-  /** Update predicted pool.
-    */
-  def update(pool: PredictedIndexed[CFMMPool]): F[Unit]
+  def put(pool: Traced[Predicted[CFMMPool]]): F[Unit]
 
   /** Persist confirmed pool state.
     */
   def put(pool: ConfirmedIndexed[CFMMPool]): F[Unit]
 
-  /** Check whether a pool state prediction with the given `id` exists.
+  /** Persist unconfirmed pool state.
     */
-  def existsPrediction(id: BoxId): F[Boolean]
+  def put(pool: Unconfirmed[CFMMPool]): F[Unit]
 
-  /** Drop prediction.
+  /** Invalidate non-confirmed state.
     */
-  def dropPrediction(id: BoxId): F[Unit]
+  def invalidate(poolId: PoolId, id: BoxId): F[Unit]
 }
 
 object CFMMPools {
@@ -70,100 +71,102 @@ object CFMMPools {
       implicit0(log: Logging[F]) <- logs.forService[CFMMPools[F]]
     } yield new CFMMPoolsTracing[F] attach new InMemory[F](store)
 
-  private def PredictedKey(id: BoxId)      = s"predicted:$id" // -> link(state)
-  private def LastPredictedKey(id: PoolId) = s"predicted:last:$id" // -> state
-  private def LastConfirmedKey(id: PoolId) = s"confirmed:last:$id"
+  private def PredictedKey(id: BoxId)        = s"predicted:prevState:$id" // -> prevStateId
+  private def LastPredictedKey(id: PoolId)   = s"predicted:last:$id" // -> state
+  private def LastConfirmedKey(id: PoolId)   = s"confirmed:last:$id"
+  private def LastUnconfirmedKey(id: PoolId) = s"confirmed:last:$id"
 
   final class CFMMPoolsRocks[F[_]: BracketThrow](implicit rocks: TxRocksDB[F]) extends CFMMPools[F] {
 
     implicit val codecString: Codec[String] = utf8
     implicit val codecBool: Codec[Boolean]  = bool
 
-    def getLastPredicted(id: PoolId): F[Option[PredictedIndexed[CFMMPool]]] =
-      rocks.get[String, PredictedIndexed[CFMMPool]](LastPredictedKey(id))
+    def getPrediction(id: BoxId): F[Option[Traced[Predicted[CFMMPool]]]] = ???
+
+    def getLastPredicted(id: PoolId): F[Option[Predicted[CFMMPool]]] =
+      rocks.get[String, Predicted[CFMMPool]](LastPredictedKey(id))
 
     def getLastConfirmed(id: PoolId): F[Option[ConfirmedIndexed[CFMMPool]]] =
       rocks.get[String, ConfirmedIndexed[CFMMPool]](LastConfirmedKey(id))
 
-    def put(pool: PredictedIndexed[CFMMPool]): F[Unit] =
+    def getLastUnconfirmed(id: PoolId): F[Option[Unconfirmed[CFMMPool]]] =
+      rocks.get[String, Unconfirmed[CFMMPool]](LastUnconfirmedKey(id))
+
+    def put(tracedPool: Traced[Predicted[CFMMPool]]): F[Unit] =
       rocks.beginTransaction.use { tx =>
         for {
-          prevStateRef <- tx.get[String, PredictedIndexed[CFMMPool]](LastPredictedKey(pool.entity.poolId))
-                            .mapIn(_.entity.box.boxId)
-          _ <- tx.put(LastPredictedKey(pool.entity.poolId), pool)
-          _ <- tx.put(PredictedKey(pool.entity.box.boxId), PredictionLink(pool, prevStateRef))
+          _ <- tx.put(LastPredictedKey(tracedPool.state.entity.poolId), tracedPool.state)
+          _ <- tx.put(PredictedKey(tracedPool.state.entity.box.boxId), tracedPool)
           _ <- tx.commit
         } yield ()
-      }
-
-    def update(pool: PredictedIndexed[CFMMPool]): F[Unit] =
-      rocks.beginTransaction.use { tx =>
-        (for {
-          link <- OptionT(tx.get[String, PredictionLink[CFMMPool]](PredictedKey(pool.entity.box.boxId)))
-          updatedLink = link.copy(state = pool)
-          _ <- OptionT.liftF(tx.put(LastPredictedKey(pool.entity.poolId), pool))
-          _ <- OptionT.liftF(tx.put(PredictedKey(pool.entity.box.boxId), updatedLink))
-          _ <- OptionT.liftF(tx.commit)
-        } yield ()).value.void
       }
 
     def put(pool: ConfirmedIndexed[CFMMPool]): F[Unit] =
       rocks.put(LastConfirmedKey(pool.entity.poolId), pool)
 
-    def existsPrediction(id: BoxId): F[Boolean] =
-      rocks.get[String, PredictionLink[Predicted[CFMMPool]]](PredictedKey(id)).map(_.isDefined)
+    def put(pool: Unconfirmed[CFMMPool]): F[Unit] =
+      rocks.put(LastUnconfirmedKey(pool.entity.poolId), pool)
 
-    def dropPrediction(id: BoxId): F[Unit] =
+    def invalidate(poolId: PoolId, stateId: BoxId): F[Unit] =
       rocks.beginTransaction.use { tx =>
-        (for {
-          currentLink <- OptionT(tx.get[String, PredictionLink[CFMMPool]](PredictedKey(id)))
-          poolId = currentLink.state.entity.poolId
-          _ <- currentLink.predecessorBoxId match {
-                 case Some(predId) =>
-                   for {
-                     prevPool <- OptionT(tx.get[String, PredictionLink[CFMMPool]](PredictedKey(predId)))
-                     _ <- OptionT.liftF(
-                            tx.put(LastPredictedKey(poolId), prevPool.state) >>
-                            tx.delete(PredictedKey(id))
-                          )
-                   } yield ()
-                 case None =>
-                   OptionT.liftF(tx.delete(LastPredictedKey(poolId)) >> tx.delete(PredictedKey(id)))
+        for {
+          lastPredictedState <- tx.get[String, Predicted[CFMMPool]](LastPredictedKey(poolId))
+          _ <- lastPredictedState match {
+                 case Some(Predicted(predicted)) if predicted.box.boxId == stateId =>
+                   tx.delete(LastPredictedKey(poolId))
+                 case _ => unit
                }
-          _ <- OptionT.liftF(tx.commit)
-        } yield ()).value.void
+          lastUnconfirmedState <- tx.get[String, Unconfirmed[CFMMPool]](LastUnconfirmedKey(poolId))
+          _ <- lastUnconfirmedState match {
+                 case Some(Unconfirmed(unconfirmed)) if unconfirmed.box.boxId == stateId =>
+                   tx.delete(LastUnconfirmedKey(poolId))
+                 case _ => unit
+               }
+          _ <- tx.delete(PredictedKey(stateId))
+          _ <- tx.commit
+        } yield ()
       }
   }
 
   final class InMemory[F[_]: Functor](store: Ref[F, Map[String, Json]]) extends CFMMPools[F] {
 
-    def getLastPredicted(id: PoolId): F[Option[PredictedIndexed[CFMMPool]]] =
-      store.get.map(_.get(LastPredictedKey(id)) >>= (_.as[PredictedIndexed[CFMMPool]].toOption))
+    def getPrediction(id: BoxId): F[Option[Traced[Predicted[CFMMPool]]]] = ???
+
+    def getLastPredicted(id: PoolId): F[Option[Predicted[CFMMPool]]] =
+      store.get.map(_.get(LastPredictedKey(id)) >>= (_.as[Predicted[CFMMPool]].toOption))
 
     def getLastConfirmed(id: PoolId): F[Option[ConfirmedIndexed[CFMMPool]]] =
       store.get.map(_.get(LastConfirmedKey(id)) >>= (_.as[ConfirmedIndexed[CFMMPool]].toOption))
 
-    def put(pool: PredictedIndexed[CFMMPool]): F[Unit] =
-      store.update {
-        _.updated(LastPredictedKey(pool.entity.poolId), pool.asJson)
-          .updated(PredictedKey(pool.entity.box.boxId), Json.Null)
-      }
+    def getLastUnconfirmed(id: PoolId): F[Option[Unconfirmed[CFMMPool]]] =
+      store.get.map(_.get(LastUnconfirmedKey(id)) >>= (_.as[Unconfirmed[CFMMPool]].toOption))
 
-    def update(pool: PredictedIndexed[CFMMPool]): F[Unit] = put(pool)
+    def put(pool: Traced[Predicted[CFMMPool]]): F[Unit] =
+      store.update {
+        _.updated(LastPredictedKey(pool.state.entity.poolId), pool.asJson)
+          .updated(PredictedKey(pool.state.entity.box.boxId), Json.Null)
+      }
 
     def put(pool: ConfirmedIndexed[CFMMPool]): F[Unit] =
       store.update(_.updated(LastConfirmedKey(pool.entity.poolId), pool.asJson))
 
-    def existsPrediction(id: BoxId): F[Boolean] =
-      store.get.map(_.contains(PredictedKey(id)))
+    def put(pool: Unconfirmed[CFMMPool]): F[Unit] =
+      store.update(_.updated(LastUnconfirmedKey(pool.entity.poolId), pool.asJson))
 
-    def dropPrediction(id: BoxId): F[Unit] =
-      store.update(_ - id.value)
+    def invalidate(poolId: PoolId, stateId: BoxId): F[Unit] =
+      store.update(_ - stateId.value)
   }
 
   final class CFMMPoolsTracing[F[_]: FlatMap: Logging] extends CFMMPools[Mid[F, *]] {
 
-    def getLastPredicted(id: PoolId): Mid[F, Option[PredictedIndexed[CFMMPool]]] =
+    def getPrediction(id: BoxId): Mid[F, Option[Traced[Predicted[CFMMPool]]]] =
+      for {
+        _ <- trace"getPrediction(id=$id)"
+        r <- _
+        _ <- trace"getPrediction(id=$id) -> $r"
+      } yield r
+
+    def getLastPredicted(id: PoolId): Mid[F, Option[Predicted[CFMMPool]]] =
       for {
         _ <- trace"getLastPredicted(id=$id)"
         r <- _
@@ -177,7 +180,14 @@ object CFMMPools {
         _ <- trace"getLastConfirmed(id=$id) -> $r"
       } yield r
 
-    def put(pool: PredictedIndexed[CFMMPool]): Mid[F, Unit] =
+    def getLastUnconfirmed(id: PoolId): Mid[F, Option[Unconfirmed[CFMMPool]]] =
+      for {
+        _ <- trace"getLastConfirmed(id=$id)"
+        r <- _
+        _ <- trace"getLastConfirmed(id=$id) -> $r"
+      } yield r
+
+    def put(pool: Traced[Predicted[CFMMPool]]): Mid[F, Unit] =
       for {
         _ <- trace"put(pool=$pool)"
         r <- _
@@ -191,25 +201,18 @@ object CFMMPools {
         _ <- trace"put(pool=$pool) -> $r"
       } yield r
 
-    def update(pool: PredictedIndexed[CFMMPool]): Mid[F, Unit] =
+    def put(pool: Unconfirmed[CFMMPool]): Mid[F, Unit] =
       for {
-        _ <- trace"update(pool=$pool)"
+        _ <- trace"put(pool=$pool)"
         r <- _
-        _ <- trace"update(pool=$pool) -> $r"
+        _ <- trace"put(pool=$pool) -> $r"
       } yield r
 
-    def existsPrediction(id: BoxId): Mid[F, Boolean] =
+    def invalidate(poolId: PoolId, stateId: BoxId): Mid[F, Unit] =
       for {
-        _ <- trace"existsPredicted(id=$id)"
+        _ <- trace"dropPrediction(poolId=$poolId, stateId=$stateId)"
         r <- _
-        _ <- trace"existsPredicted(id=$id) -> $r"
-      } yield r
-
-    def dropPrediction(id: BoxId): Mid[F, Unit] =
-      for {
-        _ <- trace"dropPrediction(id=$id)"
-        r <- _
-        _ <- trace"dropPrediction(id=$id) -> $r"
+        _ <- trace"dropPrediction(poolId=$poolId, stateId=$stateId) -> $r"
       } yield r
   }
 }

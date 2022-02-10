@@ -7,10 +7,8 @@ import tofu.Context
 import scala.concurrent.duration.FiniteDuration
 
 @derive(pureconfigReader)
-final case class UtxoTrackerConfig(
-  initialOffset: Long,
-  batchSize: Int,
-  retryDelay: FiniteDuration
+final case class MempoolTrackingConfig(
+  samplingInterval: FiniteDuration
 )
 
-object UtxoTrackerConfig extends Context.Companion[UtxoTrackerConfig]
+object MempoolTrackingConfig extends Context.Companion[MempoolTrackingConfig]
