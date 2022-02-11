@@ -117,4 +117,4 @@ create table if not exists public.lq_locks (
 
 alter table public.lq_locks owner to ergo_admin;
 
-create index lq_locks__asset_id on public.lq_locks using btree (asset_id);
+create index lq_locks__asset_id on public.lq_locks using btree (token_id);
