@@ -6,14 +6,17 @@ import cats.effect.Clock
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, PlatformSummary, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm.types._
 import org.ergoplatform.dex.markets.currencies.UsdUnits
-import org.ergoplatform.dex.markets.domain.{Fees, TotalValueLocked, Volume}
+import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
 import org.ergoplatform.dex.markets.repositories.Pools
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
+import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, MarketId}
+import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolVolumeSnapshot}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import tofu.syntax.monadic._
 import tofu.syntax.time.now._
@@ -25,6 +28,8 @@ trait AmmStats[F[_]] {
   def getPlatformSummary(window: TimeWindow): F[PlatformSummary]
 
   def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]]
+
+  def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]]
 }
 
 object AmmStats {
@@ -96,6 +101,47 @@ object AmmStats {
 
         yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
       } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
+    }
+
+    def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]] = {
+      val queryPoolStats = for {
+        volumes   <- pools.volumes(window)
+        snapshots <- pools.snapshots
+      } yield (volumes, snapshots)
+
+      txr
+        .trans(queryPoolStats)
+        .map { case (volumes: List[PoolVolumeSnapshot], snapshots: List[PoolSnapshot]) =>
+          snapshots.flatMap { snapshot =>
+            val currentOpt = volumes
+              .find(_.poolId == snapshot.id)
+
+            currentOpt.toList.map { vol =>
+              val tx = snapshot.lockedX
+              val ty = snapshot.lockedY
+              val vx = vol.volumeByX
+              val vy = vol.volumeByY
+              AmmMarketSummary(
+                MarketId(tx.id, ty.id),
+                tx.id,
+                tx.ticker,
+                ty.id,
+                ty.ticker,
+                RealPrice.calculate(tx, ty),
+                CryptoVolume(
+                  BigDecimal(vx.amount),
+                  CryptoUnits(AssetClass(vx.id, vx.ticker, vx.decimals)),
+                  window
+                ),
+                CryptoVolume(
+                  BigDecimal(vy.amount),
+                  CryptoUnits(AssetClass(vy.id, vy.ticker, vy.decimals)),
+                  window
+                )
+              )
+            }
+          }
+        }
     }
   }
 }
