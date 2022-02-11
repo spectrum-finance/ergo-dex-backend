@@ -16,6 +16,7 @@ object CFMMPoolSql extends QuerySet[DBPoolSnapshot] {
     "y_amount",
     "fee_num",
     "gindex",
+    "height",
     "protocol_version"
   )
 
