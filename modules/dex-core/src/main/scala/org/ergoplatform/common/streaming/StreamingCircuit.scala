@@ -3,6 +3,7 @@ package org.ergoplatform.common.streaming
 import cats.effect.Timer
 import cats.{FlatMap, Monad}
 import fs2.kafka.types.KafkaOffset
+import org.ergoplatform.ergo.state.{Confirmed, Unconfirmed}
 import tofu.higherKind.Embed
 import tofu.streams.{Evals, ParFlatten}
 import tofu.syntax.embed._
