@@ -8,6 +8,7 @@ import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
 import org.ergoplatform.dex.index.db.models.{DBAssetInfo, DBPoolSnapshot}
 import org.ergoplatform.dex.index.repositories.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMPoolsConsumer
+import org.ergoplatform.dex.protocol.constants.{ErgoAssetId, ErgoAssetInfo}
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import tofu.doobie.transactor.Txr
@@ -62,9 +63,10 @@ object PoolsIndexing {
           for {
             existingAssets <-
               txr.trans(NonEmptyList.fromList(assets).fold(List.empty[TokenId].pure[D])(repos.assets.existing))
-            unknownAssets = assets.diff(existingAssets)
+            unknownAssets = assets.diff(existingAssets).filterNot(_ == ErgoAssetId)
             assetsInfo <- unknownAssets.traverse(explorer.getTokenInfo)
-          } yield assetsInfo
+            nativeAsset = if (unknownAssets.contains(ErgoAssetId)) List(ErgoAssetInfo) else Nil
+          } yield nativeAsset ++ assetsInfo
 
         def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
           NonEmptyList.fromList(xs).fold(0.pure[D])(insert)

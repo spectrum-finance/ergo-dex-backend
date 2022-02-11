@@ -81,7 +81,8 @@ object CFMMPools {
     implicit val codecString: Codec[String] = utf8
     implicit val codecBool: Codec[Boolean]  = bool
 
-    def getPrediction(id: BoxId): F[Option[Traced[Predicted[CFMMPool]]]] = ???
+    def getPrediction(id: BoxId): F[Option[Traced[Predicted[CFMMPool]]]] =
+      rocks.get[String, Traced[Predicted[CFMMPool]]](PredictedKey(id))
 
     def getLastPredicted(id: PoolId): F[Option[Predicted[CFMMPool]]] =
       rocks.get[String, Predicted[CFMMPool]](LastPredictedKey(id))
@@ -130,7 +131,8 @@ object CFMMPools {
 
   final class InMemory[F[_]: Functor](store: Ref[F, Map[String, Json]]) extends CFMMPools[F] {
 
-    def getPrediction(id: BoxId): F[Option[Traced[Predicted[CFMMPool]]]] = ???
+    def getPrediction(id: BoxId): F[Option[Traced[Predicted[CFMMPool]]]] =
+      store.get.map(_.get(PredictedKey(id)) >>= (_.as[Traced[Predicted[CFMMPool]]].toOption))
 
     def getLastPredicted(id: PoolId): F[Option[Predicted[CFMMPool]]] =
       store.get.map(_.get(LastPredictedKey(id)) >>= (_.as[Predicted[CFMMPool]].toOption))
@@ -182,9 +184,9 @@ object CFMMPools {
 
     def getLastUnconfirmed(id: PoolId): Mid[F, Option[Unconfirmed[CFMMPool]]] =
       for {
-        _ <- trace"getLastConfirmed(id=$id)"
+        _ <- trace"getLastUnconfirmed(id=$id)"
         r <- _
-        _ <- trace"getLastConfirmed(id=$id) -> $r"
+        _ <- trace"getLastUnconfirmed(id=$id) -> $r"
       } yield r
 
     def put(pool: Traced[Predicted[CFMMPool]]): Mid[F, Unit] =
@@ -210,9 +212,9 @@ object CFMMPools {
 
     def invalidate(poolId: PoolId, stateId: BoxId): Mid[F, Unit] =
       for {
-        _ <- trace"dropPrediction(poolId=$poolId, stateId=$stateId)"
+        _ <- trace"invalidate(poolId=$poolId, stateId=$stateId)"
         r <- _
-        _ <- trace"dropPrediction(poolId=$poolId, stateId=$stateId) -> $r"
+        _ <- trace"invalidate(poolId=$poolId, stateId=$stateId) -> $r"
       } yield r
   }
 }

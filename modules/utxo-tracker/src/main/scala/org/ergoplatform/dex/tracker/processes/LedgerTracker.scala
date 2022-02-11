@@ -77,7 +77,7 @@ object LedgerTracker {
     cache: TrackerCache[G],
     logs: Logs[I, G]
   ): I[UtxoTracker[F]] =
-    logs.forService[UtxoTracker[F]].map { implicit l =>
+    logs.forService[LedgerTracker[F, G]].map { implicit l =>
       (context map
       (conf => new LedgerTracker[F, G](mode, cache, conf, handlers.toList): UtxoTracker[F])).embed
     }

@@ -26,15 +26,17 @@ final class MempoolTracker[
   mempool: MempoolStreaming[F]
 ) extends UtxoTracker[F] {
 
-  def run: F[Unit] =
-    for {
-      _       <- eval(info"Starting Mempool Tracker ..")
-      output  <- mempool.streamUnspentOutputs
-      unknown <- eval(filter.probe(output.boxId))
-      _ <- if (unknown) emits(handlers.map(_(output.pure[F]))).parFlattenUnbounded
-           else unit[F]
-      _ <- run.delay(conf.samplingInterval)
-    } yield ()
+  def run: F[Unit] = {
+    def sync: F[Unit] =
+      for {
+        output  <- mempool.streamUnspentOutputs
+        unknown <- eval(filter.probe(output.boxId))
+        _ <- if (unknown) emits(handlers.map(_(output.pure[F]))).parFlattenUnbounded
+             else unit[F]
+        _ <- sync.delay(conf.samplingInterval)
+      } yield ()
+    eval(info"Starting Mempool Tracker ..") >> sync
+  }
 }
 
 object MempoolTracker {
