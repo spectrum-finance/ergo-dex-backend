@@ -1,6 +1,5 @@
 package org.ergoplatform.dex.markets.api.v1.endpoints
 
-import io.circe.Encoder.AsArray.importedAsArrayEncoder
 import org.ergoplatform.common.http.HttpError
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
@@ -15,7 +14,7 @@ final class AmmStatsEndpoints {
   val PathPrefix = "amm"
   val Group      = "ammStats"
 
-  def endpoints: List[Endpoint[_, _, _, _]] = getPoolLocks :: getPlatformStats :: getPoolStats :: Nil
+  def endpoints: List[Endpoint[_, _, _, _]] = getPoolLocks :: getPlatformStats :: getPoolStats :: getAmmMarkets :: Nil
 
   def getPoolLocks: Endpoint[(PoolId, Int), HttpError, List[LiquidityLockInfo], Any] =
     baseEndpoint.get
@@ -44,7 +43,7 @@ final class AmmStatsEndpoints {
       .name("Platform stats")
       .description("Get statistics on whole AMM")
 
-  def getAllPoolsStats: Endpoint[TimeWindow, HttpError, List[AmmMarketSummary], Any] =
+  def getAmmMarkets: Endpoint[TimeWindow, HttpError, List[AmmMarketSummary], Any] =
     baseEndpoint.get
       .in(PathPrefix / "markets")
       .in(timeWindow)
