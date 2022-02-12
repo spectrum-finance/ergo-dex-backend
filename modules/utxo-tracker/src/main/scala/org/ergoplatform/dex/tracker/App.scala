@@ -50,10 +50,10 @@ object App extends EnvApp[ConfigBundle] {
         Producer.make[InitF, StreamF, RunF, OrderId, Confirmed[CFMMOrder]](configs.producers.confirmedAmmOrders)
       implicit0(producer2: Producer[PoolId, ConfirmedIndexed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]](configs.producers.confirmedAmmPools)
-      implicit0(producer3: Producer[OrderId, Unconfirmed[CFMMOrder], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, Unconfirmed[CFMMOrder]](configs.producers.unconfirmedAmmOrders)
-//      implicit0(producer4: Producer[PoolId, Unconfirmed[CFMMPool], StreamF]) <-
-//        Producer.make[InitF, StreamF, RunF, PoolId, Unconfirmed[CFMMPool]](configs.producers.unconfirmedAmmPools)
+//      implicit0(producer3: Producer[OrderId, Unconfirmed[CFMMOrder], StreamF]) <-
+//        Producer.make[InitF, StreamF, RunF, OrderId, Unconfirmed[CFMMOrder]](configs.producers.unconfirmedAmmOrders)
+      implicit0(producer4: Producer[PoolId, Unconfirmed[CFMMPool], StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, PoolId, Unconfirmed[CFMMPool]](configs.producers.unconfirmedAmmPools)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(explorer: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
@@ -62,13 +62,13 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(mempool: MempoolStreaming[StreamF]) = MempoolStreaming.make[StreamF, RunF]
       implicit0(cfmmRules: CFMMRules[RunF])         = CFMMRules.make[RunF]
       confirmedAmmOrderHandler             <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF, Confirmed])
-      unconfirmedAmmOrderHandler           <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF, Unconfirmed])
+      //unconfirmedAmmOrderHandler           <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF, Unconfirmed])
       confirmedAmmPoolsHandler             <- Resource.eval(SettledCFMMPoolsHandler.make[InitF, StreamF, RunF])
-      //unconfirmedAmmPoolsHandler           <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF, Unconfirmed])
+      unconfirmedAmmPoolsHandler           <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF, Unconfirmed])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       ledgerTracker  <- Resource.eval(LedgerTracker.make[InitF, StreamF, RunF](TrackerMode.Live, lift(confirmedAmmOrderHandler), confirmedAmmPoolsHandler))
-      mempoolTracker <- Resource.eval(MempoolTracker.make[InitF, StreamF, RunF](unconfirmedAmmOrderHandler))
+      mempoolTracker <- Resource.eval(MempoolTracker.make[InitF, StreamF, RunF](unconfirmedAmmPoolsHandler))
     } yield (ledgerTracker, mempoolTracker, configs)
   // format: on
 
