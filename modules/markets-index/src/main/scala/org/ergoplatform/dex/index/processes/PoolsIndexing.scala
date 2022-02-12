@@ -64,8 +64,8 @@ object PoolsIndexing {
           for {
             existingAssets <-
               txr.trans(NonEmptyList.fromList(assets).fold(List.empty[TokenId].pure[D])(repos.assets.existing))
-            unknownAssets = assets.diff(existingAssets).filterNot(_ == ErgoAssetId)
-            assetsInfo <- unknownAssets.traverse(explorer.getTokenInfo)
+            unknownAssets = assets.diff(existingAssets)
+            assetsInfo <- unknownAssets.filterNot(_ == ErgoAssetId).traverse(explorer.getTokenInfo)
             nativeAsset = if (unknownAssets.contains(ErgoAssetId)) List(ErgoTokenInfo) else Nil
           } yield nativeAsset ++ assetsInfo
 
