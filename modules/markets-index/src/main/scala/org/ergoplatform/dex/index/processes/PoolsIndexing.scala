@@ -8,7 +8,7 @@ import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
 import org.ergoplatform.dex.index.db.models.{DBAssetInfo, DBPoolSnapshot}
 import org.ergoplatform.dex.index.repositories.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMPoolsConsumer
-import org.ergoplatform.dex.protocol.constants.{ErgoAssetId}
+import org.ergoplatform.dex.protocol.constants.ErgoAssetId
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo.ErgoTokenInfo

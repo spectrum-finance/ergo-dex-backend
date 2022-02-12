@@ -23,6 +23,8 @@ final class TemporalFilter[F[_]: Monad: Clock](
   filter: Ref[F, List[Bucket]]
 ) {
 
+  def inspect: F[(Int, Int)] = filter.get.map(xs => (xs.size, xs.map(_.members.size).max))
+
   def probe(box: BoxId): F[Boolean] = {
     @tailrec
     def probe0(buckets: List[Bucket]): Boolean =

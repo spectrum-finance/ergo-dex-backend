@@ -13,6 +13,7 @@ import tofu.streams.{Evals, Pace, ParFlatten}
 import tofu.syntax.embed._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
+import tofu.syntax.handle._
 import tofu.syntax.streams.all._
 
 import scala.concurrent.duration._
@@ -29,14 +30,18 @@ final class MempoolTracker[
   def run: F[Unit] = {
     def sync: F[Unit] =
       (for {
-        output <- mempool.streamUnspentOutputs
-        known  <- eval(filter.probe(output.boxId))
+        _       <- eval(debug"Tick")
+        output  <- mempool.streamUnspentOutputs
+        known   <- eval(filter.probe(output.boxId))
+        (n, mx) <- eval(filter.inspect)
+        _       <- eval(debug"Filter{N=$n, MX=$mx}")
         _ <- if (!known)
                eval(debug"New unconfirmed output discovered: $output") >>
                emits(handlers.map(_(output.pure[F]))).parFlattenUnbounded
              else unit[F]
       } yield ()) >> sync.delay(conf.samplingInterval)
-    eval(info"Starting Mempool Tracker ..") >> sync
+    eval(info"Starting Mempool Tracker ..") >>
+    sync.handleWith[Throwable](e => eval(warnCause"Mempool Tracker failed, restarting .." (e)) >> run)
   }
 }
 
