@@ -39,7 +39,7 @@ final class MempoolTracker[
                eval(debug"New unconfirmed output discovered: $output") >>
                emits(handlers.map(_(output.pure[F]))).parFlattenUnbounded
              else unit[F]
-      } yield ()) >> sync.delay(conf.samplingInterval)
+      } yield ()) >> eval(debug"Going to wait ${conf.samplingInterval}") >> unit[F].delay(conf.samplingInterval) >> eval(debug"Done, starting new loop")  >> sync
     eval(info"Starting Mempool Tracker ..") >>
     sync.handleWith[Throwable](e => eval(warnCause"Mempool Tracker failed, restarting .." (e)) >> run)
   }
