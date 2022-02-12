@@ -39,7 +39,7 @@ final class LedgerTracker[
           val scan =
             eval(info"Requesting UTXO batch {offset=$offset, maxOffset=$maxOffset, batchSize=${conf.batchSize} ..") >>
             outputsStream
-              .evalTap(out => trace"Scanning box $out")
+              .evalTap(out => trace"Scanning output $out")
               .flatTap(out => emits(handlers.map(_(out.pure[F]))).parFlattenUnbounded)
               .evalMap(out => cache.setLastScannedBoxOffset(out.gix))
           val finalizeOffset = eval(cache.setLastScannedBoxOffset(nextOffset))

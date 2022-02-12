@@ -30,15 +30,15 @@ final class MempoolTracker[
   def run: F[Unit] = {
     def sync: F[Unit] =
       (for {
-        _       <- eval(debug"Tick")
         output  <- mempool.streamUnspentOutputs
         known   <- eval(filter.probe(output.boxId))
         (n, mx) <- eval(filter.inspect)
-        _       <- eval(debug"Filter{N=$n, MX=$mx}")
+        _       <- eval(debug"MempoolFilter{N=$n, MX=$mx}")
         _ <- if (!known)
-               eval(debug"New unconfirmed output discovered: $output")
+               eval(debug"Scanning unconfirmed output $output") >>
+               emits(handlers.map(_(output.pure[F]))).parFlattenUnbounded
              else unit[F]
-      } yield ()) >> eval(debug"Going to wait ${conf.samplingInterval}") >> unit[F].delay(conf.samplingInterval) >> eval(debug"Done, starting new loop")  >> sync
+      } yield ()) >> sync.delay(conf.samplingInterval)
     eval(info"Starting Mempool Tracker ..") >>
     sync.handleWith[Throwable](e => eval(warnCause"Mempool Tracker failed, restarting .." (e)) >> run)
   }
