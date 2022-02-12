@@ -36,8 +36,7 @@ final class MempoolTracker[
         (n, mx) <- eval(filter.inspect)
         _       <- eval(debug"Filter{N=$n, MX=$mx}")
         _ <- if (!known)
-               eval(debug"New unconfirmed output discovered: $output") >>
-               emits(handlers.map(_(output.pure[F]))).parFlattenUnbounded
+               eval(debug"New unconfirmed output discovered: $output")
              else unit[F]
       } yield ()) >> eval(debug"Going to wait ${conf.samplingInterval}") >> unit[F].delay(conf.samplingInterval) >> eval(debug"Done, starting new loop")  >> sync
     eval(info"Starting Mempool Tracker ..") >>
