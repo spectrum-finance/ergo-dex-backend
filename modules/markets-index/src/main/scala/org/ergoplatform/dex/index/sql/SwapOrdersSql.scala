@@ -18,7 +18,7 @@ object SwapOrdersSql extends QuerySet[DBSwap] {
     "output_amount",
     "dex_fee_per_token_num",
     "dex_fee_per_token_denom",
-    "p2pk",
+    "redeemer",
     "protocol_version"
   )
 
