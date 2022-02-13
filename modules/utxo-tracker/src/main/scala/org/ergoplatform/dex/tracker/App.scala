@@ -51,9 +51,9 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(producer2: Producer[PoolId, ConfirmedIndexed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]](configs.producers.confirmedAmmPools)
       implicit0(producer3: Producer[OrderId, Unconfirmed[CFMMOrder], StreamF]) <-
-        Resource.eval(Producer.dummy[InitF, StreamF, RunF, OrderId, Unconfirmed[CFMMOrder]](configs.producers.unconfirmedAmmOrders.topicId.value))
+        Producer.make[InitF, StreamF, RunF, OrderId, Unconfirmed[CFMMOrder]](configs.producers.unconfirmedAmmOrders)
       implicit0(producer4: Producer[PoolId, Unconfirmed[CFMMPool], StreamF]) <-
-        Resource.eval(Producer.dummy[InitF, StreamF, RunF, PoolId, Unconfirmed[CFMMPool]](configs.producers.unconfirmedAmmPools.topicId.value))
+        Producer.make[InitF, StreamF, RunF, PoolId, Unconfirmed[CFMMPool]](configs.producers.unconfirmedAmmPools)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(explorer: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
