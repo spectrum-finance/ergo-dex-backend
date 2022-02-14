@@ -12,6 +12,7 @@ import org.ergoplatform.dex.protocol.constants.ErgoAssetId
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo.ErgoTokenInfo
+import org.ergoplatform.common.streaming.syntax._
 import tofu.doobie.transactor.Txr
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Chunks, Evals}
@@ -56,7 +57,7 @@ object PoolsIndexing {
   ) extends PoolsIndexing[S] {
 
     def run: S[Unit] =
-      pools.stream.chunks.evalMap { rs =>
+      pools.stream.chunks.evalTap { rs =>
         val poolSnapshots = rs.map(r => r.message).toList
         val assets        = poolSnapshots.flatMap(p => List(p.entity.lp.id, p.entity.x.id, p.entity.y.id)).distinct
 
@@ -82,6 +83,6 @@ object PoolsIndexing {
           (pn, an) <- txr.trans(insert)
           _        <- info"[$pn] pool snapshots indexed" >> info"[$an] assets indexed"
         } yield ()
-      }
+      }.commitBatch
   }
 }

@@ -24,4 +24,18 @@ object syntax {
         commit.traverse_(_(batch.foldLeft(Chain.empty[O])(_ append _.offset)))
       }
   }
+
+  implicit final class CommittableBatchOps[S[_], C[_], F[_], K, V, O](private val fa: S[C[Committable[K, V, O, F]]])
+    extends AnyVal {
+
+    def commitBatch(implicit
+      S: Evals[S, F],
+      F: Applicative[F],
+      C: Foldable[C]
+    ): S[Unit] =
+      fa.evalMap { batch =>
+        val commit = batch.get(0).map(_.commitBatch)
+        commit.traverse_(_(batch.foldLeft(Chain.empty[O])(_ append _.offset)))
+      }
+  }
 }

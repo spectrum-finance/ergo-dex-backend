@@ -26,7 +26,6 @@ import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
 import tofu.WithRun
 import tofu.fs2Instances._
-import tofu.lift.IsoK
 import tofu.syntax.unlift._
 import zio.interop.catz._
 import zio.{ExitCode, URIO, ZEnv}
@@ -44,7 +43,6 @@ object App extends EnvApp[AppContext] {
       blocker <- Blocker[InitF]
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       ctx                                   = AppContext.init(configs)
-      implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(ctx)
       implicit0(e: ErgoAddressEncoder)      = ErgoAddressEncoder(configs.protocol.networkType.prefix)
       implicit0(confirmedOrders: CFMMOrdersGen[StreamF, RunF, Confirmed]) =
         makeConsumer[OrderId, Confirmed[CFMMOrder]](configs.consumers.confirmedOrders)

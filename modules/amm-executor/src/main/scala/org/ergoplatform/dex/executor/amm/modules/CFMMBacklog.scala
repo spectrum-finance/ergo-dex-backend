@@ -22,7 +22,7 @@ trait CFMMBacklog[F[_]] {
 
   /** Put an order from the backlog.
     */
-  def drop(id: OrderId): F[Unit]
+  def drop(id: OrderId): F[Boolean]
 }
 
 object CFMMBacklog {
@@ -60,6 +60,7 @@ object CFMMBacklog {
       } yield res
     }
 
-    def drop(id: OrderId): F[Unit] = survivorsR.update(_ - id)
+    def drop(id: OrderId): F[Boolean] =
+      survivorsR.get.map(_.contains(id)).ifM(survivorsR.update(_ - id) as true, false.pure)
   }
 }

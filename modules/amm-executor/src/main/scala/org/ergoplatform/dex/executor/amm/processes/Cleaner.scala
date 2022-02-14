@@ -40,7 +40,7 @@ object Cleaner {
 
     def run: F[Unit] =
       orders.stream
-        .evalTap(rec => debug"Order ${rec.message} is evaluated" >> backlog.drop(rec.message.order.id))
+        .evalTap(rec => backlog.drop(rec.message.order.id).ifM(debug"Order ${rec.message} is evicted", unit[G]))
         .evalMap(_.commit)
   }
 }
