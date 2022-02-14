@@ -11,7 +11,6 @@ import tofu.optics.macros.{promote, ClassyOptics}
 @derive(pureconfigReader, loggable)
 @ClassyOptics
 final case class ConfigBundle(
-  @promote rotation: RotationConfig,
   @promote exchange: ExchangeConfig,
   @promote execution: ExecutionConfig,
   @promote monetary: MonetaryConfig,
