@@ -9,5 +9,5 @@ import tofu.logging.derivation.loggable
 final case class Consumers(
   confirmedOrders: ConsumerConfig,
   unconfirmedOrders: ConsumerConfig,
-  ordersRetry: ConsumerConfig
+  evaluatedOrders: ConsumerConfig
 )

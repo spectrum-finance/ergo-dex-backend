@@ -2,9 +2,8 @@ package org.ergoplatform.dex.executor.amm.processes
 
 import cats.{Functor, Monad}
 import derevo.derive
-import org.ergoplatform.common.TraceId
 import org.ergoplatform.dex.executor.amm.modules.CFMMBacklog
-import org.ergoplatform.dex.executor.amm.streaming.CFMMOrders
+import org.ergoplatform.dex.executor.amm.streaming.EvaluatedCFMMOrders
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
@@ -13,35 +12,35 @@ import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
 
 @derive(representableK)
-trait Registerer[F[_]] {
+trait Cleaner[F[_]] {
 
   def run: F[Unit]
 }
 
-object Registerer {
+object Cleaner {
 
   def make[
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G],
-    G[_]: Monad: TraceId.Local
+    G[_]: Monad
   ](implicit
-    orders: CFMMOrders[F, G],
+    orders: EvaluatedCFMMOrders[F, G],
     backlog: CFMMBacklog[G],
     logs: Logs[I, G]
-  ): I[Registerer[F]] =
-    logs.forService[Registerer[F]].map(implicit l => new Live[F, G])
+  ): I[Cleaner[F]] =
+    logs.forService[Cleaner[F]].map(implicit l => new Live[F, G])
 
   final private class Live[
     F[_]: Monad: Evals[*[_], G],
-    G[_]: Monad: Logging: TraceId.Local
+    G[_]: Monad: Logging
   ](implicit
-    orders: CFMMOrders[F, G],
+    orders: EvaluatedCFMMOrders[F, G],
     backlog: CFMMBacklog[G]
-  ) extends Registerer[F] {
+  ) extends Cleaner[F] {
 
     def run: F[Unit] =
       orders.stream
-        .evalTap(rec => debug"Registered ${rec.message}" >> backlog.put(rec.message))
+        .evalTap(rec => debug"Order ${rec.message} is evaluated" >> backlog.drop(rec.message.order.id))
         .evalMap(_.commit)
   }
 }
