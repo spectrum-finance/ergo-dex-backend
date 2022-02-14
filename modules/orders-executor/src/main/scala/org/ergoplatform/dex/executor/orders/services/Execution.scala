@@ -9,7 +9,8 @@ import org.ergoplatform.dex.executor.orders.context.BlockchainContext
 import org.ergoplatform.dex.executor.orders.domain.errors.ExecutionFailure
 import org.ergoplatform.dex.executor.orders.modules.TradeInterpreter
 import org.ergoplatform.dex.protocol.instances._
-import org.ergoplatform.ergo.ErgoNetwork
+import org.ergoplatform.ergo.modules.ErgoNetwork
+import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import tofu.Raise
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK

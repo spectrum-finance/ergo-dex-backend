@@ -3,7 +3,7 @@ package org.ergoplatform.dex.tracker.parsers.amm
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.CatsPlatform
 import org.ergoplatform.dex.tracker.parsers.locks.LiquidityLockParser
-import org.ergoplatform.ergo.models.Output
+import org.ergoplatform.ergo.domain.Output
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks

@@ -6,15 +6,11 @@ import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, Redee
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
-import org.ergoplatform.dex.index.sql.{
-  AssetSql,
-  CFMMPoolSql,
-  DepositOrdersSql,
-  LqLocksSql,
-  RedeemOrdersSql,
-  SwapOrdersSql
-}
+import org.ergoplatform.dex.index.sql._
 import org.ergoplatform.ergo._
+import org.ergoplatform.ergo.domain.LedgerMetadata
+import org.ergoplatform.ergo.services.explorer.models.TokenInfo
+import org.ergoplatform.ergo.state.ConfirmedIndexed
 
 object models {
 
@@ -33,7 +29,7 @@ object models {
       DBLiquidityLock(id, deadline, amount.id, amount.value, redeemer)
   }
 
-  final case class DBPool(
+  final case class DBPoolSnapshot(
     stateId: PoolStateId,
     poolId: PoolId,
     lpId: TokenId,
@@ -44,14 +40,15 @@ object models {
     yAmount: Long,
     feeNum: Int,
     globalIndex: Long,
+    settlementHeight: Int,
     protocolVersion: ProtocolVersion
   )
 
-  implicit val poolQs: QuerySet[DBPool] = CFMMPoolSql
+  implicit val poolQs: QuerySet[DBPoolSnapshot] = CFMMPoolSql
 
-  implicit val poolView: Extract[CFMMPool, DBPool] =
-    pool =>
-      DBPool(
+  implicit val poolView: Extract[ConfirmedIndexed[CFMMPool], DBPoolSnapshot] = {
+    case ConfirmedIndexed(pool, LedgerMetadata(gix, height)) =>
+      DBPoolSnapshot(
         PoolStateId.fromBoxId(pool.box.boxId),
         pool.poolId,
         pool.lp.id,
@@ -61,9 +58,11 @@ object models {
         pool.y.id,
         pool.y.value,
         pool.feeNum,
-        pool.box.lastConfirmedBoxGix,
+        gix,
+        height,
         ProtocolVersion.Initial
       )
+  }
 
   final case class DBSwap(
     orderId: OrderId,
@@ -78,7 +77,7 @@ object models {
     outputAmount: Option[Long],
     dexFeePerTokenNum: Long,
     dexFeePerTokenDenom: Long,
-    p2pk: Address,
+    redeemer: PubKey,
     protocolVersion: ProtocolVersion
   )
 
@@ -99,7 +98,7 @@ object models {
         ev.map(_.output.value),
         swap.params.dexFeePerTokenNum,
         swap.params.dexFeePerTokenDenom,
-        swap.params.p2pk,
+        swap.params.redeemer,
         ProtocolVersion.Initial
       )
   }
@@ -115,7 +114,7 @@ object models {
     outputAmountX: Option[Long],
     outputAmountY: Option[Long],
     dexFee: Long,
-    p2pk: Address,
+    redeemer: PubKey,
     protocolVersion: ProtocolVersion
   )
 
@@ -134,7 +133,7 @@ object models {
         ev.map(_.outputX.value),
         ev.map(_.outputY.value),
         redeem.params.dexFee,
-        redeem.params.p2pk,
+        redeem.params.redeemer,
         ProtocolVersion.Initial
       )
   }
@@ -151,7 +150,7 @@ object models {
     inputAmountY: Long,
     outputAmountLP: Option[Long],
     dexFee: Long,
-    p2pk: Address,
+    redeemer: PubKey,
     protocolVersion: ProtocolVersion
   )
 
@@ -171,7 +170,7 @@ object models {
         deposit.params.inY.value,
         ev.map(_.outputLP.value),
         deposit.params.dexFee,
-        deposit.params.p2pk,
+        deposit.params.redeemer,
         ProtocolVersion.Initial
       )
   }
@@ -182,15 +181,6 @@ object models {
     decimals: Option[Int]
   )
 
-  implicit val assetQs: QuerySet[DBAssetInfo] = AssetSql
-
-  type PoolAssets = (DBAssetInfo, DBAssetInfo, DBAssetInfo)
-
-  implicit val extractAssets: Extract[CFMMPool, PoolAssets] =
-    pool =>
-      (
-        DBAssetInfo(pool.lp.id, pool.lpInfo.ticker, pool.lpInfo.decimals),
-        DBAssetInfo(pool.x.id, pool.xInfo.ticker, pool.xInfo.decimals),
-        DBAssetInfo(pool.y.id, pool.yInfo.ticker, pool.yInfo.decimals)
-      )
+  implicit val extractAssets: Extract[TokenInfo, DBAssetInfo] =
+    ti => DBAssetInfo(ti.id, ti.name.map(Ticker.apply), ti.decimals)
 }

@@ -1,9 +1,9 @@
 package org.ergoplatform.dex.index.sql
 
 import org.ergoplatform.common.sql.QuerySet
-import org.ergoplatform.dex.index.db.models.DBPool
+import org.ergoplatform.dex.index.db.models.DBPoolSnapshot
 
-object CFMMPoolSql extends QuerySet[DBPool] {
+object CFMMPoolSql extends QuerySet[DBPoolSnapshot] {
 
   val fields: List[String] = List(
     "pool_state_id",
@@ -16,6 +16,7 @@ object CFMMPoolSql extends QuerySet[DBPool] {
     "y_amount",
     "fee_num",
     "gindex",
+    "height",
     "protocol_version"
   )
 

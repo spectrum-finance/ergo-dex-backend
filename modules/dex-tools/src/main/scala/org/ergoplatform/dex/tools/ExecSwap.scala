@@ -35,13 +35,13 @@ object ExecSwap extends IOApp with SigmaPlatform {
 
       ts <- Clock[IO].realTime(TimeUnit.MILLISECONDS)
 
-      pool = N2TCFMMPoolsParser.pool(poolIn).get.confirmed
+      pool = N2TCFMMPoolsParser.pool(poolIn).get
       swap = SwapParams(
                input               = AssetAmount.native(userIn.value - monetaryConfig.minerFee - monetaryConfig.minBoxValue),
                minOutput           = AssetAmount(SigUSD, 0L),
                dexFeePerTokenNum   = 0L,
                dexFeePerTokenDenom = 1L,
-               p2pk                = RecvAddr
+               redeemer            = ???
              )
       order = Swap(pool.poolId, monetaryConfig.minerFee, ts, swap, userIn)
 

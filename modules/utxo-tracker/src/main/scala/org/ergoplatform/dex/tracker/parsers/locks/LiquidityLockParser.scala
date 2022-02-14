@@ -2,14 +2,14 @@ package org.ergoplatform.dex.tracker.parsers.locks
 
 import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.dex.domain.amm.state.Confirmed
+import org.ergoplatform.ergo.state.Confirmed
 import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
 import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, ProtoVer}
 import org.ergoplatform.dex.protocol.locks.LiquidityLockTemplates
 import org.ergoplatform.ergo.{Address, ErgoTreeTemplate}
-import org.ergoplatform.ergo.models.SConstant.{IntConstant, SigmaPropConstant}
-import org.ergoplatform.ergo.models.{Output, RegisterId}
+import org.ergoplatform.ergo.domain.SConstant.{IntConstant, SigmaPropConstant}
+import org.ergoplatform.ergo.domain.{Output, RegisterId}
 import sigmastate.basics.DLogProtocol.ProveDlog
 import sigmastate.serialization.GroupElementSerializer
 

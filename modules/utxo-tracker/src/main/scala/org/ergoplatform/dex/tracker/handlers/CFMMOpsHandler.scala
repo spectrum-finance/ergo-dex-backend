@@ -12,6 +12,7 @@ import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.dex.tracker.parsers.amm.CFMMOrdersParser
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
+import org.ergoplatform.ergo.state.LedgerStatus
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
 import tofu.syntax.logging._
@@ -20,9 +21,10 @@ import tofu.syntax.streams.all._
 
 final class CFMMOpsHandler[
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,
-  G[_]: Monad: Logging
+  G[_]: Monad: Logging,
+  Status[_]: LedgerStatus
 ](parsers: List[CFMMOrdersParser[CFMMType, G]])(implicit
-  producer: Producer[OrderId, CFMMOrder, F],
+  producer: Producer[OrderId, Status[CFMMOrder], F],
   rules: CFMMRules[G]
 ) {
 
@@ -43,7 +45,7 @@ final class CFMMOpsHandler[
         eval(rules(op)) >>=
           (_.fold(op.pure[F])(e => eval(debug"Rule violation: $e") >> Evals[F, G].monoidK.empty))
       }
-      .map(op => Record[OrderId, CFMMOrder](op.id, op))
+      .map(op => Record[OrderId, Status[CFMMOrder]](op.id, LedgerStatus.lift(op)))
       .thrush(producer.produce)
 }
 
@@ -52,17 +54,18 @@ object CFMMOpsHandler {
   def make[
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: FunctorFilter,
-    G[_]: Monad: Clock
+    G[_]: Monad: Clock,
+    Status[_]: LedgerStatus
   ](implicit
-    producer: Producer[OrderId, CFMMOrder, F],
+    producer: Producer[OrderId, Status[CFMMOrder], F],
     rules: CFMMRules[G],
     logs: Logs[I, G],
     encoder: ErgoAddressEncoder
   ): I[BoxHandler[F]] =
-    logs.forService[CFMMOpsHandler[F, G]].map { implicit log =>
+    logs.forService[CFMMOpsHandler[F, G, Status]].map { implicit log =>
       val parsers =
         CFMMOrdersParser[T2T_CFMM, G] ::
         CFMMOrdersParser[N2T_CFMM, G] :: Nil
-      new CFMMOpsHandler[F, G](parsers).handler
+      new CFMMOpsHandler[F, G, Status](parsers).handler
     }
 }

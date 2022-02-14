@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.handlers
 
 import cats.{Functor, FunctorFilter, Monad}
 import org.ergoplatform.common.streaming.{Producer, Record}
-import org.ergoplatform.dex.domain.amm.state.Confirmed
+import org.ergoplatform.ergo.state.Confirmed
 import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
 import org.ergoplatform.dex.protocol.ProtoVer
@@ -25,7 +25,7 @@ final class LiquidityLocksHandler[
   def handler: BoxHandler[F] =
     _.map(o => parsers.map(_.parse(o)).reduce(_ orElse _)).unNone
       .evalTap(lock => info"LQ lock detected [$lock]")
-      .map(lock => Record[LockId, Confirmed[LiquidityLock]](lock.confirmed.id, lock))
+      .map(lock => Record[LockId, Confirmed[LiquidityLock]](lock.entity.id, lock))
       .thrush(producer.produce)
 }
 

@@ -3,7 +3,7 @@ package org.ergoplatform.dex.domain.amm
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import org.ergoplatform.dex.domain.amm.state.Predicted
+import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.dex.domain.{AssetAmount, AssetInfo, BoxInfo}
 import org.ergoplatform.dex.protocol.amm.constants
 import scodec.Codec
@@ -17,9 +17,6 @@ final case class CFMMPool(
   lp: AssetAmount,
   x: AssetAmount,
   y: AssetAmount,
-  lpInfo: AssetInfo,
-  xInfo: AssetInfo,
-  yInfo: AssetInfo,
   feeNum: Int,
   box: BoxInfo
 ) {
@@ -29,20 +26,20 @@ final case class CFMMPool(
   def supplyLP: Long = constants.cfmm.TotalEmissionLP - lp.value
 
   // todo: calculate box transition right there.
-  def deposit(inX: AssetAmount, inY: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
+  def deposit(inX: AssetAmount, inY: AssetAmount, nextBox: BoxInfo): Traced[Predicted[CFMMPool]] = {
     val (unlocked, change) = rewardLP(inX, inY)
     val (changeX, changeY) =
       (change.filter(_.id == inX.id).map(_.value).sum, change.filter(_.id == inY.id).map(_.value).sum)
-    Predicted(copy(lp = lp - unlocked, x = x + inX - changeX, y = y + inY - changeY, box = nextBox))
+    Traced(Predicted(copy(lp = lp - unlocked, x = x + inX - changeX, y = y + inY - changeY, box = nextBox)), box.boxId)
   }
 
-  def redeem(inLp: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
+  def redeem(inLp: AssetAmount, nextBox: BoxInfo): Traced[Predicted[CFMMPool]] = {
     val redeemedX = (BigInt(inLp.value) * x.value / supplyLP).toLong
     val redeemedY = (BigInt(inLp.value) * y.value / supplyLP).toLong
-    Predicted(copy(lp = lp + inLp, x = x - redeemedX, y = y - redeemedY, box = nextBox))
+    Traced(Predicted(copy(lp = lp + inLp, x = x - redeemedX, y = y - redeemedY, box = nextBox)), box.boxId)
   }
 
-  def swap(in: AssetAmount, nextBox: BoxInfo): Predicted[CFMMPool] = {
+  def swap(in: AssetAmount, nextBox: BoxInfo): Traced[Predicted[CFMMPool]] = {
     val (deltaX, deltaY) =
       if (in.id == x.id)
         (
@@ -56,7 +53,7 @@ final case class CFMMPool(
           (BigInt(y.value) * constants.cfmm.FeeDenominator + BigInt(in.value) * feeNum),
           BigInt(in.value)
         )
-    Predicted(copy(x = x + deltaX.toLong, y = y + deltaY.toLong, box = nextBox))
+    Traced(Predicted(copy(x = x + deltaX.toLong, y = y + deltaY.toLong, box = nextBox)), box.boxId)
   }
 
   def rewardLP(inX: AssetAmount, inY: AssetAmount): (AssetAmount, Option[AssetAmount]) = {
@@ -100,9 +97,6 @@ object CFMMPool {
         implicitly[Codec[AssetAmount]] ::
         implicitly[Codec[AssetAmount]] ::
         implicitly[Codec[AssetAmount]] ::
-        implicitly[Codec[AssetInfo]] ::
-        implicitly[Codec[AssetInfo]] ::
-        implicitly[Codec[AssetInfo]] ::
         int32 ::
         implicitly[Codec[BoxInfo]]
     ).as[CFMMPool]

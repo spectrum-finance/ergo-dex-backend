@@ -8,8 +8,8 @@ import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.protocol.amm.AMMType.CFMMType
-import org.ergoplatform.ergo.ErgoNetwork
-import org.ergoplatform.ergo.explorer.TxSubmissionErrorParser
+import org.ergoplatform.ergo.modules.ErgoNetwork
+import org.ergoplatform.ergo.services.explorer.{ErgoExplorer, TxSubmissionErrorParser}
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.handle._
 import tofu.syntax.logging._
@@ -61,10 +61,14 @@ object Execution {
                              val poolBoxId     = pool.box.boxId
                              val invalidPool   = invalidInputs.exists { case (boxId, _) => boxId == poolBoxId }
                              if (invalidPool)
-                               warnCause"PoolState{poolId=${order.poolId}, boxId=$poolBoxId} is invalidated. Validation result: $errText" (e) >>
-                               pools.invalidate(poolBoxId) as Some(order)
+                               warnCause"PoolState{poolId=${pool.poolId}, boxId=$poolBoxId} is invalidated. Validation result: $errText" (
+                                 e
+                               ) >>
+                               pools.invalidate(pool.poolId, poolBoxId) as Some(order)
                              else
-                               warnCause"Order{id=${order.id}} is discarded due to TX error. Validation result: $errText" (e) as none
+                               warnCause"Order{id=${order.id}} is discarded due to TX error. Validation result: $errText" (
+                                 e
+                               ) as none
                            case _ =>
                              warnCause"Order{id=${order.id}} is discarded due to TX error." (e) as none
                          }

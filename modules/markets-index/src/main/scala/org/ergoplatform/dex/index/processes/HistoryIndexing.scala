@@ -8,7 +8,7 @@ import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, Redee
 import org.ergoplatform.dex.domain.amm.{Deposit, EvaluatedCFMMOrder, Redeem, Swap}
 import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
 import org.ergoplatform.dex.index.db.models.{DBDeposit, DBRedeem, DBSwap}
-import org.ergoplatform.dex.index.repos.RepoBundle
+import org.ergoplatform.dex.index.repositories.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMHistConsumer
 import tofu.doobie.transactor.Txr
 import tofu.logging.{Logging, Logs}

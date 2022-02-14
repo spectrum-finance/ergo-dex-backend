@@ -4,7 +4,7 @@ import cats.{Functor, Monad}
 import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.dex.domain.amm.state.Predicted
+import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
@@ -12,7 +12,8 @@ import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterp
 import org.ergoplatform.dex.protocol.amm.AMMContracts
 import org.ergoplatform.dex.protocol.amm.AMMType.N2T_CFMM
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.ergo.{BoxId, ErgoNetwork}
+import org.ergoplatform.ergo.BoxId
+import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import sigmastate.interpreter.ProverResult
 import tofu.logging.Logs
 import tofu.syntax.embed._
@@ -32,7 +33,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
   import helpers._
 
-  def deposit(deposit: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
+  def deposit(deposit: Deposit, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = {
     val poolBox0           = pool.box
     val depositBox         = deposit.box
     val depositIn          = new Input(depositBox.boxId.toErgo, ProverResult.empty)
@@ -59,7 +60,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
     val returnBox = new ErgoBoxCandidate(
       value          = depositBox.value - inX.value - minerFeeBox.value - dexFeeBox.value + changeX,
-      ergoTree       = deposit.params.p2pk.toErgoTree,
+      ergoTree       = deposit.params.redeemer.toErgoTree,
       creationHeight = ctx.currentHeight,
       additionalTokens =
         if (changeY > 0) mkTokens(rewardLP.id -> rewardLP.value, inY.id -> changeY)
@@ -69,12 +70,12 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
     val tx          = ErgoLikeTransaction(inputs, outs)
     val nextPoolBox = poolBox1.toBox(tx.id, 0)
-    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value, poolBox0.lastConfirmedBoxGix)
+    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
     val nextPool    = pool.deposit(inX, inY, boxInfo)
     (tx, nextPool).pure
   }
 
-  def redeem(redeem: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] = {
+  def redeem(redeem: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = {
     val poolBox0         = pool.box
     val redeemBox        = redeem.box
     val redeemIn         = new Input(redeemBox.boxId.toErgo, ProverResult.empty)
@@ -98,7 +99,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
     val returnBox = new ErgoBoxCandidate(
       value            = redeemBox.value + shareX.value - minerFeeBox.value - dexFeeBox.value,
-      ergoTree         = redeem.params.p2pk.toErgoTree,
+      ergoTree         = redeem.params.redeemer.toErgoTree,
       creationHeight   = ctx.currentHeight,
       additionalTokens = mkTokens(shareY.id -> shareY.value)
     )
@@ -106,12 +107,12 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     val outs        = Vector(poolBox1, returnBox, dexFeeBox, minerFeeBox)
     val tx          = ErgoLikeTransaction(inputs, outs)
     val nextPoolBox = poolBox1.toBox(tx.id, 0)
-    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value, poolBox0.lastConfirmedBoxGix)
+    val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
     val nextPool    = pool.redeem(inLP, boxInfo)
     (tx, nextPool).pure
   }
 
-  def swap(swap: Swap, pool: CFMMPool): F[(ErgoLikeTransaction, Predicted[CFMMPool])] =
+  def swap(swap: Swap, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
     swapParams(swap, pool).toRaise.map { case (input, output, dexFee) =>
       val poolBox0 = pool.box
       val swapBox  = swap.box
@@ -139,21 +140,21 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         if (swap.params.input.isNative)
           new ErgoBoxCandidate(
             value            = swapBox.value - input.value - minerFeeBox.value - dexFeeBoxValue,
-            ergoTree         = swap.params.p2pk.toErgoTree,
+            ergoTree         = swap.params.redeemer.toErgoTree,
             creationHeight   = ctx.currentHeight,
             additionalTokens = mkTokens(swap.params.minOutput.id -> output.value)
           )
         else
           new ErgoBoxCandidate(
             value          = swapBox.value + output.value - minerFeeBox.value - dexFee,
-            ergoTree       = swap.params.p2pk.toErgoTree,
+            ergoTree       = swap.params.redeemer.toErgoTree,
             creationHeight = ctx.currentHeight
           )
       val inputs      = Vector(poolIn, swapIn)
       val outs        = Vector(poolBox1, rewardBox) ++ dexFeeBox ++ Vector(minerFeeBox)
       val tx          = ErgoLikeTransaction(inputs, outs)
       val nextPoolBox = poolBox1.toBox(tx.id, 0)
-      val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value, poolBox0.lastConfirmedBoxGix)
+      val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
       val nextPool    = pool.swap(input, boxInfo)
       tx -> nextPool
     }
@@ -169,7 +170,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 object N2TCFMMInterpreter {
 
   def make[I[_]: Functor, F[_]: Monad: ExecutionFailed.Raise: ExchangeConfig.Has: MonetaryConfig.Has](implicit
-    network: ErgoNetwork[F],
+    network: ErgoExplorer[F],
     contracts: AMMContracts[N2T_CFMM],
     encoder: ErgoAddressEncoder,
     logs: Logs[I, F]

@@ -6,7 +6,7 @@ import io.circe.Encoder
 import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.ErgoBox.TokenId
 import org.ergoplatform._
-import org.ergoplatform.ergo.models.{ErgoBox, Output}
+import org.ergoplatform.ergo.domain.Output
 import scorex.crypto.hash.Digest32
 import scorex.util.encode.Base16
 import sigmastate.basics.DLogProtocol
@@ -37,16 +37,16 @@ trait SigmaPlatform {
   def feeAddress: Pay2SAddress = Pay2SAddress(ErgoScriptPredef.feeProposition())
   def minerFeeBox              = new ErgoBoxCandidate(minerFeeNErg, feeAddress.script, currentHeight())
 
-  def getToken(id: String, input: ErgoBox): (TokenId, Long) =
+  def getToken(id: String, input: Output): (TokenId, Long) =
     (Digest32 @@ Base16.decode(id).get, input.assets.find(_.tokenId.unwrapped == id).map(_.amount).getOrElse(0L))
 
-  def getToken(id: String, inputs: List[ErgoBox]): (TokenId, Long) =
+  def getToken(id: String, inputs: List[Output]): (TokenId, Long) =
     (Digest32 @@ Base16.decode(id).get, inputs.map(bx => getToken(id, bx)._2).sum)
 
-  def extractTokens(input: ErgoBox): List[(TokenId, Long)] =
+  def extractTokens(input: Output): List[(TokenId, Long)] =
     input.assets.map(a => Digest32 @@ Base16.decode(a.tokenId.unwrapped).get -> a.amount)
 
-  def extractTokens(inputs: List[ErgoBox]): List[(TokenId, Long)] =
+  def extractTokens(inputs: List[Output]): List[(TokenId, Long)] =
     inputs
       .flatMap(_.assets.map(a => a.tokenId -> a.amount))
       .foldLeft(Map.empty[org.ergoplatform.ergo.TokenId, Long]) { case (acc, (tid, amt)) =>

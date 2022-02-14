@@ -16,7 +16,7 @@ object RedeemOrdersSql extends QuerySet[DBRedeem] {
     "output_amount_x",
     "output_amount_y",
     "dex_fee",
-    "p2pk",
+    "redeemer",
     "protocol_version"
   )
 

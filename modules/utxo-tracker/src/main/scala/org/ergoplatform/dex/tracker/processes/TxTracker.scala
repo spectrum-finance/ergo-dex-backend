@@ -3,9 +3,10 @@ package org.ergoplatform.dex.tracker.processes
 import cats.{Defer, Functor, Monad, MonoidK}
 import derevo.derive
 import org.ergoplatform.dex.tracker.configs.TxTrackerConfig
-import org.ergoplatform.dex.tracker.handlers.TxHandler
+import org.ergoplatform.dex.tracker.handlers.{SettledTxHandler, TxHandler}
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
-import org.ergoplatform.ergo.ErgoNetworkStreaming
+import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming}
+import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
@@ -28,9 +29,10 @@ object TxTracker {
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches: TxTrackerConfig.Has,
     G[_]: Monad
-  ](handlers: TxHandler[F]*)(implicit
+  ](handlers: SettledTxHandler[F]*)(implicit
     cache: TrackerCache[G],
-    client: ErgoNetworkStreaming[F, G],
+    ledger: LedgerStreaming[F],
+    network: ErgoNetwork[G],
     logs: Logs[I, G]
   ): I[TxTracker[F]] =
     logs.forService[TxTracker[F]].map { implicit l =>
@@ -40,23 +42,24 @@ object TxTracker {
   final class StreamingTxTracker[
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging
-  ](conf: TxTrackerConfig, handlers: List[TxHandler[F]])(implicit
+  ](conf: TxTrackerConfig, handlers: List[SettledTxHandler[F]])(implicit
     cache: TrackerCache[G],
-    client: ErgoNetworkStreaming[F, G]
+    ledger: LedgerStreaming[F],
+    network: ErgoNetwork[G]
   ) extends TxTracker[F] {
 
     def run: F[Unit] =
       eval(info"Stating TX tracker ..") >>
       eval(cache.lastScannedTxOffset).repeat
         .flatMap { lastOffset =>
-          eval(client.getNetworkInfo).flatMap { networkParams =>
+          eval(network.getNetworkInfo).flatMap { networkParams =>
             val offset     = lastOffset max conf.initialOffset
             val maxOffset  = networkParams.maxTxGix
             val nextOffset = (offset + conf.batchSize) min maxOffset
             val scan =
               eval(info"Requesting TX batch {offset=$offset, maxOffset=$maxOffset, batchSize=${conf.batchSize} ..") >>
-              client
-                .streamTransactions(offset, conf.batchSize)
+              ledger
+                .streamTxs(offset, conf.batchSize)
                 .evalTap(tx => trace"Scanning TX $tx")
                 .flatTap(tx => emits(handlers.map(_(tx.pure[F]))).parFlattenUnbounded)
                 .evalMap(tx => cache.setLastScannedTxOffset(tx.globalIndex))

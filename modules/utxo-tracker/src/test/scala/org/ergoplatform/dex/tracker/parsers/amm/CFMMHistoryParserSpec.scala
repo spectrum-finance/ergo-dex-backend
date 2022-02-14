@@ -3,7 +3,8 @@ package org.ergoplatform.dex.tracker.parsers.amm
 import cats.effect.IO
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.CatsPlatform
-import org.ergoplatform.ergo.models.Transaction
+import org.ergoplatform.ergo.domain.SettledTransaction
+import org.ergoplatform.ergo.services.explorer.models.{Transaction => ExplorerTX}
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
@@ -13,15 +14,14 @@ class CFMMHistoryParserSpec extends AnyPropSpec with should.Matchers with ScalaC
   implicit val e: ErgoAddressEncoder = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
 
   property("AMM Swap parsing") {
-    val p = CFMMHistoryParser.t2tCFMMHistory[IO]
-    val parseF = p.swap(txSample)
+    val p      = CFMMHistoryParser.t2tCFMMHistory[IO]
+    val parseF = p.swap(SettledTransaction.fromExplorer(txSample))
     println(parseF.unsafeRunSync())
   }
 
   val txSample =
     io.circe.parser
-      .decode[Transaction](
-    """
+      .decode[ExplorerTX]("""
       |{
       |    "id": "adcf4903c81b3bfaae98c286fb4a2593f1119c61ce2120c6b664fc297a75ab9a",
       |    "blockId": "0245ec3acebdcaf9be3435498cee4870ef8f5fbc9d662857772adcf3525c6a74",
@@ -229,5 +229,7 @@ class CFMMHistoryParserSpec extends AnyPropSpec with should.Matchers with ScalaC
       |    ],
       |    "size": 865
       |}
-      |""".stripMargin).toOption.get
+      |""".stripMargin)
+      .toOption
+      .get
 }

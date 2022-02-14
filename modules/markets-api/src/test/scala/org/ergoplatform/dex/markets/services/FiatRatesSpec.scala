@@ -8,7 +8,7 @@ import org.ergoplatform.dex.configs.NetworkConfig
 import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.markets.services.FiatRates.ErgoOraclesRateSource
 import org.ergoplatform.dex.protocol.constants.ErgoAssetClass
-import org.ergoplatform.ergo.ErgoNetwork
+import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
@@ -34,7 +34,7 @@ class FiatRatesSpec extends AnyPropSpec with should.Matchers with CatsPlatform {
     val memo = constantMemo(none[BigDecimal])
     val test = for {
       implicit0(back: SttpBackend[IO, Any]) <- AsyncHttpClientCatsBackend[IO]()
-      network                               <- ErgoNetwork.make[IO, IO]
+      network                               <- ErgoExplorer.make[IO, IO]
       rates = new ErgoOraclesRateSource(network, memo)
       ergUsdRate <- rates.rateOf(ErgoAssetClass, UsdUnits)
       _          <- IO.delay(println(ergUsdRate))

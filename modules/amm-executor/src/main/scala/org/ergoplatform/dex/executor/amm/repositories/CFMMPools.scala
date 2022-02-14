@@ -5,7 +5,7 @@ import cats.{FlatMap, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.common.TraceId
 import org.ergoplatform.common.http.Tracing
-import org.ergoplatform.dex.domain.amm.state.Predicted
+import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.executor.amm.config.ResolverConfig
 import org.ergoplatform.ergo.BoxId
@@ -31,11 +31,11 @@ trait CFMMPools[F[_]] {
 
   /** Persist predicted pool.
     */
-  def put(pool: Predicted[CFMMPool]): F[Unit]
+  def put(pool: Traced[Predicted[CFMMPool]]): F[Unit]
 
   /** Invalidate pool prediction.
     */
-  def invalidate(boxId: BoxId): F[Unit]
+  def invalidate(poolId: PoolId, boxId: BoxId): F[Unit]
 }
 
 object CFMMPools {
@@ -68,7 +68,7 @@ object CFMMPools {
           }
       }
 
-    def put(pool: Predicted[CFMMPool]): F[Unit] =
+    def put(pool: Traced[Predicted[CFMMPool]]): F[Unit] =
       mkBasicReq.flatMap { base =>
         base
           .post(conf.uri.withWholePath(s"$BasePrefix/predicted"))
@@ -80,10 +80,10 @@ object CFMMPools {
           }
       }
 
-    def invalidate(boxId: BoxId): F[Unit] =
+    def invalidate(poolId: PoolId, boxId: BoxId): F[Unit] =
       mkBasicReq.flatMap { base =>
         base
-          .post(conf.uri.withWholePath(s"$BasePrefix/invalidate/$boxId"))
+          .post(conf.uri.withWholePath(s"$BasePrefix/invalidate/$poolId/$boxId"))
           .send(backend)
           .flatMap { r =>
             if (r.isSuccess) unit
@@ -101,18 +101,18 @@ object CFMMPools {
         _ <- trace"get(id=$id) -> $r"
       } yield r
 
-    def put(pool: Predicted[CFMMPool]): Mid[F, Unit] =
+    def put(pool: Traced[Predicted[CFMMPool]]): Mid[F, Unit] =
       for {
         _ <- trace"put(pool=$pool)"
         r <- _
         _ <- trace"put(pool=$pool) -> $r"
       } yield r
 
-    def invalidate(boxId: BoxId): Mid[F, Unit] =
+    def invalidate(poolId: PoolId, boxId: BoxId): Mid[F, Unit] =
       for {
-        _ <- trace"invalidate(boxId=$boxId)"
+        _ <- trace"invalidate(poolId=$poolId, boxId=$boxId)"
         r <- _
-        _ <- trace"invalidate(boxId=$boxId) -> $r"
+        _ <- trace"invalidate(poolId=$poolId, boxId=$boxId) -> $r"
       } yield r
   }
 }

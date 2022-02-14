@@ -3,7 +3,7 @@ package org.ergoplatform.dex.tracker.validation
 import cats.{FlatMap, Monad}
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm.CFMMOrder
-import org.ergoplatform.ergo.ErgoNetwork
+import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import tofu.higherKind.Embed
 import tofu.syntax.context._
 import tofu.syntax.embed._
@@ -24,7 +24,7 @@ package object amm {
 
   object CFMMRules {
 
-    def make[F[_]: Monad: MonetaryConfig.Has](implicit network: ErgoNetwork[F]): CFMMRules[F] =
-      (context map (conf => new CfmmRuleDefs[F](conf).rules)).embed
+    def make[F[_]: Monad: MonetaryConfig.Has]: CFMMRules[F] =
+      (MonetaryConfig.access map (conf => new CfmmRuleDefs[F](conf).rules)).embed
   }
 }

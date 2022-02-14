@@ -5,7 +5,7 @@ import org.ergoplatform.contracts.DexLimitOrderContracts._
 import org.ergoplatform.dex.domain.orderbook.OrderType
 import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, constants, orderbook}
 import org.ergoplatform.ergo.{ErgoTreeTemplate, SErgoTree, TokenId}
-import org.ergoplatform.ergo.models.ErgoBox
+import org.ergoplatform.ergo.domain.Output
 import sigmastate.Values.{ErgoTree, SigmaPropConstant}
 import sigmastate.basics.DLogProtocol.ProveDlog
 
@@ -15,9 +15,9 @@ trait OrderContracts[CT <: OrderContractFamily] {
 
   def isBid(ergoTree: SErgoTree): Boolean
 
-  def parseAsk(box: ErgoBox): Option[OrderParams]
+  def parseAsk(box: Output): Option[OrderParams]
 
-  def parseBid(box: ErgoBox): Option[OrderParams]
+  def parseBid(box: Output): Option[OrderParams]
 }
 
 object OrderContracts {
@@ -35,7 +35,7 @@ object OrderContracts {
         ErgoTreeTemplate.fromBytes(ErgoTreeSerializer.default.deserialize(ergoTree).template) ==
           templates.bid
 
-      def parseAsk(box: ErgoBox): Option[OrderParams] =
+      def parseAsk(box: Output): Option[OrderParams] =
         (ErgoTreeSerializer.default.deserialize(box.ergoTree) |> parseSellerContractParameters)
           .flatMap { params =>
             val quote = TokenId.fromBytes(params.tokenId)
@@ -52,7 +52,7 @@ object OrderContracts {
             }
           }
 
-      def parseBid(box: ErgoBox): Option[OrderParams] =
+      def parseBid(box: Output): Option[OrderParams] =
         (ErgoTreeSerializer.default.deserialize(box.ergoTree) |> parseBuyerContractParameters)
           .map { params =>
             orderbook.OrderParams(

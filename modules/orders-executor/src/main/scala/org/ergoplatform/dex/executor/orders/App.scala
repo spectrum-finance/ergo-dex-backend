@@ -12,7 +12,9 @@ import org.ergoplatform.dex.executor.orders.context.AppContext
 import org.ergoplatform.dex.executor.orders.processes.Executor
 import org.ergoplatform.dex.executor.orders.services.Execution
 import org.ergoplatform.dex.executor.orders.streaming.StreamingBundle
-import org.ergoplatform.ergo.{ErgoNetwork, ErgoNetworkStreaming}
+import org.ergoplatform.ergo.modules.ErgoNetwork
+import org.ergoplatform.ergo.services.explorer.{ErgoExplorer, ErgoExplorerStreaming}
+import org.ergoplatform.ergo.services.node.ErgoNode
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
@@ -42,7 +44,9 @@ object App extends EnvApp[AppContext] {
       producer <- Producer.make[InitF, StreamF, RunF, OrderId, AnyOrder](configs.producer)
       implicit0(streaming: StreamingBundle[StreamF, RunF]) = StreamingBundle(consumer, producer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
-      implicit0(client: ErgoNetwork[RunF]) = ErgoNetworkStreaming.make[StreamF, RunF]
+      implicit0(explorer: ErgoExplorer[RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
+      implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
+      implicit0(network: ErgoNetwork[RunF]) = ErgoNetwork.make[RunF]
       implicit0(service: Execution[RunF]) <- Resource.eval(Execution.make[InitF, RunF])
       executor                            <- Resource.eval(Executor.make[InitF, StreamF, RunF, Chunk])
     } yield executor -> ctx

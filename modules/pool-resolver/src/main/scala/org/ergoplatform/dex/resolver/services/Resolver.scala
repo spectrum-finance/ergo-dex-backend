@@ -1,11 +1,10 @@
 package org.ergoplatform.dex.resolver.services
 
 import cats.{Functor, Monad}
-import monocle.macros.syntax.lens._
-import org.ergoplatform.dex.domain.amm.state.{Confirmed, Predicted}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.resolver.repositories.CFMMPools
 import org.ergoplatform.ergo.BoxId
+import org.ergoplatform.ergo.state.{ConfirmedIndexed, Predicted, Traced, Unconfirmed}
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
@@ -18,11 +17,11 @@ trait Resolver[F[_]] {
 
   /** Persist predicted pool.
     */
-  def put(pool: Predicted[CFMMPool]): F[Unit]
+  def put(pool: Traced[Predicted[CFMMPool]]): F[Unit]
 
   /** Invalidate pool state.
     */
-  def invalidate(boxId: BoxId): F[Unit]
+  def invalidate(poolId: PoolId, boxId: BoxId): F[Unit]
 }
 
 object Resolver {
@@ -34,35 +33,43 @@ object Resolver {
 
     def resolve(id: PoolId): F[Option[CFMMPool]] =
       for {
-        confirmedOpt <- pools.getLastConfirmed(id)
-        predictedOpt <- pools.getLastPredicted(id)
-        pool <- (confirmedOpt, predictedOpt) match {
-                  case (Some(Confirmed(confirmed)), Some(pps @ Predicted(predicted))) =>
-                    val upToDate = confirmed.box.lastConfirmedBoxGix <= predicted.box.lastConfirmedBoxGix
+        confirmedOpt   <- pools.getLastConfirmed(id)
+        unconfirmedOpt <- pools.getLastUnconfirmed(id)
+        predictedOpt   <- pools.getLastPredicted(id)
+        pool <- (confirmedOpt, unconfirmedOpt, predictedOpt) match {
+                  case (Some(ConfirmedIndexed(confirmed, _)), unconfirmedMaybe, Some(Predicted(predicted))) =>
+                    // 1. Select anchoring point: mempool version is in priority
+                    val anchoringPoint             = unconfirmedMaybe.map(_.entity).getOrElse(confirmed)
+                    val predictionIsAnchoringPoint = anchoringPoint.box.boxId == predicted.box.boxId
+                    // 2. Try to trace back anchoring point
+                    def trace(stateId: BoxId): F[Boolean] =
+                      pools.getPrediction(stateId).flatMap {
+                        case Some(Traced(_, predBoxId)) if predBoxId == anchoringPoint.box.boxId =>
+                          true.pure
+                        case Some(Traced(_, predecessorBoxId)) => trace(predecessorBoxId)
+                        case None                              => false.pure
+                      }
                     for {
-                      consistentChain <- pools.existsPrediction(confirmed.box.boxId)
-                      pessimistic =
-                        if (consistentChain) {
-                          val updatedPool =
-                            pps.lens(_.predicted.box.lastConfirmedBoxGix).set(confirmed.box.lastConfirmedBoxGix)
-                          debug"Updating consistent chain for Pool{id='$id'}" >>
-                          pools.update(updatedPool) as updatedPool.predicted
-                        } else warn"Prediction chain is inconsistent for Pool{id='$id'}" as confirmed
-                      pool <- if (upToDate) predicted.pure else pessimistic
+                      predictionIsValid <- if (predictionIsAnchoringPoint) true.pure
+                                           else trace(predicted.box.boxId)
+                      pool = if (predictionIsValid) predicted
+                             else anchoringPoint
                     } yield Some(pool)
-                  case (Some(Confirmed(confirmed)), None) =>
-                    debug"No predictions found for Pool{id='$id'}" as Some(confirmed)
+                  case (_, Some(Unconfirmed(unconfirmed)), None) =>
+                    debug"Falling back to the last unconfirmed state for Pool{id='$id'}" as Some(unconfirmed)
+                  case (Some(ConfirmedIndexed(confirmed, _)), None, None) =>
+                    debug"Falling back to the last confirmed state for Pool{id='$id'}" as Some(confirmed)
                   case _ =>
-                    warn"Got resolve request for an unknown Pool{id='$id'}" as None
+                    warn"Cannot resolve Pool{id='$id'}" as None
                 }
       } yield pool
 
-    def put(pool: Predicted[CFMMPool]): F[Unit] =
-      debug"New prediction for Pool{id='${pool.predicted.poolId}'}, $pool" >>
+    def put(pool: Traced[Predicted[CFMMPool]]): F[Unit] =
+      debug"New prediction for Pool{id='${pool.state.entity.poolId}'}, $pool" >>
       pools.put(pool)
 
-    def invalidate(boxId: BoxId): F[Unit] =
+    def invalidate(poolId: PoolId, boxId: BoxId): F[Unit] =
       debug"Invalidating PoolState{boxId=$boxId}" >>
-      pools.dropPrediction(boxId)
+      pools.invalidate(poolId, boxId)
   }
 }

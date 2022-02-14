@@ -1,24 +1,24 @@
 package org.ergoplatform.dex.tracker.parsers.amm
 
 import cats.Monad
-import cats.syntax.traverse._
-import cats.syntax.option._
 import cats.instances.list._
+import cats.syntax.option._
+import cats.syntax.traverse._
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
-import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, Deposit, EvaluatedCFMMOrder, OrderEvaluation, Redeem, Swap}
+import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.ergo.models.{Output, Transaction}
+import org.ergoplatform.ergo.domain.{Output, SettledTransaction}
 import tofu.higherKind.Embed
-import tofu.syntax.monadic._
 import tofu.syntax.foption._
+import tofu.syntax.monadic._
 
 trait CFMMHistoryParser[+CT <: CFMMType, F[_]] {
 
-  def swap(tx: Transaction): F[Option[EvaluatedCFMMOrder[Swap, SwapEvaluation]]]
+  def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Swap, SwapEvaluation]]]
 
-  def deposit(tx: Transaction): F[Option[EvaluatedCFMMOrder[Deposit, DepositEvaluation]]]
+  def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Deposit, DepositEvaluation]]]
 
-  def redeem(tx: Transaction): F[Option[EvaluatedCFMMOrder[Redeem, RedeemEvaluation]]]
+  def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Redeem, RedeemEvaluation]]]
 }
 
 object CFMMHistoryParser {
@@ -50,32 +50,32 @@ object CFMMHistoryParser {
     evals: CFMMOrderEvaluationParser[F]
   ) extends CFMMHistoryParser[CT, F] {
 
-    def swap(tx: Transaction): F[Option[EvaluatedCFMMOrder[Swap, SwapEvaluation]]] =
+    def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Swap, SwapEvaluation]]] =
       parseSomeOrder(tx)(orders.swap, (o, _, a) => evals.parseSwapEval(o, a))
         .mapIn(x => x.copy(order = x.order.copy(timestamp = tx.timestamp)))
 
-    def deposit(tx: Transaction): F[Option[EvaluatedCFMMOrder[Deposit, DepositEvaluation]]] =
+    def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Deposit, DepositEvaluation]]] =
       parseSomeOrder(tx)(orders.deposit, evals.parseDepositEval)
         .mapIn(x => x.copy(order = x.order.copy(timestamp = tx.timestamp)))
 
-    def redeem(tx: Transaction): F[Option[EvaluatedCFMMOrder[Redeem, RedeemEvaluation]]] =
+    def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Redeem, RedeemEvaluation]]] =
       parseSomeOrder(tx)(orders.redeem, evals.parseRedeemEval)
         .mapIn(x => x.copy(order = x.order.copy(timestamp = tx.timestamp)))
 
     private def parseSomeOrder[A <: CFMMOrder, E <: OrderEvaluation](
-      tx: Transaction
+      tx: SettledTransaction
     )(
       opParser: Output => F[Option[A]],
       evalParse: (Output, CFMMPool, A) => F[Option[E]]
     ): F[Option[EvaluatedCFMMOrder[A, E]]] = {
-      val inputs = tx.inputs.map(_.asOutput)
+      val inputs = tx.tx.inputs.map(_.output)
       def parseExecutedOrder(order: A): F[Option[EvaluatedCFMMOrder[A, E]]] =
         inputs.map(pools.pool).collectFirst { case Some(p) => p } match {
           case Some(p) =>
-            tx.outputs
-              .traverse(o => evalParse(o, p.confirmed, order))
+            tx.tx.outputs
+              .traverse(o => evalParse(o, p, order))
               .map(_.collectFirst { case Some(c) => c })
-              .map(eval => EvaluatedCFMMOrder(order, eval, p.confirmed.some).some)
+              .map(eval => EvaluatedCFMMOrder(order, eval, p.some).some)
           case None => EvaluatedCFMMOrder(order, none, none).someF[F]
         }
       inputs

@@ -16,9 +16,8 @@ final case class ConfigBundle(
   @promote execution: ExecutionConfig,
   @promote monetary: MonetaryConfig,
   @promote protocol: ProtocolConfig,
-  orders: ConsumerConfig,
-  ordersRetryIn: ConsumerConfig,
-  ordersRetryOut: ProducerConfig,
+  consumers: Consumers,
+  producers: Producers,
   @promote kafka: KafkaConfig,
   @promote network: NetworkConfig,
   @promote resolver: ResolverConfig

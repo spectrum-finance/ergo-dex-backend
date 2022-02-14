@@ -17,7 +17,8 @@ final case class ConfigBundle(
   @promote kafka: KafkaConfig,
   @promote protocol: ProtocolConfig,
   @promote network: NetworkConfig,
-  @promote tracker: UtxoTrackerConfig,
+  @promote ledgerTracking: LedgerTrackingConfig,
+  @promote mempoolTracking: MempoolTrackingConfig,
   @promote monetary: MonetaryConfig,
   redis: RedisConfig
 )

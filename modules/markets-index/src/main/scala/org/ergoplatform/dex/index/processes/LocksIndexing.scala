@@ -4,9 +4,9 @@ import cats.data.NonEmptyList
 import cats.syntax.foldable._
 import cats.{Foldable, Functor, Monad}
 import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
-import org.ergoplatform.dex.index.db.models.{DBLiquidityLock, DBPool, PoolAssets}
-import org.ergoplatform.dex.index.repos.RepoBundle
-import org.ergoplatform.dex.index.streaming.{CFMMPoolsConsumer, LqLocksConsumer}
+import org.ergoplatform.dex.index.db.models.DBLiquidityLock
+import org.ergoplatform.dex.index.repositories.RepoBundle
+import org.ergoplatform.dex.index.streaming.LqLocksConsumer
 import tofu.doobie.transactor.Txr
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Chunks, Evals}
@@ -50,7 +50,7 @@ object LocksIndexing {
 
     def run: S[Unit] =
       locks.stream.chunks.evalMap { rs =>
-        val locks = rs.map(r => r.message.confirmed).toList
+        val locks = rs.map(r => r.message.entity).toList
         def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
           NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
         val insert =
