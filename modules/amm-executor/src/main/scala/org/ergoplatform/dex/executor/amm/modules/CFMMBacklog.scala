@@ -30,9 +30,9 @@ trait CFMMBacklog[F[_]] {
 
 object CFMMBacklog {
 
-  private val PollInterval     = 100.millis
-  private val PriorityTreshold = 19
-  private val PrioritySpace    = 99
+  private val PollInterval      = 200.millis
+  private val PriorityThreshold = 9
+  private val PrioritySpace     = 99
 
   def make[I[_]: Sync, F[_]: Sync: Timer](implicit makeRef: MakeRef[I, F]): I[CFMMBacklog[F]] =
     for {
@@ -63,8 +63,8 @@ object CFMMBacklog {
           rnd <- GenRandom.nextInt(PrioritySpace)
           lpc <- lowPriorityCandidatesR.get.map(_.headOption)
           maybeWinner <- lpc match {
-                           case Some(c) if rnd <= PriorityTreshold => Left(c).pure
-                           case _                                  => candidatesR.get.map(xs => Right(xs.headOption))
+                           case Some(c) if rnd <= PriorityThreshold => Left(c).pure
+                           case _                                   => candidatesR.get.map(xs => Right(xs.headOption))
                          }
           winner <- maybeWinner match {
                       case Right(Some(order)) => candidatesR.update(_ - order) as order
