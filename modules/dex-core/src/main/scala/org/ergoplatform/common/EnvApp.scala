@@ -3,6 +3,7 @@ package org.ergoplatform.common
 import cats.data.ReaderT
 import fs2.Stream
 import tofu.WithRun
+import tofu.generate.GenRandom
 import tofu.lift.{IsoK, Unlift}
 import tofu.logging.{Loggable, LoggableContext, Logs}
 import zio.interop.catz._

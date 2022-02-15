@@ -17,14 +17,14 @@ sealed trait CFMMOrder {
 
 object CFMMOrder {
 
-  implicit val orderingByFee: Ordering[CFMMOrder] = Ordering[Long]
+  implicit val orderingByFee: Ordering[CFMMOrder] = Ordering[(Long, Long)]
     .on[CFMMOrder] {
-      case Deposit(_, _, _, params, _) => params.dexFee
-      case Redeem(_, _, _, params, _)  => params.dexFee
-      case Swap(_, _, _, params, _) =>
-        params.dexFeePerTokenNum * params.minOutput.value / params.dexFeePerTokenDenom
+      case Deposit(_, _, timestamp, params, _) => (-params.dexFee, timestamp)
+      case Redeem(_, _, timestamp, params, _)  => (-params.dexFee, timestamp)
+      case Swap(_, _, timestamp, params, _) =>
+        val minFee = params.dexFeePerTokenNum * params.minOutput.value / params.dexFeePerTokenDenom
+        (-minFee, timestamp)
     }
-    .reverse
 }
 
 @derive(encoder, decoder, loggable)

@@ -1,10 +1,11 @@
 package org.ergoplatform.dex.executor.amm.modules
 
 import cats.Monad
-import cats.effect.Timer
+import cats.effect.{Sync, Timer}
 import cats.effect.concurrent.Ref
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, OrderId}
 import tofu.concurrent.MakeRef
+import tofu.generate.GenRandom
 import tofu.syntax.monadic._
 
 import scala.collection.immutable.{HashSet, TreeSet}
@@ -15,6 +16,8 @@ trait CFMMBacklog[F[_]] {
   /** Put an order to the backlog.
     */
   def put(order: CFMMOrder): F[Unit]
+
+  def putLowPriority(order: CFMMOrder): F[Unit]
 
   /** Pop a candidate order for execution. Blocks until an order is available.
     */
@@ -27,18 +30,23 @@ trait CFMMBacklog[F[_]] {
 
 object CFMMBacklog {
 
-  private val PollInterval = 1.second
+  private val PollInterval     = 100.millis
+  private val PriorityTreshold = 19
+  private val PrioritySpace    = 99
 
-  def make[I[_]: Monad, F[_]: Monad: Timer](implicit makeRef: MakeRef[I, F]): I[CFMMBacklog[F]] =
+  def make[I[_]: Sync, F[_]: Sync: Timer](implicit makeRef: MakeRef[I, F]): I[CFMMBacklog[F]] =
     for {
-      candidatesR <- makeRef.refOf(TreeSet.empty[CFMMOrder])
-      survivorsR  <- makeRef.refOf(HashSet.empty[OrderId])
-    } yield new EphemeralCFMMBacklog(candidatesR, survivorsR)
+      implicit0(rnd: GenRandom[F]) <- GenRandom.instance[I, F]()
+      candidatesR                  <- makeRef.refOf(TreeSet.empty[CFMMOrder])
+      lpCandidatesR                <- makeRef.refOf(TreeSet.empty[CFMMOrder])
+      survivorsR                   <- makeRef.refOf(HashSet.empty[OrderId])
+    } yield new EphemeralCFMMBacklog(candidatesR, lpCandidatesR, survivorsR)
 
   // In-memory orders backlog.
   // Note: Not thread safe.
-  final class EphemeralCFMMBacklog[F[_]: Monad](
+  final class EphemeralCFMMBacklog[F[_]: Monad: GenRandom](
     candidatesR: Ref[F, TreeSet[CFMMOrder]],
+    lowPriorityCandidatesR: Ref[F, TreeSet[CFMMOrder]],
     survivorsR: Ref[F, HashSet[OrderId]]
   )(implicit T: Timer[F])
     extends CFMMBacklog[F] {
@@ -46,12 +54,24 @@ object CFMMBacklog {
     def put(order: CFMMOrder): F[Unit] =
       candidatesR.update(_ + order) >> survivorsR.update(_ + order.id)
 
+    def putLowPriority(order: CFMMOrder): F[Unit] =
+      lowPriorityCandidatesR.update(_ + order) >> survivorsR.update(_ + order.id)
+
     def pop: F[CFMMOrder] = {
       def tryPop: F[CFMMOrder] =
-        candidatesR.get.map(_.headOption).flatMap {
-          case Some(order) => candidatesR.update(_ - order) as order
-          case None        => T.sleep(PollInterval) >> tryPop
-        }
+        for {
+          rnd <- GenRandom.nextInt(PrioritySpace)
+          lpc <- lowPriorityCandidatesR.get.map(_.headOption)
+          maybeWinner <- lpc match {
+                           case Some(c) if rnd <= PriorityTreshold => Left(c).pure
+                           case _                                  => candidatesR.get.map(xs => Right(xs.headOption))
+                         }
+          winner <- maybeWinner match {
+                      case Right(Some(order)) => candidatesR.update(_ - order) as order
+                      case Left(order)        => lowPriorityCandidatesR.update(_ - order) as order
+                      case _                  => T.sleep(PollInterval) >> tryPop
+                    }
+        } yield winner
       for {
         c <- tryPop
         res <- survivorsR.get
