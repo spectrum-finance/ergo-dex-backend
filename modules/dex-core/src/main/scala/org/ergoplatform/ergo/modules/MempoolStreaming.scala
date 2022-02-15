@@ -28,7 +28,7 @@ object MempoolStreaming {
     def streamUnspentOutputs: F[Output] = {
       def fetchMempool(offset: Int, acc: Vector[Transaction]): G[Vector[Transaction]] =
         node.unconfirmedTransactions(offset, Limit) >>=
-          (txs => if (txs.size < Limit) txs.pure[G] else fetchMempool(offset + Limit, acc ++ txs))
+          (txs => if (txs.size < Limit) (acc ++ txs).pure[G] else fetchMempool(offset + Limit, acc ++ txs))
       evals(fetchMempool(0, Vector.empty).map(extractUtxos))
     }
 

@@ -3,16 +3,20 @@ package org.ergoplatform.common.streaming
 import cats.effect.{Concurrent, ConcurrentEffect, ContextShift, Resource}
 import cats.tagless.InvariantK
 import cats.tagless.syntax.invariantK._
-import cats.{~>, FlatMap, Monad}
+import cats.{~>, FlatMap, Functor, Monad}
 import fs2._
 import fs2.kafka._
 import org.ergoplatform.dex.configs.{KafkaConfig, ProducerConfig}
 import tofu.higherKind.Embed
 import tofu.lift.IsoK
+import tofu.logging.Logs
+import tofu.streams.Evals
 import tofu.syntax.context._
+import tofu.syntax.streams.all._
 import tofu.syntax.embed._
 import tofu.syntax.funk._
 import tofu.syntax.monadic._
+import tofu.syntax.logging._
 
 trait Producer[K, V, F[_]] {
 
@@ -73,4 +77,14 @@ object Producer {
         ProducerRecords.one(ProducerRecord(conf.topicId.value, k, v))
       }.evalMap(kafkaProducer.produce).mapAsync(conf.parallelism)(identity).drain
   }
+
+  def dummy[I[_]: Functor, F[_]: Monad: Evals[*[_], G], G[_], K, V](
+    tag: String
+  )(implicit logs: Logs[I, G]): I[Producer[K, V, F]] =
+    logs.byName(tag).map { implicit l =>
+      new Producer[K, V, F] {
+        def produce: F[Record[K, V]] => F[Unit] =
+          _.evalMap(r => debug"Producing ${r.key.toString}")
+      }
+    }
 }

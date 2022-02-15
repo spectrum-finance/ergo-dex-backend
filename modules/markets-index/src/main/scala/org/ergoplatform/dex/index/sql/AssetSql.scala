@@ -19,5 +19,5 @@ object AssetSql extends QuerySet[DBAssetInfo] {
   val tableName: String = "assets"
 
   def existing(tokenIds: NonEmptyList[TokenId])(implicit lh: LogHandler): Query0[TokenId] =
-    Fragments.in(sql"select id from assets where id", tokenIds).query
+    Fragments.in(sql"select id from assets where id ", tokenIds).query
 }

@@ -13,6 +13,7 @@ import tofu.streams.{Evals, Pace, ParFlatten}
 import tofu.syntax.embed._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
+import tofu.syntax.handle._
 import tofu.syntax.streams.all._
 
 import scala.concurrent.duration._
@@ -26,15 +27,22 @@ final class MempoolTracker[
   mempool: MempoolStreaming[F]
 ) extends UtxoTracker[F] {
 
-  def run: F[Unit] =
-    for {
-      _       <- eval(info"Starting Mempool Tracker ..")
-      output  <- mempool.streamUnspentOutputs
-      unknown <- eval(filter.probe(output.boxId))
-      _ <- if (unknown) emits(handlers.map(_(output.pure[F]))).parFlattenUnbounded
-           else unit[F]
-      _ <- run.delay(conf.samplingInterval)
-    } yield ()
+  def run: F[Unit] = {
+    def sync: F[Unit] =
+      for {
+        output  <- mempool.streamUnspentOutputs
+        known   <- eval(filter.probe(output.boxId))
+        (n, mx) <- eval(filter.inspect)
+        _       <- eval(debug"MempoolFilter{N=$n, MX=$mx}")
+        _ <- if (!known)
+               eval(debug"Scanning unconfirmed output $output") >>
+               emits(handlers.map(_(output.pure[F]))).parFlattenUnbounded
+             else unit[F]
+      } yield ()
+    sync.repeat
+      .throttled(conf.samplingInterval)
+      .handleWith[Throwable](e => eval(warnCause"Mempool Tracker failed, restarting .." (e)) >> run)
+  }
 }
 
 object MempoolTracker {

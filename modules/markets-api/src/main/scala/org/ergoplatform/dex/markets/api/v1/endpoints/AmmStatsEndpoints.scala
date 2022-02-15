@@ -4,6 +4,7 @@ import org.ergoplatform.common.http.HttpError
 import org.ergoplatform.common.models.{HeightWindow, TimeWindow}
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSlippage, PoolSummary, PricePoint}
+import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, PlatformSummary, PoolSummary}
 import org.ergoplatform.dex.markets.api.v1.models.locks.LiquidityLockInfo
 import sttp.tapir.{Endpoint, path}
 import sttp.tapir._
@@ -14,7 +15,7 @@ final class AmmStatsEndpoints {
   val PathPrefix = "amm"
   val Group      = "ammStats"
 
-  def endpoints: List[Endpoint[_, _, _, _]] = getPoolLocks :: getPlatformStats :: getPoolStats :: Nil
+  def endpoints: List[Endpoint[_, _, _, _]] = getPoolLocks :: getPlatformStats :: getPoolStats :: getAmmMarkets :: Nil
 
   def getPoolLocks: Endpoint[(PoolId, Int), HttpError, List[LiquidityLockInfo], Any] =
     baseEndpoint.get
@@ -23,7 +24,7 @@ final class AmmStatsEndpoints {
       .out(jsonBody[List[LiquidityLockInfo]])
       .tag(Group)
       .name("Pool locks")
-      .description("Get liquidity locks for tjhe pool with the given ID")
+      .description("Get liquidity locks for the pool with the given ID")
 
   def getPoolStats: Endpoint[(PoolId, TimeWindow), HttpError, PoolSummary, Any] =
     baseEndpoint.get
@@ -61,4 +62,13 @@ final class AmmStatsEndpoints {
       .tag(Group)
       .name("Pool chart")
       .description("Get price chart by pool")
+
+  def getAmmMarkets: Endpoint[TimeWindow, HttpError, List[AmmMarketSummary], Any] =
+    baseEndpoint.get
+      .in(PathPrefix / "markets")
+      .in(timeWindow)
+      .out(jsonBody[List[AmmMarketSummary]])
+      .tag(Group)
+      .name("All pools stats")
+      .description("Get statistics on all pools")
 }

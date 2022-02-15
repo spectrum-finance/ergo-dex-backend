@@ -10,8 +10,10 @@ import org.apache.kafka.common.TopicPartition
 import org.ergoplatform.dex.configs.ConsumerConfig
 import tofu.fs2.LiftStream
 import tofu.higherKind.Embed
+import tofu.streams.{Evals, ParFlatten}
 import tofu.syntax.context._
 import tofu.syntax.monadic._
+import tofu.syntax.streams.all._
 
 trait Consumer[K, V, F[_], G[_]] {
 
@@ -51,6 +53,30 @@ object Consumer {
         }
     }
 
+  def combine2[
+    F[_]: Functor: ParFlatten: Evals[*[_], G],
+    G[_]: Functor,
+    K,
+    V,
+    VA,
+    VB,
+    O
+  ](consumerA: Consumer.Aux[K, VA, O, F, G], consumerB: Consumer.Aux[K, VB, O, F, G])(
+    fva: VA => V,
+    fvb: VB => V
+  ): Consumer.Aux[K, V, O, F, G] =
+    new Consumer[K, V, F, G] {
+      type Offset = O
+
+      def stream: F[Committable[K, V, Offset, G]] =
+        emits(
+          List(
+            consumerA.stream.map(c => Committable.functor.map(c)(fva)),
+            consumerB.stream.map(c => Committable.functor.map(c)(fvb))
+          )
+        ).parFlatten(2)
+    }
+
   def make[
     F[_]: Monad: LiftStream[*[_], G]: ConsumerConfig.Has,
     G[_]: Functor,
@@ -67,7 +93,8 @@ object Consumer {
   ](conf: ConsumerConfig)(implicit
     makeConsumer: MakeKafkaConsumer[G, K, V]
   ): Consumer.Aux[K, V, KafkaOffset, F, G] =
-    functorK.mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF)
+    functorK
+      .mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF)
       .asInstanceOf[Consumer.Aux[K, V, Live[K, V, F]#Offset, F, G]]
 
   final class Live[K, V, F[_]: Functor](config: ConsumerConfig)(implicit

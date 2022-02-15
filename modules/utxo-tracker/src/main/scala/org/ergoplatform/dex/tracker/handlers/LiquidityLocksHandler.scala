@@ -25,7 +25,7 @@ final class LiquidityLocksHandler[
   def handler: BoxHandler[F] =
     _.map(o => parsers.map(_.parse(o)).reduce(_ orElse _)).unNone
       .evalTap(lock => info"LQ lock detected [$lock]")
-      .map(lock => Record[LockId, Confirmed[LiquidityLock]](lock.confirmed.id, lock))
+      .map(lock => Record[LockId, Confirmed[LiquidityLock]](lock.entity.id, lock))
       .thrush(producer.produce)
 }
 

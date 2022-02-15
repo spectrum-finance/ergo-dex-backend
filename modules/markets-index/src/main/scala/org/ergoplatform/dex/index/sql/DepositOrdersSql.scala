@@ -17,7 +17,7 @@ object DepositOrdersSql extends QuerySet[DBDeposit] {
     "input_amount_y",
     "output_amount_lp",
     "dex_fee",
-    "p2pk",
+    "redeemer",
     "protocol_version"
   )
 

@@ -39,9 +39,9 @@ object App extends EnvApp[AppContext] {
       ctx                                = AppContext.init(configs)
       implicit0(ul: Unlift[RunF, InitF]) = Unlift.byIso(IsoK.byFunK(wr.runContextK(ctx))(wr.liftF))
       implicit0(consumer0: Consumer[PoolId, ConfirmedIndexed[CFMMPool], StreamF, RunF]) =
-        makeConsumer[PoolId, ConfirmedIndexed[CFMMPool]](configs.consumers.confirmedPools)
+        makeConsumer[PoolId, ConfirmedIndexed[CFMMPool]](configs.consumers.confirmedAmmPools)
       implicit0(consumer1: Consumer[PoolId, Unconfirmed[CFMMPool], StreamF, RunF]) =
-        makeConsumer[PoolId, Unconfirmed[CFMMPool]](configs.consumers.unconfirmedPools)
+        makeConsumer[PoolId, Unconfirmed[CFMMPool]](configs.consumers.unconfirmedAmmPools)
       implicit0(rocks: TxRocksDB[RunF])   <- TxRocksDB.make[InitF, RunF](configs.rocks.path)
       implicit0(pools: CFMMPools[RunF])   <- Resource.eval(CFMMPools.make[InitF, RunF])
       implicit0(resolver: Resolver[RunF]) <- Resource.eval(Resolver.make[InitF, RunF])

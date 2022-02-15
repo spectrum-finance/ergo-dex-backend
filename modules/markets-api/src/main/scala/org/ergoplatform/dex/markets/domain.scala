@@ -4,7 +4,7 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import io.estatico.newtype.macros.newtype
 import org.ergoplatform.common.models.TimeWindow
-import org.ergoplatform.dex.domain.FiatUnits
+import org.ergoplatform.dex.domain.{CryptoUnits, FiatUnits}
 import sttp.tapir.Schema
 
 object domain {
@@ -20,6 +20,14 @@ object domain {
   object Volume {
     implicit val schemaVolume: Schema[Volume]               = Schema.derived
     def empty(units: FiatUnits, window: TimeWindow): Volume = Volume(BigDecimal(0), units, window)
+  }
+
+  @derive(encoder, decoder)
+  final case class CryptoVolume(value: BigDecimal, units: CryptoUnits, window: TimeWindow)
+
+  object CryptoVolume {
+    implicit val schemaVolume: Schema[CryptoVolume]                 = Schema.derived
+    def empty(units: CryptoUnits, window: TimeWindow): CryptoVolume = CryptoVolume(BigDecimal(0), units, window)
   }
 
   @derive(encoder, decoder)
