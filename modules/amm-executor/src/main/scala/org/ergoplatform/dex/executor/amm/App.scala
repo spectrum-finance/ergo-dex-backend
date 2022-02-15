@@ -12,7 +12,7 @@ import org.ergoplatform.dex.executor.amm.config.ConfigBundle
 import org.ergoplatform.dex.executor.amm.context.AppContext
 import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, N2TCFMMInterpreter, T2TCFMMInterpreter}
 import org.ergoplatform.dex.executor.amm.modules.CFMMBacklog
-import org.ergoplatform.dex.executor.amm.processes.{Cleaner, Executor, Registerer}
+import org.ergoplatform.dex.executor.amm.processes.{BacklogCleaner, Executor, Registerer}
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.executor.amm.services.Execution
 import org.ergoplatform.dex.executor.amm.streaming.{CFMMOrders, CFMMOrdersGen, EvaluatedCFMMOrders}
@@ -64,7 +64,7 @@ object App extends EnvApp[AppContext] {
       implicit0(execution: Execution[RunF]) <- Resource.eval(Execution.make[InitF, RunF])
       executor                              <- Resource.eval(Executor.make[InitF, StreamF, RunF])
       registerer                            <- Resource.eval(Registerer.make[InitF, StreamF, RunF])
-      cleaner                               <- Resource.eval(Cleaner.make[InitF, StreamF, RunF])
+      cleaner                               <- Resource.eval(BacklogCleaner.make[InitF, StreamF, RunF])
     } yield (executor, registerer, cleaner, ctx)
 
   private def makeBackend(
