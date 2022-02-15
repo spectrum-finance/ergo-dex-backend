@@ -33,4 +33,10 @@ object amm {
     height: Long,
     gindex: Long
   )
+
+  final case class AvgAssetAmounts(
+    amountX: Long,
+    amountY: Long,
+    index: Long
+                                  )
 }

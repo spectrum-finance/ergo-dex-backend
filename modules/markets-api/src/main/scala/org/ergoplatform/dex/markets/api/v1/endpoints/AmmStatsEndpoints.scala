@@ -1,9 +1,9 @@
 package org.ergoplatform.dex.markets.api.v1.endpoints
 
 import org.ergoplatform.common.http.HttpError
-import org.ergoplatform.common.models.TimeWindow
+import org.ergoplatform.common.models.{HeightWindow, TimeWindow}
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSlippage, PoolSummary, PricePoint}
 import org.ergoplatform.dex.markets.api.v1.models.locks.LiquidityLockInfo
 import sttp.tapir.{Endpoint, path}
 import sttp.tapir._
@@ -43,12 +43,22 @@ final class AmmStatsEndpoints {
       .name("Platform stats")
       .description("Get statistics on whole AMM")
 
-  def getAvgPoolSlippage: Endpoint[(PoolId, Long), HttpError, BigDecimal, Any] =
+  def getAvgPoolSlippage: Endpoint[(PoolId, Int), HttpError, PoolSlippage, Any] =
     baseEndpoint.get
       .in(PathPrefix / "pool" / path[PoolId].description("Asset reference") / "slippage")
-      .in(query[Long]("blockDepth").default(10L).validate(Validator.min(1L)).validate(Validator.max(128L)))
-      .out(jsonBody[BigDecimal])
+      .in(query[Int]("blockDepth").default(10).validate(Validator.min(1)).validate(Validator.max(1000000)))
+      .out(jsonBody[PoolSlippage])
       .tag(Group)
       .name("Pool slippage")
       .description("Get average slippage by pool")
+
+  def getPoolPriceChart: Endpoint[(PoolId, HeightWindow, Int), HttpError, List[PricePoint], Any] =
+    baseEndpoint.get
+      .in(PathPrefix / "pool" / path[PoolId].description("Asset reference") / "chart")
+      .in(heightWindow)
+      .in(query[Int]("resolution").default(1).validate(Validator.min(1)))
+      .out(jsonBody[List[PricePoint]])
+      .tag(Group)
+      .name("Pool chart")
+      .description("Get price chart by pool")
 }
