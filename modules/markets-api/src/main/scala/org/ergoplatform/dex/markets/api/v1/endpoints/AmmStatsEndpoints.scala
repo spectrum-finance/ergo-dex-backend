@@ -47,7 +47,7 @@ final class AmmStatsEndpoints {
   def getAvgPoolSlippage: Endpoint[(PoolId, Int), HttpError, PoolSlippage, Any] =
     baseEndpoint.get
       .in(PathPrefix / "pool" / path[PoolId].description("Asset reference") / "slippage")
-      .in(query[Int]("blockDepth").default(10).validate(Validator.min(1)).validate(Validator.max(1000000)))
+      .in(query[Int]("blockDepth").default(10).validate(Validator.min(1)).validate(Validator.max(128)))
       .out(jsonBody[PoolSlippage])
       .tag(Group)
       .name("Pool slippage")

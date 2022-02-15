@@ -128,17 +128,22 @@ object AmmStats {
               .map { case (_, traces) =>
                 val max = traces.maxBy(_.gindex)
                 val min = traces.minBy(_.gindex)
-                val minPrice = BigDecimal(min.lockedY.amount) / min.lockedX.amount * BigDecimal(10).pow(
-                  min.lockedX.evalDecimals - min.lockedY.evalDecimals
+                val minPrice = RealPrice.calculate(
+                  min.lockedX.amount,
+                  min.lockedX.decimals,
+                  min.lockedY.amount,
+                  min.lockedY.decimals
                 )
-                val maxPrice = BigDecimal(max.lockedY.amount) / max.lockedX.amount * BigDecimal(10).pow(
-                  max.lockedX.evalDecimals - max.lockedY.evalDecimals
+                val maxPrice = RealPrice.calculate(
+                  max.lockedX.amount,
+                  max.lockedX.decimals,
+                  max.lockedY.amount,
+                  max.lockedY.decimals
                 )
-                println((minPrice, maxPrice, if (minPrice == maxPrice) true else false))
-                (maxPrice - minPrice).abs / (minPrice / 100)
+                (maxPrice.value - minPrice.value).abs / (minPrice.value / 100)
               }
               .toList
-            Some(PoolSlippage((slippageBySegment.sum / slippageBySegment.size).setScale(3, RoundingMode.HALF_UP)))
+            Some(PoolSlippage(slippageBySegment.sum / slippageBySegment.size).scale(3))
           }
         }
 
@@ -154,15 +159,13 @@ object AmmStats {
         .map { case (amounts: List[AvgAssetAmounts], snapOpt: Option[PoolSnapshot]) =>
           snapOpt.fold(List.empty[PricePoint]) { snap =>
             amounts.map { amount =>
-              val price = BigDecimal(amount.amountY) / amount.amountX * BigDecimal(10).pow(
-                snap.lockedX.evalDecimals - snap.lockedY.evalDecimals
-              )
-              PricePoint(amount.index * resolution, price.setScale(6, RoundingMode.HALF_UP))
+              val price =
+                RealPrice.calculate(amount.amountX, snap.lockedX.decimals, amount.amountY, snap.lockedY.decimals)
+              PricePoint(amount.index * resolution, price.setScale(6))
             }
           }
         }
     }
-
 
     def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]] = {
       val queryPoolStats = for {
@@ -188,7 +191,7 @@ object AmmStats {
                 tx.ticker,
                 ty.id,
                 ty.ticker,
-                RealPrice.calculate(tx, ty),
+                RealPrice.calculate(tx.amount, tx.decimals, ty.amount, ty.decimals).setScale(6),
                 CryptoVolume(
                   BigDecimal(vx.amount),
                   CryptoUnits(AssetClass(vx.id, vx.ticker, vx.decimals)),
