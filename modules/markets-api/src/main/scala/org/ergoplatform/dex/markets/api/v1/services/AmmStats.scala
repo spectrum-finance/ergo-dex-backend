@@ -119,10 +119,9 @@ object AmmStats {
         .flatMap { currHeight =>
           txr.trans(pools.trace(poolId, depth, currHeight))
         }
-        .map { xs: List[PoolTrace] =>
-          if (xs.isEmpty)
-            None
-          else {
+        .map {
+          case Nil => None
+          case xs: List[PoolTrace] =>
             val slippageBySegment = xs
               .groupBy(_.height)
               .map { case (_, traces) =>
@@ -144,7 +143,6 @@ object AmmStats {
               }
               .toList
             Some(PoolSlippage(slippageBySegment.sum / slippageBySegment.size).scale(3))
-          }
         }
 
     def getPoolPriceChart(poolId: PoolId, window: HeightWindow, resolution: Int): F[List[PricePoint]] = {
@@ -156,7 +154,7 @@ object AmmStats {
 
       txr
         .trans(queryPoolData)
-        .map { case (amounts: List[AvgAssetAmounts], snapOpt: Option[PoolSnapshot]) =>
+        .map { case (amounts, snapOpt) =>
           snapOpt.fold(List.empty[PricePoint]) { snap =>
             amounts.map { amount =>
               val price =

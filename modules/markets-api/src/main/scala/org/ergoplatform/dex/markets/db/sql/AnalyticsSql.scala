@@ -195,7 +195,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |where pool_id = $id
          |and ${heightWindowCond(hw)}
          |group by k
-         |order by k;
+         |order by k
          """.stripMargin.query[AvgAssetAmounts]
 
   private def timeWindowCond(tw: TimeWindow): Fragment =

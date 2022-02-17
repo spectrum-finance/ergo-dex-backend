@@ -6,7 +6,7 @@ import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSlippage, PoolSummary, PricePoint}
 import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, PlatformSummary, PoolSummary}
 import org.ergoplatform.dex.markets.api.v1.models.locks.LiquidityLockInfo
-import sttp.tapir.{Endpoint, path}
+import sttp.tapir.{path, Endpoint}
 import sttp.tapir._
 import sttp.tapir.json.circe.jsonBody
 
@@ -15,7 +15,8 @@ final class AmmStatsEndpoints {
   val PathPrefix = "amm"
   val Group      = "ammStats"
 
-  def endpoints: List[Endpoint[_, _, _, _]] = getPoolLocks :: getPlatformStats :: getPoolStats :: getAmmMarkets :: Nil
+  def endpoints: List[Endpoint[_, _, _, _]] =
+    getPoolLocks :: getPlatformStats :: getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart :: getAmmMarkets :: Nil
 
   def getPoolLocks: Endpoint[(PoolId, Int), HttpError, List[LiquidityLockInfo], Any] =
     baseEndpoint.get

@@ -38,5 +38,5 @@ object amm {
     amountX: Long,
     amountY: Long,
     index: Long
-                                  )
+  )
 }

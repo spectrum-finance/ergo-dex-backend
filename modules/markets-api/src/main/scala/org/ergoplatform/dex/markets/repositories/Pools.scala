@@ -52,8 +52,12 @@ trait Pools[F[_]] {
     */
   def fees(id: PoolId, window: TimeWindow): F[Option[PoolFeesSnapshot]]
 
+  /** Get snapshots of a given pool within given depth.
+    */
   def trace(id: PoolId, depth: Int, currHeight: Int): F[List[PoolTrace]]
 
+  /** Get average asset amounts in a given pool within given height window.
+    */
   def avgAmounts(id: PoolId, window: HeightWindow, resolution: Int): F[List[AvgAssetAmounts]]
 }
 
