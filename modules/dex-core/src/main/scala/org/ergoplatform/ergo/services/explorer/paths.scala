@@ -7,7 +7,7 @@ import sttp.model.Uri.Segment
 object paths {
 
   val checkTransactionPathSeg: Segment = Segment("api/v1/mempool/transactions/submit", identity)
-  val blocksPathSeg: Segment           = Segment("api/v0/blocks", identity)
+  val blocksPathSeg: Segment           = Segment("api/v1/blocks", identity)
   val infoPathSeg: Segment             = Segment("api/v1/info", identity)
   val paramsPathSeg: Segment           = Segment("api/v1/epochs/params", identity)
   val utxoPathSeg: Segment             = Segment("api/v1/boxes/unspent/byGlobalIndex/stream", identity)
