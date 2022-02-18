@@ -16,9 +16,14 @@ import org.ergoplatform.dex.markets.repositories.Pools
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
-import org.ergoplatform.dex.markets.db.models.amm.{AvgAssetAmounts, PoolSnapshot, PoolTrace}
+import org.ergoplatform.dex.markets.db.models.amm.{
+  AvgAssetAmounts,
+  PoolInfo,
+  PoolSnapshot,
+  PoolTrace,
+  PoolVolumeSnapshot
+}
 import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, MarketId}
-import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolVolumeSnapshot}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.syntax.monadic._
@@ -115,35 +120,45 @@ object AmmStats {
     }
 
     def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]] =
-      network.getCurrentHeight
-        .flatMap { currHeight =>
-          txr.trans(pools.trace(poolId, depth, currHeight))
+      network.getCurrentHeight.flatMap { currHeight =>
+
+        val query = for {
+          traces  <- pools.trace(poolId, depth, currHeight)
+          poolOpt <- pools.info(poolId)
+        } yield (traces, poolOpt)
+
+        val transed: F[(List[PoolTrace], Option[PoolInfo])] = txr.trans(query)
+
+        transed.map { case (traces, poolOpt) =>
+          poolOpt.fold[Option[PoolSlippage]](None) { _ =>
+            traces match {
+              case Nil => Some(PoolSlippage(0))
+              case xs: List[PoolTrace] =>
+                val slippageBySegment = xs
+                  .groupBy(_.height)
+                  .map { case (_, traces) =>
+                    val max = traces.maxBy(_.gindex)
+                    val min = traces.minBy(_.gindex)
+                    val minPrice = RealPrice.calculate(
+                      min.lockedX.amount,
+                      min.lockedX.decimals,
+                      min.lockedY.amount,
+                      min.lockedY.decimals
+                    )
+                    val maxPrice = RealPrice.calculate(
+                      max.lockedX.amount,
+                      max.lockedX.decimals,
+                      max.lockedY.amount,
+                      max.lockedY.decimals
+                    )
+                    (maxPrice.value - minPrice.value).abs / (minPrice.value / 100)
+                  }
+                  .toList
+                Some(PoolSlippage(slippageBySegment.sum / slippageBySegment.size).scale(3))
+            }
+          }
         }
-        .map {
-          case Nil => None
-          case xs: List[PoolTrace] =>
-            val slippageBySegment = xs
-              .groupBy(_.height)
-              .map { case (_, traces) =>
-                val max = traces.maxBy(_.gindex)
-                val min = traces.minBy(_.gindex)
-                val minPrice = RealPrice.calculate(
-                  min.lockedX.amount,
-                  min.lockedX.decimals,
-                  min.lockedY.amount,
-                  min.lockedY.decimals
-                )
-                val maxPrice = RealPrice.calculate(
-                  max.lockedX.amount,
-                  max.lockedX.decimals,
-                  max.lockedY.amount,
-                  max.lockedY.decimals
-                )
-                (maxPrice.value - minPrice.value).abs / (minPrice.value / 100)
-              }
-              .toList
-            Some(PoolSlippage(slippageBySegment.sum / slippageBySegment.size).scale(3))
-        }
+      }
 
     def getPoolPriceChart(poolId: PoolId, window: HeightWindow, resolution: Int): F[List[PricePoint]] = {
 

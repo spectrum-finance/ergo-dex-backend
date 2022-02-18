@@ -212,5 +212,5 @@ final class AnalyticsSql(implicit lg: LogHandler) {
         s"${hw.from.map(h => s"p.height >= $h").getOrElse("")} ${if (hw.from.isDefined && hw.to.isDefined) "and"
         else ""} ${hw.to.map(h => s"p.height <= $h").getOrElse("")}"
       )
-    else Fragment.empty
+    else Fragment.const("true")
 }
