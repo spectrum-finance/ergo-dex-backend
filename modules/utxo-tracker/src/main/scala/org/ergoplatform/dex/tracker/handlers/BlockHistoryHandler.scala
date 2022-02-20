@@ -1,9 +1,6 @@
-package org.ergoplatform.dex.markets.processes
+package org.ergoplatform.dex.tracker.handlers
 
 import cats.effect.Clock
-import cats.implicits.none
-import cats.instances.list._
-import cats.syntax.traverse._
 import cats.{Functor, FunctorFilter, Monad}
 import mouse.all.anySyntaxMouse
 import org.ergoplatform.ErgoAddressEncoder
@@ -11,10 +8,9 @@ import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.ergo.domain.SettledBlock
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
-import tofu.syntax.foption._
-import tofu.syntax.streams.all._
-import tofu.syntax.monadic._
 import tofu.syntax.logging._
+import tofu.syntax.monadic._
+import tofu.syntax.streams.all._
 
 final class BlockHistoryHandler[
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,

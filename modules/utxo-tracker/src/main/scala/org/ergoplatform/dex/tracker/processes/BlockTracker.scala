@@ -1,18 +1,17 @@
-package org.ergoplatform.dex.markets.processes
+package org.ergoplatform.dex.tracker.processes
 
-import org.ergoplatform.ergo.domain.SettledBlock
-import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import cats.{Defer, Functor, Monad, MonoidK}
 import derevo.derive
-import org.ergoplatform.dex.markets.configs.BlockTrackerConfig
+import org.ergoplatform.dex.tracker.configs.BlockTrackerConfig
+import org.ergoplatform.dex.tracker.repositories.TrackerCache
+import org.ergoplatform.ergo.domain.SettledBlock
 import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming}
-import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import tofu.Catches
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Evals, Pace, ParFlatten}
-import tofu.syntax.embed._
 import tofu.syntax.handle._
+import tofu.syntax.embed._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import tofu.syntax.streams.all._

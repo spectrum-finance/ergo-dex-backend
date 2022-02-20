@@ -8,11 +8,24 @@ import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
 import org.ergoplatform.dex.index.sql._
 import org.ergoplatform.ergo._
-import org.ergoplatform.ergo.domain.LedgerMetadata
+import org.ergoplatform.ergo.domain.{LedgerMetadata, SettledBlock}
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo
 import org.ergoplatform.ergo.state.ConfirmedIndexed
 
 object models {
+
+  final case class DBBlock(
+    id: String,
+    height: Int,
+    timestamp: Long
+  )
+
+  implicit val blockQs: QuerySet[DBBlock] = BlocksSql
+
+  implicit val dbBlockView: Extract[SettledBlock, DBBlock] = {
+    case SettledBlock(id, height, timestamp) =>
+      DBBlock(id, height, timestamp)
+  }
 
   final case class DBLiquidityLock(
     id: LockId,
