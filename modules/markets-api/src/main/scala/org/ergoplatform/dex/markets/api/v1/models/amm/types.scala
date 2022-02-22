@@ -15,6 +15,8 @@ object types {
 
   object RealPrice {
 
+    val defaultScale = 6
+
     def calculate(
       baseAssetAmount: Long,
       baseAssetDecimals: Option[Int],

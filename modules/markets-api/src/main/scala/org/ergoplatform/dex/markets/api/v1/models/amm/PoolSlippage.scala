@@ -15,4 +15,8 @@ case class PoolSlippage(
 
 object PoolSlippage {
   implicit val schema: Schema[PoolSlippage] = Schema.derived
+
+  val defaultScale = 3
+
+  def zero: PoolSlippage = PoolSlippage(0)
 }

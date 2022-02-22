@@ -50,6 +50,8 @@ object AmmStats {
 
   val MillisInYear: FiniteDuration = 365.days
 
+  val slippageWindowScale = 2
+
   def make[F[_]: Monad: Clock, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
@@ -121,24 +123,26 @@ object AmmStats {
 
     def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]] =
       network.getCurrentHeight.flatMap { currHeight =>
-
         val query = for {
           traces  <- pools.trace(poolId, depth, currHeight)
           poolOpt <- pools.info(poolId)
         } yield (traces, poolOpt)
 
-        val transed: F[(List[PoolTrace], Option[PoolInfo])] = txr.trans(query)
-
-        transed.map { case (traces, poolOpt) =>
-          poolOpt.fold[Option[PoolSlippage]](None) { _ =>
+        txr.trans(query).map { case (traces, poolOpt) =>
+          poolOpt.flatMap { _ =>
             traces match {
               case Nil => Some(PoolSlippage(0))
               case xs: List[PoolTrace] =>
                 val slippageBySegment = xs
-                  .groupBy(_.height)
-                  .map { case (_, traces) =>
-                    val max = traces.maxBy(_.gindex)
-                    val min = traces.minBy(_.gindex)
+                  .groupBy(_.height / slippageWindowScale)
+                  .toList
+                  .map { case (_, heightWindow) =>
+                    val windowMinGindex = heightWindow.minBy(_.gindex).gindex
+                    val min = xs.filter(_.gindex < windowMinGindex) match {
+                      case Nil => heightWindow.minBy(_.gindex)
+                      case ys  => ys.maxBy(_.gindex)
+                    }
+                    val max = heightWindow.maxBy(_.gindex)
                     val minPrice = RealPrice.calculate(
                       min.lockedX.amount,
                       min.lockedX.decimals,
@@ -153,8 +157,7 @@ object AmmStats {
                     )
                     (maxPrice.value - minPrice.value).abs / (minPrice.value / 100)
                   }
-                  .toList
-                Some(PoolSlippage(slippageBySegment.sum / slippageBySegment.size).scale(3))
+                Some(PoolSlippage(slippageBySegment.sum / slippageBySegment.size).scale(PoolSlippage.defaultScale))
             }
           }
         }
@@ -169,14 +172,14 @@ object AmmStats {
 
       txr
         .trans(queryPoolData)
-        .map { case (amounts, snapOpt) =>
-          snapOpt.fold(List.empty[PricePoint]) { snap =>
+        .map {
+          case (amounts, Some(snap)) =>
             amounts.map { amount =>
               val price =
                 RealPrice.calculate(amount.amountX, snap.lockedX.decimals, amount.amountY, snap.lockedY.decimals)
-              PricePoint(amount.index * resolution, price.setScale(6))
+              PricePoint(amount.index * resolution, price.setScale(RealPrice.defaultScale))
             }
-          }
+          case _ => List.empty
         }
     }
 
