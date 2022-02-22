@@ -54,7 +54,7 @@ object BlockIndexing {
 
     def run: S[Unit] =
       blocks.stream.chunks.evalMap { rs =>
-        val blocks = rs.map(r => r.message.entity).toList
+        val blocks = rs.map(r => r.message).toList
         def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
           NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
         val insert =

@@ -6,10 +6,10 @@ import org.ergoplatform.common.cache.RedisConfig
 import org.ergoplatform.common.db.PgConfig
 import org.ergoplatform.common.streaming.CommitPolicy
 import org.ergoplatform.dex.configs._
-import org.ergoplatform.dex.tracker.configs.{TxTrackerConfig, LedgerTrackingConfig}
+import org.ergoplatform.dex.tracker.configs.{BlockTrackerConfig, LedgerTrackingConfig, TxTrackerConfig}
 import tofu.Context
 import tofu.logging.Loggable
-import tofu.optics.macros.{promote, ClassyOptics}
+import tofu.optics.macros.{ClassyOptics, promote}
 
 @derive(pureconfigReader)
 @ClassyOptics
@@ -23,6 +23,7 @@ final case class ConfigBundle(
                                @promote network: NetworkConfig,
                                @promote utxoTracker: LedgerTrackingConfig,
                                @promote txTracker: TxTrackerConfig,
+                               @promote blockTracker: BlockTrackerConfig,
                                redis: RedisConfig
 )
 
