@@ -4,9 +4,9 @@ import cats.Monad
 import cats.data.OptionT
 import cats.effect.Clock
 import mouse.anyf._
-import org.ergoplatform.common.models.{HeightWindow, TimeWindow}
+import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, PlatformSummary, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm.AmmMarketSummary
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
 import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSlippage, PoolSummary, PricePoint}
 import org.ergoplatform.dex.markets.currencies.UsdUnits
@@ -17,8 +17,6 @@ import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
 import org.ergoplatform.dex.markets.db.models.amm.{
-  AvgAssetAmounts,
-  PoolInfo,
   PoolSnapshot,
   PoolTrace,
   PoolVolumeSnapshot
@@ -28,10 +26,7 @@ import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.syntax.monadic._
 import tofu.syntax.time.now._
-
-import scala.collection.immutable
 import scala.concurrent.duration._
-import scala.math.BigDecimal.RoundingMode
 
 trait AmmStats[F[_]] {
 
@@ -41,7 +36,7 @@ trait AmmStats[F[_]] {
 
   def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]]
 
-  def getPoolPriceChart(poolId: PoolId, window: HeightWindow, resolution: Int): F[List[PricePoint]]
+  def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): F[List[PricePoint]]
 
   def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]]
 }
@@ -121,49 +116,66 @@ object AmmStats {
       } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
     }
 
+    private def calculatePoolSlippagePercent(initState: PoolTrace, finalState: PoolTrace): BigDecimal = {
+      val minPrice = RealPrice.calculate(
+        initState.lockedX.amount,
+        initState.lockedX.decimals,
+        initState.lockedY.amount,
+        initState.lockedY.decimals
+      )
+      val maxPrice = RealPrice.calculate(
+        finalState.lockedX.amount,
+        finalState.lockedX.decimals,
+        finalState.lockedY.amount,
+        finalState.lockedY.decimals
+      )
+      (maxPrice.value - minPrice.value).abs / (minPrice.value / 100)
+    }
+
     def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]] =
       network.getCurrentHeight.flatMap { currHeight =>
         val query = for {
-          traces  <- pools.trace(poolId, depth, currHeight)
-          poolOpt <- pools.info(poolId)
-        } yield (traces, poolOpt)
+          initialState <- pools.prevTrace(poolId, depth, currHeight)
+          traces       <- pools.trace(poolId, depth, currHeight)
+          poolOpt      <- pools.info(poolId)
+        } yield (traces, initialState, poolOpt)
 
-        txr.trans(query).map { case (traces, poolOpt) =>
+        txr.trans(query).map { case (traces, initStateOpt, poolOpt) =>
           poolOpt.flatMap { _ =>
             traces match {
               case Nil => Some(PoolSlippage(0))
               case xs: List[PoolTrace] =>
-                val slippageBySegment = xs
+                val groupedTraces = xs
+                  .sortBy(_.gindex)
                   .groupBy(_.height / slippageWindowScale)
                   .toList
-                  .map { case (_, heightWindow) =>
-                    val windowMinGindex = heightWindow.minBy(_.gindex).gindex
-                    val min = xs.filter(_.gindex < windowMinGindex) match {
-                      case Nil => heightWindow.minBy(_.gindex)
-                      case ys  => ys.maxBy(_.gindex)
-                    }
-                    val max = heightWindow.maxBy(_.gindex)
-                    val minPrice = RealPrice.calculate(
-                      min.lockedX.amount,
-                      min.lockedX.decimals,
-                      min.lockedY.amount,
-                      min.lockedY.decimals
-                    )
-                    val maxPrice = RealPrice.calculate(
-                      max.lockedX.amount,
-                      max.lockedX.decimals,
-                      max.lockedY.amount,
-                      max.lockedY.decimals
-                    )
-                    (maxPrice.value - minPrice.value).abs / (minPrice.value / 100)
-                  }
-                Some(PoolSlippage(slippageBySegment.sum / slippageBySegment.size).scale(PoolSlippage.defaultScale))
+                  .sortBy(_._1)
+                val initState                  = initStateOpt.getOrElse(xs.minBy(_.gindex))
+                val maxState                   = groupedTraces.head._2.maxBy(_.gindex)
+                val firstWindowSlippagePercent = calculatePoolSlippagePercent(initState, maxState)
+
+                groupedTraces.drop(1) match {
+                  case Nil => Some(PoolSlippage(firstWindowSlippagePercent).scale(PoolSlippage.defaultScale))
+                  case restTraces =>
+                    val restWindowsSlippage = restTraces
+                      .map { case (_, heightWindow) =>
+                        val windowMinGindex = heightWindow.minBy(_.gindex).gindex
+                        val min = xs.filter(_.gindex < windowMinGindex) match {
+                          case Nil      => heightWindow.minBy(_.gindex)
+                          case filtered => filtered.maxBy(_.gindex)
+                        }
+                        val max = heightWindow.maxBy(_.gindex)
+                        calculatePoolSlippagePercent(min, max)
+                      }
+                    val slippageBySegment = firstWindowSlippagePercent +: restWindowsSlippage
+                    Some(PoolSlippage(slippageBySegment.sum / slippageBySegment.size).scale(PoolSlippage.defaultScale))
+                }
             }
           }
         }
       }
 
-    def getPoolPriceChart(poolId: PoolId, window: HeightWindow, resolution: Int): F[List[PricePoint]] = {
+    def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): F[List[PricePoint]] = {
 
       val queryPoolData = for {
         amounts   <- pools.avgAmounts(poolId, window, resolution)
@@ -177,7 +189,7 @@ object AmmStats {
             amounts.map { amount =>
               val price =
                 RealPrice.calculate(amount.amountX, snap.lockedX.decimals, amount.amountY, snap.lockedY.decimals)
-              PricePoint(amount.index * resolution, price.setScale(RealPrice.defaultScale))
+              PricePoint(amount.timestamp, price.setScale(RealPrice.defaultScale))
             }
           case _ => List.empty
         }

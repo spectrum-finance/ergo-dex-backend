@@ -54,11 +54,11 @@ final class AmmStatsEndpoints {
       .name("Pool slippage")
       .description("Get average slippage by pool")
 
-  def getPoolPriceChart: Endpoint[(PoolId, HeightWindow, Int), HttpError, List[PricePoint], Any] =
+  def getPoolPriceChart: Endpoint[(PoolId, TimeWindow, Int), HttpError, List[PricePoint], Any] =
     baseEndpoint.get
       .in(PathPrefix / "pool" / path[PoolId].description("Asset reference") / "chart")
-      .in(heightWindow)
-      .in(query[Int]("resolution").default(1).validate(Validator.min(1)))
+      .in(timeWindow)
+      .in(query[Int]("resolution").default(1).validate(Validator.min(1)).validate(Validator.max(1)))
       .out(jsonBody[List[PricePoint]])
       .tag(Group)
       .name("Pool chart")

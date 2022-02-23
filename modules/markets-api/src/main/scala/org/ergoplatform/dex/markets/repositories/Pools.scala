@@ -56,9 +56,13 @@ trait Pools[F[_]] {
     */
   def trace(id: PoolId, depth: Int, currHeight: Int): F[List[PoolTrace]]
 
+  /** Get newest snapshot of a given pool below given depth.
+    */
+  def prevTrace(id: PoolId, depth: Int, currHeight: Int): F[Option[PoolTrace]]
+
   /** Get average asset amounts in a given pool within given height window.
     */
-  def avgAmounts(id: PoolId, window: HeightWindow, resolution: Int): F[List[AvgAssetAmounts]]
+  def avgAmounts(id: PoolId, window: TimeWindow, resolution: Int): F[List[AvgAssetAmounts]]
 }
 
 object Pools {
@@ -100,7 +104,10 @@ object Pools {
     def trace(id: PoolId, depth: Int, currHeight: Int): ConnectionIO[List[PoolTrace]] =
       sql.getPoolTrace(id, depth, currHeight).to[List]
 
-    def avgAmounts(id: PoolId, window: HeightWindow, resolution: Int): ConnectionIO[List[AvgAssetAmounts]] =
+    def prevTrace(id: PoolId, depth: Int, currHeight: Int): ConnectionIO[Option[PoolTrace]] =
+      sql.getPrevPoolTrace(id, depth, currHeight).option
+
+    def avgAmounts(id: PoolId, window: TimeWindow, resolution: Int): ConnectionIO[List[AvgAssetAmounts]] =
       sql.getAvgPoolSnapshot(id, window, resolution).to[List]
   }
 
@@ -169,7 +176,14 @@ object Pools {
         _ <- trace"trace(poolId=$id, depth=$depth, currHeight=$currHeight) -> ${r.size} trace snapshots selected"
       } yield r
 
-    def avgAmounts(id: PoolId, window: HeightWindow, resolution: Int): Mid[F, List[AvgAssetAmounts]] =
+    def prevTrace(id: PoolId, depth: Int, currHeight: Int): Mid[F, Option[PoolTrace]] =
+      for {
+        _ <- trace"trace(poolId=$id, depth=$depth, currHeight=$currHeight)"
+        r <- _
+        _ <- trace"trace(poolId=$id, depth=$depth, currHeight=$currHeight) -> ${r.size} trace snapshots selected"
+      } yield r
+
+    def avgAmounts(id: PoolId, window: TimeWindow, resolution: Int): Mid[F, List[AvgAssetAmounts]] =
       for {
         _ <- trace"trace(poolId=$id, window=$window, resolution=$resolution)"
         r <- _

@@ -37,6 +37,7 @@ object amm {
   final case class AvgAssetAmounts(
     amountX: Long,
     amountY: Long,
+    timestamp: Long,
     index: Long
   )
 }

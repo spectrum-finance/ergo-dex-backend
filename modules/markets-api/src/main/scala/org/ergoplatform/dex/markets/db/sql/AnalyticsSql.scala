@@ -178,6 +178,18 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          """.stripMargin.query[PoolFeesSnapshot]
   }
 
+  def getPrevPoolTrace(id: PoolId, depth: Int, currHeight: Int): Query0[PoolTrace] =
+    sql"""
+         |select p.pool_id, p.x_id, p.x_amount, ax.ticker, ax.decimals, p.y_id, p.y_amount, ay.ticker, ay.decimals, p.height, p.gindex
+         |from pools p
+         |left join assets ax on ax.id = p.x_id
+         |left join assets ay on ay.id = p.y_id
+         |where p.height <= $currHeight - $depth
+         |and p.pool_id = $id
+         |order by p.gindex desc
+         |limit 1
+         """.stripMargin.query[PoolTrace]
+
   def getPoolTrace(id: PoolId, depth: Int, currHeight: Int): Query0[PoolTrace] =
     sql"""
          |select p.pool_id, p.x_id, p.x_amount, ax.ticker, ax.decimals, p.y_id, p.y_amount, ay.ticker, ay.decimals, p.height, p.gindex
@@ -188,12 +200,13 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |and p.height >= $currHeight - $depth
          """.stripMargin.query[PoolTrace]
 
-  def getAvgPoolSnapshot(id: PoolId, hw: HeightWindow, resolution: Int): Query0[AvgAssetAmounts] =
+  def getAvgPoolSnapshot(id: PoolId, tw: TimeWindow, resolution: Int): Query0[AvgAssetAmounts] =
     sql"""
-         |select avg(p.x_amount) as avg_x_amount, avg(p.y_amount) as avg_y_amount, ((p.height / $resolution)::integer) as k
+         |select avg(p.x_amount) as avg_x_amount, avg(p.y_amount) as avg_y_amount, avg(b.timestamp), ((p.height / $resolution)::integer) as k
          |from pools p
+         |left join blocks b on b.height = p.height
          |where pool_id = $id
-         |and ${heightWindowCond(hw)}
+         |and ${blockTimeWindowMapping(tw)}
          |group by k
          |order by k
          """.stripMargin.query[AvgAssetAmounts]
@@ -206,11 +219,11 @@ final class AnalyticsSql(implicit lg: LogHandler) {
       )
     else Fragment.empty
 
-  private def heightWindowCond(hw: HeightWindow): Fragment =
-    if (hw.from.nonEmpty || hw.to.nonEmpty)
+  private def blockTimeWindowMapping(tw: TimeWindow): Fragment =
+    if (tw.from.nonEmpty || tw.to.nonEmpty)
       Fragment.const(
-        s"${hw.from.map(h => s"p.height >= $h").getOrElse("")} ${if (hw.from.isDefined && hw.to.isDefined) "and"
-        else ""} ${hw.to.map(h => s"p.height <= $h").getOrElse("")}"
+        s"${tw.from.map(ts => s"b.timestamp >= $ts").getOrElse("")} ${if (tw.from.isDefined && tw.to.isDefined) "and"
+        else ""} ${tw.to.map(ts => s"b.timestamp <= $ts").getOrElse("")}"
       )
     else Fragment.const("true")
 }
