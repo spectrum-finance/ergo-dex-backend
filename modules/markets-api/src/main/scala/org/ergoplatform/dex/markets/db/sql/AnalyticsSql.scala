@@ -184,7 +184,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |from pools p
          |left join assets ax on ax.id = p.x_id
          |left join assets ay on ay.id = p.y_id
-         |where p.height <= $currHeight - $depth
+         |where p.height < $currHeight - $depth
          |and p.pool_id = $id
          |order by p.gindex desc
          |limit 1

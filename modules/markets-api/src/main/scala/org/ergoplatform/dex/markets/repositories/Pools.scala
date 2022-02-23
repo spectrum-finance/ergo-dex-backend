@@ -56,7 +56,7 @@ trait Pools[F[_]] {
     */
   def trace(id: PoolId, depth: Int, currHeight: Int): F[List[PoolTrace]]
 
-  /** Get newest snapshot of a given pool below given depth.
+  /** Get most recent snapshot of a given pool below given depth.
     */
   def prevTrace(id: PoolId, depth: Int, currHeight: Int): F[Option[PoolTrace]]
 
