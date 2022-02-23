@@ -16,11 +16,7 @@ import org.ergoplatform.dex.markets.repositories.Pools
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
-import org.ergoplatform.dex.markets.db.models.amm.{
-  PoolSnapshot,
-  PoolTrace,
-  PoolVolumeSnapshot
-}
+import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
 import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, MarketId}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.ergo.modules.ErgoNetwork
@@ -143,8 +139,8 @@ object AmmStats {
         txr.trans(query).map { case (traces, initStateOpt, poolOpt) =>
           poolOpt.flatMap { _ =>
             traces match {
-              case Nil => Some(PoolSlippage(0))
-              case xs: List[PoolTrace] =>
+              case Nil => Some(PoolSlippage.zero)
+              case xs =>
                 val groupedTraces = xs
                   .sortBy(_.gindex)
                   .groupBy(_.height / slippageWindowScale)
