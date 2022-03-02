@@ -6,7 +6,7 @@ import mouse.all.anySyntaxMouse
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.ergo.BlockId
-import org.ergoplatform.ergo.domain.SettledBlock
+import org.ergoplatform.ergo.domain.Block
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
 import tofu.syntax.logging._
@@ -17,12 +17,12 @@ final class BlockHistoryHandler[
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,
   G[_]: Monad: Logging
 ](implicit
-  producer: Producer[BlockId, SettledBlock, F]
+  producer: Producer[BlockId, Block, F]
 ) {
 
   def handler: SettledBlockHandler[F] =
     _.evalTap(op => info"Evaluated CFMM operation detected $op")
-      .map(op => Record[BlockId, SettledBlock](BlockId(op.id), op))
+      .map(op => Record[BlockId, Block](BlockId(op.id), op))
       .thrush(producer.produce)
 }
 
@@ -33,7 +33,7 @@ object BlockHistoryHandler {
     F[_]: Monad: Evals[*[_], G]: FunctorFilter,
     G[_]: Monad: Clock
   ](implicit
-    producer: Producer[BlockId, SettledBlock, F],
+    producer: Producer[BlockId, Block, F],
     logs: Logs[I, G],
     e: ErgoAddressEncoder
   ): I[SettledBlockHandler[F]] =

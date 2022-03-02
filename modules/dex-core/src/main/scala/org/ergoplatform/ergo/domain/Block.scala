@@ -6,16 +6,16 @@ import org.ergoplatform.ergo.services.explorer.models.BlockInfo
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
-final case class SettledBlock(
+final case class Block(
   id: String,
   height: Int,
   timestamp: Long
 )
 
-object SettledBlock {
+object Block {
 
-  def fromExplorer(block: BlockInfo): SettledBlock =
-    SettledBlock(
+  def fromExplorer(block: BlockInfo): Block =
+    Block(
       block.id,
       block.height,
       block.timestamp

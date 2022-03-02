@@ -28,7 +28,7 @@ import org.ergoplatform.dex.tracker.processes.LedgerTracker.TrackerMode
 import org.ergoplatform.dex.tracker.processes.{BlockTracker, LedgerTracker, TxTracker, UtxoTracker}
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.ergo.BlockId
-import org.ergoplatform.ergo.domain.SettledBlock
+import org.ergoplatform.ergo.domain.Block
 import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming}
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import org.ergoplatform.ergo.services.node.ErgoNode
@@ -78,15 +78,15 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(locksCons: LqLocksConsumer[StreamF, RunF]) =
         makeConsumer[LockId, Confirmed[LiquidityLock]](configs.consumers.lqLocks)
       implicit0(blocksCons: BlocksConsumer[StreamF, RunF]) =
-        makeConsumer[BlockId, SettledBlock](configs.consumers.blocks)
+        makeConsumer[BlockId, Block](configs.consumers.blocks)
       implicit0(orderProd: Producer[OrderId, EvaluatedCFMMOrder.Any, StreamF]) <-
         Producer.make[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any](configs.producers.cfmmHistory)
       implicit0(poolProd: Producer[PoolId, ConfirmedIndexed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]](configs.producers.cfmmPools)
       implicit0(producer3: Producer[LockId, Confirmed[LiquidityLock], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]](configs.producers.lqLocks)
-      implicit0(blockProd: Producer[BlockId, SettledBlock, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, BlockId, SettledBlock](configs.producers.blocks)
+      implicit0(blockProd: Producer[BlockId, Block, StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, BlockId, Block](configs.producers.blocks)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(explorer: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])

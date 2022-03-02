@@ -317,12 +317,16 @@ object ErgoExplorerStreaming {
     def streamBlocks(offset: Long, limit: Int): Stream[F, BlockInfo] = {
       val req =
         basicRequest
-          .get(uri.withPathSegment(blocksPathSeg).addParams("offset" -> offset.toString, "limit" -> limit.toString))
-          .response(asJson[Items[BlockInfo]])
+          .get(uri.withPathSegment(blocksStreamPathSeg).addParams("minGix" -> offset.toString, "limit" -> limit.toString))
+          .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
           .send(backend)
-          .absorbError
-          .map(_.items)
-      Stream.evals(req)
+          .map(_.body)
+      Stream
+        .force(req)
+        .chunks
+        .parseJsonStream
+        .map(_.as[BlockInfo].toOption)
+        .unNone
     }
 
     def streamSomeOutputs(path: Uri.Segment)(boxGixOffset: Long, limit: Int): Stream[F, Output] = {

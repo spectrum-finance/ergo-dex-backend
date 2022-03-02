@@ -5,7 +5,6 @@ import derevo.derive
 import org.ergoplatform.dex.tracker.configs.BlockTrackerConfig
 import org.ergoplatform.dex.tracker.handlers.SettledBlockHandler
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
-import org.ergoplatform.ergo.domain.SettledBlock
 import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming}
 import tofu.Catches
 import tofu.higherKind.derived.representableK
