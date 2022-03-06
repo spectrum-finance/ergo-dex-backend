@@ -71,16 +71,16 @@ object App extends EnvApp[ConfigBundle] {
         makeConsumer[OrderId, Option[EvaluatedCFMMOrder.Any]](configs.consumers.cfmmHistory)
       implicit0(locksCons: LqLocksConsumer[StreamF, RunF]) =
         makeConsumer[LockId, Confirmed[LiquidityLock]](configs.consumers.lqLocks)
-      implicit0(blocksCons: BlocksConsumer[StreamF, RunF]) =
-        makeConsumer[BlockId, Block](configs.consumers.blocks)
+//      implicit0(blocksCons: BlocksConsumer[StreamF, RunF]) =
+//        makeConsumer[BlockId, Block](configs.consumers.blocks)
       implicit0(orderProd: Producer[OrderId, EvaluatedCFMMOrder.Any, StreamF]) <-
         Producer.make[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any](configs.producers.cfmmHistory)
       implicit0(poolProd: Producer[PoolId, ConfirmedIndexed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]](configs.producers.cfmmPools)
       implicit0(producer3: Producer[LockId, Confirmed[LiquidityLock], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]](configs.producers.lqLocks)
-      implicit0(blockProd: Producer[BlockId, Block, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, BlockId, Block](configs.producers.blocks)
+//      implicit0(blockProd: Producer[BlockId, Block, StreamF]) <-
+//        Producer.make[InitF, StreamF, RunF, BlockId, Block](configs.producers.blocks)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(explorer: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
@@ -89,10 +89,10 @@ object App extends EnvApp[ConfigBundle] {
       cfmmPoolsHandler                     <- Resource.eval(SettledCFMMPoolsHandler.make[InitF, StreamF, RunF])
       cfmmHistoryHandler                   <- Resource.eval(CFMMHistoryHandler.make[InitF, StreamF, RunF])
       lqLocksHandler                       <- Resource.eval(LiquidityLocksHandler.make[InitF, StreamF, RunF])
-      blockHandler                         <- Resource.eval(BlockHistoryHandler.make[InitF, StreamF, RunF])
+      //blockHandler                         <- Resource.eval(BlockHistoryHandler.make[InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
-      blockTracker                         <- Resource.eval(BlockTracker.make[InitF, StreamF, RunF](blockHandler))
+      //blockTracker                         <- Resource.eval(BlockTracker.make[InitF, StreamF, RunF](blockHandler))
       utxoTracker <-
         Resource.eval(
           LedgerTracker.make[InitF, StreamF, RunF](TrackerMode.Historical, cfmmPoolsHandler, lift(lqLocksHandler))
@@ -102,9 +102,11 @@ object App extends EnvApp[ConfigBundle] {
       historyIndexer                      <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       poolsIndexer                        <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       locksIndexer                        <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      blocksIndexer                       <- Resource.eval(BlockIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      //blocksIndexer                       <- Resource.eval(BlockIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+//      processes =
+//        utxoTracker.run :: txTracker.run :: blockTracker.run :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: blocksIndexer.run :: Nil
       processes =
-        utxoTracker.run :: txTracker.run :: blockTracker.run :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: blocksIndexer.run :: Nil
+        utxoTracker.run :: txTracker.run :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: Nil
     } yield (processes, configs)
   // format:on
 
