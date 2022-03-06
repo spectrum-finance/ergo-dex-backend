@@ -42,7 +42,7 @@ import tofu.syntax.unlift._
 import zio.interop.catz._
 import zio.{ExitCode, URIO, ZEnv}
 
-object App extends EnvApp[ConfigBundle] {
+object AppLocal extends EnvApp[ConfigBundle] {
 
   implicit val makeRef: MakeRef[InitF, RunF]   = MakeRef.syncInstance
   implicit val mtx: MakeRedisTransaction[RunF] = MakeRedisTransaction.make[RunF]
@@ -62,25 +62,21 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(xa: Txr.Contextual[RunF, ConfigBundle]) = Txr.contextual[RunF](trans)
       implicit0(elh: EmbeddableLogHandler[xa.DB]) <-
         Resource.eval(doobieLogging.makeEmbeddableHandler[InitF, RunF, xa.DB]("indexer-db-logging"))
-      implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
-      implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
-      implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
-      implicit0(poolCons: CFMMPoolsConsumer[StreamF, RunF]) =
-        makeConsumer[PoolId, ConfirmedIndexed[CFMMPool]](configs.consumers.cfmmPools)
-      implicit0(ammHistCons: CFMMHistConsumer[StreamF, RunF]) =
-        makeConsumer[OrderId, Option[EvaluatedCFMMOrder.Any]](configs.consumers.cfmmHistory)
-      implicit0(locksCons: LqLocksConsumer[StreamF, RunF]) =
-        makeConsumer[LockId, Confirmed[LiquidityLock]](configs.consumers.lqLocks)
-      implicit0(blocksCons: BlocksConsumer[StreamF, RunF]) =
-        makeConsumer[BlockId, Block](configs.consumers.blocks)
+      implicit0(e: ErgoAddressEncoder)                        = configs.protocol.networkType.addressEncoder
+      implicit0(isoKRun: IsoK[RunF, InitF])                   = isoKRunByContext(configs)
+      implicit0(logsDb: Logs[InitF, xa.DB])                   = Logs.sync[InitF, xa.DB]
+      implicit0(poolCons: CFMMPoolsConsumer[StreamF, RunF])   = Consumer.empty[StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]]
+      implicit0(ammHistCons: CFMMHistConsumer[StreamF, RunF]) = Consumer.empty[StreamF, RunF, OrderId, Option[EvaluatedCFMMOrder.Any]]
+      implicit0(locksCons: LqLocksConsumer[StreamF, RunF])    = Consumer.empty[StreamF, RunF, LockId, Confirmed[LiquidityLock]]
+      implicit0(blocksCons: BlocksConsumer[StreamF, RunF])    = Consumer.empty[StreamF, RunF, BlockId, Block]
       implicit0(orderProd: Producer[OrderId, EvaluatedCFMMOrder.Any, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any](configs.producers.cfmmHistory)
+        Resource.eval(Producer.dummy[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any]("eval_orders"))
       implicit0(poolProd: Producer[PoolId, ConfirmedIndexed[CFMMPool], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]](configs.producers.cfmmPools)
+        Resource.eval(Producer.dummy[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]]("indexed_pools"))
       implicit0(producer3: Producer[LockId, Confirmed[LiquidityLock], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]](configs.producers.lqLocks)
+        Resource.eval(Producer.dummy[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]]("lq_locks"))
       implicit0(blockProd: Producer[BlockId, Block, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, BlockId, Block](configs.producers.blocks)
+        Resource.eval(Producer.dummy[InitF, StreamF, RunF, BlockId, Block]("blocks"))
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(explorer: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])

@@ -9,22 +9,22 @@ import org.ergoplatform.dex.configs._
 import org.ergoplatform.dex.tracker.configs.{BlockTrackerConfig, LedgerTrackingConfig, TxTrackerConfig}
 import tofu.Context
 import tofu.logging.Loggable
-import tofu.optics.macros.{ClassyOptics, promote}
+import tofu.optics.macros.{promote, ClassyOptics}
 
 @derive(pureconfigReader)
 @ClassyOptics
 final case class ConfigBundle(
-                               @promote commitPolicy: CommitPolicy,
-                               consumers: Consumers,
-                               producers: Producers,
-                               @promote db: PgConfig,
-                               @promote kafka: KafkaConfig,
-                               @promote protocol: ProtocolConfig,
-                               @promote network: NetworkConfig,
-                               @promote utxoTracker: LedgerTrackingConfig,
-                               @promote txTracker: TxTrackerConfig,
-                               @promote blockTracker: BlockTrackerConfig,
-                               redis: RedisConfig
+  @promote commitPolicy: CommitPolicy,
+  consumers: Consumers,
+  producers: Producers,
+  @promote db: PgConfig,
+  @promote kafka: KafkaConfig,
+  @promote protocol: ProtocolConfig,
+  @promote network: NetworkConfig,
+  @promote utxoTracker: LedgerTrackingConfig,
+  @promote txTracker: TxTrackerConfig,
+  @promote blockTracker: BlockTrackerConfig,
+  redis: RedisConfig
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {

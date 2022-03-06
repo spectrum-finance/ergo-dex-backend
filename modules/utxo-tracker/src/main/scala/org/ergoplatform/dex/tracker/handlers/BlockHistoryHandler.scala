@@ -21,8 +21,7 @@ final class BlockHistoryHandler[
 ) {
 
   def handler: SettledBlockHandler[F] =
-    _.evalTap(op => info"Evaluated CFMM operation detected $op")
-      .map(op => Record[BlockId, Block](BlockId(op.id), op))
+    _.map(op => Record[BlockId, Block](BlockId(op.id), op))
       .thrush(producer.produce)
 }
 
