@@ -65,14 +65,10 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
-      implicit0(poolCons: CFMMPoolsConsumer[StreamF, RunF]) =
-        makeConsumer[PoolId, ConfirmedIndexed[CFMMPool]](configs.consumers.cfmmPools)
-      implicit0(ammHistCons: CFMMHistConsumer[StreamF, RunF]) =
-        makeConsumer[OrderId, Option[EvaluatedCFMMOrder.Any]](configs.consumers.cfmmHistory)
-      implicit0(locksCons: LqLocksConsumer[StreamF, RunF]) =
-        makeConsumer[LockId, Confirmed[LiquidityLock]](configs.consumers.lqLocks)
-      implicit0(blocksCons: BlocksConsumer[StreamF, RunF]) =
-        makeConsumer[BlockId, Block](configs.consumers.blocks)
+      implicit0(poolCons: CFMMPoolsConsumer[StreamF, RunF])   = Consumer.empty[StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]]
+      implicit0(ammHistCons: CFMMHistConsumer[StreamF, RunF]) = Consumer.empty[StreamF, RunF, OrderId, Option[EvaluatedCFMMOrder.Any]]
+      implicit0(locksCons: LqLocksConsumer[StreamF, RunF])    = Consumer.empty[StreamF, RunF, LockId, Confirmed[LiquidityLock]]
+      implicit0(blocksCons: BlocksConsumer[StreamF, RunF])    = Consumer.empty[StreamF, RunF, BlockId, Block]
       implicit0(orderProd: Producer[OrderId, EvaluatedCFMMOrder.Any, StreamF]) <-
         Resource.eval(Producer.dummy[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any]("eval_orders"))
       implicit0(poolProd: Producer[PoolId, ConfirmedIndexed[CFMMPool], StreamF]) <-
