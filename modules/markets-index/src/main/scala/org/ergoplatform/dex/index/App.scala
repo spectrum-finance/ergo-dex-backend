@@ -7,7 +7,7 @@ import fs2.kafka.serde._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
-import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
+import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.dex.configs.ConsumerConfig
 import org.ergoplatform.dex.domain.amm.{CFMMPool, EvaluatedCFMMOrder, OrderId, PoolId}
@@ -74,13 +74,13 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(blocksCons: BlocksConsumer[StreamF, RunF]) =
         makeConsumer[BlockId, Block](configs.consumers.blocks)
       implicit0(orderProd: Producer[OrderId, EvaluatedCFMMOrder.Any, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any](configs.producers.cfmmHistory)
+        Resource.eval(Producer.dummy[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any]("eval_orders"))
       implicit0(poolProd: Producer[PoolId, ConfirmedIndexed[CFMMPool], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]](configs.producers.cfmmPools)
-      implicit0(lockProd: Producer[LockId, Confirmed[LiquidityLock], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]](configs.producers.lqLocks)
+        Resource.eval(Producer.dummy[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]]("indexed_pools"))
+      implicit0(producer3: Producer[LockId, Confirmed[LiquidityLock], StreamF]) <-
+        Resource.eval(Producer.dummy[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]]("lq_locks"))
       implicit0(blockProd: Producer[BlockId, Block, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, BlockId, Block](configs.producers.blocks)
+        Resource.eval(Producer.dummy[InitF, StreamF, RunF, BlockId, Block]("blocks"))
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(explorer: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
