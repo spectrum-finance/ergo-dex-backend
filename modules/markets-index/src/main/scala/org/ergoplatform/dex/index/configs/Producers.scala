@@ -8,5 +8,6 @@ import org.ergoplatform.dex.configs.ProducerConfig
 final case class Producers(
   cfmmHistory: ProducerConfig,
   cfmmPools: ProducerConfig,
-  lqLocks: ProducerConfig
+  lqLocks: ProducerConfig,
+  blocks: ProducerConfig
 )

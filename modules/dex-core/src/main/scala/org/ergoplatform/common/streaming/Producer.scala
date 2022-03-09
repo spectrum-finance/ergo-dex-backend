@@ -84,7 +84,7 @@ object Producer {
     logs.byName(tag).map { implicit l =>
       new Producer[K, V, F] {
         def produce: F[Record[K, V]] => F[Unit] =
-          _.evalMap(r => debug"Producing ${r.key.toString}")
+          _.evalMap(r => trace"Producing ${r.key.toString}")
       }
     }
 }

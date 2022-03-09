@@ -213,6 +213,10 @@ trait ErgoExplorerStreaming[S[_], F[_]] extends ErgoExplorer[F] {
   /** Get a stream of transactions at the given global offset.
     */
   def streamTransactions(gOffset: Long, limit: Int): S[Transaction]
+
+  /** Get a stream of blocks at the given offset(height).
+    */
+  def streamBlocks(gOffset: Long, limit: Int): S[BlockInfo]
 }
 
 object ErgoExplorerStreaming {
@@ -250,6 +254,9 @@ object ErgoExplorerStreaming {
 
     def streamTransactions(gOffset: Long, limit: Int): S[Transaction] =
       evals.eval(tft.map(_.streamTransactions(gOffset, limit))).flatten
+
+    def streamBlocks(gOffset: Long, limit: Int): S[BlockInfo] =
+      evals.eval(tft.map(_.streamBlocks(gOffset, limit))).flatten
   }
 
   implicit def functorK[F[_]]: FunctorK[ErgoExplorerStreaming[*[_], F]] = {
@@ -304,6 +311,21 @@ object ErgoExplorerStreaming {
         .chunks
         .parseJsonStream
         .map(_.as[Transaction].toOption)
+        .unNone
+    }
+
+    def streamBlocks(offset: Long, limit: Int): Stream[F, BlockInfo] = {
+      val req =
+        basicRequest
+          .get(uri.withPathSegment(blocksStreamPathSeg).addParams("minGix" -> offset.toString, "limit" -> limit.toString))
+          .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
+          .send(backend)
+          .map(_.body)
+      Stream
+        .force(req)
+        .chunks
+        .parseJsonStream
+        .map(_.as[BlockInfo].toOption)
         .unNone
     }
 
