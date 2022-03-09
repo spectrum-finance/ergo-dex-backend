@@ -8,5 +8,6 @@ import org.ergoplatform.dex.configs.ConsumerConfig
 final case class Consumers(
   cfmmHistory: ConsumerConfig,
   cfmmPools: ConsumerConfig,
-  lqLocks: ConsumerConfig
+  lqLocks: ConsumerConfig,
+  blocks: ConsumerConfig
 )

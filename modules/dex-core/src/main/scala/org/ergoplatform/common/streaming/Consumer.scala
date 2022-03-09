@@ -1,7 +1,7 @@
 package org.ergoplatform.common.streaming
 
 import cats.tagless.FunctorK
-import cats.{~>, FlatMap, Functor, Monad}
+import cats.{~>, Applicative, FlatMap, Functor, Monad, MonoidK}
 import fs2.Stream
 import fs2.kafka._
 import fs2.kafka.types.KafkaOffset
@@ -96,6 +96,17 @@ object Consumer {
     functorK
       .mapK(new Live[K, V, G](conf))(LiftStream[F, G].liftF)
       .asInstanceOf[Consumer.Aux[K, V, Live[K, V, F]#Offset, F, G]]
+
+  def empty[
+    F[_],
+    G[_],
+    K,
+    V
+  ](implicit F: MonoidK[F]): Consumer.Aux[K, V, KafkaOffset, F, G] =
+    new Consumer[K, V, F, G] {
+      type Offset = (TopicPartition, OffsetAndMetadata)
+      def stream: F[Committable[K, V, Offset, G]] = F.empty
+    }
 
   final class Live[K, V, F[_]: Functor](config: ConsumerConfig)(implicit
     makeConsumer: MakeKafkaConsumer[F, K, V]
