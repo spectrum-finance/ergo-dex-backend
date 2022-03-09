@@ -19,9 +19,13 @@ trait TrackerCache[F[_]] {
 
   def lastScannedTxOffset: F[Long]
 
+  def lastScannedBlockOffset: F[Long]
+
   def setLastScannedBoxOffset(n: Long): F[Unit]
 
   def setLastScannedTxOffset(n: Long): F[Unit]
+
+  def setLastScannedBlockOffset(n: Long): F[Unit]
 }
 
 object TrackerCache {
@@ -36,9 +40,10 @@ object TrackerCache {
       cache                      <- Cache.make[I, F]
     } yield new CacheTracing[F] attach new Live[F](cache)
 
-  private val LastScannedBoxOffsetKey = "last_scanned_box"
-  private val LastScannedTxOffsetKey  = "last_scanned_tx"
-  private val NullOffset              = -1L
+  private val LastScannedBoxOffsetKey   = "last_scanned_box"
+  private val LastScannedTxOffsetKey    = "last_scanned_tx"
+  private val LastScannedBlockOffsetKey = "last_scanned_block"
+  private val NullOffset                = -1L
 
   final class Live[F[_]: Functor](cache: Cache[F]) extends TrackerCache[F] {
 
@@ -51,11 +56,17 @@ object TrackerCache {
     def lastScannedTxOffset: F[Long] =
       cache.get[String, Long](LastScannedTxOffsetKey).map(_.getOrElse(NullOffset))
 
+    def lastScannedBlockOffset: F[Long] =
+      cache.get[String, Long](LastScannedBlockOffsetKey).map(_.getOrElse(NullOffset))
+
     def setLastScannedBoxOffset(n: Long): F[Unit] =
       cache.set(LastScannedBoxOffsetKey, n)
 
     def setLastScannedTxOffset(n: Long): F[Unit] =
       cache.set(LastScannedTxOffsetKey, n)
+
+    def setLastScannedBlockOffset(n: Long): F[Unit] =
+      cache.set(LastScannedBlockOffsetKey, n)
   }
 
   final class CacheTracing[F[_]: FlatMap: Logging] extends TrackerCache[Mid[F, *]] {
@@ -66,10 +77,16 @@ object TrackerCache {
     def lastScannedTxOffset: Mid[F, Long] =
       _ >>= (r => trace"lastScannedTxOffset = $r" as r)
 
+    def lastScannedBlockOffset: Mid[F, Long] =
+      _ >>= (r => trace"lastScannedBlockOffset = $r" as r)
+
     def setLastScannedBoxOffset(n: Long): Mid[F, Unit] =
       trace"setLastScannedBoxOffset(n=$n)" *> _
 
     def setLastScannedTxOffset(n: Long): Mid[F, Unit] =
       trace"setLastScannedTxOffset(n=$n)" *> _
+
+    def setLastScannedBlockOffset(n: Long): Mid[F, Unit] =
+      trace"setLastScannedBlockOffset(n=$n)" *> _
   }
 }

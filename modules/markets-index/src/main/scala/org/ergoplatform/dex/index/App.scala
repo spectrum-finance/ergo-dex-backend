@@ -7,20 +7,22 @@ import fs2.kafka.serde._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
-import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
+import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.dex.configs.ConsumerConfig
 import org.ergoplatform.dex.domain.amm.{CFMMPool, EvaluatedCFMMOrder, OrderId, PoolId}
 import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
 import org.ergoplatform.dex.index.configs.ConfigBundle
-import org.ergoplatform.dex.index.processes.{HistoryIndexing, LocksIndexing, PoolsIndexing}
+import org.ergoplatform.dex.index.processes.{BlockIndexing, HistoryIndexing, LocksIndexing, PoolsIndexing}
 import org.ergoplatform.dex.index.repositories.RepoBundle
-import org.ergoplatform.dex.index.streaming.{CFMMHistConsumer, CFMMPoolsConsumer, LqLocksConsumer}
-import org.ergoplatform.dex.tracker.handlers.{CFMMHistoryHandler, LiquidityLocksHandler, SettledCFMMPoolsHandler, lift}
+import org.ergoplatform.dex.index.streaming.{BlocksConsumer, CFMMHistConsumer, CFMMPoolsConsumer, LqLocksConsumer}
+import org.ergoplatform.dex.tracker.handlers._
 import org.ergoplatform.dex.tracker.processes.LedgerTracker.TrackerMode
-import org.ergoplatform.dex.tracker.processes.{LedgerTracker, TxTracker, UtxoTracker}
+import org.ergoplatform.dex.tracker.processes.{BlockTracker, LedgerTracker, TxTracker}
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
+import org.ergoplatform.ergo.BlockId
+import org.ergoplatform.ergo.domain.Block
 import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming}
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import org.ergoplatform.ergo.services.node.ErgoNode
@@ -69,12 +71,16 @@ object App extends EnvApp[ConfigBundle] {
         makeConsumer[OrderId, Option[EvaluatedCFMMOrder.Any]](configs.consumers.cfmmHistory)
       implicit0(locksCons: LqLocksConsumer[StreamF, RunF]) =
         makeConsumer[LockId, Confirmed[LiquidityLock]](configs.consumers.lqLocks)
+      implicit0(blocksCons: BlocksConsumer[StreamF, RunF]) =
+        makeConsumer[BlockId, Block](configs.consumers.blocks)
       implicit0(orderProd: Producer[OrderId, EvaluatedCFMMOrder.Any, StreamF]) <-
         Producer.make[InitF, StreamF, RunF, OrderId, EvaluatedCFMMOrder.Any](configs.producers.cfmmHistory)
       implicit0(poolProd: Producer[PoolId, ConfirmedIndexed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]](configs.producers.cfmmPools)
-      implicit0(producer3: Producer[LockId, Confirmed[LiquidityLock], StreamF]) <-
+      implicit0(lockProd: Producer[LockId, Confirmed[LiquidityLock], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]](configs.producers.lqLocks)
+      implicit0(blockProd: Producer[BlockId, Block, StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, BlockId, Block](configs.producers.blocks)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(explorer: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
@@ -83,18 +89,24 @@ object App extends EnvApp[ConfigBundle] {
       cfmmPoolsHandler                     <- Resource.eval(SettledCFMMPoolsHandler.make[InitF, StreamF, RunF])
       cfmmHistoryHandler                   <- Resource.eval(CFMMHistoryHandler.make[InitF, StreamF, RunF])
       lqLocksHandler                       <- Resource.eval(LiquidityLocksHandler.make[InitF, StreamF, RunF])
+      blockHandler                         <- Resource.eval(BlockHistoryHandler.make[InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
-      utxoTracker                          <-
-        Resource.eval(LedgerTracker.make[InitF, StreamF, RunF](TrackerMode.Historical, cfmmPoolsHandler, lift(lqLocksHandler)))
-      txTracker                            <- Resource.eval(TxTracker.make[InitF, StreamF, RunF](cfmmHistoryHandler))
-      implicit0(repos: RepoBundle[xa.DB])  <- Resource.eval(RepoBundle.make[InitF, xa.DB])
-      historyIndexer                       <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      poolsIndexer                         <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      locksIndexer                         <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      processes = utxoTracker.run :: txTracker.run :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: Nil
+      blockTracker                         <- Resource.eval(BlockTracker.make[InitF, StreamF, RunF](blockHandler))
+      utxoTracker <-
+        Resource.eval(
+          LedgerTracker.make[InitF, StreamF, RunF](TrackerMode.Historical, cfmmPoolsHandler, lift(lqLocksHandler))
+        )
+      txTracker                           <- Resource.eval(TxTracker.make[InitF, StreamF, RunF](cfmmHistoryHandler))
+      implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])
+      historyIndexer                      <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      poolsIndexer                        <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      locksIndexer                        <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      blocksIndexer                       <- Resource.eval(BlockIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      processes =
+        utxoTracker.run :: txTracker.run :: blockTracker.run :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: blocksIndexer.run :: Nil
     } yield (processes, configs)
-    // format:on
+  // format:on
 
   private def makeConsumer[K: RecordDeserializer[RunF, *], V: RecordDeserializer[RunF, *]](conf: ConsumerConfig) = {
     implicit val maker = MakeKafkaConsumer.make[InitF, RunF, K, V]
