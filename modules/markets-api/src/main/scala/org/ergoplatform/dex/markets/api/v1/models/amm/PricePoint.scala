@@ -7,7 +7,7 @@ import sttp.tapir.Schema
 
 @derive(encoder, decoder)
 case class PricePoint(
-  height: Long,
+  timestamp: Long,
   price: RealPrice
 )
 
