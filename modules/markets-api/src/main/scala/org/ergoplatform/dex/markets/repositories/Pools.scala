@@ -4,7 +4,7 @@ import cats.tagless.syntax.functorK._
 import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
-import org.ergoplatform.common.models.TimeWindow
+import org.ergoplatform.common.models.{HeightWindow, TimeWindow}
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
@@ -51,6 +51,18 @@ trait Pools[F[_]] {
   /** Get fees by a given pool.
     */
   def fees(id: PoolId, window: TimeWindow): F[Option[PoolFeesSnapshot]]
+
+  /** Get snapshots of a given pool within given depth.
+    */
+  def trace(id: PoolId, depth: Int, currHeight: Int): F[List[PoolTrace]]
+
+  /** Get most recent snapshot of a given pool below given depth.
+    */
+  def prevTrace(id: PoolId, depth: Int, currHeight: Int): F[Option[PoolTrace]]
+
+  /** Get average asset amounts in a given pool within given height window.
+    */
+  def avgAmounts(id: PoolId, window: TimeWindow, resolution: Int): F[List[AvgAssetAmounts]]
 }
 
 object Pools {
@@ -88,6 +100,15 @@ object Pools {
 
     def fees(id: PoolId, window: TimeWindow): ConnectionIO[Option[PoolFeesSnapshot]] =
       sql.getPoolFees(id, window).option
+
+    def trace(id: PoolId, depth: Int, currHeight: Int): ConnectionIO[List[PoolTrace]] =
+      sql.getPoolTrace(id, depth, currHeight).to[List]
+
+    def prevTrace(id: PoolId, depth: Int, currHeight: Int): ConnectionIO[Option[PoolTrace]] =
+      sql.getPrevPoolTrace(id, depth, currHeight).option
+
+    def avgAmounts(id: PoolId, window: TimeWindow, resolution: Int): ConnectionIO[List[AvgAssetAmounts]] =
+      sql.getAvgPoolSnapshot(id, window, resolution).to[List]
   }
 
   final class PoolsTracing[F[_]: FlatMap: Logging] extends Pools[Mid[F, *]] {
@@ -146,6 +167,27 @@ object Pools {
         _ <- trace"fees(poolId=$poolId, window=$window)"
         r <- _
         _ <- trace"fees(poolId=$poolId, window=$window) -> ${r.size} fees snapshots selected"
+      } yield r
+
+    def trace(id: PoolId, depth: Int, currHeight: Int): Mid[F, List[PoolTrace]] =
+      for {
+        _ <- trace"trace(poolId=$id, depth=$depth, currHeight=$currHeight)"
+        r <- _
+        _ <- trace"trace(poolId=$id, depth=$depth, currHeight=$currHeight) -> ${r.size} trace snapshots selected"
+      } yield r
+
+    def prevTrace(id: PoolId, depth: Int, currHeight: Int): Mid[F, Option[PoolTrace]] =
+      for {
+        _ <- trace"trace(poolId=$id, depth=$depth, currHeight=$currHeight)"
+        r <- _
+        _ <- trace"trace(poolId=$id, depth=$depth, currHeight=$currHeight) -> ${r.size} trace snapshots selected"
+      } yield r
+
+    def avgAmounts(id: PoolId, window: TimeWindow, resolution: Int): Mid[F, List[AvgAssetAmounts]] =
+      for {
+        _ <- trace"trace(poolId=$id, window=$window, resolution=$resolution)"
+        r <- _
+        _ <- trace"trace(poolId=$id, window=$window, resolution=$resolution) -> ${r.size} trace snapshots selected"
       } yield r
   }
 }
