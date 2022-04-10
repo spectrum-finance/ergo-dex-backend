@@ -4,7 +4,7 @@ import cats.tagless.syntax.functorK._
 import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
-import org.ergoplatform.common.models.{HeightWindow, TimeWindow}
+import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.dex.markets.db.sql.AnalyticsSql

@@ -1,15 +1,12 @@
 package org.ergoplatform.dex.markets.api.v1.endpoints
 
 import org.ergoplatform.common.http.HttpError
-import org.ergoplatform.common.models.{HeightWindow, TimeWindow}
+import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, ConvertionRequest, FiatEquiv, PlatformSummary, PoolSummary}
-import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSlippage, PoolSummary, PricePoint}
-import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, PlatformSummary, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm._
 import org.ergoplatform.dex.markets.api.v1.models.locks.LiquidityLockInfo
-import sttp.tapir.{Endpoint, path}
-import sttp.tapir._
 import sttp.tapir.json.circe.jsonBody
+import sttp.tapir._
 
 final class AmmStatsEndpoints {
 

@@ -3,7 +3,7 @@ package org.ergoplatform.dex.markets.db.sql
 import doobie.implicits._
 import doobie.util.query.Query0
 import doobie.{Fragment, LogHandler}
-import org.ergoplatform.common.models.{HeightWindow, TimeWindow}
+import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.ergo.TokenId

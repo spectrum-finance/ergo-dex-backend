@@ -7,9 +7,8 @@ import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, FiatEquiv, PlatformSummary, PoolSummary}
-import org.ergoplatform.dex.markets.api.v1.models.amm.AmmMarketSummary
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
-import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSlippage, PoolSummary, PricePoint}
+import org.ergoplatform.dex.markets.api.v1.models.amm.{PoolSlippage, PricePoint}
 import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
@@ -19,8 +18,7 @@ import mouse.anyf._
 import cats.syntax.traverse._
 import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
 import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, MarketId}
-import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
-import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolVolumeSnapshot}
+import org.ergoplatform.dex.domain.FullAsset
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
