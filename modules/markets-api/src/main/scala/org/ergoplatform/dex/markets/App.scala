@@ -3,14 +3,16 @@ package org.ergoplatform.dex.markets
 import cats.effect.{Blocker, Resource}
 import cats.tagless.syntax.functorK._
 import org.ergoplatform.common.EnvApp
-import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
+import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
 import org.ergoplatform.dex.markets.api.v1.HttpServer
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
 import org.ergoplatform.dex.markets.configs.ConfigBundle
 import org.ergoplatform.dex.markets.modules.PriceSolver.{CryptoPriceSolver, FiatPriceSolver}
 import org.ergoplatform.dex.markets.repositories.{Locks, Pools}
 import org.ergoplatform.dex.markets.services.{FiatRates, Markets}
+import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
+import org.ergoplatform.ergo.services.node.ErgoNode
 import org.http4s.server.Server
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
@@ -53,8 +55,10 @@ object App extends EnvApp[AppContext] {
       implicit0(rates: FiatRates[RunF])                <- Resource.eval(FiatRates.make[InitF, RunF])
       implicit0(cryptoSolver: CryptoPriceSolver[RunF]) <- Resource.eval(CryptoPriceSolver.make[InitF, RunF])
       implicit0(fiatSolver: FiatPriceSolver[RunF])     <- Resource.eval(FiatPriceSolver.make[InitF, RunF])
-      implicit0(stats: AmmStats[RunF]) = AmmStats.make[RunF, xa.DB]
-      implicit0(locks: LqLocks[RunF])  = LqLocks.make[RunF, xa.DB]
+      implicit0(node: ErgoNode[RunF])                  <- Resource.eval(ErgoNode.make[InitF, RunF])
+      implicit0(network: ErgoNetwork[RunF]) = ErgoNetwork.make[RunF]
+      implicit0(stats: AmmStats[RunF])      = AmmStats.make[RunF, xa.DB]
+      implicit0(locks: LqLocks[RunF])       = LqLocks.make[RunF, xa.DB]
       server <- HttpServer.make[InitF, RunF](configs.http, runtime.platform.executor.asEC)
     } yield server
 
