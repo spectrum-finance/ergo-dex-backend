@@ -178,6 +178,12 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          """.stripMargin.query[PoolFeesSnapshot]
   }
 
+  def getAssetById(id: TokenId): Query0[AssetInfo] =
+    sql"""
+         |select id, ticker, decimals from assets
+         |where id = $id
+         """.stripMargin.query[AssetInfo]
+
   private def timeWindowCond(tw: TimeWindow): Fragment =
     if (tw.from.nonEmpty || tw.to.nonEmpty)
       Fragment.const(

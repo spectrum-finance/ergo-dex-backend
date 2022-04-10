@@ -51,6 +51,10 @@ trait Pools[F[_]] {
   /** Get fees by a given pool.
     */
   def fees(id: PoolId, window: TimeWindow): F[Option[PoolFeesSnapshot]]
+
+  /** Get full asset info by id.
+   */
+  def assetById(id: TokenId): F[Option[AssetInfo]]
 }
 
 object Pools {
@@ -88,6 +92,9 @@ object Pools {
 
     def fees(id: PoolId, window: TimeWindow): ConnectionIO[Option[PoolFeesSnapshot]] =
       sql.getPoolFees(id, window).option
+
+    def assetById(id: TokenId): ConnectionIO[Option[AssetInfo]] =
+      sql.getAssetById(id).option
   }
 
   final class PoolsTracing[F[_]: FlatMap: Logging] extends Pools[Mid[F, *]] {
@@ -146,6 +153,13 @@ object Pools {
         _ <- trace"fees(poolId=$poolId, window=$window)"
         r <- _
         _ <- trace"fees(poolId=$poolId, window=$window) -> ${r.size} fees snapshots selected"
+      } yield r
+
+    def assetById(id: TokenId): Mid[F, Option[AssetInfo]] =
+      for {
+        _ <- trace"assetById(id=$id)"
+        r <- _
+        _ <- trace"assetById(id=$id) -> ${r.size} assets selected"
       } yield r
   }
 }
