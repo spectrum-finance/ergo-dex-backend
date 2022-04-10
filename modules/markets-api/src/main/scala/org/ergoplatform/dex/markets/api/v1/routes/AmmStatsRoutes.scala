@@ -47,7 +47,7 @@ final class AmmStatsRoutes[
   }
 
   def convertToFiatR: HttpRoutes[F] = interpreter.toRoutes(convertToFiat) { req =>
-    stats.convertToFiat(req.id, req.amount).adaptThrowable.orNotFound(s"Token{id=${req.id}}").value
+    stats.convertToFiat(req.tokenId, req.amount).adaptThrowable.orNotFound(s"Token{id=${req.tokenId}}").value
   }
 }
 
