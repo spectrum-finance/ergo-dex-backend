@@ -4,7 +4,7 @@ import cats.tagless.syntax.functorK._
 import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
-import org.ergoplatform.common.models.{HeightWindow, TimeWindow}
+import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
@@ -63,6 +63,10 @@ trait Pools[F[_]] {
   /** Get average asset amounts in a given pool within given height window.
     */
   def avgAmounts(id: PoolId, window: TimeWindow, resolution: Int): F[List[AvgAssetAmounts]]
+
+  /** Get full asset info by id.
+   */
+  def assetById(id: TokenId): F[Option[AssetInfo]]
 }
 
 object Pools {
@@ -109,6 +113,9 @@ object Pools {
 
     def avgAmounts(id: PoolId, window: TimeWindow, resolution: Int): ConnectionIO[List[AvgAssetAmounts]] =
       sql.getAvgPoolSnapshot(id, window, resolution).to[List]
+
+    def assetById(id: TokenId): ConnectionIO[Option[AssetInfo]] =
+      sql.getAssetById(id).option
   }
 
   final class PoolsTracing[F[_]: FlatMap: Logging] extends Pools[Mid[F, *]] {
@@ -188,6 +195,13 @@ object Pools {
         _ <- trace"trace(poolId=$id, window=$window, resolution=$resolution)"
         r <- _
         _ <- trace"trace(poolId=$id, window=$window, resolution=$resolution) -> ${r.size} trace snapshots selected"
+      } yield r
+
+    def assetById(id: TokenId): Mid[F, Option[AssetInfo]] =
+      for {
+        _ <- trace"assetById(id=$id)"
+        r <- _
+        _ <- trace"assetById(id=$id) -> ${r.size} assets selected"
       } yield r
   }
 }

@@ -1,14 +1,12 @@
 package org.ergoplatform.dex.markets.api.v1.endpoints
 
 import org.ergoplatform.common.http.HttpError
-import org.ergoplatform.common.models.{HeightWindow, TimeWindow}
+import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.api.v1.models.amm.{PlatformSummary, PoolSlippage, PoolSummary, PricePoint}
-import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, PlatformSummary, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm._
 import org.ergoplatform.dex.markets.api.v1.models.locks.LiquidityLockInfo
-import sttp.tapir.{path, Endpoint}
-import sttp.tapir._
 import sttp.tapir.json.circe.jsonBody
+import sttp.tapir._
 
 final class AmmStatsEndpoints {
 
@@ -16,7 +14,7 @@ final class AmmStatsEndpoints {
   val Group      = "ammStats"
 
   def endpoints: List[Endpoint[_, _, _, _]] =
-    getPoolLocks :: getPlatformStats :: getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart :: getAmmMarkets :: Nil
+    getPoolLocks :: getPlatformStats :: getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart :: getAmmMarkets :: convertToFiat :: Nil
 
   def getPoolLocks: Endpoint[(PoolId, Int), HttpError, List[LiquidityLockInfo], Any] =
     baseEndpoint.get
@@ -72,4 +70,13 @@ final class AmmStatsEndpoints {
       .tag(Group)
       .name("All pools stats")
       .description("Get statistics on all pools")
+
+  def convertToFiat: Endpoint[ConvertionRequest, HttpError, FiatEquiv, Any] =
+    baseEndpoint.post
+      .in(PathPrefix / "convert")
+      .in(jsonBody[ConvertionRequest])
+      .out(jsonBody[FiatEquiv])
+      .tag(Group)
+      .name("Crypto/Fiat conversion")
+      .description("Convert crypto units to fiat")
 }
