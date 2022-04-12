@@ -6,8 +6,9 @@ import cats.effect.Clock
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, PlatformSummary, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, FiatEquiv, PlatformSummary, PoolSummary}
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
+import org.ergoplatform.dex.markets.api.v1.models.amm.{PoolSlippage, PricePoint}
 import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
@@ -15,19 +16,27 @@ import org.ergoplatform.dex.markets.repositories.Pools
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
+import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
 import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, MarketId}
-import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolVolumeSnapshot}
+import org.ergoplatform.dex.domain.FullAsset
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
+import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.syntax.monadic._
 import tofu.syntax.time.now._
-
 import scala.concurrent.duration._
 
 trait AmmStats[F[_]] {
 
+  def convertToFiat(id: TokenId, amount: Long): F[Option[FiatEquiv]]
+
   def getPlatformSummary(window: TimeWindow): F[PlatformSummary]
 
   def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]]
+
+  def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]]
+
+  def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): F[List[PricePoint]]
 
   def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]]
 }
@@ -36,18 +45,34 @@ object AmmStats {
 
   val MillisInYear: FiniteDuration = 365.days
 
+  val slippageWindowScale = 2
+
   def make[F[_]: Monad: Clock, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
+    network: ErgoNetwork[F],
     fiatSolver: FiatPriceSolver[F]
   ): AmmStats[F] = new Live[F, D]()
 
   final class Live[F[_]: Monad, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
+    network: ErgoNetwork[F],
     fiatSolver: FiatPriceSolver[F],
     ammMath: AmmStatsMath[F]
   ) extends AmmStats[F] {
+
+    def convertToFiat(id: TokenId, amount: Long): F[Option[FiatEquiv]] =
+      (for {
+        assetInfo <- OptionT(pools.assetById(id) ||> txr.trans)
+        asset = FullAsset(
+                  assetInfo.id,
+                  amount * math.pow(10, assetInfo.evalDecimals).toLong,
+                  assetInfo.ticker,
+                  assetInfo.decimals
+                )
+        equiv <- OptionT(fiatSolver.convert(asset, UsdUnits))
+      } yield FiatEquiv(equiv.value, UsdUnits)).value
 
     def getPlatformSummary(window: TimeWindow): F[PlatformSummary] = {
       val queryPlatformStats =
@@ -103,6 +128,85 @@ object AmmStats {
       } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
     }
 
+    private def calculatePoolSlippagePercent(initState: PoolTrace, finalState: PoolTrace): BigDecimal = {
+      val minPrice = RealPrice.calculate(
+        initState.lockedX.amount,
+        initState.lockedX.decimals,
+        initState.lockedY.amount,
+        initState.lockedY.decimals
+      )
+      val maxPrice = RealPrice.calculate(
+        finalState.lockedX.amount,
+        finalState.lockedX.decimals,
+        finalState.lockedY.amount,
+        finalState.lockedY.decimals
+      )
+      (maxPrice.value - minPrice.value).abs / (minPrice.value / 100)
+    }
+
+    def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]] =
+      network.getCurrentHeight.flatMap { currHeight =>
+        val query = for {
+          initialState <- pools.prevTrace(poolId, depth, currHeight)
+          traces       <- pools.trace(poolId, depth, currHeight)
+          poolOpt      <- pools.info(poolId)
+        } yield (traces, initialState, poolOpt)
+
+        txr.trans(query).map { case (traces, initStateOpt, poolOpt) =>
+          poolOpt.flatMap { _ =>
+            traces match {
+              case Nil => Some(PoolSlippage.zero)
+              case xs =>
+                val groupedTraces = xs
+                  .sortBy(_.gindex)
+                  .groupBy(_.height / slippageWindowScale)
+                  .toList
+                  .sortBy(_._1)
+                val initState                  = initStateOpt.getOrElse(xs.minBy(_.gindex))
+                val maxState                   = groupedTraces.head._2.maxBy(_.gindex)
+                val firstWindowSlippagePercent = calculatePoolSlippagePercent(initState, maxState)
+
+                groupedTraces.drop(1) match {
+                  case Nil => Some(PoolSlippage(firstWindowSlippagePercent).scale(PoolSlippage.defaultScale))
+                  case restTraces =>
+                    val restWindowsSlippage = restTraces
+                      .map { case (_, heightWindow) =>
+                        val windowMinGindex = heightWindow.minBy(_.gindex).gindex
+                        val min = xs.filter(_.gindex < windowMinGindex) match {
+                          case Nil      => heightWindow.minBy(_.gindex)
+                          case filtered => filtered.maxBy(_.gindex)
+                        }
+                        val max = heightWindow.maxBy(_.gindex)
+                        calculatePoolSlippagePercent(min, max)
+                      }
+                    val slippageBySegment = firstWindowSlippagePercent +: restWindowsSlippage
+                    Some(PoolSlippage(slippageBySegment.sum / slippageBySegment.size).scale(PoolSlippage.defaultScale))
+                }
+            }
+          }
+        }
+      }
+
+    def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): F[List[PricePoint]] = {
+
+      val queryPoolData = for {
+        amounts   <- pools.avgAmounts(poolId, window, resolution)
+        snapshots <- pools.snapshot(poolId)
+      } yield (amounts, snapshots)
+
+      txr
+        .trans(queryPoolData)
+        .map {
+          case (amounts, Some(snap)) =>
+            amounts.map { amount =>
+              val price =
+                RealPrice.calculate(amount.amountX, snap.lockedX.decimals, amount.amountY, snap.lockedY.decimals)
+              PricePoint(amount.timestamp, price.setScale(RealPrice.defaultScale))
+            }
+          case _ => List.empty
+        }
+    }
+
     def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]] = {
       val queryPoolStats = for {
         volumes   <- pools.volumes(window)
@@ -127,7 +231,7 @@ object AmmStats {
                 tx.ticker,
                 ty.id,
                 ty.ticker,
-                RealPrice.calculate(tx, ty),
+                RealPrice.calculate(tx.amount, tx.decimals, ty.amount, ty.decimals).setScale(6),
                 CryptoVolume(
                   BigDecimal(vx.amount),
                   CryptoUnits(AssetClass(vx.id, vx.ticker, vx.decimals)),

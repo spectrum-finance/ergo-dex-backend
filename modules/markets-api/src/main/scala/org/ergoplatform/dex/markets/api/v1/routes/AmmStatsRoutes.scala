@@ -21,7 +21,7 @@ final class AmmStatsRoutes[
   private val interpreter = Http4sServerInterpreter(opts)
 
   def routes: HttpRoutes[F] =
-    caching.middleware(getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAmmMarketsR)
+    caching.middleware(getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAvgPoolSlippageR <+> getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR)
 
   def getPoolLocksR: HttpRoutes[F] = interpreter.toRoutes(getPoolLocks) { case (poolId, leastDeadline) =>
     locks.byPool(poolId, leastDeadline).adaptThrowable.value
@@ -35,10 +35,21 @@ final class AmmStatsRoutes[
     stats.getPlatformSummary(tw).adaptThrowable.value
   }
 
+  def getAvgPoolSlippageR: HttpRoutes[F] = interpreter.toRoutes(getAvgPoolSlippage) { case (poolId, depth) =>
+    stats.getAvgPoolSlippage(poolId, depth).adaptThrowable.orNotFound(s"poolId=$poolId").value
+  }
+
+  def getPoolPriceChartR: HttpRoutes[F] = interpreter.toRoutes(getPoolPriceChart) { case (poolId, window, res) =>
+    stats.getPoolPriceChart(poolId, window, res).adaptThrowable.value
+  }
+
   def getAmmMarketsR: HttpRoutes[F] = interpreter.toRoutes(getAmmMarkets) { tw =>
     stats.getMarkets(tw).adaptThrowable.value
   }
 
+  def convertToFiatR: HttpRoutes[F] = interpreter.toRoutes(convertToFiat) { req =>
+    stats.convertToFiat(req.tokenId, req.amount).adaptThrowable.orNotFound(s"Token{id=${req.tokenId}}").value
+  }
 }
 
 object AmmStatsRoutes {
