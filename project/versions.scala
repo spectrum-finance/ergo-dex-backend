@@ -27,6 +27,7 @@ object versions {
 
   val ScodecCoreVersion = "1.11.7"
   val ScodecBitsVersion = "1.1.21"
+  val ScodecCatsVersion = "1.1.0"
 
   val SimulacrumVersion = "0.19.0"
 

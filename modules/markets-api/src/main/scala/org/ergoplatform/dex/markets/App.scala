@@ -17,6 +17,7 @@ import org.ergoplatform.dex.markets.services.{FiatRates, Markets}
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import org.ergoplatform.ergo.services.node.ErgoNode
+import org.http4s.Status
 import org.http4s.server.Server
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
@@ -60,7 +61,7 @@ object App extends EnvApp[AppContext] {
       implicit0(redis: Redis.Plain[RunF])                 <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: Cache[RunF])                       <- Resource.eval(Cache.make[InitF, RunF])
       implicit0(httpRespCache: HttpResponseCaching[RunF]) <- Resource.eval(HttpResponseCaching.make[InitF, RunF])
-      implicit0(httpCache: CachingMiddleware[RunF])       = CacheMiddleware.make[RunF]
+      implicit0(httpCache: CachingMiddleware[RunF])       = CacheMiddleware.make[RunF](List(Status(200)))
       implicit0(markets: Markets[RunF])                   <- Resource.eval(Markets.make[InitF, RunF, xa.DB])
       implicit0(rates: FiatRates[RunF])                   <- Resource.eval(FiatRates.make[InitF, RunF])
       implicit0(cryptoSolver: CryptoPriceSolver[RunF])    <- Resource.eval(CryptoPriceSolver.make[InitF, RunF])
