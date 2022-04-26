@@ -7,7 +7,6 @@ import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis}
 import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.common.http.cache.{CacheMiddleware, HttpResponseCaching}
 import org.ergoplatform.common.http.cache.CacheMiddleware.CachingMiddleware
-import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
 import org.ergoplatform.dex.markets.api.v1.HttpServer
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
 import org.ergoplatform.dex.markets.configs.ConfigBundle

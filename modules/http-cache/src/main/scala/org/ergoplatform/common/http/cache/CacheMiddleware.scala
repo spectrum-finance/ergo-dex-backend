@@ -5,7 +5,6 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.Sync
 import org.ergoplatform.common.http.cache.types.Hash32
 import org.http4s.{HttpRoutes, Status}
-import scorex.crypto.hash.Blake2b256
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
 
@@ -23,9 +22,9 @@ object CacheMiddleware {
         for {
           resp    <- routes(req)
           reqBody <- OptionT.liftF(req.body.compile.to(Seq))
-          bytes = req.method.toString.getBytes ++ req.uri.toString.getBytes ++ reqBody
+          requestHash = Hash32(req.method.toString.getBytes, req.uri.toString.getBytes, reqBody)
           _ <- OptionT.liftF {
-                 if (cacheStatuses.contains(resp.status)) caching.saveResponse(Hash32(Blake2b256.hash(bytes)), resp)
+                 if (cacheStatuses.contains(resp.status)) caching.saveResponse(requestHash, resp)
                  else unit
                }
         } yield resp

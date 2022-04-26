@@ -9,7 +9,6 @@ import org.ergoplatform.common.http.cache.models.CachedResponse._
 import org.ergoplatform.common.http.cache.types.Hash32
 import org.http4s._
 import scodec.bits.ByteVector
-import scorex.crypto.hash.{Blake2b256, Digest32}
 import tofu.logging.Logs
 import tofu.logging.derivation.loggable.generate
 import tofu.syntax.embed._
@@ -46,8 +45,8 @@ object HttpResponseCaching {
     def process(req: Request[F]): F[Option[Response[F]]] =
       (for {
         requestBody <- OptionT.liftF(req.body.compile.to(Seq))
-        bytes = req.method.toString.getBytes ++ req.uri.toString.getBytes ++ requestBody
-        responseOpt <- OptionT(cache.get[Hash32, CachedResponse](Hash32(Blake2b256.hash(bytes))))
+        requestHash = Hash32(req.method.toString.getBytes, req.uri.toString.getBytes, requestBody)
+        responseOpt <- OptionT(cache.get[Hash32, CachedResponse](requestHash))
       } yield toResponse[F](responseOpt)).value
 
     def saveResponse(reqHash: Hash32, resp: Response[F]): F[Unit] =
