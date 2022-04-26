@@ -6,7 +6,7 @@ import cats.{FlatMap, Monad}
 import org.ergoplatform.common.cache.Cache
 import org.ergoplatform.common.http.cache.models.CachedResponse
 import org.ergoplatform.common.http.cache.models.CachedResponse._
-import org.ergoplatform.common.http.cache.types.Hash32
+import org.ergoplatform.common.http.cache.types.RequestHash32
 import org.http4s._
 import scodec.bits.ByteVector
 import tofu.logging.Logs
@@ -18,7 +18,7 @@ trait HttpResponseCaching[F[_]] {
 
   def process(req: Request[F]): F[Option[Response[F]]]
 
-  def saveResponse(reqHash: Hash32, resp: Response[F]): F[Unit]
+  def saveResponse(reqHash: RequestHash32, resp: Response[F]): F[Unit]
 
   def invalidate: F[Unit]
 }
@@ -44,14 +44,13 @@ object HttpResponseCaching {
 
     def process(req: Request[F]): F[Option[Response[F]]] =
       (for {
-        requestBody <- OptionT.liftF(req.body.compile.to(Seq))
-        requestHash = Hash32(req.method.toString.getBytes, req.uri.toString.getBytes, requestBody)
-        responseOpt <- OptionT(cache.get[Hash32, CachedResponse](requestHash))
+        requestHash <- OptionT.liftF(RequestHash32(req))
+        responseOpt <- OptionT(cache.get[RequestHash32, CachedResponse](requestHash))
       } yield toResponse[F](responseOpt)).value
 
-    def saveResponse(reqHash: Hash32, resp: Response[F]): F[Unit] =
+    def saveResponse(reqHash: RequestHash32, resp: Response[F]): F[Unit] =
       fromResponse(resp).flatMap { response =>
-        cache.set[Hash32, CachedResponse](reqHash, response)
+        cache.set[RequestHash32, CachedResponse](reqHash, response)
       }
 
     def invalidate: F[Unit] =

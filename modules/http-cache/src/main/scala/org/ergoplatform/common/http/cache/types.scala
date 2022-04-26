@@ -7,19 +7,28 @@ import scorex.crypto.hash.{Blake2b256, Digest32}
 import _root_.scodec.interop.cats._
 import _root_.scodec.codecs._
 import cats.Show
+import cats.effect.Sync
+import org.http4s.Request
 import tofu.logging.Loggable
+import tofu.syntax.monadic._
 
 object types {
 
   @newtype
-  case class Hash32(value: ByteVector)
+  case class RequestHash32(value: ByteVector)
 
-  object Hash32 {
-    implicit val show: Show[Hash32]         = deriving
-    implicit val loggable: Loggable[Hash32] = Loggable.show
-    implicit val codec: Codec[Hash32]       = fixedSizeBytes(32, bytes).xmap(Hash32(_), _.value)
+  object RequestHash32 {
+    implicit val show: Show[RequestHash32]         = deriving
+    implicit val loggable: Loggable[RequestHash32] = Loggable.show
+    implicit val codec: Codec[RequestHash32]       = fixedSizeBytes(32, bytes).xmap(RequestHash32(_), _.value)
 
-    def apply(bytes: Seq[Byte]*): Hash32 = Hash32(ByteVector(Blake2b256.hash(bytes.flatten.toArray) !@@ Digest32))
-
+    def apply[F[_]: Sync](request: Request[F]): F[RequestHash32] =
+      request.body.compile.to(Seq).map { body =>
+        RequestHash32(
+          ByteVector(
+            Blake2b256.hash(request.method.toString.getBytes ++ request.uri.toString.getBytes ++ body) !@@ Digest32
+          )
+        )
+      }
   }
 }
