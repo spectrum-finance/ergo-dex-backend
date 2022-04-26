@@ -4,6 +4,7 @@ import cats.effect.{Concurrent, ContextShift, Timer}
 import cats.syntax.semigroupk._
 import org.ergoplatform.common.http.AdaptThrowable.AdaptThrowableEitherT
 import org.ergoplatform.common.http.HttpError
+import org.ergoplatform.common.http.cache.CacheMiddleware.CachingMiddleware
 import org.ergoplatform.common.http.syntax._
 import org.ergoplatform.dex.markets.api.v1.endpoints.AmmStatsEndpoints
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
@@ -12,7 +13,7 @@ import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 
 final class AmmStatsRoutes[
   F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]
-](stats: AmmStats[F], locks: LqLocks[F])(implicit opts: Http4sServerOptions[F, F]) {
+](stats: AmmStats[F], locks: LqLocks[F], caching: CachingMiddleware[F])(implicit opts: Http4sServerOptions[F, F]) {
 
   private val endpoints = new AmmStatsEndpoints()
   import endpoints._
@@ -20,7 +21,7 @@ final class AmmStatsRoutes[
   private val interpreter = Http4sServerInterpreter(opts)
 
   def routes: HttpRoutes[F] =
-    getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAvgPoolSlippageR <+> getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR
+    caching.middleware(getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAvgPoolSlippageR <+> getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR)
 
   def getPoolLocksR: HttpRoutes[F] = interpreter.toRoutes(getPoolLocks) { case (poolId, leastDeadline) =>
     locks.byPool(poolId, leastDeadline).adaptThrowable.value
@@ -56,7 +57,8 @@ object AmmStatsRoutes {
   def make[F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]](implicit
     stats: AmmStats[F],
     locks: LqLocks[F],
-    opts: Http4sServerOptions[F, F]
+    opts: Http4sServerOptions[F, F],
+    cache: CachingMiddleware[F]
   ): HttpRoutes[F] =
-    new AmmStatsRoutes[F](stats, locks).routes
+    new AmmStatsRoutes[F](stats, locks, cache).routes
 }

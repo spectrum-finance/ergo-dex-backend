@@ -69,7 +69,8 @@ object dependencies {
 
   val Scodec = List(
     "org.scodec" %% "scodec-core" % ScodecCoreVersion,
-    "org.scodec" %% "scodec-bits" % ScodecBitsVersion
+    "org.scodec" %% "scodec-bits" % ScodecBitsVersion,
+    "org.scodec" %% "scodec-cats" % ScodecCatsVersion
   )
 
   val Monocle: List[ModuleID] = List(
