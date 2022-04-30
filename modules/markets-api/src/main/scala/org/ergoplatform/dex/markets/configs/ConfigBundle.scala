@@ -16,7 +16,8 @@ final case class ConfigBundle(
   @promote db: PgConfig,
   @promote network: NetworkConfig,
   http: HttpConfig,
-  redis: RedisConfig
+  redis: RedisConfig,
+  tokens: TokenFetcherConfig
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {
