@@ -7,6 +7,7 @@ import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
 import org.ergoplatform.dex.index.db.models.DBLiquidityLock
 import org.ergoplatform.dex.index.repositories.RepoBundle
 import org.ergoplatform.dex.index.streaming.LqLocksConsumer
+import org.ergoplatform.common.streaming.syntax._
 import tofu.doobie.transactor.Txr
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Chunks, Evals}
@@ -49,7 +50,7 @@ object LocksIndexing {
   ) extends LocksIndexing[S] {
 
     def run: S[Unit] =
-      locks.stream.chunks.evalMap { rs =>
+      locks.stream.chunks.evalTap { rs =>
         val locks = rs.map(r => r.message.entity).toList
         def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
           NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
@@ -58,6 +59,6 @@ object LocksIndexing {
         txr.trans(insert) >>= { ls =>
           info"[$ls] locks indexed"
         }
-      }
+      }.commitBatch
   }
 }

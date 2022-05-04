@@ -10,6 +10,7 @@ import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
 import org.ergoplatform.dex.index.db.models.{DBDeposit, DBRedeem, DBSwap}
 import org.ergoplatform.dex.index.repositories.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMHistConsumer
+import org.ergoplatform.common.streaming.syntax._
 import tofu.doobie.transactor.Txr
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Chunks, Evals}
@@ -52,11 +53,9 @@ object HistoryIndexing {
   ) extends HistoryIndexing[S] {
 
     def run: S[Unit] =
-      orders.stream.chunks
-        .map(_.map(r => r.message).toList)
-        .evalTap(xs => warn"[${xs.count(_.isEmpty)}] records discarded.")
-        .evalMap { rs =>
-        val orders = rs.flatten
+      orders.stream.chunks.evalTap { rs =>
+        val ordersIn = rs.map(_.message).toList
+        val orders   = ordersIn.flatten
         val (swaps, others) = orders.partitionEither {
           case EvaluatedCFMMOrder(o: Swap, Some(ev: SwapEvaluation), p) =>
             Left(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBSwap])
@@ -80,7 +79,8 @@ object HistoryIndexing {
             ds <- insertNel(deposits)(repos.deposits.insert)
             rs <- insertNel(redeems)(repos.redeems.insert)
           } yield ss + ds + rs
-        txr.trans(insert) >>= (n => info"[$n] orders indexed")
-      }
+        txr.trans(insert) >>=
+          (n => warn"[${ordersIn.count(_.isEmpty)}] records discarded." >> info"[$n] orders indexed")
+      }.commitBatch
   }
 }

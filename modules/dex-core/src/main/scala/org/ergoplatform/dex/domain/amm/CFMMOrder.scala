@@ -15,6 +15,18 @@ sealed trait CFMMOrder {
   def id: OrderId = OrderId.fromBoxId(box.boxId)
 }
 
+object CFMMOrder {
+
+  implicit val orderingByFee: Ordering[CFMMOrder] = Ordering[(Long, Long)]
+    .on[CFMMOrder] {
+      case Deposit(_, _, timestamp, params, _) => (-params.dexFee, timestamp)
+      case Redeem(_, _, timestamp, params, _)  => (-params.dexFee, timestamp)
+      case Swap(_, _, timestamp, params, _) =>
+        val minFee = params.dexFeePerTokenNum * params.minOutput.value / params.dexFeePerTokenDenom
+        (-minFee, timestamp)
+    }
+}
+
 @derive(encoder, decoder, loggable)
 final case class Deposit(poolId: PoolId, maxMinerFee: Long, timestamp: Long, params: DepositParams, box: Output)
   extends CFMMOrder
