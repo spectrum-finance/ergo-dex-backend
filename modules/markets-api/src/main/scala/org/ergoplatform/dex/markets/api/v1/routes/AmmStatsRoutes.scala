@@ -4,6 +4,7 @@ import cats.effect.{Concurrent, ContextShift, Timer}
 import cats.syntax.semigroupk._
 import org.ergoplatform.common.http.AdaptThrowable.AdaptThrowableEitherT
 import org.ergoplatform.common.http.HttpError
+import org.ergoplatform.common.http.cache.CacheMiddleware.CachingMiddleware
 import org.ergoplatform.common.http.syntax._
 import org.ergoplatform.dex.markets.api.v1.endpoints.AmmStatsEndpoints
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
@@ -12,14 +13,15 @@ import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 
 final class AmmStatsRoutes[
   F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]
-](stats: AmmStats[F], locks: LqLocks[F])(implicit opts: Http4sServerOptions[F, F]) {
+](stats: AmmStats[F], locks: LqLocks[F], caching: CachingMiddleware[F])(implicit opts: Http4sServerOptions[F, F]) {
 
   private val endpoints = new AmmStatsEndpoints()
   import endpoints._
 
   private val interpreter = Http4sServerInterpreter(opts)
 
-  def routes: HttpRoutes[F] = getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAmmMarketsR
+  def routes: HttpRoutes[F] =
+    caching.middleware(getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAvgPoolSlippageR <+> getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR)
 
   def getPoolLocksR: HttpRoutes[F] = interpreter.toRoutes(getPoolLocks) { case (poolId, leastDeadline) =>
     locks.byPool(poolId, leastDeadline).adaptThrowable.value
@@ -33,10 +35,21 @@ final class AmmStatsRoutes[
     stats.getPlatformSummary(tw).adaptThrowable.value
   }
 
+  def getAvgPoolSlippageR: HttpRoutes[F] = interpreter.toRoutes(getAvgPoolSlippage) { case (poolId, depth) =>
+    stats.getAvgPoolSlippage(poolId, depth).adaptThrowable.orNotFound(s"poolId=$poolId").value
+  }
+
+  def getPoolPriceChartR: HttpRoutes[F] = interpreter.toRoutes(getPoolPriceChart) { case (poolId, window, res) =>
+    stats.getPoolPriceChart(poolId, window, res).adaptThrowable.value
+  }
+
   def getAmmMarketsR: HttpRoutes[F] = interpreter.toRoutes(getAmmMarkets) { tw =>
     stats.getMarkets(tw).adaptThrowable.value
   }
 
+  def convertToFiatR: HttpRoutes[F] = interpreter.toRoutes(convertToFiat) { req =>
+    stats.convertToFiat(req.tokenId, req.amount).adaptThrowable.orNotFound(s"Token{id=${req.tokenId}}").value
+  }
 }
 
 object AmmStatsRoutes {
@@ -44,7 +57,8 @@ object AmmStatsRoutes {
   def make[F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]](implicit
     stats: AmmStats[F],
     locks: LqLocks[F],
-    opts: Http4sServerOptions[F, F]
+    opts: Http4sServerOptions[F, F],
+    cache: CachingMiddleware[F]
   ): HttpRoutes[F] =
-    new AmmStatsRoutes[F](stats, locks).routes
+    new AmmStatsRoutes[F](stats, locks, cache).routes
 }

@@ -26,6 +26,8 @@ trait Cache[F[_]] {
 
   def del[K: Codec: Loggable](key: K): F[Unit]
 
+  def flushAll: F[Unit]
+
   def transaction[T <: HList](commands: T)(implicit w: Witness[T]): F[Unit]
 }
 
@@ -90,6 +92,9 @@ object Cache {
         .toRaise
         .flatMap(k => redis.del(k.toByteArray).void)
 
+    def flushAll: F[Unit] =
+      redis.flushAll
+
     def transaction[T <: HList](commands: T)(implicit w: Witness[T]): F[Unit] =
       makeTx.make.use(_.exec(commands).void)
   }
@@ -104,6 +109,9 @@ object Cache {
 
     def del[K: Codec: Loggable](key: K): Mid[F, Unit] =
       _ <* trace"del(key=$key) -> ()"
+
+    def flushAll: Mid[F, Unit] =
+      _ <* trace"flushAll -> ()"
 
     def transaction[T <: HList](commands: T)(implicit w: Witness[T]): Mid[F, Unit] =
       fa => trace"transaction begin" >> fa.flatTap(_ => trace"transaction end")

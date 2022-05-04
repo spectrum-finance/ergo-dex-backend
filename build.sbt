@@ -7,7 +7,7 @@ lazy val commonSettings = List(
   scalacOptions ++= commonScalacOptions,
   scalaVersion := "2.12.15",
   organization := "org.ergoplatform",
-  version := "1.1.0-M6",
+  version := "1.2.0-M1",
   resolvers ++= Seq(
     Resolver.sonatypeRepo("public"),
     Resolver.sonatypeRepo("snapshots"),
@@ -65,6 +65,7 @@ lazy val dexBackend = project
   .aggregate(
     core,
     cache,
+    httpCache,
     db,
     http,
     utxoTracker,
@@ -105,6 +106,11 @@ lazy val cache = utils
   .mkModule("cache", "Cache")
   .settings(commonSettings, libraryDependencies ++= Redis ++ Scodec)
   .dependsOn(core % allConfigDependency)
+
+lazy val httpCache = utils
+  .mkModule("http-cache", "HttpCache")
+  .settings(commonSettings, libraryDependencies ++= TapirHttp4s)
+  .dependsOn(Seq(cache, marketsIndex).map(_ % allConfigDependency): _*)
 
 lazy val db = utils
   .mkModule("db", "Db")
@@ -182,7 +188,7 @@ lazy val marketsApi = utils
   )
   .settings(nativePackagerSettings("markets-api"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(Seq(core, db, http).map(_ % allConfigDependency): _*)
+  .dependsOn(Seq(core, db, http, httpCache).map(_ % allConfigDependency): _*)
 
 lazy val dexTools = utils
   .mkModule("dex-tools", "DexTools")

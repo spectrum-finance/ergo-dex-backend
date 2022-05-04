@@ -3,14 +3,20 @@ package org.ergoplatform.dex.markets
 import cats.effect.{Blocker, Resource}
 import cats.tagless.syntax.functorK._
 import org.ergoplatform.common.EnvApp
+import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis}
 import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
+import org.ergoplatform.common.http.cache.{CacheMiddleware, HttpResponseCaching}
+import org.ergoplatform.common.http.cache.CacheMiddleware.CachingMiddleware
 import org.ergoplatform.dex.markets.api.v1.HttpServer
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
 import org.ergoplatform.dex.markets.configs.ConfigBundle
 import org.ergoplatform.dex.markets.modules.PriceSolver.{CryptoPriceSolver, FiatPriceSolver}
 import org.ergoplatform.dex.markets.repositories.{Locks, Pools}
 import org.ergoplatform.dex.markets.services.{FiatRates, Markets}
+import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
+import org.ergoplatform.ergo.services.node.ErgoNode
+import org.http4s.Status
 import org.http4s.server.Server
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
@@ -31,6 +37,8 @@ object App extends EnvApp[AppContext] {
 
   implicit val serverOptions: Http4sServerOptions[RunF, RunF] = Http4sServerOptions.default[RunF, RunF]
 
+  implicit val mtx: MakeRedisTransaction[RunF] = MakeRedisTransaction.make[RunF]
+
   def run(args: List[String]): URIO[ZEnv, ExitCode] =
     init(args.headOption).use(_ => ZIO.never).orDie
 
@@ -47,12 +55,18 @@ object App extends EnvApp[AppContext] {
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
       implicit0(client: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
-      implicit0(pools: Pools[xa.DB])                   <- Resource.eval(Pools.make[InitF, xa.DB])
-      implicit0(locks: Locks[xa.DB])                   <- Resource.eval(Locks.make[InitF, xa.DB])
-      implicit0(markets: Markets[RunF])                <- Resource.eval(Markets.make[InitF, RunF, xa.DB])
-      implicit0(rates: FiatRates[RunF])                <- Resource.eval(FiatRates.make[InitF, RunF])
-      implicit0(cryptoSolver: CryptoPriceSolver[RunF]) <- Resource.eval(CryptoPriceSolver.make[InitF, RunF])
-      implicit0(fiatSolver: FiatPriceSolver[RunF])     <- Resource.eval(FiatPriceSolver.make[InitF, RunF])
+      implicit0(pools: Pools[xa.DB])                      <- Resource.eval(Pools.make[InitF, xa.DB])
+      implicit0(locks: Locks[xa.DB])                      <- Resource.eval(Locks.make[InitF, xa.DB])
+      implicit0(redis: Redis.Plain[RunF])                 <- Redis.make[InitF, RunF](configs.redis)
+      implicit0(cache: Cache[RunF])                       <- Resource.eval(Cache.make[InitF, RunF])
+      implicit0(httpRespCache: HttpResponseCaching[RunF]) <- Resource.eval(HttpResponseCaching.make[InitF, RunF])
+      implicit0(httpCache: CachingMiddleware[RunF])       = CacheMiddleware.make[RunF](List(Status(200)))
+      implicit0(markets: Markets[RunF])                   <- Resource.eval(Markets.make[InitF, RunF, xa.DB])
+      implicit0(rates: FiatRates[RunF])                   <- Resource.eval(FiatRates.make[InitF, RunF])
+      implicit0(cryptoSolver: CryptoPriceSolver[RunF])    <- Resource.eval(CryptoPriceSolver.make[InitF, RunF])
+      implicit0(fiatSolver: FiatPriceSolver[RunF])        <- Resource.eval(FiatPriceSolver.make[InitF, RunF])
+      implicit0(node: ErgoNode[RunF])                  <- Resource.eval(ErgoNode.make[InitF, RunF])
+      implicit0(network: ErgoNetwork[RunF]) = ErgoNetwork.make[RunF]
       implicit0(stats: AmmStats[RunF]) = AmmStats.make[RunF, xa.DB]
       implicit0(locks: LqLocks[RunF])  = LqLocks.make[RunF, xa.DB]
       server <- HttpServer.make[InitF, RunF](configs.http, runtime.platform.executor.asEC)

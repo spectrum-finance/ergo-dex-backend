@@ -3,19 +3,28 @@ package org.ergoplatform.dex.index.repositories
 import cats.{~>, FlatMap}
 import cats.tagless.FunctorK
 import cats.tagless.syntax.functorK._
-import org.ergoplatform.dex.index.db.models.{DBAssetInfo, DBDeposit, DBLiquidityLock, DBPoolSnapshot, DBRedeem, DBSwap}
+import org.ergoplatform.dex.index.db.models.{
+  DBAssetInfo,
+  DBBlock,
+  DBDeposit,
+  DBLiquidityLock,
+  DBPoolSnapshot,
+  DBRedeem,
+  DBSwap
+}
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.logging.Logs
 import tofu.syntax.monadic._
 
 final case class RepoBundle[F[_]](
-                                   swaps: MonoRepo[DBSwap, F],
-                                   deposits: MonoRepo[DBDeposit, F],
-                                   redeems: MonoRepo[DBRedeem, F],
-                                   pools: MonoRepo[DBPoolSnapshot, F],
-                                   assets: AssetRepo[F],
-                                   locks: MonoRepo[DBLiquidityLock, F]
+  swaps: MonoRepo[DBSwap, F],
+  deposits: MonoRepo[DBDeposit, F],
+  redeems: MonoRepo[DBRedeem, F],
+  pools: MonoRepo[DBPoolSnapshot, F],
+  assets: AssetRepo[F],
+  locks: MonoRepo[DBLiquidityLock, F],
+  blocks: MonoRepo[DBBlock, F]
 )
 
 object RepoBundle {
@@ -30,7 +39,8 @@ object RepoBundle {
           af.redeems.mapK(fk),
           af.pools.mapK(fk),
           af.assets.mapK(fk),
-          af.locks.mapK(fk)
+          af.locks.mapK(fk),
+          af.blocks.mapK(fk)
         )
     }
 
@@ -45,5 +55,6 @@ object RepoBundle {
       pools    <- MonoRepo.make[I, D, DBPoolSnapshot]
       assets   <- AssetRepo.make[I, D]
       locks    <- MonoRepo.make[I, D, DBLiquidityLock]
-    } yield RepoBundle(swaps, deposits, redeems, pools, assets, locks)
+      blocks   <- MonoRepo.make[I, D, DBBlock]
+    } yield RepoBundle(swaps, deposits, redeems, pools, assets, locks, blocks)
 }
