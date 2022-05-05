@@ -27,9 +27,11 @@ object HttpServer {
     opts: Http4sServerOptions[F, F],
     cache: CachingMiddleware[F]
   ): Resource[I, Server] = {
-    val ammStatsR = AmmStatsRoutes.make[F]
-    val docsR     = DocsRoutes.make[F]
-    val api       = Router("/" -> CORS(unliftRoutes[F, I](ammStatsR <+> docsR))).orNotFound
+    val ammStatsR  = AmmStatsRoutes.make[F]
+    val docsR      = DocsRoutes.make[F]
+    val routes     = unliftRoutes[F, I](ammStatsR <+> docsR)
+    val corsRoutes = CORS.policy.withAllowOriginAll(routes)
+    val api        = Router("/" -> corsRoutes).orNotFound
     BlazeServerBuilder[I](ec).bindHttp(conf.port, conf.host).withHttpApp(api).resource
   }
 }

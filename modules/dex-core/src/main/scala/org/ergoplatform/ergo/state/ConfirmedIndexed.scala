@@ -15,6 +15,7 @@ import tofu.logging.derivation.loggable
 final case class ConfirmedIndexed[T](entity: T, meta: LedgerMetadata)
 
 object ConfirmedIndexed {
+
   implicit def schema[T: Schema]: Schema[ConfirmedIndexed[T]]          = Schema.derived
   implicit def validator[T: Validator]: Validator[ConfirmedIndexed[T]] = Validator.pass
 

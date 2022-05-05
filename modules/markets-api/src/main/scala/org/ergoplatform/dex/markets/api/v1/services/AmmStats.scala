@@ -20,6 +20,7 @@ import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTrace, Pool
 import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, MarketId}
 import org.ergoplatform.dex.domain.FullAsset
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
+import org.ergoplatform.dex.markets.services.TokenFetcher
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.syntax.monadic._
@@ -51,12 +52,14 @@ object AmmStats {
     txr: Txr.Aux[F, D],
     pools: Pools[D],
     network: ErgoNetwork[F],
+    tokens: TokenFetcher[F],
     fiatSolver: FiatPriceSolver[F]
   ): AmmStats[F] = new Live[F, D]()
 
   final class Live[F[_]: Monad, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
+    tokens: TokenFetcher[F],
     network: ErgoNetwork[F],
     fiatSolver: FiatPriceSolver[F],
     ammMath: AmmStatsMath[F]
@@ -81,9 +84,11 @@ object AmmStats {
           volumes       <- pools.volumes(window)
         } yield (poolSnapshots, volumes)
       for {
-        (poolSnapshots, volumes) <- queryPlatformStats ||> txr.trans
-        lockedX                  <- poolSnapshots.flatTraverse(pool => fiatSolver.convert(pool.lockedX, UsdUnits).map(_.toList))
-        lockedY                  <- poolSnapshots.flatTraverse(pool => fiatSolver.convert(pool.lockedY, UsdUnits).map(_.toList))
+        (poolSnapshots: List[PoolSnapshot], volumes) <- queryPlatformStats ||> txr.trans
+        validTokens              <- tokens.fetchTokens
+        filteredSnaps = poolSnapshots.filter(ps => validTokens.contains(ps.lockedX.id) && validTokens.contains(ps.lockedY.id))
+        lockedX                  <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedX, UsdUnits).map(_.toList))
+        lockedY                  <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedY, UsdUnits).map(_.toList))
         tvl = TotalValueLocked(lockedX.map(_.value).sum + lockedY.map(_.value).sum, UsdUnits)
 
         volumeByX <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByX, UsdUnits).map(_.toList))

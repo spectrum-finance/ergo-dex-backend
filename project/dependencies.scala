@@ -43,6 +43,8 @@ object dependencies {
     "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % TapirVersion
   )
 
+  val Http4sServer = List("org.http4s" %% "http4s-blaze-server" % Http4sVersion)
+
   val Circe: List[ModuleID] =
     List(
       "io.circe" %% "circe-core",

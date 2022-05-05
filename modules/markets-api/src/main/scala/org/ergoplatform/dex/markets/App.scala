@@ -12,7 +12,7 @@ import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
 import org.ergoplatform.dex.markets.configs.ConfigBundle
 import org.ergoplatform.dex.markets.modules.PriceSolver.{CryptoPriceSolver, FiatPriceSolver}
 import org.ergoplatform.dex.markets.repositories.{Locks, Pools}
-import org.ergoplatform.dex.markets.services.{FiatRates, Markets}
+import org.ergoplatform.dex.markets.services.{FiatRates, Markets, TokenFetcher}
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import org.ergoplatform.ergo.services.node.ErgoNode
@@ -65,6 +65,7 @@ object App extends EnvApp[AppContext] {
       implicit0(rates: FiatRates[RunF])                   <- Resource.eval(FiatRates.make[InitF, RunF])
       implicit0(cryptoSolver: CryptoPriceSolver[RunF])    <- Resource.eval(CryptoPriceSolver.make[InitF, RunF])
       implicit0(fiatSolver: FiatPriceSolver[RunF])        <- Resource.eval(FiatPriceSolver.make[InitF, RunF])
+      implicit0(tokenFetcher: TokenFetcher[RunF])         = TokenFetcher.make[RunF]
       implicit0(node: ErgoNode[RunF])                  <- Resource.eval(ErgoNode.make[InitF, RunF])
       implicit0(network: ErgoNetwork[RunF]) = ErgoNetwork.make[RunF]
       implicit0(stats: AmmStats[RunF]) = AmmStats.make[RunF, xa.DB]
