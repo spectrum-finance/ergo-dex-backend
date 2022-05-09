@@ -137,26 +137,27 @@ object AmmStats {
 
     def getPoolsSummary(window: TimeWindow): F[List[PoolSummary]] = {
       val queryPoolsStats =
-        for {
-          snaps <- pools.snapshots
-          infos <- NonEmptyList.fromList(snaps.map(_.id)).fold(List.empty[PoolInfo].pure[D])(ids => pools.infos(ids))
+        (for {
+          snaps   <- OptionT.liftF(pools.snapshots)
+          poolIds <- OptionT.fromOption[D](NonEmptyList.fromList(snaps.map(_.id)))
+          infos   <- OptionT.liftF(pools.infos(poolIds))
           (allPools, info) =
             snaps.filter(ps => infos.exists(_.poolId == ps.id)).map(p => (p, infos.find(_.poolId == p.id).get)).unzip
-          volumes <- pools.volumes(window)
-          fees    <- pools.fees(window)
-        } yield PoolBundle(allPools, info, volumes, fees)
-      for {
-        poolBundle: PoolBundle <- queryPoolsStats ||> txr.trans
-        tvls                   <- calculateTVLsFor(poolBundle.pools)
-        vols                   <- convertVolumes(poolBundle.pools, poolBundle.volumes, window)
-        feeSnaps               <- convertFees(poolBundle.pools, poolBundle.fees, window)
+          volumes <- OptionT.liftF(pools.volumes(window))
+          fees    <- OptionT.liftF(pools.fees(window))
+        } yield PoolBundle(allPools, info, volumes, fees)).value
+      (for {
+        poolBundle: PoolBundle <- OptionT(queryPoolsStats ||> txr.trans)
+        tvls                   <- OptionT.liftF(calculateTVLsFor(poolBundle.pools))
+        vols                   <- OptionT.liftF(convertVolumes(poolBundle.pools, poolBundle.volumes, window))
+        feeSnaps               <- OptionT.liftF(convertFees(poolBundle.pools, poolBundle.fees, window))
         fullPoolInfos = poolBundle.pools zip poolBundle.infos zip (tvls, vols, feeSnaps).zipped.toList
-        res <- fullPoolInfos.traverse { case ((pool, inf), (tvl, vol, fee)) =>
+        res <- OptionT.liftF(fullPoolInfos.traverse { case ((pool, inf), (tvl, vol, fee)) =>
                  ammMath
                    .feePercentProjection(tvl, fee, inf, MillisInYear)
                    .map(perc => PoolSummary(pool.id, pool.lockedX, pool.lockedY, tvl, vol, fee, perc))
-               }
-      } yield res
+               })
+      } yield res).value.map(_.toList.flatten)
     }
 
     //        vols <- allPools.map(p => volumes.find(_.poolId == p.id)).foldLeft(List.empty[Volume].pure[F]) { case (acc, a) =>
