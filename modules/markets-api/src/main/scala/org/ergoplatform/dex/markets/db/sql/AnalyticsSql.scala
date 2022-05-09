@@ -1,8 +1,9 @@
 package org.ergoplatform.dex.markets.db.sql
 
+import cats.data.NonEmptyList
 import doobie.implicits._
 import doobie.util.query.Query0
-import doobie.{Fragment, LogHandler}
+import doobie.{Fragment, Fragments, LogHandler}
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.amm._
@@ -12,8 +13,23 @@ final class AnalyticsSql(implicit lg: LogHandler) {
 
   def getInfo(id: PoolId): Query0[PoolInfo] =
     sql"""
-         |select s.timestamp from swaps s where s.pool_id = $id order by s.timestamp asc limit 1
+         |select s.pool_id, s.timestamp from swaps s where s.pool_id = $id order by s.timestamp asc limit 1
          """.stripMargin.query
+
+  def getInfos(ids: NonEmptyList[PoolId]): Query0[PoolInfo] = {
+    val q =
+    sql"""
+         |select s.pool_id, s.timestamp from swaps s
+         |left join (
+         |  select pool_id, max(timestamp) as ts
+         |  from swaps
+         |  group by pool_id
+         |) as sx on s.pool_id = sx.pool_id and s.timestamp = sx.ts
+         |where s.timestamp = sx.ts
+         """.stripMargin
+
+    (q ++ Fragments.in(fr"and s.pool_id", ids)).query
+  }
 
   def getPoolSnapshot(id: PoolId): Query0[PoolSnapshot] =
     sql"""

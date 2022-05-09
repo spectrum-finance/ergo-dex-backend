@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.markets.api.v1.services
 
 import cats.Monad
-import cats.data.OptionT
+import cats.data.{NonEmptyList, OptionT}
 import cats.effect.Clock
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
@@ -138,26 +138,22 @@ object AmmStats {
     def getPoolsSummary(window: TimeWindow): F[List[PoolSummary]] = {
       val queryPoolsStats =
         for {
-          snaps  <- pools.snapshots
-          tupled <- snaps.traverse(p => pools.info(p.id).map(opt => (p, opt)))
-          (allPools, info) = tupled.filter(_._2.isDefined).unzip
+          snaps <- pools.snapshots
+          infos <- NonEmptyList.fromList(snaps.map(_.id)).fold(List.empty[PoolInfo].pure[D])(ids => pools.infos(ids))
+          (allPools, info) =
+            snaps.filter(ps => infos.exists(_.poolId == ps.id)).map(p => (p, infos.find(_.poolId == p.id).get)).unzip
           volumes <- pools.volumes(window)
           fees    <- pools.fees(window)
-        } yield (allPools, info, volumes, fees)
+        } yield PoolBundle(allPools, info, volumes, fees)
       for {
-        (
-          pools: List[PoolSnapshot],
-          info: List[Option[PoolInfo]],
-          volumes: List[PoolVolumeSnapshot],
-          fees: List[PoolFeesSnapshot]
-        )        <- queryPoolsStats ||> txr.trans
-        tvls     <- calculateTVLsFor(pools)
-        vols     <- convertVolumes(pools, volumes, window)
-        feeSnaps <- convertFees(pools, fees, window)
-        fullPoolInfos = (tvls, vols, feeSnaps).zipped.toList zip info zip pools
-        res <- fullPoolInfos.traverse { case (((tvl, vol, fee), inf), pool) =>
+        poolBundle: PoolBundle <- queryPoolsStats ||> txr.trans
+        tvls                   <- calculateTVLsFor(poolBundle.pools)
+        vols                   <- convertVolumes(poolBundle.pools, poolBundle.volumes, window)
+        feeSnaps               <- convertFees(poolBundle.pools, poolBundle.fees, window)
+        fullPoolInfos = poolBundle.pools zip poolBundle.infos zip (tvls, vols, feeSnaps).zipped.toList
+        res <- fullPoolInfos.traverse { case ((pool, inf), (tvl, vol, fee)) =>
                  ammMath
-                   .feePercentProjection(tvl, fee, inf.get, MillisInYear)
+                   .feePercentProjection(tvl, fee, inf, MillisInYear)
                    .map(perc => PoolSummary(pool.id, pool.lockedX, pool.lockedY, tvl, vol, fee, perc))
                }
       } yield res
