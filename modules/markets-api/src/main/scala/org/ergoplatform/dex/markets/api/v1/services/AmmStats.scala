@@ -6,17 +6,24 @@ import cats.effect.Clock
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, FiatEquiv, PlatformSummary, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm.{
+  AmmMarketSummary,
+  FiatEquiv,
+  PlatformSummary,
+  PoolSlippage,
+  PoolSummary,
+  PricePoint,
+  TransactionsInfo
+}
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
-import org.ergoplatform.dex.markets.api.v1.models.amm.{PoolSlippage, PricePoint}
 import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
-import org.ergoplatform.dex.markets.repositories.Pools
+import org.ergoplatform.dex.markets.repositories.{Orders, Pools}
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
-import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
+import org.ergoplatform.dex.markets.db.models.amm.{DepositInfo, PoolSnapshot, PoolTrace, PoolVolumeSnapshot, SwapInfo}
 import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, MarketId}
 import org.ergoplatform.dex.domain.FullAsset
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
@@ -40,6 +47,10 @@ trait AmmStats[F[_]] {
   def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): F[List[PricePoint]]
 
   def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]]
+
+  def getSwapTransactions(window: TimeWindow): F[TransactionsInfo]
+
+  def getDepositTransactions(window: TimeWindow): F[TransactionsInfo]
 }
 
 object AmmStats {
@@ -51,6 +62,7 @@ object AmmStats {
   def make[F[_]: Monad: Clock, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
+    orders: Orders[D],
     network: ErgoNetwork[F],
     tokens: TokenFetcher[F],
     fiatSolver: FiatPriceSolver[F]
@@ -59,6 +71,7 @@ object AmmStats {
   final class Live[F[_]: Monad, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
+    orders: Orders[D],
     tokens: TokenFetcher[F],
     network: ErgoNetwork[F],
     fiatSolver: FiatPriceSolver[F],
@@ -85,10 +98,11 @@ object AmmStats {
         } yield (poolSnapshots, volumes)
       for {
         (poolSnapshots: List[PoolSnapshot], volumes) <- queryPlatformStats ||> txr.trans
-        validTokens              <- tokens.fetchTokens
-        filteredSnaps = poolSnapshots.filter(ps => validTokens.contains(ps.lockedX.id) && validTokens.contains(ps.lockedY.id))
-        lockedX                  <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedX, UsdUnits).map(_.toList))
-        lockedY                  <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedY, UsdUnits).map(_.toList))
+        validTokens                                  <- tokens.fetchTokens
+        filteredSnaps =
+          poolSnapshots.filter(ps => validTokens.contains(ps.lockedX.id) && validTokens.contains(ps.lockedY.id))
+        lockedX <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedX, UsdUnits).map(_.toList))
+        lockedY <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedY, UsdUnits).map(_.toList))
         tvl = TotalValueLocked(lockedX.map(_.value).sum + lockedY.map(_.value).sum, UsdUnits)
 
         volumeByX <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByX, UsdUnits).map(_.toList))
@@ -252,5 +266,32 @@ object AmmStats {
           }
         }
     }
+
+    def getSwapTransactions(window: TimeWindow): F[TransactionsInfo] =
+      txr.trans(orders.getSwapTxs(window)).flatMap { xs: List[SwapInfo] =>
+        xs.flatTraverse(swap =>
+          fiatSolver
+            .convert(swap.asset, UsdUnits)
+            .map(eqOpt => eqOpt.toList.map(_.value))
+        ).map(values => TransactionsInfo(values, UsdUnits))
+      }
+
+    def getDepositTransactions(window: TimeWindow): F[TransactionsInfo] =
+      (orders.getDepositTxs(window) ||> txr.trans)
+        .flatMap { xs: List[DepositInfo] =>
+          xs.flatTraverse { deposit =>
+            fiatSolver
+              .convert(deposit.assetX, UsdUnits)
+              .flatMap { optX =>
+                fiatSolver
+                  .convert(deposit.assetY, UsdUnits)
+                  .map(optY =>
+                    optX
+                      .flatMap(eqX => optY.map(eqY => eqX.value + eqY.value))
+                      .toList
+                  )
+              }
+          }.map(values => TransactionsInfo(values, UsdUnits))
+        }
   }
 }

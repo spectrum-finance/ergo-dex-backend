@@ -8,7 +8,8 @@ object amm {
 
   final case class PoolInfo(confirmedAt: Long)
 
-  final case class TransactionInfo(value: Long)
+  final case class SwapInfo(asset: FullAsset)
+  final case class DepositInfo(assetX: FullAsset, assetY: FullAsset)
 
   final case class AssetInfo(
     id: TokenId,

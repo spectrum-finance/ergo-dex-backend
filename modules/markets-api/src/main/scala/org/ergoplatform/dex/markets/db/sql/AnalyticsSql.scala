@@ -76,7 +76,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |    cast(sum(case when (s.input_id = p.x_id) then s.output_amount else 0 end) as BIGINT) as ty
          |  from swaps s
          |  left join pools p on p.pool_state_id = s.pool_state_id
-         |  ${timeWindowCond(tw)}
+         |  ${timeWindowCond(tw, "where")}
          |  group by s.pool_id
          |) as sx on sx.pool_id = p.pool_id
          |left join assets ax on ax.id = p.x_id
@@ -137,7 +137,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |    cast(sum(case when (s.input_id = p.x_id) then s.output_amount::decimal * (1000 - p.fee_num) / 1000 else 0 end) as bigint) as ty
          |  from swaps s
          |  left join pools p on p.pool_state_id = s.pool_state_id
-         |  ${timeWindowCond(tw)}
+         |  ${timeWindowCond(tw, "where")}
          |  group by s.pool_id
          |) as sx on sx.pool_id = p.pool_id
          |left join assets ax on ax.id = p.x_id
@@ -217,10 +217,27 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |where id = $id
          """.stripMargin.query[AssetInfo]
 
-  private def timeWindowCond(tw: TimeWindow): Fragment =
+  def getSwapTransactions(tw: TimeWindow): Query0[SwapInfo] =
+    sql"""
+         |select s.min_output_id, s.output_amount, a.ticker, a.decimals from swaps s
+         |left join assets a on a.id = s.min_output_id
+         |where s.output_amount is not null
+         |${timeWindowCond(tw, "and")}
+         """.stripMargin.query[SwapInfo]
+
+  def getDepositTransactions(tw: TimeWindow): Query0[DepositInfo] =
+    sql"""
+         |select s.input_id_x, s.input_amount_x, ax.ticker, ax.decimals, s.input_id_y, s.input_amount_y, ay.ticker, ay.decimals from deposits s
+         |left join assets ax on ax.id = s.input_id_x  
+         |left join assets ay on ay.id = s.input_id_y
+         |where output_amount_lp is not null
+         |${timeWindowCond(tw, "and")}
+         """.stripMargin.query[DepositInfo]
+
+  private def timeWindowCond(tw: TimeWindow, keyword: String): Fragment =
     if (tw.from.nonEmpty || tw.to.nonEmpty)
       Fragment.const(
-        s"where ${tw.from.map(ts => s"s.timestamp >= $ts").getOrElse("")} ${if (tw.from.isDefined && tw.to.isDefined) "and"
+        s"$keyword ${tw.from.map(ts => s"s.timestamp >= $ts").getOrElse("")} ${if (tw.from.isDefined && tw.to.isDefined) "and"
         else ""} ${tw.to.map(ts => s"s.timestamp <= $ts").getOrElse("")}"
       )
     else Fragment.empty

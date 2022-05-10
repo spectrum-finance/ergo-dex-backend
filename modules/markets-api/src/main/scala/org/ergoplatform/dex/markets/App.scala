@@ -11,7 +11,7 @@ import org.ergoplatform.dex.markets.api.v1.HttpServer
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
 import org.ergoplatform.dex.markets.configs.ConfigBundle
 import org.ergoplatform.dex.markets.modules.PriceSolver.{CryptoPriceSolver, FiatPriceSolver}
-import org.ergoplatform.dex.markets.repositories.{Locks, Pools}
+import org.ergoplatform.dex.markets.repositories.{Locks, Orders, Pools}
 import org.ergoplatform.dex.markets.services.{FiatRates, Markets, TokenFetcher}
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
@@ -56,6 +56,7 @@ object App extends EnvApp[AppContext] {
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
       implicit0(client: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(pools: Pools[xa.DB])                      <- Resource.eval(Pools.make[InitF, xa.DB])
+      implicit0(orders: Orders[xa.DB])                    <- Resource.eval(Orders.make[InitF, xa.DB])
       implicit0(locks: Locks[xa.DB])                      <- Resource.eval(Locks.make[InitF, xa.DB])
       implicit0(redis: Redis.Plain[RunF])                 <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: Cache[RunF])                       <- Resource.eval(Cache.make[InitF, RunF])
