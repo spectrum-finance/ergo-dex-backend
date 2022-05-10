@@ -27,7 +27,7 @@ object TokenFetcher {
   def make[F[_]: Monad: Throws: TokenFetcherConfig.Has](implicit backend: SttpBackend[F, Any]): TokenFetcher[F] =
     context.map(conf => new ValidTokensFetcher[F](conf): TokenFetcher[F]).embed
 
-  final class ValidTokensFetcher[F[_]: Monad: Throws: TokenFetcherConfig.Has](conf: TokenFetcherConfig)(implicit
+  final class ValidTokensFetcher[F[_]: Monad: Throws](conf: TokenFetcherConfig)(implicit
     backend: SttpBackend[F, Any]
   ) extends TokenFetcher[F] {
 
