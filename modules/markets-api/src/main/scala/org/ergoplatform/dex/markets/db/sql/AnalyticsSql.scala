@@ -205,8 +205,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |select avg(p.x_amount) as avg_x_amount, avg(p.y_amount) as avg_y_amount, avg(b.timestamp), ((p.height / $resolution)::integer) as k
          |from pools p
          |left join blocks b on b.height = p.height
-         |where pool_id = $id
-         |and ${blockTimeWindowMapping(tw)}
+         |where pool_id = $id and b.height is not null and ${blockTimeWindowMapping(tw)}
          |group by k
          |order by k
          """.stripMargin.query[AvgAssetAmounts]
