@@ -21,7 +21,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
     sql"""
          |select s.pool_id, s.timestamp from swaps s
          |left join (
-         |  select pool_id, max(timestamp) as ts
+         |  select pool_id, min(timestamp) as ts
          |  from swaps
          |  group by pool_id
          |) as sx on s.pool_id = sx.pool_id and s.timestamp = sx.ts

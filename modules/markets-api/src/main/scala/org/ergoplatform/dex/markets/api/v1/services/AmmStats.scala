@@ -18,12 +18,11 @@ import mouse.anyf._
 import cats.syntax.traverse._
 import org.ergoplatform.dex.markets.db.models.amm.{
   PoolFeesSnapshot,
-  PoolInfo,
   PoolSnapshot,
   PoolTrace,
   PoolVolumeSnapshot
 }
-import org.ergoplatform.dex.domain.{AssetClass, AssetEquiv, CryptoUnits, FullAsset, MarketId}
+import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
@@ -159,22 +158,6 @@ object AmmStats {
                })
       } yield res).value.map(_.toList.flatten)
     }
-
-    //        vols <- allPools.map(p => volumes.find(_.poolId == p.id)).foldLeft(List.empty[Volume].pure[F]) { case (acc, a) =>
-    //          acc.flatMap( li =>
-    //          a match {
-    //            case Some(vol) =>
-    //              for {
-    //                volX <- fiatSolver.convert(vol.volumeByX, UsdUnits)
-    //                volY <- fiatSolver.convert(vol.volumeByY, UsdUnits)
-    //               } yield {
-    //                if (volX.isDefined && volY.isDefined) li :+ Volume(volX.get.value + volY.get.value, UsdUnits, window)
-    //                else li
-    //            }
-    //            case None => (li :+ Volume.empty(UsdUnits, window)).pure[F]
-    //          }
-    //          )
-    //        }
 
     def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {
       val queryPoolStats =
