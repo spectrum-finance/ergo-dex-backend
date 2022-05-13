@@ -6,7 +6,7 @@ import org.ergoplatform.ergo.TokenId
 
 object amm {
 
-  final case class PoolInfo(confirmedAt: Long)
+  final case class PoolInfo(poolId: PoolId, confirmedAt: Long)
 
   final case class AssetInfo(
     id: TokenId,

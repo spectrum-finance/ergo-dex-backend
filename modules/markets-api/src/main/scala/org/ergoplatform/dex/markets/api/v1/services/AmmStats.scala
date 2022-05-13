@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.markets.api.v1.services
 
 import cats.Monad
-import cats.data.OptionT
+import cats.data.{NonEmptyList, OptionT}
 import cats.effect.Clock
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
@@ -16,9 +16,13 @@ import org.ergoplatform.dex.markets.repositories.Pools
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
-import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
-import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, MarketId}
-import org.ergoplatform.dex.domain.FullAsset
+import org.ergoplatform.dex.markets.db.models.amm.{
+  PoolFeesSnapshot,
+  PoolSnapshot,
+  PoolTrace,
+  PoolVolumeSnapshot
+}
+import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.dex.markets.services.TokenFetcher
 import org.ergoplatform.ergo.TokenId
@@ -34,6 +38,8 @@ trait AmmStats[F[_]] {
   def getPlatformSummary(window: TimeWindow): F[PlatformSummary]
 
   def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]]
+
+  def getPoolsSummary(window: TimeWindow): F[List[PoolSummary]]
 
   def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]]
 
@@ -96,6 +102,67 @@ object AmmStats {
         volumeByY <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByY, UsdUnits).map(_.toList))
         volume = Volume(volumeByX.map(_.value).sum + volumeByY.map(_.value).sum, UsdUnits, window)
       } yield PlatformSummary(tvl, volume)
+    }
+
+    private def calculateTVLsFor(pools: List[PoolSnapshot]): F[List[TotalValueLocked]] =
+      pools
+        .traverse { pool =>
+          fiatSolver
+            .convert(pool.lockedX, UsdUnits)
+            .flatMap(optX => fiatSolver.convert(pool.lockedY, UsdUnits).map(optY => (pool, optX, optY)))
+        }
+        .map { equivOpts =>
+          val equivs = equivOpts.filter { case (_, eqX, eqY) => eqX.isDefined && eqY.isDefined }
+          equivs.map { case (_, lx, ly) => TotalValueLocked(lx.get.value + ly.get.value, UsdUnits) }
+        }
+
+    private def convertVolumes(pools: List[PoolSnapshot], volumes: List[PoolVolumeSnapshot], window: TimeWindow) =
+      pools.map(p => volumes.find(_.poolId == p.id)).traverse {
+        case Some(vol) =>
+          for {
+            volX <- fiatSolver.convert(vol.volumeByX, UsdUnits)
+            volY <- fiatSolver.convert(vol.volumeByY, UsdUnits)
+          } yield
+            if (volX.isDefined && volY.isDefined) Volume(volX.get.value + volY.get.value, UsdUnits, window)
+            else Volume.empty(UsdUnits, window)
+        case None => Volume.empty(UsdUnits, window).pure[F]
+      }
+
+    private def convertFees(pools: List[PoolSnapshot], fees: List[PoolFeesSnapshot], window: TimeWindow) =
+      pools.map(p => fees.find(_.poolId == p.id)).traverse {
+        case Some(feesSnap) =>
+          for {
+            feesX <- fiatSolver.convert(feesSnap.feesByX, UsdUnits)
+            feesY <- fiatSolver.convert(feesSnap.feesByY, UsdUnits)
+          } yield
+            if (feesX.isDefined && feesY.isDefined) Fees(feesX.get.value + feesY.get.value, UsdUnits, window)
+            else Fees.empty(UsdUnits, window)
+        case None => Fees.empty(UsdUnits, window).pure[F]
+      }
+
+    def getPoolsSummary(window: TimeWindow): F[List[PoolSummary]] = {
+      val queryPoolsStats =
+        (for {
+          snaps   <- OptionT.liftF(pools.snapshots)
+          poolIds <- OptionT.fromOption[D](NonEmptyList.fromList(snaps.map(_.id)))
+          infos   <- OptionT.liftF(pools.infos(poolIds))
+          (allPools, info) =
+            snaps.filter(ps => infos.exists(_.poolId == ps.id)).map(p => (p, infos.find(_.poolId == p.id).get)).unzip
+          volumes <- OptionT.liftF(pools.volumes(window))
+          fees    <- OptionT.liftF(pools.fees(window))
+        } yield PoolBundle(allPools, info, volumes, fees)).value
+      (for {
+        poolBundle: PoolBundle <- OptionT(queryPoolsStats ||> txr.trans)
+        tvls                   <- OptionT.liftF(calculateTVLsFor(poolBundle.pools))
+        vols                   <- OptionT.liftF(convertVolumes(poolBundle.pools, poolBundle.volumes, window))
+        feeSnaps               <- OptionT.liftF(convertFees(poolBundle.pools, poolBundle.fees, window))
+        fullPoolInfos = poolBundle.pools zip poolBundle.infos zip (tvls, vols, feeSnaps).zipped.toList
+        res <- OptionT.liftF(fullPoolInfos.traverse { case ((pool, inf), (tvl, vol, fee)) =>
+                 ammMath
+                   .feePercentProjection(tvl, fee, inf, MillisInYear)
+                   .map(perc => PoolSummary(pool.id, pool.lockedX, pool.lockedY, tvl, vol, fee, perc))
+               })
+      } yield res).value.map(_.toList.flatten)
     }
 
     def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {

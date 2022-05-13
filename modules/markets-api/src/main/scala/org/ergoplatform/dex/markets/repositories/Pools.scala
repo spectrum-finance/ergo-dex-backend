@@ -1,5 +1,6 @@
 package org.ergoplatform.dex.markets.repositories
 
+import cats.data.NonEmptyList
 import cats.tagless.syntax.functorK._
 import cats.{FlatMap, Functor}
 import derevo.derive
@@ -23,6 +24,10 @@ trait Pools[F[_]] {
   /** Get general info about the pool with the given `id`.
     */
   def info(id: PoolId): F[Option[PoolInfo]]
+
+  /** Get general info about pools with given `ids`.
+    */
+  def infos(ids: NonEmptyList[PoolId]): F[List[PoolInfo]]
 
   /** Get snapshots of all pools.
     */
@@ -84,6 +89,9 @@ object Pools {
     def info(id: PoolId): ConnectionIO[Option[PoolInfo]] =
       sql.getInfo(id).option
 
+    def infos(ids: NonEmptyList[PoolId]): ConnectionIO[List[PoolInfo]] =
+      sql.getInfos(ids).to[List]
+
     def snapshots: ConnectionIO[List[PoolSnapshot]] =
       sql.getPoolSnapshots.to[List]
 
@@ -125,6 +133,13 @@ object Pools {
         _ <- trace"info(poolId=$poolId)"
         r <- _
         _ <- trace"info(poolId=$poolId) -> ${r.size} info entities selected"
+      } yield r
+
+    def infos(ids: NonEmptyList[PoolId]): Mid[F, List[PoolInfo]] =
+      for {
+        _ <- trace"info(poolId=$ids)"
+        r <- _
+        _ <- trace"info(poolId=$ids) -> ${r.size} info entities selected"
       } yield r
 
     def snapshots: Mid[F, List[PoolSnapshot]] =

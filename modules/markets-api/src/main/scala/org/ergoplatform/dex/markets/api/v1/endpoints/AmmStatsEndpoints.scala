@@ -14,7 +14,7 @@ final class AmmStatsEndpoints {
   val Group      = "ammStats"
 
   def endpoints: List[Endpoint[_, _, _, _]] =
-    getPoolLocks :: getPlatformStats :: getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart :: getAmmMarkets :: convertToFiat :: Nil
+    getPoolLocks :: getPlatformStats :: getPoolStats :: getPoolsStats :: getAvgPoolSlippage :: getPoolPriceChart :: getAmmMarkets :: convertToFiat :: Nil
 
   def getPoolLocks: Endpoint[(PoolId, Int), HttpError, List[LiquidityLockInfo], Any] =
     baseEndpoint.get
@@ -33,6 +33,15 @@ final class AmmStatsEndpoints {
       .tag(Group)
       .name("Pool stats")
       .description("Get statistics on the pool with the given ID")
+
+  def getPoolsStats: Endpoint[TimeWindow, HttpError, List[PoolSummary], Any] =
+    baseEndpoint.get
+      .in(PathPrefix / "pools" / "stats")
+      .in(timeWindow)
+      .out(jsonBody[List[PoolSummary]])
+      .tag(Group)
+      .name("Pools stats")
+      .description("Get statistics on all pools")
 
   def getPlatformStats: Endpoint[TimeWindow, HttpError, PlatformSummary, Any] =
     baseEndpoint.get
