@@ -24,11 +24,11 @@ final class AmmStatsRoutes[
     caching.middleware(getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAvgPoolSlippageR <+> getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR)
 
   def getSwapTxsR: HttpRoutes[F] = interpreter.toRoutes(getSwapTxs) (tw =>
-    stats.getSwapTransactions(tw).adaptThrowable.value
+    stats.getSwapTransactions(tw).adaptThrowable.orNotFound("Data fetching error").value
   )
 
   def getDepositTxsR: HttpRoutes[F] = interpreter.toRoutes(getDepositTxs) (tw =>
-    stats.getDepositTransactions(tw).adaptThrowable.value
+    stats.getDepositTransactions(tw).adaptThrowable.orNotFound("Data fetching error").value
   )
 
   def getPoolLocksR: HttpRoutes[F] = interpreter.toRoutes(getPoolLocks) { case (poolId, leastDeadline) =>
