@@ -8,26 +8,31 @@ import org.ergoplatform.common.http.cache.CacheMiddleware.CachingMiddleware
 import org.ergoplatform.common.http.syntax._
 import org.ergoplatform.dex.markets.api.v1.endpoints.AmmStatsEndpoints
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
+import org.ergoplatform.dex.markets.configs.RequestSettings
 import org.http4s.HttpRoutes
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 
 final class AmmStatsRoutes[
   F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]
-](stats: AmmStats[F], locks: LqLocks[F], caching: CachingMiddleware[F])(implicit opts: Http4sServerOptions[F, F]) {
+](stats: AmmStats[F], locks: LqLocks[F], caching: CachingMiddleware[F], settings: RequestSettings)(implicit
+  opts: Http4sServerOptions[F, F]
+) {
 
-  private val endpoints = new AmmStatsEndpoints()
+  private val endpoints = new AmmStatsEndpoints(settings)
   import endpoints._
 
   private val interpreter = Http4sServerInterpreter(opts)
 
   def routes: HttpRoutes[F] =
-    caching.middleware(getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAvgPoolSlippageR <+> getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR)
+    caching.middleware(
+      getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAvgPoolSlippageR <+> getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR
+    )
 
-  def getSwapTxsR: HttpRoutes[F] = interpreter.toRoutes(getSwapTxs) (tw =>
+  def getSwapTxsR: HttpRoutes[F] = interpreter.toRoutes(getSwapTxs)(tw =>
     stats.getSwapTransactions(tw).adaptThrowable.orNotFound("Data fetching error").value
   )
 
-  def getDepositTxsR: HttpRoutes[F] = interpreter.toRoutes(getDepositTxs) (tw =>
+  def getDepositTxsR: HttpRoutes[F] = interpreter.toRoutes(getDepositTxs)(tw =>
     stats.getDepositTransactions(tw).adaptThrowable.orNotFound("Data fetching error").value
   )
 
@@ -62,11 +67,11 @@ final class AmmStatsRoutes[
 
 object AmmStatsRoutes {
 
-  def make[F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]](implicit
+  def make[F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]](settings: RequestSettings)(implicit
     stats: AmmStats[F],
     locks: LqLocks[F],
     opts: Http4sServerOptions[F, F],
     cache: CachingMiddleware[F]
   ): HttpRoutes[F] =
-    new AmmStatsRoutes[F](stats, locks, cache).routes
+    new AmmStatsRoutes[F](stats, locks, cache, settings).routes
 }

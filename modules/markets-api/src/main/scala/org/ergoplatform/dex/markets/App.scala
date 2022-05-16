@@ -71,7 +71,7 @@ object App extends EnvApp[AppContext] {
       implicit0(network: ErgoNetwork[RunF]) = ErgoNetwork.make[RunF]
       implicit0(stats: AmmStats[RunF]) = AmmStats.make[RunF, xa.DB]
       implicit0(locks: LqLocks[RunF])  = LqLocks.make[RunF, xa.DB]
-      server <- HttpServer.make[InitF, RunF](configs.http, runtime.platform.executor.asEC)
+      server <- HttpServer.make[InitF, RunF](configs.http, runtime.platform.executor.asEC, configs.requestSettings)
     } yield server
 
   private def makeBackend(
