@@ -96,8 +96,8 @@ object AmmStats {
           volumes       <- pools.volumes(window)
         } yield (poolSnapshots, volumes)
       for {
-        (poolSnapshots: List[PoolSnapshot], volumes) <- queryPlatformStats ||> txr.trans
-        validTokens                                  <- tokens.fetchTokens
+        (poolSnapshots, volumes) <- queryPlatformStats ||> txr.trans
+        validTokens              <- tokens.fetchTokens
         filteredSnaps =
           poolSnapshots.filter(ps => validTokens.contains(ps.lockedX.id) && validTokens.contains(ps.lockedY.id))
         lockedX <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedX, UsdUnits).map(_.toList))

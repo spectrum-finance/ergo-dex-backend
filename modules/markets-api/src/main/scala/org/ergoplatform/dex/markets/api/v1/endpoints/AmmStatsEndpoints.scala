@@ -5,11 +5,11 @@ import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.api.v1.models.amm._
 import org.ergoplatform.dex.markets.api.v1.models.locks.LiquidityLockInfo
-import org.ergoplatform.dex.markets.configs.RequestSettings
+import org.ergoplatform.dex.markets.configs.RequestConfig
 import sttp.tapir.json.circe.jsonBody
 import sttp.tapir._
 
-final class AmmStatsEndpoints(settings: RequestSettings) {
+final class AmmStatsEndpoints(conf: RequestConfig) {
 
   val PathPrefix = "amm"
   val Group      = "ammStats"
@@ -20,7 +20,7 @@ final class AmmStatsEndpoints(settings: RequestSettings) {
   def getSwapTxs: Endpoint[TimeWindow, HttpError, TransactionsInfo, Any] =
     baseEndpoint.get
       .in(PathPrefix / "swaps")
-      .in(timeWindow(settings.maxTimeWindow))
+      .in(timeWindow(conf.maxTimeWindow))
       .out(jsonBody[TransactionsInfo])
       .tag(Group)
       .name("Swap txs")
@@ -29,7 +29,7 @@ final class AmmStatsEndpoints(settings: RequestSettings) {
   def getDepositTxs: Endpoint[TimeWindow, HttpError, TransactionsInfo, Any] =
     baseEndpoint.get
       .in(PathPrefix / "deposits")
-      .in(timeWindow(settings.maxTimeWindow))
+      .in(timeWindow(conf.maxTimeWindow))
       .out(jsonBody[TransactionsInfo])
       .tag(Group)
       .name("Deposit txs")

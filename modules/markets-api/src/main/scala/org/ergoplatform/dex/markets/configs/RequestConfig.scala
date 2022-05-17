@@ -7,6 +7,6 @@ import tofu.logging.derivation.loggable
 import scala.concurrent.duration.FiniteDuration
 
 @derive(pureconfigReader, loggable)
-case class RequestSettings(maxTimeWindow: FiniteDuration)
+case class RequestConfig(maxTimeWindow: FiniteDuration)
 
-object RequestSettings extends Context.Companion[RequestSettings]
+object RequestConfig extends Context.Companion[RequestConfig]

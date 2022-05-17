@@ -7,7 +7,7 @@ import cats.syntax.option._
 import cats.syntax.semigroupk._
 import org.ergoplatform.common.http.HttpError
 import org.ergoplatform.dex.markets.api.v1.endpoints.{AmmStatsEndpoints, DocsEndpoints, VersionPrefix}
-import org.ergoplatform.dex.markets.configs.RequestSettings
+import org.ergoplatform.dex.markets.configs.RequestConfig
 import org.http4s.HttpRoutes
 import sttp.tapir.apispec.Tag
 import sttp.tapir.docs.openapi._
@@ -15,7 +15,7 @@ import sttp.tapir.openapi.circe.yaml._
 import sttp.tapir.redoc.http4s.RedocHttp4s
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 
-final class DocsRoutes[F[_]: Concurrent: ContextShift: Timer](settings: RequestSettings)(implicit
+final class DocsRoutes[F[_]: Concurrent: ContextShift: Timer](requestConf: RequestConfig)(implicit
   opts: Http4sServerOptions[F, F]
 ) {
 
@@ -26,7 +26,7 @@ final class DocsRoutes[F[_]: Concurrent: ContextShift: Timer](settings: RequestS
 
   val routes: HttpRoutes[F] = openApiSpecR <+> redocApiSpecR
 
-  val statsEndpoints = new AmmStatsEndpoints(settings)
+  val statsEndpoints = new AmmStatsEndpoints(requestConf)
 
   private def allEndpoints =
     statsEndpoints.endpoints
@@ -59,6 +59,8 @@ final class DocsRoutes[F[_]: Concurrent: ContextShift: Timer](settings: RequestS
 
 object DocsRoutes {
 
-  def make[F[_]: Concurrent: ContextShift: Timer](settings: RequestSettings)(implicit opts: Http4sServerOptions[F, F]): HttpRoutes[F] =
-    new DocsRoutes[F](settings).routes
+  def make[F[_]: Concurrent: ContextShift: Timer](requestConf: RequestConfig)(implicit
+    opts: Http4sServerOptions[F, F]
+  ): HttpRoutes[F] =
+    new DocsRoutes[F](requestConf).routes
 }
