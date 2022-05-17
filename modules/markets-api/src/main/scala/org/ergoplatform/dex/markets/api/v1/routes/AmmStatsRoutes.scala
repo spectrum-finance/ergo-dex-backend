@@ -29,11 +29,11 @@ final class AmmStatsRoutes[
     )
 
   def getSwapTxsR: HttpRoutes[F] = interpreter.toRoutes(getSwapTxs)(tw =>
-    stats.getSwapTransactions(tw).adaptThrowable.orNotFound("Data fetching error").value
+    stats.getSwapTransactions(tw).adaptThrowable.value
   )
 
   def getDepositTxsR: HttpRoutes[F] = interpreter.toRoutes(getDepositTxs)(tw =>
-    stats.getDepositTransactions(tw).adaptThrowable.orNotFound("Data fetching error").value
+    stats.getDepositTransactions(tw).adaptThrowable.value
   )
 
   def getPoolLocksR: HttpRoutes[F] = interpreter.toRoutes(getPoolLocks) { case (poolId, leastDeadline) =>

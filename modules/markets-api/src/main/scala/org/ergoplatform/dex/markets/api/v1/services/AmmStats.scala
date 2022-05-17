@@ -47,9 +47,9 @@ trait AmmStats[F[_]] {
 
   def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]]
 
-  def getSwapTransactions(window: TimeWindow): F[Option[TransactionsInfo]]
+  def getSwapTransactions(window: TimeWindow): F[TransactionsInfo]
 
-  def getDepositTransactions(window: TimeWindow): F[Option[TransactionsInfo]]
+  def getDepositTransactions(window: TimeWindow): F[TransactionsInfo]
 }
 
 object AmmStats {
@@ -266,7 +266,7 @@ object AmmStats {
         }
     }
 
-    def getSwapTransactions(window: TimeWindow): F[Option[TransactionsInfo]] =
+    def getSwapTransactions(window: TimeWindow): F[TransactionsInfo] =
       (for {
         swaps  <- OptionT.liftF(txr.trans(orders.getSwapTxs(window)))
         numTxs <- OptionT.fromOption[F](swaps.headOption.map(_.numTxs))
@@ -277,13 +277,14 @@ object AmmStats {
                          .map(_.toList.map(_.value))
                      )
                    )
-      } yield TransactionsInfo(numTxs, volumes.sum / numTxs, volumes.max, UsdUnits).roundAvgValue).value
+      } yield TransactionsInfo(numTxs, volumes.sum / numTxs, volumes.max, UsdUnits).roundAvgValue)
+        .getOrElse(TransactionsInfo.empty)
 
-    def getDepositTransactions(window: TimeWindow): F[Option[TransactionsInfo]] =
+    def getDepositTransactions(window: TimeWindow): F[TransactionsInfo] =
       (for {
         deposits <- OptionT.liftF(orders.getDepositTxs(window) ||> txr.trans)
         numTxs   <- OptionT.fromOption[F](deposits.headOption.map(_.numTxs))
-        volumes  <- OptionT.liftF(deposits.flatTraverse { deposit =>
+        volumes <- OptionT.liftF(deposits.flatTraverse { deposit =>
                      fiatSolver
                        .convert(deposit.assetX, UsdUnits)
                        .flatMap { optX =>
@@ -296,6 +297,7 @@ object AmmStats {
                            )
                        }
                    })
-      } yield TransactionsInfo(numTxs, volumes.sum / numTxs, volumes.max, UsdUnits).roundAvgValue).value
+      } yield TransactionsInfo(numTxs, volumes.sum / numTxs, volumes.max, UsdUnits).roundAvgValue)
+        .getOrElse(TransactionsInfo.empty)
   }
 }
