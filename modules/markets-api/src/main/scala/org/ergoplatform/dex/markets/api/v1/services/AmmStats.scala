@@ -6,19 +6,25 @@ import cats.effect.Clock
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.api.v1.models.amm.{AmmMarketSummary, FiatEquiv, PlatformSummary, PoolSummary}
+import org.ergoplatform.dex.markets.api.v1.models.amm.{
+  AmmMarketSummary,
+  FiatEquiv,
+  PlatformSummary,
+  PoolSlippage,
+  PoolSummary,
+  PricePoint,
+  TransactionsInfo
+}
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
-import org.ergoplatform.dex.markets.api.v1.models.amm.{PoolSlippage, PricePoint}
 import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
-import org.ergoplatform.dex.markets.repositories.Pools
+import org.ergoplatform.dex.markets.repositories.{Orders, Pools}
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
 import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
-import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, MarketId}
-import org.ergoplatform.dex.domain.FullAsset
+import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.dex.markets.services.TokenFetcher
 import org.ergoplatform.ergo.TokenId
@@ -40,6 +46,10 @@ trait AmmStats[F[_]] {
   def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): F[List[PricePoint]]
 
   def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]]
+
+  def getSwapTransactions(window: TimeWindow): F[TransactionsInfo]
+
+  def getDepositTransactions(window: TimeWindow): F[TransactionsInfo]
 }
 
 object AmmStats {
@@ -51,6 +61,7 @@ object AmmStats {
   def make[F[_]: Monad: Clock, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
+    orders: Orders[D],
     network: ErgoNetwork[F],
     tokens: TokenFetcher[F],
     fiatSolver: FiatPriceSolver[F]
@@ -59,6 +70,7 @@ object AmmStats {
   final class Live[F[_]: Monad, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
+    orders: Orders[D],
     tokens: TokenFetcher[F],
     network: ErgoNetwork[F],
     fiatSolver: FiatPriceSolver[F],
@@ -253,5 +265,39 @@ object AmmStats {
           }
         }
     }
+
+    def getSwapTransactions(window: TimeWindow): F[TransactionsInfo] =
+      (for {
+        swaps  <- OptionT.liftF(txr.trans(orders.getSwapTxs(window)))
+        numTxs <- OptionT.fromOption[F](swaps.headOption.map(_.numTxs))
+        volumes <- OptionT.liftF(
+                     swaps.flatTraverse(swap =>
+                       fiatSolver
+                         .convert(swap.asset, UsdUnits)
+                         .map(_.toList.map(_.value))
+                     )
+                   )
+      } yield TransactionsInfo(numTxs, volumes.sum / numTxs, volumes.max, UsdUnits).roundAvgValue)
+        .getOrElse(TransactionsInfo.empty)
+
+    def getDepositTransactions(window: TimeWindow): F[TransactionsInfo] =
+      (for {
+        deposits <- OptionT.liftF(orders.getDepositTxs(window) ||> txr.trans)
+        numTxs   <- OptionT.fromOption[F](deposits.headOption.map(_.numTxs))
+        volumes <- OptionT.liftF(deposits.flatTraverse { deposit =>
+                     fiatSolver
+                       .convert(deposit.assetX, UsdUnits)
+                       .flatMap { optX =>
+                         fiatSolver
+                           .convert(deposit.assetY, UsdUnits)
+                           .map(optY =>
+                             optX
+                               .flatMap(eqX => optY.map(eqY => eqX.value + eqY.value))
+                               .toList
+                           )
+                       }
+                   })
+      } yield TransactionsInfo(numTxs, volumes.sum / numTxs, volumes.max, UsdUnits).roundAvgValue)
+        .getOrElse(TransactionsInfo.empty)
   }
 }

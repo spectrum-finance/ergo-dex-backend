@@ -8,6 +8,9 @@ object amm {
 
   final case class PoolInfo(confirmedAt: Long)
 
+  final case class SwapInfo(asset: FullAsset, numTxs: Int)
+  final case class DepositInfo(assetX: FullAsset, assetY: FullAsset, numTxs: Int)
+
   final case class AssetInfo(
     id: TokenId,
     ticker: Option[Ticker],
