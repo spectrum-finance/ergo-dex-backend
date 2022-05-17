@@ -3,7 +3,7 @@ package org.ergoplatform.dex.tracker.processes
 import cats.{Defer, Functor, Monad, MonoidK}
 import derevo.derive
 import org.ergoplatform.dex.tracker.configs.BlockTrackerConfig
-import org.ergoplatform.dex.tracker.handlers.SettledBlockHandler
+import org.ergoplatform.dex.tracker.handlers.BlockHandler
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming}
 import tofu.Catches
@@ -28,7 +28,7 @@ object BlockTracker {
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches: BlockTrackerConfig.Has,
     G[_]: Monad
-  ](handlers: SettledBlockHandler[F]*)(implicit
+  ](handlers: BlockHandler[F]*)(implicit
     network: ErgoNetwork[G],
     cache: TrackerCache[G],
     ledger: LedgerStreaming[F],
@@ -43,7 +43,7 @@ object BlockTracker {
   final class StreamingBlockTracker[
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
     G[_]: Monad: Logging
-  ](conf: BlockTrackerConfig, handlers: List[SettledBlockHandler[F]])(implicit
+  ](conf: BlockTrackerConfig, handlers: List[BlockHandler[F]])(implicit
     cache: TrackerCache[G],
     ledger: LedgerStreaming[F],
     network: ErgoNetwork[G]

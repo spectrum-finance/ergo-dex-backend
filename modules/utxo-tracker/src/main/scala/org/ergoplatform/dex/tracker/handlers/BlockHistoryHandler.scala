@@ -20,7 +20,7 @@ final class BlockHistoryHandler[
   producer: Producer[BlockId, Block, F]
 ) {
 
-  def handler: SettledBlockHandler[F] =
+  def handler: BlockHandler[F] =
     _.map(op => Record[BlockId, Block](BlockId(op.id), op))
       .thrush(producer.produce)
 }
@@ -35,7 +35,7 @@ object BlockHistoryHandler {
     producer: Producer[BlockId, Block, F],
     logs: Logs[I, G],
     e: ErgoAddressEncoder
-  ): I[SettledBlockHandler[F]] =
+  ): I[BlockHandler[F]] =
     logs.forService[BlockHistoryHandler[F, G]].map { implicit log =>
       new BlockHistoryHandler[F, G].handler
     }

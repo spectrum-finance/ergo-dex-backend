@@ -13,5 +13,5 @@ object streaming {
   type CFMMHistConsumer[F[_], G[_]]  = Consumer.Aux[OrderId, Option[EvaluatedCFMMOrder.Any], KafkaOffset, F, G]
   type CFMMPoolsConsumer[F[_], G[_]] = Consumer.Aux[PoolId, ConfirmedIndexed[CFMMPool], KafkaOffset, F, G]
   type LqLocksConsumer[F[_], G[_]]   = Consumer.Aux[LockId, Confirmed[LiquidityLock], KafkaOffset, F, G]
-  type BlocksConsumer[F[_], G[_]]   = Consumer.Aux[BlockId, Block, KafkaOffset, F, G]
+  type BlocksConsumer[F[_], G[_]]    = Consumer.Aux[BlockId, Block, KafkaOffset, F, G]
 }
