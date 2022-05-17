@@ -74,7 +74,7 @@ object CFMMPools {
   private def PredictedKey(id: BoxId)        = s"predicted:prevState:$id" // -> prevStateId
   private def LastPredictedKey(id: PoolId)   = s"predicted:last:$id" // -> state
   private def LastConfirmedKey(id: PoolId)   = s"confirmed:last:$id"
-  private def LastUnconfirmedKey(id: PoolId) = s"confirmed:last:$id"
+  private def LastUnconfirmedKey(id: PoolId) = s"unconfirmed:last:$id"
 
   final class CFMMPoolsRocks[F[_]: BracketThrow](implicit rocks: TxRocksDB[F]) extends CFMMPools[F] {
 
