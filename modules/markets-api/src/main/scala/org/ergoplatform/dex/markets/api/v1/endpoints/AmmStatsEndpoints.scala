@@ -75,7 +75,7 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
     baseEndpoint.get
       .in(PathPrefix / "pool" / path[PoolId].description("Asset reference") / "chart")
       .in(timeWindow)
-      .in(query[Int]("resolution").default(1).validate(Validator.min(1)).validate(Validator.max(1)))
+      .in(query[Int]("resolution").default(1).validate(Validator.min(1)))
       .out(jsonBody[List[PricePoint]])
       .tag(Group)
       .name("Pool chart")
