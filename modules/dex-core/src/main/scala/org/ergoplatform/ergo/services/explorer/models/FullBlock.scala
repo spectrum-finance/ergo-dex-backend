@@ -4,4 +4,4 @@ import derevo.circe.decoder
 import derevo.derive
 
 @derive(decoder)
-final case class BlockSummary(block: FullBlockInfo)
+final case class FullBlock(block: FullBlockInfo)

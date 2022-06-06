@@ -4,7 +4,7 @@ import cats.Functor
 import derevo.derive
 import org.ergoplatform.ergo.domain.{Block, SettledOutput, SettledTransaction}
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
-import org.ergoplatform.ergo.services.explorer.models.BlockSummary
+import org.ergoplatform.ergo.services.explorer.models.FullBlock
 import tofu.higherKind.derived.representableK
 import tofu.syntax.monadic._
 
@@ -27,9 +27,9 @@ trait LedgerStreaming[F[_]] {
     */
   def streamBlocks(gOffset: Long, limit: Int): F[Block]
 
-  /** Get a stream of block summaries at the given offset(height).
+  /** Get a stream of full blocks at the given offset(height).
     */
-  def streamBlockSummaries(gOffset: Long, limit: Int): F[BlockSummary]
+  def streamFullBlocks(gOffset: Long, limit: Int): F[FullBlock]
 }
 
 object LedgerStreaming {
@@ -51,7 +51,7 @@ object LedgerStreaming {
     def streamBlocks(gOffset: Long, limit: Int): F[Block] =
       explorer.streamBlocks(gOffset, limit).map(Block.fromExplorer)
 
-    def streamBlockSummaries(gOffset: Long, limit: Int): F[BlockSummary] =
-      explorer.streamBlockSummaries(gOffset, limit)
+    def streamFullBlocks(gOffset: Long, limit: Int): F[FullBlock] =
+      explorer.streamFullBlocks(gOffset, limit)
   }
 }
