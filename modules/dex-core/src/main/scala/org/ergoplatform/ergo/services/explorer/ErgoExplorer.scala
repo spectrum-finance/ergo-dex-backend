@@ -217,6 +217,10 @@ trait ErgoExplorerStreaming[S[_], F[_]] extends ErgoExplorer[F] {
   /** Get a stream of blocks at the given offset(height).
     */
   def streamBlocks(gOffset: Long, limit: Int): S[BlockInfo]
+
+  /** Get a stream of block summaries at the given offset(height).
+    */
+  def streamBlockSummaries(gOffset: Long, limit: Int): S[BlockSummary]
 }
 
 object ErgoExplorerStreaming {
@@ -257,6 +261,9 @@ object ErgoExplorerStreaming {
 
     def streamBlocks(gOffset: Long, limit: Int): S[BlockInfo] =
       evals.eval(tft.map(_.streamBlocks(gOffset, limit))).flatten
+
+    def streamBlockSummaries(gOffset: Long, limit: Int): S[BlockSummary] =
+      evals.eval(tft.map(_.streamBlockSummaries(gOffset, limit))).flatten
   }
 
   implicit def functorK[F[_]]: FunctorK[ErgoExplorerStreaming[*[_], F]] = {
@@ -326,6 +333,21 @@ object ErgoExplorerStreaming {
         .chunks
         .parseJsonStream
         .map(_.as[BlockInfo].toOption)
+        .unNone
+    }
+
+    def streamBlockSummaries(offset: Long, limit: Int): Stream[F, BlockSummary] = {
+      val req =
+        basicRequest
+          .get(uri.withPathSegment(blockSummariesStreamPathSeg).addParams("offset" -> offset.toString, "limit" -> limit.toString))
+          .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
+          .send(backend)
+          .map(_.body)
+      Stream
+        .force(req)
+        .chunks
+        .parseJsonStream
+        .map(_.as[BlockSummary].toOption)
         .unNone
     }
 
