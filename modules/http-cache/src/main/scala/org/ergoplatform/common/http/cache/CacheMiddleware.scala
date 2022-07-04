@@ -4,18 +4,19 @@ import cats.Monad
 import cats.data.{Kleisli, OptionT}
 import cats.effect.Sync
 import org.ergoplatform.common.http.cache.types.RequestHash32
+import org.http4s.Status.ResponseClass
 import org.http4s.{HttpRoutes, Status}
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
 
 object CacheMiddleware {
 
-  def make[F[_]: Monad: Sync](cacheStatuses: List[Status])(implicit
+  def make[F[_]: Monad: Sync](implicit
     caching: HttpResponseCaching[F]
   ): CachingMiddleware[F] =
-    new CachingMiddleware[F](caching, cacheStatuses)
+    new CachingMiddleware[F](caching)
 
-  final class CachingMiddleware[F[_]: Monad: Sync](caching: HttpResponseCaching[F], cacheStatuses: List[Status]) {
+  final class CachingMiddleware[F[_]: Monad: Sync](caching: HttpResponseCaching[F]) {
 
     def middleware(routes: HttpRoutes[F]): HttpRoutes[F] = Kleisli { req =>
       OptionT(caching.process(req)).orElse {
@@ -23,7 +24,7 @@ object CacheMiddleware {
           resp        <- routes(req)
           requestHash <- OptionT.liftF(RequestHash32(req))
           _ <- OptionT.liftF {
-                 if (cacheStatuses.contains(resp.status)) caching.saveResponse(requestHash, resp)
+                 if (resp.status.isSuccess) caching.saveResponse(requestHash, resp)
                  else unit
                }
         } yield resp
