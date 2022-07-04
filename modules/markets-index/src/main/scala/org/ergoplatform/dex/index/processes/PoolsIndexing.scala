@@ -57,8 +57,10 @@ object PoolsIndexing {
 
     def run: S[Unit] =
       pools.stream.chunks.evalMap { rs =>
-        val poolSnapshots = rs.map(r => r.message).toList
+        val batch         = rs.toList
+        val poolSnapshots = batch.map(_.message)
         val assets        = poolSnapshots.flatMap(p => List(p.entity.lp.id, p.entity.x.id, p.entity.y.id)).distinct
+        val commit        = batch.lastOption.map(_.commit)
 
         val resolveNewAssets =
           for {
@@ -81,6 +83,7 @@ object PoolsIndexing {
             } yield (pn, an)
           (pn, an) <- txr.trans(insert)
           _        <- info"[$pn] pool snapshots indexed" >> info"[$an] assets indexed"
+          _        <- commit.getOrElse(unit[F])
         } yield ()
       }
   }

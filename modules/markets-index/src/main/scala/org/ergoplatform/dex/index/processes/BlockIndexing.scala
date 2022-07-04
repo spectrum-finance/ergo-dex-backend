@@ -54,14 +54,18 @@ object BlockIndexing {
 
     def run: S[Unit] =
       blocks.stream.chunks.evalMap { rs =>
-        val blocks = rs.map(r => r.message).toList
+        val batch  = rs.toList
+        val blocks = batch.map(r => r.message)
+        val commit = batch.lastOption.map(_.commit)
         def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
           NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
         val insert =
           insertNel(blocks)(xs => repos.blocks.insert(xs.map(c => c.extract[DBBlock])))
-        txr.trans(insert) >>= { ls =>
-          info"[$ls] blocks indexed"
-        }
+        for {
+          ls <- txr.trans(insert)
+          _  <- info"[$ls] blocks indexed"
+          _  <- commit.getOrElse(unit[F])
+        } yield ()
       }
   }
 }

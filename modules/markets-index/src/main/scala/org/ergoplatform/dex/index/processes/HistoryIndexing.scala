@@ -53,34 +53,41 @@ object HistoryIndexing {
 
     def run: S[Unit] =
       orders.stream.chunks
-        .map(_.map(r => r.message).toList)
-        .evalTap(xs => warn"[${xs.count(_.isEmpty)}] records discarded.")
-        .evalMap { rs =>
-        val orders = rs.flatten
-        val (swaps, others) = orders.partitionEither {
-          case EvaluatedCFMMOrder(o: Swap, Some(ev: SwapEvaluation), p) =>
-            Left(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBSwap])
-          case EvaluatedCFMMOrder(o: Swap, _, p) =>
-            Left(EvaluatedCFMMOrder(o, none[SwapEvaluation], p).extract[DBSwap])
-          case EvaluatedCFMMOrder(o: Deposit, Some(ev: DepositEvaluation), p) =>
-            Right(Left(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBDeposit]))
-          case EvaluatedCFMMOrder(o: Deposit, _, p) =>
-            Right(Left(EvaluatedCFMMOrder(o, none[DepositEvaluation], p).extract[DBDeposit]))
-          case EvaluatedCFMMOrder(o: Redeem, Some(ev: RedeemEvaluation), p) =>
-            Right(Right(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBRedeem]))
-          case EvaluatedCFMMOrder(o: Redeem, _, p) =>
-            Right(Right(EvaluatedCFMMOrder(o, none[RedeemEvaluation], p).extract[DBRedeem]))
+        .map { batch =>
+          val batchMat = batch.toList
+          batchMat.map(r => r.message) -> batchMat.lastOption.map(_.commit)
         }
-        val (deposits, redeems) = others.partitionEither(identity)
-        def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
-          NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
-        val insert =
+        .evalTap { case (xs, _) => warn"[${xs.count(_.isEmpty)}] records discarded." }
+        .evalMap { case (rs, commit) =>
+          val orders = rs.flatten
+          val (swaps, others) = orders.partitionEither {
+            case EvaluatedCFMMOrder(o: Swap, Some(ev: SwapEvaluation), p) =>
+              Left(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBSwap])
+            case EvaluatedCFMMOrder(o: Swap, _, p) =>
+              Left(EvaluatedCFMMOrder(o, none[SwapEvaluation], p).extract[DBSwap])
+            case EvaluatedCFMMOrder(o: Deposit, Some(ev: DepositEvaluation), p) =>
+              Right(Left(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBDeposit]))
+            case EvaluatedCFMMOrder(o: Deposit, _, p) =>
+              Right(Left(EvaluatedCFMMOrder(o, none[DepositEvaluation], p).extract[DBDeposit]))
+            case EvaluatedCFMMOrder(o: Redeem, Some(ev: RedeemEvaluation), p) =>
+              Right(Right(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBRedeem]))
+            case EvaluatedCFMMOrder(o: Redeem, _, p) =>
+              Right(Right(EvaluatedCFMMOrder(o, none[RedeemEvaluation], p).extract[DBRedeem]))
+          }
+          val (deposits, redeems) = others.partitionEither(identity)
+          def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
+            NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
+          val insert =
+            for {
+              ss <- insertNel(swaps)(repos.swaps.insert)
+              ds <- insertNel(deposits)(repos.deposits.insert)
+              rs <- insertNel(redeems)(repos.redeems.insert)
+            } yield ss + ds + rs
           for {
-            ss <- insertNel(swaps)(repos.swaps.insert)
-            ds <- insertNel(deposits)(repos.deposits.insert)
-            rs <- insertNel(redeems)(repos.redeems.insert)
-          } yield ss + ds + rs
-        txr.trans(insert) >>= (n => info"[$n] orders indexed")
-      }
+            n <- txr.trans(insert)
+            _ <- info"[$n] orders indexed"
+            _ <- commit.getOrElse(unit[F])
+          } yield ()
+        }
   }
 }
