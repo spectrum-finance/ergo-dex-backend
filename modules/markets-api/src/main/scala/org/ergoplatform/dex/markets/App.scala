@@ -4,7 +4,7 @@ import cats.effect.{Blocker, Resource}
 import cats.tagless.syntax.functorK._
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis}
-import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
+import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
 import org.ergoplatform.common.http.cache.{CacheMiddleware, HttpResponseCaching}
 import org.ergoplatform.common.http.cache.CacheMiddleware.CachingMiddleware
 import org.ergoplatform.dex.markets.api.v1.HttpServer
@@ -61,16 +61,16 @@ object App extends EnvApp[AppContext] {
       implicit0(redis: Redis.Plain[RunF])                 <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: Cache[RunF])                       <- Resource.eval(Cache.make[InitF, RunF])
       implicit0(httpRespCache: HttpResponseCaching[RunF]) <- Resource.eval(HttpResponseCaching.make[InitF, RunF])
-      implicit0(httpCache: CachingMiddleware[RunF])       = CacheMiddleware.make[RunF](List(Status(200)))
-      implicit0(markets: Markets[RunF])                   <- Resource.eval(Markets.make[InitF, RunF, xa.DB])
-      implicit0(rates: FiatRates[RunF])                   <- Resource.eval(FiatRates.make[InitF, RunF])
-      implicit0(cryptoSolver: CryptoPriceSolver[RunF])    <- Resource.eval(CryptoPriceSolver.make[InitF, RunF])
-      implicit0(fiatSolver: FiatPriceSolver[RunF])        <- Resource.eval(FiatPriceSolver.make[InitF, RunF])
-      implicit0(tokenFetcher: TokenFetcher[RunF])         = TokenFetcher.make[RunF]
+      implicit0(httpCache: CachingMiddleware[RunF]) = CacheMiddleware.make[RunF](List(Status(200)))
+      implicit0(markets: Markets[RunF])                <- Resource.eval(Markets.make[InitF, RunF, xa.DB])
+      implicit0(rates: FiatRates[RunF])                <- Resource.eval(FiatRates.make[InitF, RunF])
+      implicit0(cryptoSolver: CryptoPriceSolver[RunF]) <- Resource.eval(CryptoPriceSolver.make[InitF, RunF])
+      implicit0(fiatSolver: FiatPriceSolver[RunF])     <- Resource.eval(FiatPriceSolver.make[InitF, RunF])
+      implicit0(tokenFetcher: TokenFetcher[RunF])      <- Resource.eval(TokenFetcher.make[InitF, RunF])
       implicit0(node: ErgoNode[RunF])                  <- Resource.eval(ErgoNode.make[InitF, RunF])
       implicit0(network: ErgoNetwork[RunF]) = ErgoNetwork.make[RunF]
-      implicit0(stats: AmmStats[RunF]) = AmmStats.make[RunF, xa.DB]
-      implicit0(locks: LqLocks[RunF])  = LqLocks.make[RunF, xa.DB]
+      implicit0(stats: AmmStats[RunF])      = AmmStats.make[RunF, xa.DB]
+      implicit0(locks: LqLocks[RunF])       = LqLocks.make[RunF, xa.DB]
       server <- HttpServer.make[InitF, RunF](configs.http, runtime.platform.executor.asEC, configs.request)
     } yield server
 
