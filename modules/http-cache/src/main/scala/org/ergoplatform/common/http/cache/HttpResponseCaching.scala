@@ -20,7 +20,7 @@ trait HttpResponseCaching[F[_]] {
 
   def saveResponse(reqHash: RequestHash32, resp: Response[F]): F[Unit]
 
-  def invalidate: F[Unit]
+  def invalidateAll: F[Unit]
 }
 
 object HttpResponseCaching {
@@ -53,7 +53,7 @@ object HttpResponseCaching {
         cache.set[RequestHash32, CachedResponse](reqHash, response)
       }
 
-    def invalidate: F[Unit] =
+    def invalidateAll: F[Unit] =
       cache.flushAll
   }
 }

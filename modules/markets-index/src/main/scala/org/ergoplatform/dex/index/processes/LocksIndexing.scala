@@ -50,14 +50,18 @@ object LocksIndexing {
 
     def run: S[Unit] =
       locks.stream.chunks.evalMap { rs =>
-        val locks = rs.map(r => r.message.entity).toList
+        val batch  = rs.toList
+        val locks  = batch.map(r => r.message.entity)
+        val commit = batch.lastOption.map(_.commit)
         def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
           NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
         val insert =
           insertNel(locks)(xs => repos.locks.insert(xs.map(_.extract[DBLiquidityLock])))
-        txr.trans(insert) >>= { ls =>
-          info"[$ls] locks indexed"
-        }
+        for {
+          ls <- txr.trans(insert)
+          _  <- info"[$ls] locks indexed"
+          _  <- commit.getOrElse(unit[F])
+        } yield ()
       }
   }
 }

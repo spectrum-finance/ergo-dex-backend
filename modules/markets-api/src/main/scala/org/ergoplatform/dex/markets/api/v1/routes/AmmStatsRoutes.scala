@@ -14,7 +14,7 @@ import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 
 final class AmmStatsRoutes[
   F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]
-](stats: AmmStats[F], locks: LqLocks[F], caching: CachingMiddleware[F], requestConf: RequestConfig)(implicit
+](stats: AmmStats[F], locks: LqLocks[F], requestConf: RequestConfig)(implicit
   opts: Http4sServerOptions[F, F]
 ) {
 
@@ -24,9 +24,7 @@ final class AmmStatsRoutes[
   private val interpreter = Http4sServerInterpreter(opts)
 
   def routes: HttpRoutes[F] =
-    caching.middleware(
-      getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAvgPoolSlippageR <+> getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR
-    )
+    getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getAvgPoolSlippageR <+> getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR
 
   def getSwapTxsR: HttpRoutes[F] =
     interpreter.toRoutes(getSwapTxs)(tw => stats.getSwapTransactions(tw).adaptThrowable.value)
@@ -65,12 +63,12 @@ final class AmmStatsRoutes[
 
 object AmmStatsRoutes {
 
-  def make[F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]](requestConf: RequestConfig)(
-    implicit
+  def make[
+    F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]
+  ](requestConf: RequestConfig)(implicit
     stats: AmmStats[F],
     locks: LqLocks[F],
-    opts: Http4sServerOptions[F, F],
-    cache: CachingMiddleware[F]
+    opts: Http4sServerOptions[F, F]
   ): HttpRoutes[F] =
-    new AmmStatsRoutes[F](stats, locks, cache, requestConf).routes
+    new AmmStatsRoutes[F](stats, locks, requestConf).routes
 }
