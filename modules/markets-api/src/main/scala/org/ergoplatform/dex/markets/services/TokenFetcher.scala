@@ -1,26 +1,24 @@
 package org.ergoplatform.dex.markets.services
 
-import cats.effect.{Clock, Timer}
 import cats.effect.concurrent.Ref
-import cats.syntax.either._
+import cats.effect.{Clock, Timer}
 import cats.{FlatMap, Monad}
 import derevo.derive
-import io.circe.Decoder
-import io.circe.parser._
+import io.circe.generic.auto._
 import org.ergoplatform.common.sttp.syntax._
 import org.ergoplatform.dex.markets.configs.TokenFetcherConfig
+import org.ergoplatform.dex.protocol.codecs.{collBytesDecoder, fromTry}
 import org.ergoplatform.ergo.TokenId
-import sttp.client3.{asString, basicRequest, SttpBackend, UriContext}
+import sttp.client3.circe.asJson
+import sttp.client3.{basicRequest, SttpBackend, UriContext}
 import tofu.Throws
 import tofu.concurrent.MakeRef
 import tofu.higherKind.derived.representableK
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
-import tofu.syntax.raise._
 import tofu.syntax.time.now.millis
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
-import scala.util.Try
 
 @derive(representableK)
 trait TokenFetcher[F[_]] {
@@ -55,21 +53,14 @@ object TokenFetcher {
 
     private val requestedTokens: F[List[TokenId]] =
       basicRequest
-        .get(uri"${conf.filePath}")
-        .response(asString)
+        .get(uri"${conf.url}")
+        .response(asJson[TokenResponse])
         .send(backend)
         .absorbError
-        .flatMap(res => parseTokens[List[TokenId]](res).toRaise)
+        .map(_.tokens.filter(_.network == "ergo").map(tkn => TokenId.fromStringUnsafe(tkn.address)))
 
-    private def parseTokens[A: Decoder](s: String): Either[Throwable, A] =
-      for {
-        json <- parse(s).leftMap(_.underlying)
-        content <- (json \\ "content")
-                     .map(k => StringContext.processEscapes(k.toString()).filter(_ >= ' '))
-                     .headOption
-                     .toRight(new Throwable("Empty file"))
-        decoded <- Try(java.util.Base64.getMimeDecoder.decode(content)).toEither
-        res     <- decode[A](new String(decoded)).leftMap(err => new Throwable(err.getMessage))
-      } yield res
+    final case class Token(network: String, address: String, decimals: Int, name: String, ticker: String)
+    final case class TokenResponse(tokens: List[Token])
+
   }
 }

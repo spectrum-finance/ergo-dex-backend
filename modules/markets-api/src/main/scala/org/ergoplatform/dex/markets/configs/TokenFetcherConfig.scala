@@ -7,6 +7,6 @@ import tofu.logging.derivation.loggable
 import scala.concurrent.duration.FiniteDuration
 
 @derive(pureconfigReader, loggable)
-case class TokenFetcherConfig(filePath: String, rate: FiniteDuration)
+case class TokenFetcherConfig(url: String, rate: FiniteDuration)
 
 object TokenFetcherConfig extends Context.Companion[TokenFetcherConfig]
