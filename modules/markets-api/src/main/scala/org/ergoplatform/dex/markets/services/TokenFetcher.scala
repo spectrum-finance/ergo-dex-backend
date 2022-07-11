@@ -29,6 +29,9 @@ object TokenFetcher {
 
   val network = "ergo"
 
+  final case class Token(network: String, address: String, decimals: Int, name: String, ticker: String)
+  final case class TokenResponse(tokens: List[Token])
+
   def make[I[_]: FlatMap, F[_]: Clock: Timer: Monad: Throws: TokenFetcherConfig.Has](implicit
     backend: SttpBackend[F, Any],
     makeRef: MakeRef[I, F]
@@ -60,9 +63,5 @@ object TokenFetcher {
         .send(backend)
         .absorbError
         .map(_.tokens.filter(_.network == network).map(tkn => TokenId.fromStringUnsafe(tkn.address)))
-
-    final case class Token(network: String, address: String, decimals: Int, name: String, ticker: String)
-    final case class TokenResponse(tokens: List[Token])
-
   }
 }
