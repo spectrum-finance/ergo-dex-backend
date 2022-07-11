@@ -27,6 +27,8 @@ trait TokenFetcher[F[_]] {
 
 object TokenFetcher {
 
+  val network = "ergo"
+
   def make[I[_]: FlatMap, F[_]: Clock: Timer: Monad: Throws: TokenFetcherConfig.Has](implicit
     backend: SttpBackend[F, Any],
     makeRef: MakeRef[I, F]
@@ -57,7 +59,7 @@ object TokenFetcher {
         .response(asJson[TokenResponse])
         .send(backend)
         .absorbError
-        .map(_.tokens.filter(_.network == "ergo").map(tkn => TokenId.fromStringUnsafe(tkn.address)))
+        .map(_.tokens.filter(_.network == network).map(tkn => TokenId.fromStringUnsafe(tkn.address)))
 
     final case class Token(network: String, address: String, decimals: Int, name: String, ticker: String)
     final case class TokenResponse(tokens: List[Token])
