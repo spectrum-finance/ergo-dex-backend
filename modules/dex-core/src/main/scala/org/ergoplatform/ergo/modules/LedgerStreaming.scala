@@ -2,7 +2,7 @@ package org.ergoplatform.ergo.modules
 
 import cats.Functor
 import derevo.derive
-import org.ergoplatform.ergo.domain.{Block, SettledOutput, SettledTransaction}
+import org.ergoplatform.ergo.domain.{Block, ExtendedSettledTx, SettledOutput, SettledTransaction}
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
 import tofu.higherKind.derived.representableK
 import tofu.syntax.monadic._
@@ -25,6 +25,10 @@ trait LedgerStreaming[F[_]] {
   /** Get a stream of blocks at the given offset(height).
     */
   def streamBlocks(gOffset: Long, limit: Int): F[Block]
+
+  /** Get a stream of transactions at the given global offset with extended output model.
+    */
+  def streamExtendedTxs(gOffset: Long, limit: Int): F[ExtendedSettledTx]
 }
 
 object LedgerStreaming {
@@ -45,5 +49,8 @@ object LedgerStreaming {
 
     def streamBlocks(gOffset: Long, limit: Int): F[Block] =
       explorer.streamBlocks(gOffset, limit).map(Block.fromExplorer)
+
+    def streamExtendedTxs(gOffset: Long, limit: Int): F[ExtendedSettledTx] =
+      explorer.streamTransactions(gOffset, limit).map(ExtendedSettledTx.fromExplorer)
   }
 }

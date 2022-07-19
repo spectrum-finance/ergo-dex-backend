@@ -27,4 +27,14 @@ object SettledTransaction {
       tx.globalIndex,
       tx.timestamp
     )
+
+  def fromExtendedSettledTx(tx: ExtendedSettledTx): SettledTransaction =
+    SettledTransaction(
+      Transaction(tx.id, tx.inputs, tx.settledOutputs.map(_.output)),
+      tx.blockId,
+      tx.inclusionHeight,
+      tx.index,
+      tx.globalIndex,
+      tx.timestamp
+    )
 }

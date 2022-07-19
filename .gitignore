@@ -16,3 +16,5 @@ target
 project/metals.sbt
 
 config.env
+
+/.bsp/
