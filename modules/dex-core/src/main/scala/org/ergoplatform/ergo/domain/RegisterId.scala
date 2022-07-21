@@ -4,6 +4,9 @@ import cats.syntax.either._
 import doobie.util.{Get, Put}
 import enumeratum.{CirceEnum, Enum, EnumEntry}
 import io.circe.{KeyDecoder, KeyEncoder}
+import org.ergoplatform.ergo.TxId
+import scodec.{Attempt, Codec, Err}
+import scodec.codecs.{uint16, utf8}
 import tofu.logging.Loggable
 
 sealed abstract class RegisterId extends EnumEntry
@@ -33,4 +36,17 @@ object RegisterId extends Enum[RegisterId] with CirceEnum[RegisterId] {
 
   implicit val put: Put[RegisterId] =
     Put[String].contramap[RegisterId](_.entryName)
+
+  implicit val codec: scodec.Codec[RegisterId] =
+    scodec.codecs
+      .variableSizeBits(uint16, utf8)
+      .exmap(
+        str =>
+          Attempt.fromEither(
+            Either
+              .catchNonFatal(RegisterId.withName(str))
+              .leftMap(err => Err(err.getMessage))
+          ),
+        registerId => Attempt.successful(registerId.entryName)
+      )
 }

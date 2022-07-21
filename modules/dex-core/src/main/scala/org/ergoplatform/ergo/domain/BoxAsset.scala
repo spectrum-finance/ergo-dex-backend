@@ -8,6 +8,8 @@ import shapeless.Lazy
 import tofu.logging.derivation.loggable
 import org.ergoplatform.ergo.services.explorer.models.{BoxAsset => ExplorerBoxAsset}
 import org.ergoplatform.ergo.services.node.models.{BoxAsset => NodeAsset}
+import scodec.Codec
+import scodec.codecs.int64
 
 @derive(encoder, decoder, loggable)
 final case class BoxAsset(
@@ -23,4 +25,7 @@ object BoxAsset {
 
   def fromNode(a: NodeAsset): BoxAsset =
     BoxAsset(a.tokenId, a.amount)
+
+  implicit val codec: Codec[BoxAsset] =
+    (implicitly[Codec[TokenId]] :: int64).as[BoxAsset]
 }

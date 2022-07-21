@@ -23,9 +23,11 @@ import io.estatico.newtype.ops._
 import org.ergoplatform.common.HexString
 import org.ergoplatform.common.errors.RefinementFailed
 import org.ergoplatform.ergo.CurrencyId
+import org.ergoplatform.ergo.domain.SConstant.ByteaConstant
 import org.ergoplatform.ergo.syntax.PubKeyOps
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
+import scodec.{Attempt, Err}
 import scodec.bits.ByteVector
 import scorex.crypto.hash.Sha256
 import scorex.util.encode.Base16
@@ -69,6 +71,9 @@ package object ergo {
     implicit val put: Put[TxId] = deriving
 
     implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, TxId] = deserializerViaKafkaDecoder
+
+    implicit def codec: scodec.Codec[TxId] =
+      scodec.codecs.variableSizeBits(uint16, utf8).xmap(TxId(_), _.value)
   }
 
   @newtype case class BlockId(value: String)
@@ -237,6 +242,20 @@ package object ergo {
     ): F[SErgoTree] = HexString.fromString(s).map(SErgoTree.apply)
 
     def unsafeFromString(s: String): SErgoTree = SErgoTree(HexString.unsafeFromString(s))
+
+    implicit def codec: scodec.Codec[SErgoTree] =
+      scodec.codecs
+        .variableSizeBits(uint16, utf8)
+        .exmap(
+          str =>
+            Attempt.fromEither(
+              Either
+                .catchNonFatal(HexString.unsafeFromString(str))
+                .map(SErgoTree(_))
+                .leftMap(err => Err(err.getMessage))
+            ),
+          tree => Attempt.successful(tree.value.unwrapped)
+        )
   }
 
   @newtype case class ErgoTreeTemplate(value: HexString) {
@@ -290,5 +309,19 @@ package object ergo {
     ): F[PubKey] = HexString.fromString(s).map(PubKey.apply)
 
     def unsafeFromString(s: String): PubKey = PubKey(HexString.unsafeFromString(s))
+
+    implicit val codec: scodec.Codec[PubKey] =
+      scodec.codecs
+        .variableSizeBits(uint16, utf8)
+        .exmap(
+          str =>
+            Attempt.fromEither(
+              Either
+                .catchNonFatal(HexString.unsafeFromString(str))
+                .map(PubKey(_))
+                .leftMap(err => Err(err.getMessage))
+            ),
+          tree => Attempt.successful(tree.value.unwrapped)
+        )
   }
 }

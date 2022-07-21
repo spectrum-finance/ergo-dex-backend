@@ -6,16 +6,17 @@ import fs2.kafka.RecordDeserializer
 import fs2.kafka.serde._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
+import org.ergoplatform.common.cache.{Cache, CacheStreaming, MakeRedisTransaction, Redis}
 import org.ergoplatform.common.streaming._
 import org.ergoplatform.dex.configs.ConsumerConfig
-import org.ergoplatform.dex.domain.amm.{CFMMOrder, OrderId}
+import org.ergoplatform.dex.domain.amm.{CFMMOrder, EvaluatedCFMMOrder, OrderId}
 import org.ergoplatform.dex.executor.amm.config.ConfigBundle
 import org.ergoplatform.dex.executor.amm.context.AppContext
 import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, N2TCFMMInterpreter, T2TCFMMInterpreter}
 import org.ergoplatform.dex.executor.amm.processes.Executor
-import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
-import org.ergoplatform.dex.executor.amm.services.Execution
-import org.ergoplatform.dex.executor.amm.streaming.{CFMMCircuit, CFMMConsumerIn, CFMMConsumerRetries, CFMMProducerRetries}
+import org.ergoplatform.dex.executor.amm.repositories.{CFMMOrders, CFMMPools}
+import org.ergoplatform.dex.executor.amm.services.{CFMMBacklog, Execution}
+import org.ergoplatform.dex.executor.amm.streaming.{CFMMCircuit, CFMMConsumerIn, CFMMConsumerRetries, CFMMHistConsumer, CFMMProducerRetries}
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.ergo.services.explorer.{ErgoExplorer, ErgoExplorerStreaming}
@@ -27,6 +28,7 @@ import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
 import tofu.WithRun
 import tofu.fs2Instances._
+import tofu.generate.GenRandom
 import tofu.lift.IsoK
 import tofu.syntax.unlift._
 import zio.interop.catz._
@@ -40,10 +42,13 @@ object App extends EnvApp[AppContext] {
       appF.run(ctx) as ExitCode.success
     }.orDie
 
+  implicit val mtx: MakeRedisTransaction[RunF] = MakeRedisTransaction.make[RunF]
+
   private def init(configPathOpt: Option[String]): Resource[InitF, (Executor[StreamF], AppContext)] =
     for {
       blocker <- Blocker[InitF]
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
+      implicit0(genRand: GenRandom[RunF])   <- Resource.eval(GenRandom.instance[InitF, RunF]())
       ctx                                   = AppContext.init(configs)
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(ctx)
       implicit0(e: ErgoAddressEncoder)      = ErgoAddressEncoder(configs.protocol.networkType.prefix)
@@ -51,6 +56,8 @@ object App extends EnvApp[AppContext] {
         makeConsumer[OrderId, Confirmed[CFMMOrder]](configs.consumers.confirmedOrders)
       implicit0(unconfirmedOrders: CFMMConsumerIn[StreamF, RunF, Unconfirmed]) =
         makeConsumer[OrderId, Unconfirmed[CFMMOrder]](configs.consumers.unconfirmedOrders)
+      implicit0(ammHistCons: CFMMHistConsumer[StreamF, RunF]) =
+        makeConsumer[OrderId, Option[EvaluatedCFMMOrder.Any]](configs.consumers.cfmmHistory)
       implicit0(consumerRetries: CFMMConsumerRetries[StreamF, RunF]) =
         makeConsumer[OrderId, Delayed[CFMMOrder]](configs.consumers.ordersRetry)
       implicit0(orders: CFMMConsumerIn[StreamF, RunF, Id]) =
@@ -66,8 +73,14 @@ object App extends EnvApp[AppContext] {
       implicit0(t2tInt: CFMMInterpreter[T2T_CFMM, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
       implicit0(n2tInt: CFMMInterpreter[N2T_CFMM, RunF]) <- Resource.eval(N2TCFMMInterpreter.make[InitF, RunF])
       implicit0(interpreter: CFMMInterpreter[CFMMType, RunF]) = CFMMInterpreter.make[RunF]
-      implicit0(execution: Execution[RunF]) <- Resource.eval(Execution.make[InitF, RunF])
-      executor                              <- Resource.eval(Executor.make[InitF, StreamF, RunF])
+      implicit0(execution: Execution[RunF])   <- Resource.eval(Execution.make[InitF, RunF])
+      implicit0(redis: Redis.Plain[RunF])     <- Redis.make[InitF, RunF](configs.redis)
+      implicit0(cache: Cache[RunF])           <- Resource.eval(Cache.make[InitF, RunF])
+      implicit0(cfmmOrders: CFMMOrders[RunF]) <- Resource.eval[InitF, CFMMOrders[RunF]](CFMMOrders.make[InitF, RunF])
+      implicit0(cacheStreaming: CacheStreaming[StreamF]) <- Resource.eval(CacheStreaming.make[InitF, StreamF, RunF])
+      implicit0(cfmmBacklog: CFMMBacklog[RunF]) <-
+        Resource.eval[InitF, CFMMBacklog[RunF]](CFMMBacklog.make[InitF, StreamF, RunF])
+      executor <- Resource.eval(Executor.make[InitF, StreamF, RunF])
     } yield executor -> ctx
 
   private def makeBackend(

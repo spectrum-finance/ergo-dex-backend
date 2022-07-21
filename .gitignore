@@ -17,4 +17,4 @@ project/metals.sbt
 
 config.env
 
-/.bsp/
+.bsp/
