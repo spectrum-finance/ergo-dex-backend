@@ -4,6 +4,7 @@ import org.ergoplatform.common.http.HttpError
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.api.v1.models.amm._
+import org.ergoplatform.dex.markets.api.v1.models.charts.ChartGap
 import org.ergoplatform.dex.markets.api.v1.models.locks.LiquidityLockInfo
 import org.ergoplatform.dex.markets.configs.RequestConfig
 import sttp.tapir.json.circe.jsonBody
@@ -15,7 +16,7 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
   val Group      = "ammStats"
 
   def endpoints: List[Endpoint[_, _, _, _]] =
-    getSwapTxs :: getDepositTxs :: getPoolLocks :: getPlatformStats :: getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart :: getAmmMarkets :: convertToFiat :: Nil
+    getSwapTxs :: getDepositTxs :: getPoolLocks :: getPlatformStats :: getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart :: getPoolPriceChartWithGaps :: getAmmMarkets :: convertToFiat :: Nil
 
   def getSwapTxs: Endpoint[TimeWindow, HttpError, TransactionsInfo, Any] =
     baseEndpoint.get
@@ -89,6 +90,27 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .tag(Group)
       .name("Pool chart")
       .description("Get price chart by pool")
+
+  def getPoolPriceChartWithGaps: Endpoint[(PoolId, TimeWindow, ChartGap), HttpError, List[PricePoint], Any] =
+    baseEndpoint.get
+      .in(PathPrefix / "pool" / path[PoolId].description("Pool reference") / "charts")
+      .in(timeWindow)
+      .in(
+        query[ChartGap]("gap")
+          .default(ChartGap.Gap1h)
+          .description(
+            """
+              |This field is used for time gap definition.
+              |Example: If you want to get charts with gaps of 5 minutes, e.g. 17:30, 17:35, 17:40 etc.,
+              |you have to put the value 5min.
+              |If desired gap is 1 hour, e.g. 17:00, 18:00, 19:00, value to input is 1h.
+              |""".stripMargin
+          )
+      )
+      .out(jsonBody[List[PricePoint]])
+      .tag(Group)
+      .name("Pool charts")
+      .description("Get price chart by pool using gaps")
 
   def getAmmMarkets: Endpoint[TimeWindow, HttpError, List[AmmMarketSummary], Any] =
     baseEndpoint.get

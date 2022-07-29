@@ -104,4 +104,5 @@ object App extends EnvApp[AppContext] {
       .eval(wr.concurrentEffect)
       .flatMap(implicit ce => AsyncHttpClientFs2Backend.resource[RunF](blocker))
       .mapK(wr.runContextK(ctx))
+
 }

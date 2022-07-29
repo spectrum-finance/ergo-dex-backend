@@ -4,6 +4,8 @@ import org.ergoplatform.dex.domain.{FullAsset, Ticker}
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.ergo.TokenId
 
+import java.text.SimpleDateFormat
+
 object amm {
 
   final case class PoolInfo(confirmedAt: Long)
@@ -52,4 +54,28 @@ object amm {
     timestamp: Long,
     index: Long
   )
+
+  final case class AvgAssetAmount(timestamp: String, amountX: Long, amountY: Long)
+
+  object AvgAssetAmounts {
+    def empty: AvgAssetAmounts = AvgAssetAmounts(0, 0, 0, 0)
+  }
+
+  final case class AvgAssetAmountsWithPrev(
+    current: String,
+    prev: Option[String],
+    amountX: Long,
+    prevX: Option[Long],
+    amountY: Long,
+    prevY: Option[Long]
+  ) {
+
+    def getPrev(formatter: SimpleDateFormat): Option[AvgAssetAmounts] =
+      for {
+        ts <- prev
+        x  <- prevX
+        y  <- prevY
+      } yield AvgAssetAmounts(x, y, formatter.parse(ts).getTime, 0)
+  }
+
 }

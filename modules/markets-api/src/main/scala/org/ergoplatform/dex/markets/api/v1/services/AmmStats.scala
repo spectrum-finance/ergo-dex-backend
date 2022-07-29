@@ -5,15 +5,20 @@ import cats.effect.Clock
 import cats.syntax.parallel._
 import cats.syntax.traverse._
 import cats.{Monad, Parallel}
+import cats.syntax.option._
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
 import org.ergoplatform.dex.markets.api.v1.models.amm._
+import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
+import org.ergoplatform.dex.markets.api.v1.models.amm._
+import org.ergoplatform.dex.markets.api.v1.models.charts.ChartGap
 import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.markets.db.models.amm
 import org.ergoplatform.dex.markets.db.models.amm.{PoolFeesSnapshot, PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
+import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
@@ -22,8 +27,14 @@ import org.ergoplatform.dex.markets.services.TokenFetcher
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.doobie.transactor.Txr
+import tofu.doobie.transactor.Txr
+import tofu.syntax.foption._
 import tofu.syntax.monadic._
 
+import mouse.anyf._
+import cats.syntax.traverse._
+import java.text.SimpleDateFormat
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 
 trait AmmStats[F[_]] {
@@ -39,6 +50,8 @@ trait AmmStats[F[_]] {
   def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]]
 
   def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): F[List[PricePoint]]
+
+  def getChartsByGap(gap: ChartGap, poolId: PoolId, window: TimeWindow): F[List[PricePoint]]
 
   def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]]
 
@@ -265,6 +278,65 @@ object AmmStats {
           case _ => List.empty
         }
     }
+
+    def getChartsByGap(gap: ChartGap, poolId: PoolId, window: TimeWindow): F[List[PricePoint]] =
+      Clock[F].realTime(TimeUnit.MILLISECONDS).flatMap { now =>
+        val from      = window.from.getOrElse(now - gap.minimalGap)
+        val to        = window.to.getOrElse(from + gap.minimalGap)
+        val formatter = new SimpleDateFormat(gap.javaDateFormat)
+
+        val queryPoolData = for {
+          points    <- pools.getChartsByGap(gap, poolId, from, to)
+          snapshots <- pools.snapshot(poolId)
+          latestOpt <- if (points.isEmpty) pools.getLatestChartByGap(gap, poolId).map {
+                         _.map { asset =>
+                           AvgAssetAmounts(asset.amountX, asset.amountY, formatter.parse(asset.timestamp).getTime, 0)
+                         }
+                       }
+                       else noneF[D, AvgAssetAmounts]
+        } yield (latestOpt, points, snapshots)
+
+        txr
+          .trans(queryPoolData)
+          .map {
+            case (Some(latest: AvgAssetAmounts), Nil, s @ Some(_: PoolSnapshot)) =>
+              (latest :: Nil, s)
+            case (_, points: List[AvgAssetAmountsWithPrev], s @ Some(_: PoolSnapshot)) =>
+              val timeWindow: Long  = to - from
+              val gapsNum: Int      = (timeWindow / gap.timeWindow.toMillis).toInt
+              val roundedFrom: Long = ChartGap.round(gap, from)
+
+              (0 to gapsNum)
+                .foldLeft(roundedFrom, List.empty[AvgAssetAmounts]) { case ((currentTime, acc), _) =>
+                  val point = points.find(p => formatter.parse(p.current).getTime == currentTime)
+
+                  val avg: Option[AvgAssetAmounts] =
+                    (acc, point) match {
+                      case (Nil, None) =>
+                        points.lastOption
+                          .flatMap(_.getPrev(new SimpleDateFormat(gap.javaDateFormat)))
+                          .map(_.copy(timestamp = currentTime))
+                      case (x :: _, None) => x.copy(timestamp = currentTime) some
+                      case (_, Some(p))   => AvgAssetAmounts(p.amountX, p.amountY, currentTime, 0).some
+                      case _              => none
+                    }
+
+                  (ChartGap.updateWithGap(gap, currentTime), avg.fold(acc)(_ :: acc))
+                }
+                ._2 -> s
+
+            case _ => List.empty -> none[PoolSnapshot]
+          }
+          .map {
+            case (amounts, Some(snap: PoolSnapshot)) =>
+              amounts.reverse.map { amount =>
+                val price =
+                  RealPrice.calculate(amount.amountX, snap.lockedX.decimals, amount.amountY, snap.lockedY.decimals)
+                PricePoint(amount.timestamp, price.setScale(RealPrice.defaultScale))
+              }
+            case _ => List.empty
+          }
+      }
 
     def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]] = {
       val queryPoolStats = for {

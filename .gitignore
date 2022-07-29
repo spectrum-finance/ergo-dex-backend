@@ -18,3 +18,4 @@ project/metals.sbt
 config.env
 
 /.bsp/
+/.bsp/sbt.json
