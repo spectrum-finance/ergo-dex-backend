@@ -1,6 +1,7 @@
 package org.ergoplatform.dex.index.processes
 
 import cats.data.NonEmptyList
+import cats.implicits.catsSyntaxSemigroup
 import cats.syntax.foldable._
 import cats.syntax.traverse._
 import cats.{Foldable, Functor, Monad}
@@ -11,6 +12,7 @@ import org.ergoplatform.dex.index.streaming.CFMMPoolsConsumer
 import org.ergoplatform.dex.protocol.constants.ErgoAssetId
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
+import org.ergoplatform.ergo.services.explorer.models.TokenInfo
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo.ErgoTokenInfo
 import tofu.doobie.transactor.Txr
 import tofu.logging.{Logging, Logs}
@@ -19,6 +21,9 @@ import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import tofu.syntax.streams.chunks._
 import tofu.syntax.streams.evals._
+import retry.{retryingOnFailures, RetryDetails, Sleep}
+import retry.RetryPolicies._
+import scala.concurrent.duration.DurationInt
 
 trait PoolsIndexing[F[_]] {
   def run: F[Unit]
@@ -29,7 +34,7 @@ object PoolsIndexing {
   def make[
     I[_]: Functor,
     S[_]: Evals[*[_], F]: Chunks[*[_], C],
-    F[_]: Monad,
+    F[_]: Monad: Sleep,
     D[_]: Monad,
     C[_]: Functor: Foldable
   ](implicit
@@ -45,7 +50,7 @@ object PoolsIndexing {
 
   final class CFMMIndexing[
     S[_]: Evals[*[_], F]: Chunks[*[_], C],
-    F[_]: Monad: Logging,
+    F[_]: Monad: Logging: Sleep,
     D[_]: Monad,
     C[_]: Functor: Foldable
   ](implicit
@@ -62,12 +67,21 @@ object PoolsIndexing {
         val assets        = poolSnapshots.flatMap(p => List(p.entity.lp.id, p.entity.x.id, p.entity.y.id)).distinct
         val commit        = batch.lastOption.map(_.commit)
 
+        val retryPolicy = limitRetries[F](30) |+| constantDelay[F](10.seconds)
         val resolveNewAssets =
           for {
             existingAssets <-
               txr.trans(NonEmptyList.fromList(assets).fold(List.empty[TokenId].pure[D])(repos.assets.existing))
             unknownAssets = assets.diff(existingAssets)
-            assetsInfo <- unknownAssets.filterNot(_ == ErgoAssetId).traverse(explorer.getTokenInfo)
+            assetsInfo <- unknownAssets
+                            .filterNot(_ == ErgoAssetId)
+                            .flatTraverse(tknId =>
+                              retryingOnFailures(
+                                retryPolicy,
+                                (opt: Option[TokenInfo]) => opt.isDefined,
+                                (_: Option[TokenInfo], _: RetryDetails) => ().pure[F]
+                              )(explorer.getTokenInfo(tknId)).map(_.toList)
+                            )
             nativeAsset = if (unknownAssets.contains(ErgoAssetId)) List(ErgoTokenInfo) else Nil
           } yield nativeAsset ++ assetsInfo
 

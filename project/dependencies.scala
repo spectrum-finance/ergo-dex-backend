@@ -58,7 +58,8 @@ object dependencies {
     "org.typelevel" %% "cats-effect"         % CatsEffectVersion,
     "org.typelevel" %% "cats-tagless-macros" % CatsTaglessVersion,
     "org.typelevel" %% "cats-tagless-core"   % CatsTaglessVersion,
-    "org.typelevel" %% "mouse"               % MouseVersion
+    "org.typelevel" %% "mouse"               % MouseVersion,
+    "com.github.cb372" %% "cats-retry"       % CatsRetryVersion
   )
 
   val Redis = List(
