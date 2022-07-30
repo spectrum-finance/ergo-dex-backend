@@ -7,7 +7,7 @@ import fs2.kafka.serde._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
-import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
+import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer, Producer}
 import org.ergoplatform.dex.configs.ConsumerConfig
 import org.ergoplatform.dex.domain.amm.{CFMMPool, EvaluatedCFMMOrder, OrderId, PoolId}
@@ -18,8 +18,7 @@ import org.ergoplatform.dex.index.processes.{BlockIndexing, HistoryIndexing, Loc
 import org.ergoplatform.dex.index.repositories.RepoBundle
 import org.ergoplatform.dex.index.streaming.{BlocksConsumer, CFMMHistConsumer, CFMMPoolsConsumer, LqLocksConsumer}
 import org.ergoplatform.dex.tracker.handlers._
-import org.ergoplatform.dex.tracker.processes.LedgerTracker.TrackerMode
-import org.ergoplatform.dex.tracker.processes.{BlockTracker, LedgerTracker, TxTracker}
+import org.ergoplatform.dex.tracker.processes.{BlockTracker, TxTracker}
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
 import org.ergoplatform.ergo.BlockId
 import org.ergoplatform.ergo.domain.Block
@@ -86,25 +85,23 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
       implicit0(network: ErgoNetwork[RunF])       = ErgoNetwork.make[RunF]
       implicit0(ledger: LedgerStreaming[StreamF]) = LedgerStreaming.make[StreamF, RunF]
-      cfmmPoolsHandler                     <- Resource.eval(SettledCFMMPoolsHandler.make[InitF, StreamF, RunF])
-      cfmmHistoryHandler                   <- Resource.eval(CFMMHistoryHandler.make[InitF, StreamF, RunF])
-      lqLocksHandler                       <- Resource.eval(LiquidityLocksHandler.make[InitF, StreamF, RunF])
+      cfmmPoolsHandler                     <- Resource.eval(SettledCFMMPoolsHandler.make[InitF, StreamF, RunF]).map(liftSettledOutputs[StreamF])
+      lqLocksHandler                       <- Resource.eval(LiquidityLocksHandler.make[InitF, StreamF, RunF]).map(liftOutputs[StreamF])
+      cfmmHistoryHandler                   <- Resource.eval(CFMMHistoryHandler.make[InitF, StreamF, RunF]).map(liftSettledTx[StreamF])
       blockHandler                         <- Resource.eval(BlockHistoryHandler.make[InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       blockTracker                         <- Resource.eval(BlockTracker.make[InitF, StreamF, RunF](blockHandler))
-      utxoTracker <-
-        Resource.eval(
-          LedgerTracker.make[InitF, StreamF, RunF](TrackerMode.Historical, cfmmPoolsHandler, lift(lqLocksHandler))
-        )
-      txTracker                           <- Resource.eval(TxTracker.make[InitF, StreamF, RunF](cfmmHistoryHandler))
-      implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])
-      historyIndexer                      <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      poolsIndexer                        <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      locksIndexer                        <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      blocksIndexer                       <- Resource.eval(BlockIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      txTracker                            <- Resource.eval(
+        TxTracker.make[InitF, StreamF, RunF](cfmmHistoryHandler, lqLocksHandler, cfmmPoolsHandler)
+      )
+      implicit0(repos: RepoBundle[xa.DB])  <- Resource.eval(RepoBundle.make[InitF, xa.DB])
+      historyIndexer                       <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      poolsIndexer                         <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      locksIndexer                         <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      blocksIndexer                        <- Resource.eval(BlockIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       processes =
-        utxoTracker.run :: txTracker.run :: blockTracker.run :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: blocksIndexer.run :: Nil
+        txTracker.run :: blockTracker.run :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: blocksIndexer.run :: Nil
     } yield (processes, configs)
   // format:on
 
