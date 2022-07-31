@@ -4,7 +4,6 @@ import cats.effect.{Concurrent, ContextShift, Timer}
 import cats.syntax.semigroupk._
 import org.ergoplatform.common.http.AdaptThrowable.AdaptThrowableEitherT
 import org.ergoplatform.common.http.HttpError
-import org.ergoplatform.common.http.cache.CacheMiddleware.CachingMiddleware
 import org.ergoplatform.common.http.syntax._
 import org.ergoplatform.dex.markets.api.v1.endpoints.AmmStatsEndpoints
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}

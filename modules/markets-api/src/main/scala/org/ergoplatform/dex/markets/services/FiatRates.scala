@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.markets.services
 
 import cats.effect.Clock
-import cats.{FlatMap, Functor, Monad}
+import cats.{FlatMap, Monad}
 import derevo.derive
 import org.ergoplatform.common.caching.Memoize
 import org.ergoplatform.dex.domain.{AssetClass, FiatUnits}
@@ -34,9 +34,9 @@ object FiatRates {
   val MemoTtl: FiniteDuration = 2.minutes
 
   def make[I[_]: FlatMap, F[_]: Monad: Clock](implicit
-                                              network: ErgoExplorer[F],
-                                              logs: Logs[I, F],
-                                              makeRef: MakeRef[I, F]
+    network: ErgoExplorer[F],
+    logs: Logs[I, F],
+    makeRef: MakeRef[I, F]
   ): I[FiatRates[F]] =
     for {
       implicit0(l: Logging[F]) <- logs.forService[FiatRates[F]]

@@ -197,7 +197,7 @@ class CombinedErgoExplorer[F[_]: MonadThrow](config: NetworkConfig)(implicit bac
       .get(explorerUri.withPathSegment(tokenInfoPathSeg(tokenId)))
       .response(asJson[TokenInfo])
       .send(backend)
-      .map(_.body.toOption)
+      .absorbServerError
 }
 
 trait ErgoExplorerStreaming[S[_], F[_]] extends ErgoExplorer[F] {
