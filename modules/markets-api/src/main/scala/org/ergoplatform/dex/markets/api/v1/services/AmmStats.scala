@@ -120,6 +120,7 @@ object AmmStats {
         } yield (info, pool, vol, feesSnap)).value
       (for {
         (info, pool, vol, feesSnap) <- OptionT(queryPoolStats ||> txr.trans)
+        validTokens                 <- OptionT.liftF(tokens.fetchTokens)
         lockedX                     <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits))
         lockedY                     <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits))
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
@@ -141,9 +142,11 @@ object AmmStats {
                     } yield Fees(feesX.value + feesY.value, UsdUnits, window)
                   case None => OptionT.pure[F](Fees.empty(UsdUnits, window))
                 }
-
         yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
-      } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
+        res <- if (validTokens.contains(pool.lockedX.id) && validTokens.contains(pool.lockedY.id))
+                 OptionT.pure[F](PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent))
+               else OptionT.none[F, PoolSummary]
+      } yield res).value
     }
 
     private def calculatePoolSlippagePercent(initState: PoolTrace, finalState: PoolTrace): BigDecimal = {
@@ -214,14 +217,18 @@ object AmmStats {
 
       txr
         .trans(queryPoolData)
-        .map {
+        .flatMap {
           case (amounts, Some(snap)) =>
-            amounts.map { amount =>
-              val price =
-                RealPrice.calculate(amount.amountX, snap.lockedX.decimals, amount.amountY, snap.lockedY.decimals)
-              PricePoint(amount.timestamp, price.setScale(RealPrice.defaultScale))
+            tokens.fetchTokens.map { validTokens =>
+              if (validTokens.contains(snap.lockedX.id) && validTokens.contains(snap.lockedY.id))
+                amounts.map { amount =>
+                  val price =
+                    RealPrice.calculate(amount.amountX, snap.lockedX.decimals, amount.amountY, snap.lockedY.decimals)
+                  PricePoint(amount.timestamp, price.setScale(RealPrice.defaultScale))
+                }
+              else List.empty
             }
-          case _ => List.empty
+          case _ => List.empty[PricePoint].pure[F]
         }
     }
 
