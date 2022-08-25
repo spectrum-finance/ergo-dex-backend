@@ -13,20 +13,21 @@ import org.ergoplatform.dex.index.repositories.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMPoolsConsumer
 import org.ergoplatform.dex.protocol.constants.ErgoAssetId
 import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.errors.ResponseError
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
-import org.ergoplatform.ergo.services.explorer.models.TokenInfo
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo.ErgoTokenInfo
+import retry.RetryPolicies._
+import retry.{RetryDetails, Sleep, retryingOnSomeErrors}
+import tofu.MonadThrow
 import tofu.doobie.transactor.Txr
+import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.streams.{Chunks, Evals}
+import tofu.syntax.embed._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import tofu.syntax.streams.chunks._
 import tofu.syntax.streams.evals._
-import retry.{RetryDetails, Sleep, retryingOnFailures}
-import retry.RetryPolicies._
-import tofu.higherKind.derived.representableK
-import tofu.syntax.embed._
 
 @derive(representableK)
 trait PoolsIndexing[F[_]] {
@@ -38,7 +39,7 @@ object PoolsIndexing {
   def make[
     I[_]: Functor,
     S[_]: Monad: Evals[*[_], F]: Chunks[*[_], C]: PoolsIndexingConfig.Has,
-    F[_]: Monad: Sleep,
+    F[_]: Monad: Sleep: MonadThrow,
     D[_]: Monad,
     C[_]: Functor: Foldable
   ](implicit
@@ -49,14 +50,12 @@ object PoolsIndexing {
     logs: Logs[I, F]
   ): I[PoolsIndexing[S]] =
     logs.forService[PoolsIndexing[S]] map { implicit l =>
-      (PoolsIndexingConfig.access map (conf =>
-        new CFMMIndexing[S, F, D, C](conf):PoolsIndexing[S]
-        )).embed
+      (PoolsIndexingConfig.access map (conf => new CFMMIndexing[S, F, D, C](conf): PoolsIndexing[S])).embed
     }
 
   final class CFMMIndexing[
     S[_]: Evals[*[_], F]: Chunks[*[_], C],
-    F[_]: Monad: Logging: Sleep,
+    F[_]: Monad: Logging: Sleep: MonadThrow,
     D[_]: Monad,
     C[_]: Functor: Foldable
   ](conf: PoolsIndexingConfig)(implicit
@@ -74,6 +73,10 @@ object PoolsIndexing {
         val commit        = batch.lastOption.map(_.commit)
 
         val retryPolicy = limitRetries[F](conf.limitRetries) |+| constantDelay[F](conf.retryDelay)
+        val isResponseError: Throwable => Boolean = {
+          case _: ResponseError => true
+          case _                => false
+        }
         val resolveNewAssets =
           for {
             existingAssets <-
@@ -82,10 +85,11 @@ object PoolsIndexing {
             assetsInfo <- unknownAssets
                             .filterNot(_ == ErgoAssetId)
                             .flatTraverse(tknId =>
-                              retryingOnFailures(
+                              retryingOnSomeErrors(
                                 retryPolicy,
-                                (opt: Option[TokenInfo]) => opt.isDefined,
-                                (_: Option[TokenInfo], _: RetryDetails) => info"Failed to find token $tknId. Retrying..."
+                                isResponseError,
+                                (_: Throwable, _: RetryDetails) =>
+                                  info"Failed to find token $tknId. Retrying..."
                               )(explorer.getTokenInfo(tknId)).map(_.toList)
                             )
             nativeAsset = if (unknownAssets.contains(ErgoAssetId)) List(ErgoTokenInfo) else Nil
