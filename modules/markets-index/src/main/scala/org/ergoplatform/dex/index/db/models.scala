@@ -77,6 +77,10 @@ object models {
       )
   }
 
+  sealed trait DBModel
+
+  final case class DBSwapV1() extends DBModel
+
   final case class DBSwap(
     orderId: OrderId,
     poolId: PoolId,
@@ -92,7 +96,7 @@ object models {
     dexFeePerTokenDenom: Long,
     redeemer: PubKey,
     protocolVersion: ProtocolVersion
-  )
+  ) extends DBModel
 
   implicit val swapQs: QuerySet[DBSwap] = SwapOrdersSql
 
