@@ -11,58 +11,60 @@ import org.ergoplatform.ergo.domain.{Output, SettledTransaction}
 import tofu.higherKind.Embed
 import tofu.syntax.foption._
 import tofu.syntax.monadic._
+import CFMMVersionedOrder._
+import VersionedCFMMParser._
 
-trait CFMMHistoryParser[+CT <: CFMMType, F[_]] {
+trait CFMMHistoryVersionedParser[+CT <: CFMMType, F[_]] {
 
-  def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Swap, SwapEvaluation]]]
+  def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedSwap, SwapEvaluation]]]
 
-  def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Deposit, DepositEvaluation]]]
+  def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedDeposit, DepositEvaluation]]]
 
-  def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Redeem, RedeemEvaluation]]]
+  def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedRedeem, RedeemEvaluation]]]
 }
 
-object CFMMHistoryParser {
+object CFMMHistoryVersionedParser {
 
-  def apply[CT <: CFMMType, F[_]](implicit ev: CFMMHistoryParser[CT, F]): CFMMHistoryParser[CT, F] = ev
+  def apply[CT <: CFMMType, F[_]](implicit ev: CFMMHistoryVersionedParser[CT, F]): CFMMHistoryVersionedParser[CT, F] = ev
 
-  implicit def embed[CT <: CFMMType]: Embed[CFMMHistoryParser[CT, *[_]]] = {
-    type Rep[F[_]] = CFMMHistoryParser[CT, F]
+  implicit def embed[CT <: CFMMType]: Embed[CFMMHistoryVersionedParser[CT, *[_]]] = {
+    type Rep[F[_]] = CFMMHistoryVersionedParser[CT, F]
     tofu.higherKind.derived.genEmbed[Rep]
   }
 
   implicit def t2tCFMMHistory[F[_]: Monad](implicit
-    orders: CFMMOrdersParser[T2T_CFMM, F],
+    orders: VersionedCFMMParser[T2T_CFMM, F],
     pools: CFMMPoolsParser[T2T_CFMM],
     evals: CFMMOrderEvaluationParser[F]
-  ): CFMMHistoryParser[T2T_CFMM, F] =
+  ): CFMMHistoryVersionedParser[T2T_CFMM, F] =
     new UniversalParser[T2T_CFMM, F]
 
   implicit def n2tCFMMHistory[F[_]: Monad](implicit
-    orders: CFMMOrdersParser[N2T_CFMM, F],
+    orders: VersionedCFMMParser[N2T_CFMM, F],
     pools: CFMMPoolsParser[N2T_CFMM],
     evals: CFMMOrderEvaluationParser[F]
-  ): CFMMHistoryParser[N2T_CFMM, F] =
+  ): CFMMHistoryVersionedParser[N2T_CFMM, F] =
     new UniversalParser[N2T_CFMM, F]
 
   final class UniversalParser[+CT <: CFMMType, F[_]: Monad](implicit
-    orders: CFMMOrdersParser[CT, F],
+    orders: VersionedCFMMParser[CT, F],
     pools: CFMMPoolsParser[CT],
     evals: CFMMOrderEvaluationParser[F]
-  ) extends CFMMHistoryParser[CT, F] {
+  ) extends CFMMHistoryVersionedParser[CT, F] {
 
-    def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Swap, SwapEvaluation]]] =
-      parseSomeOrder(tx)(orders.swap, (o, _, a) => evals.parseSwapEval(o, a))
-        .mapIn(x => x.copy(order = x.order.copy(timestamp = tx.timestamp)))
+    def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedSwap, SwapEvaluation]]] =
+      parseSomeOrder(tx)(orders.swap, (o, _, a: VersionedSwap) => evals.parseSwapEval(o, a))
+        .mapIn(x => x.copy(order = x.order.setTimestamp(tx.timestamp)))
 
-    def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Deposit, DepositEvaluation]]] =
+    def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedDeposit, DepositEvaluation]]] =
       parseSomeOrder(tx)(orders.deposit, evals.parseDepositEval)
-        .mapIn(x => x.copy(order = x.order.copy(timestamp = tx.timestamp)))
+        .mapIn(x => x.copy(order = x.order.setTimestamp(tx.timestamp)))
 
-    def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[Redeem, RedeemEvaluation]]] =
+    def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedRedeem, RedeemEvaluation]]] =
       parseSomeOrder(tx)(orders.redeem, evals.parseRedeemEval)
-        .mapIn(x => x.copy(order = x.order.copy(timestamp = tx.timestamp)))
+        .mapIn(x => x.copy(order = x.order.setTimestamp(tx.timestamp)))
 
-    private def parseSomeOrder[A <: CFMMOrder, E <: OrderEvaluation](
+    private def parseSomeOrder[A <: CFMMVersionedOrder, E <: OrderEvaluation](
       tx: SettledTransaction
     )(
       opParser: Output => F[Option[A]],

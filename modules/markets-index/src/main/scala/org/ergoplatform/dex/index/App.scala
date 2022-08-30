@@ -14,7 +14,7 @@ import org.ergoplatform.dex.domain.amm.{CFMMPool, EvaluatedCFMMOrder, OrderId, P
 import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
 import org.ergoplatform.dex.index.configs.ConfigBundle
-import org.ergoplatform.dex.index.processes.{BlockIndexing, HistoryIndexing, LocksIndexing, PoolsIndexing}
+import org.ergoplatform.dex.index.processes.{AnyOrdersHandler, BlockIndexing, HistoryIndexing, LocksIndexing, PoolsIndexing}
 import org.ergoplatform.dex.index.repositories.RepoBundle
 import org.ergoplatform.dex.index.streaming.{BlocksConsumer, CFMMHistConsumer, CFMMPoolsConsumer, LqLocksConsumer}
 import org.ergoplatform.dex.tracker.handlers._
@@ -40,6 +40,7 @@ import tofu.logging.Logs
 import tofu.syntax.unlift._
 import zio.interop.catz._
 import zio.{ExitCode, URIO, ZEnv}
+import OrdersHandler._
 
 object App extends EnvApp[ConfigBundle] {
 
@@ -96,6 +97,7 @@ object App extends EnvApp[ConfigBundle] {
         TxTracker.make[InitF, StreamF, RunF](cfmmHistoryHandler, lqLocksHandler, cfmmPoolsHandler)
       )
       implicit0(repos: RepoBundle[xa.DB])  <- Resource.eval(RepoBundle.make[InitF, xa.DB])
+      implicit0(handlers: List[AnyOrdersHandler[xa.DB]]) = AnyOrdersHandler.makeOrdersHandlers[xa.DB]
       historyIndexer                       <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       poolsIndexer                         <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       locksIndexer                         <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])

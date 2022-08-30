@@ -9,12 +9,12 @@ import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-class CFMMHistoryParserSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks with CatsPlatform {
+class CFMMHistoryVersionedParserSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks with CatsPlatform {
 
   implicit val e: ErgoAddressEncoder = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
 
   property("AMM Swap parsing") {
-    val p      = CFMMHistoryParser.t2tCFMMHistory[IO]
+    val p      = CFMMHistoryVersionedParser.t2tCFMMHistory[IO]
     val parseF = p.swap(SettledTransaction.fromExplorer(txSample))
     println(parseF.unsafeRunSync())
   }

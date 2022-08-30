@@ -11,6 +11,7 @@ import org.ergoplatform.ergo._
 import org.ergoplatform.ergo.domain.{LedgerMetadata, Block}
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo
 import org.ergoplatform.ergo.state.ConfirmedIndexed
+import CFMMVersionedOrder._
 
 object models {
 
@@ -85,7 +86,7 @@ object models {
     orderId: OrderId,
     poolId: PoolId,
     poolStateId: Option[PoolStateId],
-    maxMinerFee: Long,
+    maxMinerFee: Option[Long],
     timestamp: Long,
     inputId: TokenId,
     inputValue: Long,
@@ -100,13 +101,13 @@ object models {
 
   implicit val swapQs: QuerySet[DBSwap] = SwapOrdersSql
 
-  implicit val swapView: Extract[EvaluatedCFMMOrder[Swap, SwapEvaluation], DBSwap] = {
+  implicit val swapView: Extract[EvaluatedCFMMOrder[VersionedSwap, SwapEvaluation], DBSwap] = {
     case EvaluatedCFMMOrder(swap, ev, pool) =>
       DBSwap(
         OrderId.fromBoxId(swap.box.boxId),
         swap.poolId,
         pool.map(p => PoolStateId(p.box.boxId)),
-        swap.maxMinerFee,
+        swap.getMaxMinerFee,
         swap.timestamp,
         swap.params.input.id,
         swap.params.input.value,
@@ -124,7 +125,7 @@ object models {
     orderId: OrderId,
     poolId: PoolId,
     poolStateId: Option[PoolStateId],
-    maxMinerFee: Long,
+    maxMinerFee: Option[Long],
     timestamp: Long,
     lpId: TokenId,
     lpAmount: Long,
@@ -137,13 +138,13 @@ object models {
 
   implicit val redeemQs: QuerySet[DBRedeem] = RedeemOrdersSql
 
-  implicit val redeemView: Extract[EvaluatedCFMMOrder[Redeem, RedeemEvaluation], DBRedeem] = {
+  implicit val redeemView: Extract[EvaluatedCFMMOrder[VersionedRedeem, RedeemEvaluation], DBRedeem] = {
     case EvaluatedCFMMOrder(redeem, ev, pool) =>
       DBRedeem(
         OrderId.fromBoxId(redeem.box.boxId),
         redeem.poolId,
         pool.map(p => PoolStateId(p.box.boxId)),
-        redeem.maxMinerFee,
+        redeem.getMaxMinerFee,
         redeem.timestamp,
         redeem.params.lp.id,
         redeem.params.lp.value,
@@ -159,7 +160,7 @@ object models {
     orderId: OrderId,
     poolId: PoolId,
     poolStateId: Option[PoolStateId],
-    maxMinerFee: Long,
+    maxMinerFee: Option[Long],
     timestamp: Long,
     inputIdX: TokenId,
     inputAmountX: Long,
@@ -173,13 +174,13 @@ object models {
 
   implicit val depositQs: QuerySet[DBDeposit] = DepositOrdersSql
 
-  implicit val depositView: Extract[EvaluatedCFMMOrder[Deposit, DepositEvaluation], DBDeposit] = {
+  implicit val depositView: Extract[EvaluatedCFMMOrder[VersionedDeposit, DepositEvaluation], DBDeposit] = {
     case EvaluatedCFMMOrder(deposit, ev, pool) =>
       DBDeposit(
         OrderId.fromBoxId(deposit.box.boxId),
         deposit.poolId,
         pool.map(p => PoolStateId(p.box.boxId)),
-        deposit.maxMinerFee,
+        deposit.getMaxMinerFee,
         deposit.timestamp,
         deposit.params.inX.id,
         deposit.params.inX.value,
