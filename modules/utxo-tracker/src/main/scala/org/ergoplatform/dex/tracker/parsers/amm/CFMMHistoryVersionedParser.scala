@@ -16,11 +16,11 @@ import VersionedCFMMParser._
 
 trait CFMMHistoryVersionedParser[+CT <: CFMMType, F[_]] {
 
-  def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedSwap, SwapEvaluation]]]
+  def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnySwap, SwapEvaluation]]]
 
-  def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedDeposit, DepositEvaluation]]]
+  def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyDeposit, DepositEvaluation]]]
 
-  def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedRedeem, RedeemEvaluation]]]
+  def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyRedeem, RedeemEvaluation]]]
 }
 
 object CFMMHistoryVersionedParser {
@@ -52,19 +52,34 @@ object CFMMHistoryVersionedParser {
     evals: CFMMOrderEvaluationParser[F]
   ) extends CFMMHistoryVersionedParser[CT, F] {
 
-    def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedSwap, SwapEvaluation]]] =
-      parseSomeOrder(tx)(orders.swap, (o, _, a: VersionedSwap) => evals.parseSwapEval(o, a))
-        .mapIn(x => x.copy(order = x.order.setTimestamp(tx.timestamp)))
+    def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnySwap, SwapEvaluation]]] =
+      parseSomeOrder(tx)(orders.swap, (o, _, a: CFMMVersionedOrder.AnySwap) => evals.parseSwapEval(o, a))
+        .mapIn {
+          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV0, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
+          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV1, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
+        }
 
-    def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedDeposit, DepositEvaluation]]] =
+    def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyDeposit, DepositEvaluation]]] =
       parseSomeOrder(tx)(orders.deposit, evals.parseDepositEval)
-        .mapIn(x => x.copy(order = x.order.setTimestamp(tx.timestamp)))
+        .mapIn {
+          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV0, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
+          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV1, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
+        }
 
-    def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[VersionedRedeem, RedeemEvaluation]]] =
+    def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyRedeem, RedeemEvaluation]]] =
       parseSomeOrder(tx)(orders.redeem, evals.parseRedeemEval)
-        .mapIn(x => x.copy(order = x.order.setTimestamp(tx.timestamp)))
+        .mapIn {
+          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV0, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
+          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV1, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
+        }
 
-    private def parseSomeOrder[A <: CFMMVersionedOrder, E <: OrderEvaluation](
+    private def parseSomeOrder[A <: CFMMVersionedOrder.Any, E <: OrderEvaluation](
       tx: SettledTransaction
     )(
       opParser: Output => F[Option[A]],

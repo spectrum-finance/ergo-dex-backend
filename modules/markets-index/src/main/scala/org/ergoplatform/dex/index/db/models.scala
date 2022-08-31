@@ -12,6 +12,7 @@ import org.ergoplatform.ergo.domain.{LedgerMetadata, Block}
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo
 import org.ergoplatform.ergo.state.ConfirmedIndexed
 import CFMMVersionedOrder._
+import cats.syntax.option._
 
 object models {
 
@@ -101,22 +102,26 @@ object models {
 
   implicit val swapQs: QuerySet[DBSwap] = SwapOrdersSql
 
-  implicit val swapView: Extract[EvaluatedCFMMOrder[VersionedSwap, SwapEvaluation], DBSwap] = {
-    case EvaluatedCFMMOrder(swap, ev, pool) =>
+  implicit val swapView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnySwap, SwapEvaluation], DBSwap] = {
+    case EvaluatedCFMMOrder(swap: AnySwap, ev, pool) =>
+      val (minerFee, params) = swap match {
+        case swap: SwapV0 => (None, swap.params)
+        case swap: SwapV1 => (swap.maxMinerFee.some, swap.params)
+      }
       DBSwap(
         OrderId.fromBoxId(swap.box.boxId),
         swap.poolId,
         pool.map(p => PoolStateId(p.box.boxId)),
-        swap.getMaxMinerFee,
+        minerFee,
         swap.timestamp,
-        swap.params.input.id,
-        swap.params.input.value,
-        swap.params.minOutput.id,
-        swap.params.minOutput.value,
+        params.input.id,
+        params.input.value,
+        params.minOutput.id,
+        params.minOutput.value,
         ev.map(_.output.value),
-        swap.params.dexFeePerTokenNum,
-        swap.params.dexFeePerTokenDenom,
-        swap.params.redeemer,
+        params.dexFeePerTokenNum,
+        params.dexFeePerTokenDenom,
+        params.redeemer,
         ProtocolVersion.Initial
       )
   }
@@ -138,20 +143,24 @@ object models {
 
   implicit val redeemQs: QuerySet[DBRedeem] = RedeemOrdersSql
 
-  implicit val redeemView: Extract[EvaluatedCFMMOrder[VersionedRedeem, RedeemEvaluation], DBRedeem] = {
+  implicit val redeemView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyRedeem, RedeemEvaluation], DBRedeem] = {
     case EvaluatedCFMMOrder(redeem, ev, pool) =>
+      val (minerFee, params) = redeem match {
+        case redeem: RedeemV0 => (None, redeem.params)
+        case redeem: RedeemV1 => (redeem.maxMinerFee.some, redeem.params)
+      }
       DBRedeem(
         OrderId.fromBoxId(redeem.box.boxId),
         redeem.poolId,
         pool.map(p => PoolStateId(p.box.boxId)),
-        redeem.getMaxMinerFee,
+        minerFee,
         redeem.timestamp,
-        redeem.params.lp.id,
-        redeem.params.lp.value,
+        params.lp.id,
+        params.lp.value,
         ev.map(_.outputX.value),
         ev.map(_.outputY.value),
-        redeem.params.dexFee,
-        redeem.params.redeemer,
+        params.dexFee,
+        params.redeemer,
         ProtocolVersion.Initial
       )
   }
@@ -174,21 +183,25 @@ object models {
 
   implicit val depositQs: QuerySet[DBDeposit] = DepositOrdersSql
 
-  implicit val depositView: Extract[EvaluatedCFMMOrder[VersionedDeposit, DepositEvaluation], DBDeposit] = {
+  implicit val depositView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyDeposit, DepositEvaluation], DBDeposit] = {
     case EvaluatedCFMMOrder(deposit, ev, pool) =>
+      val (minerFee, params) = deposit match {
+        case deposit: DepositV0 => (None, deposit.params)
+        case deposit: DepositV1 => (deposit.maxMinerFee.some, deposit.params)
+      }
       DBDeposit(
         OrderId.fromBoxId(deposit.box.boxId),
         deposit.poolId,
         pool.map(p => PoolStateId(p.box.boxId)),
-        deposit.getMaxMinerFee,
+        minerFee,
         deposit.timestamp,
-        deposit.params.inX.id,
-        deposit.params.inX.value,
-        deposit.params.inY.id,
-        deposit.params.inY.value,
+        params.inX.id,
+        params.inX.value,
+        params.inY.id,
+        params.inY.value,
         ev.map(_.outputLP.value),
-        deposit.params.dexFee,
-        deposit.params.redeemer,
+        params.dexFee,
+        params.redeemer,
         ProtocolVersion.Initial
       )
   }

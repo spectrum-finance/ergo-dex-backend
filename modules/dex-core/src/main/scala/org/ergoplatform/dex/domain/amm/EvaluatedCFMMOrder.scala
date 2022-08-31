@@ -7,12 +7,12 @@ import tofu.logging.derivation.loggable
 /** Either executed or cancelled CFMM versioned order.
   */
 @derive(encoder, decoder, loggable)
-final case class EvaluatedCFMMOrder[A <: CFMMVersionedOrder, E <: OrderEvaluation](
+final case class EvaluatedCFMMOrder[A <: CFMMVersionedOrder.Any, E <: OrderEvaluation](
   order: A,
   eval: Option[E],
   pool: Option[CFMMPool]
 )
 
 object EvaluatedCFMMOrder {
-  type Any = EvaluatedCFMMOrder[CFMMVersionedOrder, OrderEvaluation]
+  type Any = EvaluatedCFMMOrder[CFMMVersionedOrder.Any, OrderEvaluation]
 }
