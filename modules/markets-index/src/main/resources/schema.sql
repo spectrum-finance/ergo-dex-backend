@@ -145,3 +145,25 @@ alter table public.order_executor_fee owner to ergo_admin;
 
 create index order_executor__addr on public.order_executor_fee using btree (address);
 create index order_executor__ts on public.order_executor_fee using btree (timestamp);
+
+create sequence if not exists state_seq;
+
+create table if not exists public.state (
+    id Integer not null default nextval('state_seq'),
+    address Text not null,
+    pool_id Text not null,
+    box_id Text not null,
+    tx_id Text not null,
+    block_id Text not null,
+    balance Text not null,
+    timestamp BIGINT not null,
+    weight Text not null,
+    op Text not null,
+    amount BIGINT not null,
+    gap BIGINT not null,
+    lpErg Text not null,
+    txHeight BIGINT not null,
+    poolStateId Text not null
+);
+
+alter table public.state owner to ergo_admin;

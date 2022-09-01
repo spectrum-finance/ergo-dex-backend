@@ -4,9 +4,11 @@ import cats.tagless.syntax.functorK._
 import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
+import doobie.util.query.Query0
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
+import scorex.crypto.authds.merkle.sparse.BlockchainSimulator.PubKey
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.higherKind.Mid
@@ -22,6 +24,27 @@ trait Orders[F[_]] {
 
   def getDepositTxs(tw: TimeWindow): F[List[DepositInfo]]
 
+  def getLqProviderStates(address: String, pool: String, from: Long, to: Long): F[List[DBLpState]]
+
+  def getLqProviderState(address: String, pool: String): F[Option[LqProviderStateDB]]
+
+  def getTotalWeight: F[BigDecimal]
+
+  def getLqUsers: F[Int]
+
+  def getSwapUsersCount: F[Int]
+
+  def checkIfBetaTester(key: org.ergoplatform.ergo.PubKey): F[Int]
+
+  def getSwapsState(key: org.ergoplatform.ergo.PubKey): F[List[SwapState]]
+
+  def getOffChainState(address: String, from: Long, to: Option[Long]): F[Option[OffChainOperatorState]]
+
+  def getTotalOffChainOperationsCount(from: Long, to: Option[Long]): F[Int]
+
+  def getAllOffChainAddresses(from: Long, to: Option[Long]): F[List[String]]
+
+  def getOffChainParticipantsCount(from: Long, to: Option[Long]): F[Int]
 }
 
 object Orders {
@@ -36,6 +59,39 @@ object Orders {
 
   final class Live(sql: AnalyticsSql) extends Orders[ConnectionIO] {
 
+    def getOffChainParticipantsCount(from: Long, to: Option[Long]): ConnectionIO[Int] =
+      sql.getOffChainParticipantsCount(from, to).unique
+
+    def getAllOffChainAddresses(from: Long, to: Option[Long]): ConnectionIO[List[String]] =
+      sql.getAllOffChainAddresses(from, to).to[List]
+
+    def getOffChainState(address: String, from: Long, to: Option[Long]): ConnectionIO[Option[OffChainOperatorState]] =
+      sql.getOffChainState(address, from, to).option
+
+    def getTotalOffChainOperationsCount(from: Long, to: Option[Long]): ConnectionIO[Int] =
+      sql.getTotalOffChainOperationsCount(from, to).unique
+
+    def checkIfBetaTester(key: org.ergoplatform.ergo.PubKey): ConnectionIO[Int] =
+      sql.checkIfBetaTester(key).unique
+
+    def getSwapsState(key: org.ergoplatform.ergo.PubKey): ConnectionIO[List[SwapState]] =
+      sql.getSwapsState(key).to[List]
+
+    def getSwapUsersCount: ConnectionIO[Int] =
+      sql.getSwapUsersCount.unique
+
+    def getTotalWeight: ConnectionIO[BigDecimal] =
+      sql.getTotalWeight.option.map(_.getOrElse(BigDecimal(0)))
+
+    def getLqUsers: ConnectionIO[Int] =
+      sql.getLqUsers.unique
+
+    def getLqProviderStates(address: String, pool: String, from: Long, to: Long): ConnectionIO[List[DBLpState]] =
+      sql.getLqProviderStates(address, pool, from, to).to[List]
+
+    def getLqProviderState(address: String, pool: String): ConnectionIO[Option[LqProviderStateDB]] =
+      sql.getLqProviderState(address, pool).option
+
     def getSwapTxs(tw: TimeWindow): ConnectionIO[List[SwapInfo]] =
       sql.getSwapTransactions(tw).to[List]
 
@@ -45,6 +101,83 @@ object Orders {
   }
 
   final class OrdersTracing[F[_]: FlatMap: Logging] extends Orders[Mid[F, *]] {
+
+    def getOffChainParticipantsCount(from: Long, to: Option[Long]) =
+      for {
+        _ <- trace"getOffChainParticipantsCount($from, $to)"
+        r <- _
+        _ <- trace"getOffChainParticipantsCount($from, $to) -> ${r} res"
+      } yield r
+
+    def getAllOffChainAddresses(from: Long, to: Option[Long]) =
+      for {
+        _ <- trace"getAllOffChainAddresses($from, $to)"
+        r <- _
+        _ <- trace"getAllOffChainAddresses($from, $to) -> ${r} res"
+      } yield r
+
+    def getOffChainState(address: String, from: Long, to: Option[Long]) =
+      for {
+        _ <- trace"getOffChainState($address, $from, $to)"
+        r <- _
+        _ <- trace"getOffChainState($address, $from, $to) -> ${r} res"
+      } yield r
+
+    def getTotalOffChainOperationsCount(from: Long, to: Option[Long]) =
+      for {
+        _ <- trace"getTotalOffChainOperationsCount($from, $to)"
+        r <- _
+        _ <- trace"getTotalOffChainOperationsCount($from, $to) -> ${r} res"
+      } yield r
+
+    def checkIfBetaTester(key: org.ergoplatform.ergo.PubKey) =
+      for {
+        _ <- trace"checkIfBetaTester($key)"
+        r <- _
+        _ <- trace"checkIfBetaTester($key) -> ${r} res"
+      } yield r
+
+    def getSwapsState(key: org.ergoplatform.ergo.PubKey) =
+      for {
+        _ <- trace"getSwapsState($key)"
+        r <- _
+        _ <- trace"getSwapsState($key) -> ${r} res"
+      } yield r
+
+    def getSwapUsersCount =
+      for {
+        _ <- trace"getSwapUsersCount()"
+        r <- _
+        _ <- trace"getSwapUsersCount() -> ${r} res"
+      } yield r
+
+    def getLqUsers: Mid[F, Int] =
+      for {
+        _ <- trace"getLqUsers()"
+        r <- _
+        _ <- trace"getLqUsers() -> ${r} res"
+      } yield r
+
+    def getTotalWeight: Mid[F, BigDecimal] =
+      for {
+        _ <- trace"getTotalWeight()"
+        r <- _
+        _ <- trace"getTotalWeight() -> ${r} res"
+      } yield r
+
+    def getLqProviderState(address: String, pool: String) =
+      for {
+        _ <- trace"getLqProviderStates(address=$address, pool=$pool)"
+        r <- _
+        _ <- trace"getLqProviderStates(address=$address, pool=$pool) -> $r res"
+      } yield r
+
+    def getLqProviderStates(address: String, pool: String, from: Long, to: Long) =
+      for {
+        _ <- trace"getStateByAddressAndPool(address=$address, pool=$pool from=$from, to=$to)"
+        r <- _
+        _ <- trace"getStateByAddressAndPool(address=$address, pool=$pool from=$from, to=$to) -> ${r.size} res"
+      } yield r
 
     def getSwapTxs(tw: TimeWindow): Mid[F, List[SwapInfo]] =
       for {

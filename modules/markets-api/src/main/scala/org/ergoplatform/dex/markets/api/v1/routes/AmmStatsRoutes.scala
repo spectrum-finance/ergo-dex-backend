@@ -1,5 +1,6 @@
 package org.ergoplatform.dex.markets.api.v1.routes
 
+import cats.Monad
 import cats.effect.{Concurrent, ContextShift, Timer}
 import cats.syntax.semigroupk._
 import org.ergoplatform.common.http.AdaptThrowable.AdaptThrowableEitherT
@@ -10,9 +11,11 @@ import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
 import org.ergoplatform.dex.markets.configs.RequestConfig
 import org.http4s.HttpRoutes
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
+import tofu.Throws
+import cats.syntax.option._
 
 final class AmmStatsRoutes[
-  F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]
+  F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]: Throws: Monad
 ](stats: AmmStats[F], locks: LqLocks[F], requestConf: RequestConfig)(implicit
   opts: Http4sServerOptions[F, F]
 ) {
@@ -23,18 +26,18 @@ final class AmmStatsRoutes[
   private val interpreter = Http4sServerInterpreter(opts)
 
   def routes: HttpRoutes[F] =
-    getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+>
-    getPoolStatsR <+> getPoolsStatsR <+> getPoolsSummaryR <+> getAvgPoolSlippageR <+>
-    getPoolPriceChartR <+> convertToFiatR
+    getLqProviderInfoWithOperationsR <+> getLqProviderInfoR <+> checkIfBetaTesterR <+> checkEarlyOffChainR <+>
+      checkOffChainR <+> checkEarlyOffChainChartsR <+> checkOffChainChartsR <+> getSwapsStatsR
 
-  def getSwapTxsR: HttpRoutes[F] =
-    interpreter.toRoutes(getSwapTxs)(tw => stats.getSwapTransactions(tw).adaptThrowable.value)
 
-  def getDepositTxsR: HttpRoutes[F] =
-    interpreter.toRoutes(getDepositTxs)(tw => stats.getDepositTransactions(tw).adaptThrowable.value)
+  def getLqProviderInfoWithOperationsR: HttpRoutes[F] = interpreter.toRoutes(getLqProviderInfoWithOperationsRE) {
+    case (address, pool, month, year) =>
+      val (from, to) = year match {
+        case 2021 => month.from21 -> month.to21
+        case 2022 => month.from22 -> month.to22
+      }
 
-  def getPoolLocksR: HttpRoutes[F] = interpreter.toRoutes(getPoolLocks) { case (poolId, leastDeadline) =>
-    locks.byPool(poolId, leastDeadline).adaptThrowable.value
+      stats.getLqProviderInfoWithOperations(address, pool, from, to).adaptThrowable.value
   }
 
   def getPoolStatsR: HttpRoutes[F] = interpreter.toRoutes(getPoolStats) { case (poolId, tw) =>
@@ -43,26 +46,40 @@ final class AmmStatsRoutes[
 
   def getPoolsStatsR: HttpRoutes[F] = interpreter.toRoutes(getPoolsStats) { tw =>
     stats.getPoolsStats(tw).adaptThrowable.value
+  def getLqProviderInfoR: HttpRoutes[F] = interpreter.toRoutes(getLqProviderInfoE) { address =>
+    stats.getLqProviderInfo(address).adaptThrowable.value
   }
 
   def getPoolsSummaryR: HttpRoutes[F] = interpreter.toRoutes(getPoolsSummary) { _ =>
     stats.getPoolsSummary.adaptThrowable.value
+  def checkIfBetaTesterR: HttpRoutes[F] = interpreter.toRoutes(checkIfBettaTesterE) { case (address) =>
+    stats.checkIfBetaTester(address).adaptThrowable.orNotFound(s"BetaTester{addr=$address}").value
   }
 
-  def getPlatformStatsR: HttpRoutes[F] = interpreter.toRoutes(getPlatformStats) { tw =>
-    stats.getPlatformSummary(tw).adaptThrowable.value
+  def checkEarlyOffChainR: HttpRoutes[F] = interpreter.toRoutes(getEarlyOffChainOperatorsState) { case (address) =>
+    val from = 1628640000000L
+    val to   = Some(1636502400000L)
+    stats.getOffChainReward(address, from, to, 2500, none).adaptThrowable.value
   }
 
-  def getAvgPoolSlippageR: HttpRoutes[F] = interpreter.toRoutes(getAvgPoolSlippage) { case (poolId, depth) =>
-    stats.getAvgPoolSlippage(poolId, depth).adaptThrowable.orNotFound(s"poolId=$poolId").value
+  def checkOffChainR: HttpRoutes[F] = interpreter.toRoutes(getOffChainOperatorsState) { case (address) =>
+    val from = 1636502400000L
+    stats.getOffChainReward(address, from, None, 1500, none).adaptThrowable.value
   }
 
-  def getPoolPriceChartR: HttpRoutes[F] = interpreter.toRoutes(getPoolPriceChart) { case (poolId, window, res) =>
-    stats.getPoolPriceChart(poolId, window, res).adaptThrowable.value
+  def checkEarlyOffChainChartsR: HttpRoutes[F] = interpreter.toRoutes(getEarlyOffChainOperatorsStateCharts) { _ =>
+    val from = 1628640000000L
+    val to   = Some(1636502400000L)
+    stats.getOffChainRewardsForAllAddresses(from, to, 2500).adaptThrowable.value
   }
 
-  def convertToFiatR: HttpRoutes[F] = interpreter.toRoutes(convertToFiat) { req =>
-    stats.convertToFiat(req.tokenId, req.amount).adaptThrowable.orNotFound(s"Token{id=${req.tokenId}}").value
+  def checkOffChainChartsR: HttpRoutes[F] = interpreter.toRoutes(getOffChainOperatorsStateCharts) { _ =>
+    val from = 1636502400000L
+    stats.getOffChainRewardsForAllAddresses(from, None, 1500).adaptThrowable.value
+  }
+
+  def getSwapsStatsR: HttpRoutes[F] = interpreter.toRoutes(getSwapsStats) { address =>
+    stats.getSwapInfo(address).adaptThrowable.orNotFound(s"SwapsStats{address=$address}").value
   }
 }
 

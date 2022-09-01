@@ -2,6 +2,7 @@ package org.ergoplatform.ergo.domain
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
+import io.circe.Decoder
 import org.ergoplatform.ergo.services.explorer.models.{Output => ExplorerOutput}
 import org.ergoplatform.ergo.services.node.models.{Output => NodeOutput}
 import org.ergoplatform.ergo.{BoxId, SErgoTree, TxId}

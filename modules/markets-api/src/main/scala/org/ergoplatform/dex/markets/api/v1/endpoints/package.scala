@@ -2,22 +2,12 @@ package org.ergoplatform.dex.markets.api.v1
 
 import org.ergoplatform.common.http.HttpError
 import org.ergoplatform.common.models.{HeightWindow, TimeWindow}
+import org.ergoplatform.dex.markets.api.v1.models.amm.{ApiMonth, ApiPool}
 import sttp.model.StatusCode
 import sttp.tapir.json.circe.jsonBody
-import sttp.tapir.{
-  emptyOutputAs,
-  endpoint,
-  oneOf,
-  oneOfDefaultMapping,
-  oneOfMapping,
-  query,
-  Endpoint,
-  EndpointInput,
-  Schema,
-  ValidationError,
-  Validator
-}
+import sttp.tapir.{Endpoint, EndpointInput, Schema, ValidationError, Validator, emptyOutputAs, endpoint, oneOf, oneOfDefaultMapping, oneOfMapping, query}
 import sttp.tapir.generic.auto._
+
 import scala.concurrent.duration.FiniteDuration
 
 package object endpoints {
@@ -36,6 +26,27 @@ package object endpoints {
           oneOfDefaultMapping(jsonBody[HttpError.Unknown].description("unknown"))
         )
       )
+
+  def address: EndpointInput[String] =
+    query[String]("address")
+      .description("user address")
+
+  def month: EndpointInput[ApiMonth] =
+    query[String]("month")
+      .description("month")
+      .validate(Validator.enumeration(ApiMonth.values.map(_.entryName).toList))
+      .map(r => ApiMonth.withName(r))(_.entryName)
+
+  def year: EndpointInput[Int] =
+    query[Int]("year")
+      .description("Year")
+      .validate(Validator.enumeration(List(2021, 2022)))
+
+  def pool: EndpointInput[ApiPool] =
+    query[String]("pool")
+      .description("Pool")
+      .validate(Validator.enumeration(ApiPool.values.map(_.entryName).toList))
+      .map(r => ApiPool.withName(r))(_.entryName)
 
   def timeWindow: EndpointInput[TimeWindow] =
     (query[Option[Long]]("from")

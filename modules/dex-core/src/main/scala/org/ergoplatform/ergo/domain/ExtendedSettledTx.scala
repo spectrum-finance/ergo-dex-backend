@@ -1,11 +1,12 @@
 package org.ergoplatform.ergo.domain
 
+import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.ergo.{BlockId, TxId}
 import org.ergoplatform.ergo.services.explorer.models.{Transaction => ExplorerTx}
 import tofu.logging.derivation.loggable
 
-@derive(loggable)
+@derive(loggable, encoder, decoder)
 final case class ExtendedSettledTx(
   id: TxId,
   blockId: BlockId,

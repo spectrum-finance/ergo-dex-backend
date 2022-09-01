@@ -5,9 +5,10 @@ import cats.effect.{Blocker, Resource}
 import cats.tagless.syntax.functorK._
 import fs2.kafka.serde._
 import fs2.kafka.RecordDeserializer
+import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis}
-import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
+import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.common.http.cache.{CacheMiddleware, HttpCacheInvalidator, HttpResponseCaching}
 import org.ergoplatform.common.http.cache.CacheMiddleware.CachingMiddleware
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer}
@@ -59,6 +60,7 @@ object App extends EnvApp[AppContext] {
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       ctx = AppContext.init(configs)
       trans <- PostgresTransactor.make("markets-api-pool", configs.db)
+      implicit0(e: ErgoAddressEncoder) = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
       implicit0(ul: Unlift[RunF, InitF])              = Unlift.byIso(IsoK.byFunK(wr.runContextK(ctx))(wr.liftF))
       implicit0(xa: Txr.Contextual[RunF, AppContext]) = Txr.contextual[RunF](trans)
       implicit0(elh: EmbeddableLogHandler[xa.DB]) <-

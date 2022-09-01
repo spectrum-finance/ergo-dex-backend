@@ -11,6 +11,7 @@ import tofu.syntax.context._
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.unlift._
+import org.apache.kafka.clients.consumer.{ ConsumerConfig => Config }
 
 /** Kafka consumer instance maker.
   */
@@ -52,6 +53,8 @@ object MakeKafkaConsumer {
                   .withBootstrapServers(kafka.bootstrapServers.mkString(","))
                   .withGroupId(config.groupId.value)
                   .withClientId(config.clientId.value)
+                  .withProperty(Config.FETCH_MAX_BYTES_CONFIG, "3006565")
+                  .withProperty(Config.MAX_PARTITION_FETCH_BYTES_CONFIG, "3006565")
               KafkaConsumer.stream(settings)
             }
           }

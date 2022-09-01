@@ -16,6 +16,8 @@ import tofu.syntax.handle._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import tofu.syntax.streams.all._
+import cats.syntax.parallel._
+import cats.syntax.traverse._
 
 @derive(representableK)
 trait TxTracker[F[_]] {
@@ -29,14 +31,14 @@ object TxTracker {
     I[_]: Functor,
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches: TxTrackerConfig.Has,
     G[_]: Monad
-  ](handlers: ExtendedTxHandler[F]*)(implicit
+  ](handlers: List[ExtendedTxHandler[F]])(implicit
     cache: TrackerCache[G],
     ledger: LedgerStreaming[F],
     network: ErgoNetwork[G],
     logs: Logs[I, G]
   ): I[TxTracker[F]] =
     logs.forService[TxTracker[F]].map { implicit l =>
-      (TxTrackerConfig.access map (conf => new StreamingTxTracker[F, G](conf, handlers.toList): TxTracker[F])).embed
+      (TxTrackerConfig.access map (conf => new StreamingTxTracker[F, G](conf, handlers): TxTracker[F])).embed
     }
 
   final class StreamingTxTracker[

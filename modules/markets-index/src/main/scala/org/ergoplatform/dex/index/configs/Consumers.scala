@@ -9,5 +9,6 @@ final case class Consumers(
   cfmmHistory: ConsumerConfig,
   cfmmPools: ConsumerConfig,
   lqLocks: ConsumerConfig,
-  blocks: ConsumerConfig
+  blocks: ConsumerConfig,
+  txns: ConsumerConfig
 )

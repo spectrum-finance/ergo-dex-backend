@@ -2,8 +2,9 @@ package org.ergoplatform.dex.markets.api.v1.services
 
 import cats.data.OptionT
 import cats.effect.Clock
-import cats.syntax.parallel._
+import cats.syntax.option._
 import cats.syntax.traverse._
+import cats.syntax.parallel._
 import cats.{Monad, Parallel}
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
@@ -12,6 +13,8 @@ import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.api.v1.models.amm._
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
 import org.ergoplatform.dex.markets.currencies.UsdUnits
+import org.ergoplatform.dex.markets.db.models.amm._
+import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.db.models.amm
 import org.ergoplatform.dex.markets.db.models.amm.{PoolFeesSnapshot, PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
 import org.ergoplatform.dex.markets.domain.{Fees, TotalValueLocked, Volume}
@@ -20,12 +23,20 @@ import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
 import org.ergoplatform.dex.markets.repositories.{Orders, Pools}
 import org.ergoplatform.dex.markets.services.TokenFetcher
 import org.ergoplatform.dex.protocol.constants.ErgoAssetId
+import org.ergoplatform.dex.protocol.constants.ErgoAssetId
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
+import org.ergoplatform.ergo.{PubKey, TokenId}
+import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 import tofu.doobie.transactor.Txr
 import tofu.syntax.monadic._
+
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.concurrent.TimeUnit
 import tofu.syntax.time.now.millis
 import scala.concurrent.duration._
+import scala.math.BigDecimal.RoundingMode
 
 trait AmmStats[F[_]] {
 
@@ -46,6 +57,24 @@ trait AmmStats[F[_]] {
   def getSwapTransactions(window: TimeWindow): F[TransactionsInfo]
 
   def getDepositTransactions(window: TimeWindow): F[TransactionsInfo]
+
+  def getLqProviderInfoWithOperations(address: String, pool: ApiPool, from: Long, to: Long): F[LqProviderAirdropInfo]
+
+  def getSwapInfo(address: String): F[Option[TraderAirdropInfo]]
+
+  def getLqProviderInfo(address: String): F[LpResultProd]
+
+  def checkIfBetaTester(address: String): F[Option[BetaTesterInfo]]
+
+  def getOffChainReward(
+    address: String,
+    from: Long,
+    to: Option[Long],
+    multiplier: Int,
+    cohortSize: Option[Int]
+  ): F[OffChainSpfReward]
+
+  def getOffChainRewardsForAllAddresses(from: Long, to: Option[Long], multiplier: Int): F[List[OffChainCharts]]
 }
 
 object AmmStats {
@@ -54,24 +83,181 @@ object AmmStats {
 
   val slippageWindowScale = 2
 
-  def make[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
+  def make[F[_]: Monad: Parallel: Clock, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
     orders: Orders[D],
     network: ErgoNetwork[F],
     tokens: TokenFetcher[F],
-    fiatSolver: FiatPriceSolver[F]
+    fiatSolver: FiatPriceSolver[F],
+    e: ErgoAddressEncoder
   ): AmmStats[F] = new Live[F, D]()
 
-  final class Live[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
+  final class Live[F[_]: Monad: Parallel, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
     orders: Orders[D],
     tokens: TokenFetcher[F],
     network: ErgoNetwork[F],
     fiatSolver: FiatPriceSolver[F],
-    ammMath: AmmStatsMath[F]
+    ammMath: AmmStatsMath[F],
+    e: ErgoAddressEncoder
   ) extends AmmStats[F] {
+
+    def getOffChainRewardsForAllAddresses(from: Long, to: Option[Long], multiplier: Int): F[List[OffChainCharts]] = {
+      def query: F[(List[String], Int)] = (for {
+        addresses <- orders.getAllOffChainAddresses(from, to)
+        count     <- orders.getOffChainParticipantsCount(from, to)
+      } yield (addresses, count)) ||> txr.trans
+
+      query.flatMap { case (addresses, count) =>
+        addresses
+          .map(getOffChainReward(_, from, to, multiplier, count.some))
+          .sequence
+          .map(_.map(reward => OffChainCharts(reward.address, reward.spfReward)).sortBy(_.spfReward).reverse)
+      }
+    }
+
+    def getOffChainReward(
+      address: String,
+      from: Long,
+      to: Option[Long],
+      multiplier: Int,
+      cohortSize: Option[Int]
+    ): F[OffChainSpfReward] = {
+      def query: F[(Option[OffChainOperatorState], Int, Int)] =
+        (for {
+          state     <- orders.getOffChainState(address, from, to)
+          total     <- orders.getTotalOffChainOperationsCount(from, to)
+          groupSize <- cohortSize.fold(orders.getOffChainParticipantsCount(from, to))(_.pure[D])
+        } yield (state, total, groupSize)) ||> txr.trans
+
+      query.map { case (stateOpt, total, size) =>
+        stateOpt
+          .map { state =>
+            val spfReward = multiplier * size * (state.operations / BigDecimal(total))
+            OffChainSpfReward(
+              address,
+              spfReward.setScale(6, RoundingMode.HALF_UP),
+              state.operations,
+              (state.totalReward / BigDecimal(10).pow(9)).setScale(9, RoundingMode.HALF_UP)
+            )
+          }
+          .getOrElse(OffChainSpfReward.empty(address))
+      }
+    }
+
+    def getSwapInfo(address: String): F[Option[TraderAirdropInfo]] =
+      e
+        .fromString(address)
+        .collect { case address: P2PKAddress => address.pubkeyBytes }
+        .map(PubKey.fromBytes)
+        .toOption
+        .map { pk: PubKey =>
+          def query: F[(List[SwapState], List[PoolSnapshot], Int)] =
+            (for {
+              state <- orders.getSwapsState(pk)
+              pools <- ApiPool.values.toList
+                         .traverse(p => pools.snapshot(PoolId(TokenId.fromStringUnsafe(p.poolId))))
+                         .map(_.flatten)
+              users <- orders.getSwapUsersCount
+            } yield (state, pools, users)) ||> txr.trans
+
+          query.map { case (states, snapshots, groupSize) =>
+            val userAmount = states.map { state =>
+              if (state.inputId == ErgoAssetId.unwrapped) state.inputValue else state.outputAmount
+            }.sum
+
+            val poolAmount = snapshots.map { p1 =>
+              if (p1.lockedY.id == ErgoAssetId) BigDecimal(p1.lockedY.amount) * 2
+              else BigDecimal(p1.lockedX.amount) * 2
+            }.sum
+
+            val spfReward = (200 * groupSize * (userAmount / poolAmount)).setScale(6, RoundingMode.HALF_UP)
+
+            TraderAirdropInfo(userAmount / BigDecimal(10).pow(9), spfReward, states.length)
+          }
+        }
+        .sequence
+
+    def getLqProviderInfoWithOperations(address: String, pool: ApiPool, from: Long, to: Long): F[LqProviderAirdropInfo] = {
+
+      def query: F[(List[DBLpState], LqProviderStateDB, BigDecimal, Int)] =
+        (for {
+          states         <- orders.getLqProviderStates(address, pool.poolLp, from, to)
+          state          <- orders.getLqProviderState(address, pool.poolLp)
+          totalWeight    <- orders.getTotalWeight
+          addressesCount <- orders.getLqUsers
+        } yield (states, state.getOrElse(LqProviderStateDB.empty(address)), totalWeight, addressesCount)) ||> txr.trans
+
+      query.map { case (states, state, totalWeight, addressesCount) =>
+        val operations = states.sortBy(_.timestamp).map { state =>
+          val df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+          LpState(
+            pool.poolText,
+            state.txId,
+            state.balance,
+            df.format(new Date(state.timestamp)),
+            state.op,
+            BigDecimal(state.amount)
+          )
+        }
+
+        val spfResult = (2000 * addressesCount * (state.totalWeight / totalWeight)).setScale(6, RoundingMode.HALF_UP)
+
+        LqProviderAirdropInfo(spfResult, state.totalWeight, operations)
+      }
+    }
+
+    def checkIfBetaTester(address: String): F[Option[BetaTesterInfo]] = e
+      .fromString(address)
+      .collect { case address: P2PKAddress => address.pubkeyBytes }
+      .map(PubKey.fromBytes)
+      .toOption
+      .map { pk: PubKey =>
+        (orders.checkIfBetaTester(pk) ||> txr.trans)
+          .map { res: Int =>
+            if (res < 1) BetaTesterInfo(betaTester = false, 0) else BetaTesterInfo(betaTester = true, 500)
+          }
+      }
+      .sequence
+
+    def getLqProviderInfo(address: String): F[LpResultProd] =
+      ApiPool.values.toList
+        .map { apiPool =>
+          def query: F[(LqProviderStateDB, BigDecimal, Int)] =
+            (for {
+              state          <- orders.getLqProviderState(address, apiPool.poolLp)
+              totalWeight    <- orders.getTotalWeight
+              addressesCount <- orders.getLqUsers
+            } yield (state.getOrElse(LqProviderStateDB.empty(address)), totalWeight, addressesCount)) ||> txr.trans
+
+          query.map { case (state, totalWeight, addressesCount) =>
+            val weight = 2000 * addressesCount * (state.totalWeight / totalWeight)
+
+            LpResultDev(
+              weight.setScale(6, RoundingMode.HALF_UP),
+              state.totalWeight,
+              state.totalCount,
+              state.totalErgValue,
+              state.totalTime,
+              s"${TimeUnit.MILLISECONDS.toHours(state.totalTime.toLong)}h",
+              apiPool.poolText
+            )
+          }
+        }
+        .parSequence
+        .map { pools =>
+          LpResultProd(
+            address,
+            pools.map(_.totatSpfReward).sum,
+            pools.map(_.totalWeight).sum,
+            pools.map(_.totalErgValue).sum,
+            s"${TimeUnit.MILLISECONDS.toHours(pools.map(_.totalTime).sum.toLong)}h",
+            pools.map(_.operations).sum,
+            pools
+          )
+        }
 
     def convertToFiat(id: TokenId, amount: Long): F[Option[FiatEquiv]] =
       (for {

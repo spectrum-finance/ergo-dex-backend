@@ -22,7 +22,8 @@ final class SettledCFMMPoolsHandler[
 ) {
 
   def handler: SettledBoxHandler[F] =
-    _.map(o => parsers.map(_.pool(o.output).map(p => ConfirmedIndexed(p, LedgerMetadata(o)))).reduce(_ orElse _)).unNone
+    _.map(o => parsers.map(_.pool(o.output).map(p => ConfirmedIndexed(p, LedgerMetadata(o)))).reduce(_ orElse _))
+      .unNone
       .evalTap(pool => info"CFMM pool update detected [$pool]")
       .map(pool => Record[PoolId, ConfirmedIndexed[CFMMPool]](pool.entity.poolId, pool))
       .thrush(producer.produce)

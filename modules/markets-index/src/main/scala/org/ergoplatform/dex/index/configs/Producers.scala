@@ -9,5 +9,6 @@ final case class Producers(
   cfmmHistory: ProducerConfig,
   cfmmPools: ProducerConfig,
   lqLocks: ProducerConfig,
-  blocks: ProducerConfig
+  blocks: ProducerConfig,
+  txns: ProducerConfig
 )

@@ -8,6 +8,7 @@ import org.ergoplatform.ergo.PubKey
 import org.ergoplatform.ergo.domain.SigmaType.SimpleKindSigmaType._
 import org.ergoplatform.ergo.domain.SigmaType._
 import tofu.logging.derivation.loggable
+import cats.syntax.either._
 
 @derive(encoder, loggable)
 sealed trait SConstant
@@ -38,6 +39,6 @@ object SConstant {
         case SCollection(SByte) => ByteaConstant(HexString.unsafeFromString(value))
         case _                  => UnresolvedConstant(value)
       }
-    }
+    }.leftFlatMap { err => UnresolvedConstant(err.message).asRight }
   }
 }

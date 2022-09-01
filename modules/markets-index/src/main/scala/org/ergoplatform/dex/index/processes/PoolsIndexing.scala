@@ -7,6 +7,7 @@ import cats.syntax.traverse._
 import cats.{Foldable, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.dex.index.configs.PoolsIndexingConfig
+import org.ergoplatform.dex.domain.amm.CFMMPool
 import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
 import org.ergoplatform.dex.index.db.models.{DBAssetInfo, DBPoolSnapshot}
 import org.ergoplatform.dex.index.repositories.RepoBundle
@@ -16,6 +17,7 @@ import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.errors.ResponseError
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo.ErgoTokenInfo
+import org.ergoplatform.ergo.state.ConfirmedIndexed
 import retry.RetryPolicies._
 import retry.{RetryDetails, Sleep, retryingOnSomeErrors}
 import tofu.MonadThrow
