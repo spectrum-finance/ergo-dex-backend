@@ -103,7 +103,7 @@ object models {
   implicit val swapQs: QuerySet[DBSwap] = SwapOrdersSql
 
   implicit val swapView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnySwap, SwapEvaluation], DBSwap] = {
-    case EvaluatedCFMMOrder(swap: AnySwap, ev, pool) =>
+    case EvaluatedCFMMOrder(swap: AnySwap, ev, pool, _) =>
       val (minerFee, params) = swap match {
         case swap: SwapV0 => (None, swap.params)
         case swap: SwapV1 => (swap.maxMinerFee.some, swap.params)
@@ -144,7 +144,7 @@ object models {
   implicit val redeemQs: QuerySet[DBRedeem] = RedeemOrdersSql
 
   implicit val redeemView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyRedeem, RedeemEvaluation], DBRedeem] = {
-    case EvaluatedCFMMOrder(redeem, ev, pool) =>
+    case EvaluatedCFMMOrder(redeem, ev, pool, _) =>
       val (minerFee, params) = redeem match {
         case redeem: RedeemV0 => (None, redeem.params)
         case redeem: RedeemV1 => (redeem.maxMinerFee.some, redeem.params)
@@ -184,7 +184,7 @@ object models {
   implicit val depositQs: QuerySet[DBDeposit] = DepositOrdersSql
 
   implicit val depositView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyDeposit, DepositEvaluation], DBDeposit] = {
-    case EvaluatedCFMMOrder(deposit, ev, pool) =>
+    case EvaluatedCFMMOrder(deposit, ev, pool, _) =>
       val (minerFee, params) = deposit match {
         case deposit: DepositV0 => (None, deposit.params)
         case deposit: DepositV1 => (deposit.maxMinerFee.some, deposit.params)
@@ -214,4 +214,18 @@ object models {
 
   implicit val extractAssets: Extract[TokenInfo, DBAssetInfo] =
     ti => DBAssetInfo(ti.id, ti.name.map(Ticker.apply), ti.decimals)
+
+  final case class DBOffChainOperator(outputId: OrderId, fee: Long, orderId: OrderId,address: PubKey)
+
+  implicit val offChainOperatorQs: QuerySet[DBOffChainOperator] = OffChainOperatorSql
+
+  implicit val offChainOperatorView: Extract[OffChainOperator, DBOffChainOperator] = {
+    offChain =>
+      DBOffChainOperator(
+        OrderId.fromBoxId(offChain.outputId),
+        offChain.operatorFee,
+        offChain.orderId,
+        PubKey.unsafeFromString(offChain.address)
+      )
+  }
 }

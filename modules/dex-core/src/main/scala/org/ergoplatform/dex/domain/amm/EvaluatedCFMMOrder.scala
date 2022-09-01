@@ -10,7 +10,8 @@ import tofu.logging.derivation.loggable
 final case class EvaluatedCFMMOrder[A <: CFMMVersionedOrder.Any, E <: OrderEvaluation](
   order: A,
   eval: Option[E],
-  pool: Option[CFMMPool]
+  pool: Option[CFMMPool],
+  offChainOperator: Option[OffChainOperator]
 )
 
 object EvaluatedCFMMOrder {
