@@ -131,9 +131,9 @@ create index blocks__height on public.blocks using btree (height);
 
 create table if not exists public.off_chain_operators (
     output_id public.hash32type primary key,
-    fee integer not null,
+    fee bigint not null,
     order_id public.hash32type not null,
-    address public.pubkey not null
+    address text not null
 );
 
 alter table public.off_chain_operators owner to ergo_admin;
