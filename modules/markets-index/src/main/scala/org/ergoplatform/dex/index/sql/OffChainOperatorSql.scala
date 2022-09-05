@@ -9,7 +9,8 @@ object OffChainOperatorSql extends QuerySet[DBOffChainOperator] {
     "output_id",
     "fee",
     "order_id",
-    "address"
+    "address",
+    "timestamp"
   )
 
   val tableName: String = "off_chain_operators"

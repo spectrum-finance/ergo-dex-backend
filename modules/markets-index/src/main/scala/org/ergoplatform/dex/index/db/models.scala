@@ -215,7 +215,7 @@ object models {
   implicit val extractAssets: Extract[TokenInfo, DBAssetInfo] =
     ti => DBAssetInfo(ti.id, ti.name.map(Ticker.apply), ti.decimals)
 
-  final case class DBOffChainOperator(outputId: OrderId, fee: Long, orderId: OrderId,address: PubKey)
+  final case class DBOffChainOperator(outputId: OrderId, fee: Long, orderId: OrderId,address: PubKey, timestamp: Long)
 
   implicit val offChainOperatorQs: QuerySet[DBOffChainOperator] = OffChainOperatorSql
 
@@ -225,7 +225,8 @@ object models {
         OrderId.fromBoxId(offChain.outputId),
         offChain.operatorFee,
         offChain.orderId,
-        PubKey.unsafeFromString(offChain.address)
+        PubKey.unsafeFromString(offChain.address),
+        offChain.timestamp
       )
   }
 }

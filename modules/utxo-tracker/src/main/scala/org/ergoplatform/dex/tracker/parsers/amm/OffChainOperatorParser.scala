@@ -12,7 +12,7 @@ import cats.syntax.applicative._
 import cats.syntax.option._
 
 trait OffChainOperatorParser {
-  def parse[A <: CFMMVersionedOrder.Any](o: A, output: Output): Option[OffChainOperator]
+  def parse[A <: CFMMVersionedOrder.Any](o: A, output: Output, ts: Long): Option[OffChainOperator]
 }
 
 object OffChainOperatorParser {
@@ -21,7 +21,7 @@ object OffChainOperatorParser {
 
   final class Impl(implicit e: ErgoAddressEncoder) extends OffChainOperatorParser {
 
-    def parse[A <: CFMMVersionedOrder.Any](o: A, output: Output): Option[OffChainOperator] = {
+    def parse[A <: CFMMVersionedOrder.Any](o: A, output: Output, ts: Long): Option[OffChainOperator] = {
       val tree     = ErgoTreeSerializer.default.deserialize(output.ergoTree)
       val template = ErgoTreeTemplate.fromBytes(tree.template)
       if (reservedErgoTrees.contains(template)) none
@@ -29,7 +29,7 @@ object OffChainOperatorParser {
         val tree    = ErgoTreeSerializer.default.deserialize(output.ergoTree)
         val address = e.fromProposition(tree).toOption
         val fee     = output.value
-        address.map(a => OffChainOperator(o.id, output.boxId, e.toString(a), fee))
+        address.map(a => OffChainOperator(o.id, output.boxId, e.toString(a), fee, ts))
       }
 
     }

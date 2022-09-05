@@ -8,4 +8,4 @@ import org.ergoplatform.ergo.domain.Output
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
-final case class OffChainOperator(orderId: OrderId, outputId: BoxId, address: String, operatorFee: Long)
+final case class OffChainOperator(orderId: OrderId, outputId: BoxId, address: String, operatorFee: Long, timestamp: Long)

@@ -133,7 +133,10 @@ create table if not exists public.off_chain_operators (
     output_id public.hash32type primary key,
     fee bigint not null,
     order_id public.hash32type not null,
-    address text not null
+    address text not null,
+    timestamp bigint not null
 );
 
 alter table public.off_chain_operators owner to ergo_admin;
+
+create index off_chain_operators__addr on public.off_chain_operators using btree (address);
