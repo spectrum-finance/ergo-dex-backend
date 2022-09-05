@@ -4,7 +4,7 @@ import org.ergoplatform.ergo.ErgoTreeTemplate
 
 object constants {
 
-  def reservedErgoTrees: List[ErgoTreeTemplate] = List(
+  val reservedErgoTrees: List[ErgoTreeTemplate] = List(
     N2TCFMMTemplates.deposit,
     N2TCFMMTemplates.redeem,
     N2TCFMMTemplates.swapBuyV0,
@@ -19,7 +19,9 @@ object constants {
     T2TCFMMTemplates.redeemV0,
     T2TCFMMTemplates.deposit,
     T2TCFMMTemplates.depositV0,
-    ergoBaseOutput
+    ergoBaseOutput,
+    ErgoTreeTemplate.fromBytes(AMMContracts.N2TCFMMContracts.pool.template),
+    ErgoTreeTemplate.fromBytes(AMMContracts.T2TCFMMContracts.pool.template)
   )
 
   def ergoBaseOutput: ErgoTreeTemplate =
