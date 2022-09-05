@@ -91,7 +91,7 @@ object CFMMHistoryParser {
       val inputs = tx.tx.inputs.map(_.output)
       def parseExecutedOrder(order: A): F[Option[EvaluatedCFMMOrder[A, E]]] = {
         def parseOffChain: Option[OffChainOperator] =
-          inputs.map(offChain.parse(order, _, tx.timestamp)).collectFirst { case Some(v) => v }
+          tx.tx.outputs.map(offChain.parse(order, _, tx.timestamp)).collectFirst { case Some(v) => v }
 
         inputs.map(pools.pool).collectFirst { case Some(p) => p } match {
           case Some(p) =>
