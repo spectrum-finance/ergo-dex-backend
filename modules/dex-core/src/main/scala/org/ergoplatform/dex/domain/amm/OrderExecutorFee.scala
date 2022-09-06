@@ -6,4 +6,4 @@ import org.ergoplatform.ergo.{BoxId, PubKey}
 import tofu.logging.derivation.loggable
 
 @derive(encoder, decoder, loggable)
-final case class OrderExecutorFee(poolId: Option[PoolId], orderId: OrderId, outputId: BoxId, address: PubKey, operatorFee: Long, timestamp: Long)
+final case class OrderExecutorFee(poolId: Option[PoolId], orderId: OrderId, outputId: BoxId, address: String, operatorFee: Long, timestamp: Long)

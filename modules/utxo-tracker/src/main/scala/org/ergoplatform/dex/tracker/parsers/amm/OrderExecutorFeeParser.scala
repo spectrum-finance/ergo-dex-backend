@@ -38,7 +38,7 @@ object OrderExecutorFeeParser {
         val address = e.fromProposition(tree).toOption
         val fee     = output.value
         address.map(a =>
-          OrderExecutorFee(pool.map(_.poolId), o.id, output.boxId, PubKey.unsafeFromString(e.toString(a)), fee, ts)
+          OrderExecutorFee(pool.map(_.poolId), o.id, output.boxId, e.toString(a), fee, ts)
         )
       }
     }
