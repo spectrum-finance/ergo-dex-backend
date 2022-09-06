@@ -19,7 +19,8 @@ object SwapOrdersSql extends QuerySet[DBSwap] {
     "dex_fee_per_token_num",
     "dex_fee_per_token_denom",
     "redeemer",
-    "protocol_version"
+    "protocol_version",
+    "contract_version"
   )
 
   val tableName: String = "swaps"

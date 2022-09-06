@@ -42,7 +42,8 @@ create table if not exists public.swaps (
     dex_fee_per_token_num bigint not null,
     dex_fee_per_token_denom bigint not null,
     redeemer public.pubkey not null,
-    protocol_version integer not null
+    protocol_version integer not null,
+    contract_version integer not null
 );
 
 alter table public.swaps owner to ergo_admin;
@@ -65,7 +66,8 @@ create table if not exists public.redeems (
     output_amount_y bigint,
     dex_fee bigint not null,
     redeemer public.pubkey not null,
-    protocol_version integer not null
+    protocol_version integer not null,
+    contract_version integer not null
 );
 
 alter table public.redeems owner to ergo_admin;
@@ -88,7 +90,8 @@ create table if not exists public.deposits (
     output_amount_lp bigint,
     dex_fee bigint not null,
     redeemer public.pubkey not null,
-    protocol_version integer not null
+    protocol_version integer not null,
+    contract_version integer not null
 );
 
 alter table public.deposits owner to ergo_admin;
