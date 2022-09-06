@@ -22,7 +22,7 @@ object AnyOrdersHandler {
   ): List[AnyOrdersHandler[F]] =
     new SwapHandler[F](repos.swaps) :: new RedeemHandler[F](repos.redeems) :: new DepositHandler[F](
       repos.deposits
-    ) :: new OffChainHandler[F](repos.offChain) :: Nil
+    ) :: new OffChainHandler[F](repos.orderExecutorFee) :: Nil
 
   final private class OffChainHandler[F[_]: Applicative](offChain: MonoRepo[DBOrderExecutorFee, F])
     extends AnyOrdersHandler[F] {
