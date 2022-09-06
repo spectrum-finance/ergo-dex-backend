@@ -133,11 +133,11 @@ create table if not exists public.blocks (
 create index blocks__height on public.blocks using btree (height);
 
 create table if not exists public.order_executor_fee (
-    output_id public.hash32type primary key,
-    fee bigint not null,
-    order_id public.hash32type not null,
-    address public.address not null,
     pool_id public.hash32type,
+    order_id public.hash32type not null,
+    output_id public.hash32type primary key,
+    address public.address not null,
+    fee bigint not null,
     timestamp bigint not null
 );
 

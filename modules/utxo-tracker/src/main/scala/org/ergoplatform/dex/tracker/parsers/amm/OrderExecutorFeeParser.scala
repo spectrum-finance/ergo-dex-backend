@@ -30,7 +30,7 @@ object OrderExecutorFeeParser {
       ts: Long,
       pool: Option[CFMMPool]
     ): Option[OrderExecutorFee] = {
-      val rewardAddress = o match {
+      val rewardPubKey = o match {
         case swap: CFMMVersionedOrder.SwapV0       => swap.params.redeemer
         case swap: CFMMVersionedOrder.SwapV1       => swap.params.redeemer
         case deposit: CFMMVersionedOrder.DepositV0 => deposit.params.redeemer
@@ -43,7 +43,16 @@ object OrderExecutorFeeParser {
       val template = ErgoTreeTemplate.fromBytes(tree.template)
       val address  = e.fromProposition(tree).toOption.map(e.toString)
 
-      if (reservedErgoTrees.contains(template) || output.assets.nonEmpty || address.contains(rewardAddress.unwrapped))
+      val treePubKey    = ErgoTreeSerializer.default.deserialize(rewardPubKey.ergoTree)
+      val rewardAddress = e.fromProposition(treePubKey).toOption.map(e.toString)
+
+      def matchAddresses =
+        (for {
+          aOut <- address
+          aOrd <- rewardAddress
+        } yield aOut == aOrd).getOrElse(false)
+
+      if (reservedErgoTrees.contains(template) || output.assets.nonEmpty || matchAddresses)
         none
       else
         address.map(a => OrderExecutorFee(pool.map(_.poolId), o.id, output.boxId, a, output.value, ts))

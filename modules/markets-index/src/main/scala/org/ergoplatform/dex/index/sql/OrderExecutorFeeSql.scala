@@ -6,11 +6,11 @@ import org.ergoplatform.dex.index.db.models.DBOrderExecutorFee
 object OrderExecutorFeeSql extends QuerySet[DBOrderExecutorFee] {
 
   val fields: List[String] = List(
-    "output_id",
-    "fee",
-    "order_id",
-    "address",
     "pool_id",
+    "order_id",
+    "output_id",
+    "address",
+    "fee",
     "timestamp"
   )
 
