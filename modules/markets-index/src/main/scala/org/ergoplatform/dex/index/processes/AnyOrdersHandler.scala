@@ -22,9 +22,9 @@ object AnyOrdersHandler {
   ): List[AnyOrdersHandler[F]] =
     new SwapHandler[F](repos.swaps) :: new RedeemHandler[F](repos.redeems) :: new DepositHandler[F](
       repos.deposits
-    ) :: new OffChainHandler[F](repos.orderExecutorFee) :: Nil
+    ) :: new OrderExecutorFeeHandler[F](repos.orderExecutorFee) :: Nil
 
-  final private class OffChainHandler[F[_]: Applicative](offChain: MonoRepo[DBOrderExecutorFee, F])
+  final private class OrderExecutorFeeHandler[F[_]: Applicative](offChain: MonoRepo[DBOrderExecutorFee, F])
     extends AnyOrdersHandler[F] {
 
     def handle(anyOrders: List[EvaluatedCFMMOrder.Any]): F[Int] =
