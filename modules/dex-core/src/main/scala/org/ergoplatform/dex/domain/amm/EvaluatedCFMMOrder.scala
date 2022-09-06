@@ -11,7 +11,7 @@ final case class EvaluatedCFMMOrder[A <: CFMMVersionedOrder.Any, E <: OrderEvalu
   order: A,
   eval: Option[E],
   pool: Option[CFMMPool],
-  offChainOperator: Option[OffChainOperator]
+  orderExecutorFee: Option[OrderExecutorFee]
 )
 
 object EvaluatedCFMMOrder {

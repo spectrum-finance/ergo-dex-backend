@@ -129,15 +129,15 @@ create table if not exists public.blocks (
 
 create index blocks__height on public.blocks using btree (height);
 
-create table if not exists public.off_chain_operators (
+create table if not exists public.order_executor_fee (
     output_id public.hash32type primary key,
     fee bigint not null,
     order_id public.hash32type not null,
-    address text not null,
+    address public.address not null,
     timestamp bigint not null
 );
 
-alter table public.off_chain_operators owner to ergo_admin;
+alter table public.order_executor_fee owner to ergo_admin;
 
-create index off_chain_operators__addr on public.off_chain_operators using btree (address);
-create index off_chain_operators__ts on public.off_chain_operators using btree (timestamp);
+create index order_executor__addr on public.order_executor_fee using btree (address);
+create index order_executor__ts on public.order_executor_fee using btree (timestamp);

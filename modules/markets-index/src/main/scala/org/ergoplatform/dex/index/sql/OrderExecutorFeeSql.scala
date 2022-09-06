@@ -1,9 +1,9 @@
 package org.ergoplatform.dex.index.sql
 
 import org.ergoplatform.common.sql.QuerySet
-import org.ergoplatform.dex.index.db.models.{DBLiquidityLock, DBOffChainOperator}
+import org.ergoplatform.dex.index.db.models.DBOrderExecutorFee
 
-object OffChainOperatorSql extends QuerySet[DBOffChainOperator] {
+object OrderExecutorFeeSql extends QuerySet[DBOrderExecutorFee] {
 
   val fields: List[String] = List(
     "output_id",
@@ -13,5 +13,5 @@ object OffChainOperatorSql extends QuerySet[DBOffChainOperator] {
     "timestamp"
   )
 
-  val tableName: String = "off_chain_operators"
+  val tableName: String = "order_executor_fee"
 }

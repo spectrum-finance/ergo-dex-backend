@@ -7,7 +7,7 @@ import org.ergoplatform.dex.domain.amm.CFMMVersionedOrder.{AnyDeposit, AnyRedeem
 import org.ergoplatform.dex.domain.amm.{CFMMVersionedOrder, EvaluatedCFMMOrder}
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
 import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
-import org.ergoplatform.dex.index.db.models.{DBDeposit, DBOffChainOperator, DBRedeem, DBSwap}
+import org.ergoplatform.dex.index.db.models.{DBDeposit, DBOrderExecutorFee, DBRedeem, DBSwap}
 import org.ergoplatform.dex.index.repositories.{MonoRepo, RepoBundle}
 import tofu.syntax.monadic._
 
@@ -24,13 +24,13 @@ object AnyOrdersHandler {
       repos.deposits
     ) :: new OffChainHandler[F](repos.offChain) :: Nil
 
-  final private class OffChainHandler[F[_]: Applicative](offChain: MonoRepo[DBOffChainOperator, F])
+  final private class OffChainHandler[F[_]: Applicative](offChain: MonoRepo[DBOrderExecutorFee, F])
     extends AnyOrdersHandler[F] {
 
     def handle(anyOrders: List[EvaluatedCFMMOrder.Any]): F[Int] =
       anyOrders
-        .flatMap(_.offChainOperator)
-        .map(_.extract[DBOffChainOperator]) match {
+        .flatMap(_.orderExecutorFee)
+        .map(_.extract[DBOrderExecutorFee]) match {
         case Nil          => 0.pure
         case ::(head, tl) => offChain.insert(NonEmptyList(head, tl))
       }

@@ -34,7 +34,7 @@ object CFMMHistoryParser {
     orders: CFMMParser[T2T_CFMM, F],
     pools: CFMMPoolsParser[T2T_CFMM],
     evals: CFMMOrderEvaluationParser[F],
-    offChain: OffChainOperatorParser
+                                           orderExecutorFee: OrderExecutorFeeParser
   ): CFMMHistoryParser[T2T_CFMM, F] =
     new UniversalParser[T2T_CFMM, F]
 
@@ -42,7 +42,7 @@ object CFMMHistoryParser {
     orders: CFMMParser[N2T_CFMM, F],
     pools: CFMMPoolsParser[N2T_CFMM],
     evals: CFMMOrderEvaluationParser[F],
-    offChain: OffChainOperatorParser
+                                           orderExecutorFee: OrderExecutorFeeParser
   ): CFMMHistoryParser[N2T_CFMM, F] =
     new UniversalParser[N2T_CFMM, F]
 
@@ -50,7 +50,7 @@ object CFMMHistoryParser {
     orders: CFMMParser[CT, F],
     pools: CFMMPoolsParser[CT],
     evals: CFMMOrderEvaluationParser[F],
-    offChain: OffChainOperatorParser
+                                                            orderExecutorFee: OrderExecutorFeeParser
   ) extends CFMMHistoryParser[CT, F] {
 
     def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnySwap, SwapEvaluation]]] =
@@ -90,16 +90,16 @@ object CFMMHistoryParser {
     ): F[Option[EvaluatedCFMMOrder[A, E]]] = {
       val inputs = tx.tx.inputs.map(_.output)
       def parseExecutedOrder(order: A): F[Option[EvaluatedCFMMOrder[A, E]]] = {
-        def parseOffChain: Option[OffChainOperator] =
-          tx.tx.outputs.map(offChain.parse(order, _, tx.timestamp)).collectFirst { case Some(v) => v }
+        def parseOrderExecutorFee: Option[OrderExecutorFee] =
+          tx.tx.outputs.map(orderExecutorFee.parse(order, _, tx.timestamp)).collectFirst { case Some(v) => v }
 
         inputs.map(pools.pool).collectFirst { case Some(p) => p } match {
           case Some(p) =>
             tx.tx.outputs
               .traverse(o => evalParse(o, p, order))
               .map(_.collectFirst { case Some(c) => c })
-              .map(eval => EvaluatedCFMMOrder(order, eval, p.some, parseOffChain).some)
-          case None => EvaluatedCFMMOrder(order, none, none, parseOffChain).someF[F]
+              .map(eval => EvaluatedCFMMOrder(order, eval, p.some, parseOrderExecutorFee).some)
+          case None => EvaluatedCFMMOrder(order, none, none, parseOrderExecutorFee).someF[F]
         }
       }
 

@@ -3,7 +3,7 @@ package org.ergoplatform.dex.index.repositories
 import cats.{FlatMap, ~>}
 import cats.tagless.FunctorK
 import cats.tagless.syntax.functorK._
-import org.ergoplatform.dex.index.db.models.{DBAssetInfo, DBBlock, DBDeposit, DBLiquidityLock, DBOffChainOperator, DBPoolSnapshot, DBRedeem, DBSwap}
+import org.ergoplatform.dex.index.db.models.{DBAssetInfo, DBBlock, DBDeposit, DBLiquidityLock, DBOrderExecutorFee, DBPoolSnapshot, DBRedeem, DBSwap}
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.logging.Logs
@@ -17,7 +17,7 @@ final case class RepoBundle[F[_]](
   assets: AssetRepo[F],
   locks: MonoRepo[DBLiquidityLock, F],
   blocks: MonoRepo[DBBlock, F],
-  offChain: MonoRepo[DBOffChainOperator, F]
+  offChain: MonoRepo[DBOrderExecutorFee, F]
 )
 
 object RepoBundle {
@@ -50,6 +50,6 @@ object RepoBundle {
       assets   <- AssetRepo.make[I, D]
       locks    <- MonoRepo.make[I, D, DBLiquidityLock]
       blocks   <- MonoRepo.make[I, D, DBBlock]
-      offChain   <- MonoRepo.make[I, D, DBOffChainOperator]
+      offChain   <- MonoRepo.make[I, D, DBOrderExecutorFee]
     } yield RepoBundle(swaps, deposits, redeems, pools, assets, locks, blocks, offChain)
 }
