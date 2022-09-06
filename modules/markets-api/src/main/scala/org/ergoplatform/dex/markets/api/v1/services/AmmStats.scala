@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.markets.api.v1.services
 
-import cats.Monad
+import cats.{Monad, Parallel}
 import cats.data.OptionT
 import cats.effect.Clock
 import mouse.anyf._
@@ -23,6 +23,8 @@ import org.ergoplatform.dex.markets.repositories.{Orders, Pools}
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
+import cats.syntax.option._
+import cats.syntax.parallel._
 import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
 import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
@@ -31,6 +33,7 @@ import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.syntax.monadic._
 import tofu.syntax.time.now._
+
 import scala.concurrent.duration._
 
 trait AmmStats[F[_]] {
@@ -40,6 +43,8 @@ trait AmmStats[F[_]] {
   def getPlatformSummary(window: TimeWindow): F[PlatformSummary]
 
   def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]]
+
+  def getPoolsSummary: F[List[PoolSummary]]
 
   def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]]
 
@@ -58,7 +63,7 @@ object AmmStats {
 
   val slippageWindowScale = 2
 
-  def make[F[_]: Monad: Clock, D[_]: Monad](implicit
+  def make[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
     orders: Orders[D],
@@ -67,7 +72,7 @@ object AmmStats {
     fiatSolver: FiatPriceSolver[F]
   ): AmmStats[F] = new Live[F, D]()
 
-  final class Live[F[_]: Monad, D[_]: Monad](implicit
+  final class Live[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
     orders: Orders[D],
@@ -108,6 +113,16 @@ object AmmStats {
         volumeByY <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByY, UsdUnits).map(_.toList))
         volume = Volume(volumeByX.map(_.value).sum + volumeByY.map(_.value).sum, UsdUnits, window)
       } yield PlatformSummary(tvl, volume)
+    }
+
+    def getPoolsSummary: F[List[PoolSummary]] = millis.flatMap { now =>
+      val h24millis = 24.hours.toMillis
+      val timeWindow = TimeWindow((now - h24millis).some, now.some)
+      (pools.snapshots ||> txr.trans).flatMap { snapshots: List[PoolSnapshot] =>
+        snapshots
+          .parTraverse(pool => getPoolSummary(pool.id, timeWindow))
+          .map(_.flatten)
+      }
     }
 
     def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {
