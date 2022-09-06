@@ -137,6 +137,7 @@ create table if not exists public.order_executor_fee (
     fee bigint not null,
     order_id public.hash32type not null,
     address public.address not null,
+    pool_id public.hash32type,
     timestamp bigint not null
 );
 

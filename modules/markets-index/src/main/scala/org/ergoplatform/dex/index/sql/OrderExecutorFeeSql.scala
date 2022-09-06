@@ -10,6 +10,7 @@ object OrderExecutorFeeSql extends QuerySet[DBOrderExecutorFee] {
     "fee",
     "order_id",
     "address",
+    "pool_id",
     "timestamp"
   )
 

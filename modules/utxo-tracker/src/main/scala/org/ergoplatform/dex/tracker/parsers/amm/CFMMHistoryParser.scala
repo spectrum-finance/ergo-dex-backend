@@ -90,16 +90,16 @@ object CFMMHistoryParser {
     ): F[Option[EvaluatedCFMMOrder[A, E]]] = {
       val inputs = tx.tx.inputs.map(_.output)
       def parseExecutedOrder(order: A): F[Option[EvaluatedCFMMOrder[A, E]]] = {
-        def parseOrderExecutorFee: Option[OrderExecutorFee] =
-          tx.tx.outputs.map(orderExecutorFee.parse(order, _, tx.timestamp)).collectFirst { case Some(v) => v }
+        def parseOrderExecutorFee(pool: Option[CFMMPool]): Option[OrderExecutorFee] =
+          tx.tx.outputs.map(orderExecutorFee.parse(order, _, tx.timestamp, pool)).collectFirst { case Some(v) => v }
 
         inputs.map(pools.pool).collectFirst { case Some(p) => p } match {
           case Some(p) =>
             tx.tx.outputs
               .traverse(o => evalParse(o, p, order))
               .map(_.collectFirst { case Some(c) => c })
-              .map(eval => EvaluatedCFMMOrder(order, eval, p.some, parseOrderExecutorFee).some)
-          case None => EvaluatedCFMMOrder(order, none, none, parseOrderExecutorFee).someF[F]
+              .map(eval => EvaluatedCFMMOrder(order, eval, p.some, parseOrderExecutorFee(p.some)).some)
+          case None => EvaluatedCFMMOrder(order, none, none, parseOrderExecutorFee(none)).someF[F]
         }
       }
 
