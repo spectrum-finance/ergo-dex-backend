@@ -1,7 +1,7 @@
 package org.ergoplatform.dex.tracker.parsers.amm
 
 import cats.syntax.option._
-import org.ergoplatform.ErgoAddressEncoder
+import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, CFMMVersionedOrder, OrderExecutorFee}
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.constants._
@@ -41,21 +41,26 @@ object OrderExecutorFeeParser {
 
       val tree     = ErgoTreeSerializer.default.deserialize(output.ergoTree)
       val template = ErgoTreeTemplate.fromBytes(tree.template)
-      val address  = e.fromProposition(tree).toOption.map(e.toString)
+      val address  = e.fromProposition(tree).toOption
 
       val treePubKey    = ErgoTreeSerializer.default.deserialize(rewardPubKey.ergoTree)
       val rewardAddress = e.fromProposition(treePubKey).toOption.map(e.toString)
 
+      def isP2PK = address.exists {
+        case _: P2PKAddress => true
+        case _              => false
+      }
+
       def matchAddresses =
         (for {
-          aOut <- address
+          aOut <- address.map(e.toString)
           aOrd <- rewardAddress
         } yield aOut == aOrd).getOrElse(false)
 
-      if (reservedErgoTrees.contains(template) || output.assets.nonEmpty || matchAddresses)
+      if (reservedErgoTrees.contains(template) || output.assets.nonEmpty || matchAddresses || !isP2PK)
         none
       else
-        address.map(a => OrderExecutorFee(pool.map(_.poolId), o.id, output.boxId, a, output.value, ts))
+        address.map(e.toString).map(a => OrderExecutorFee(pool.map(_.poolId), o.id, output.boxId, a, output.value, ts))
     }
   }
 }
