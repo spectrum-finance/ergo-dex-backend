@@ -51,9 +51,6 @@ object OrderExecutorFeeParser {
         case _              => false
       }
 
-      println(s"Address: $address")
-      println(s"isP2PK: $isP2PK")
-
       def matchAddresses =
         (for {
           aOut <- address.map(e.toString)
