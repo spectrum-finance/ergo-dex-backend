@@ -216,7 +216,14 @@ object models {
   implicit val extractAssets: Extract[TokenInfo, DBAssetInfo] =
     ti => DBAssetInfo(ti.id, ti.name.map(Ticker.apply), ti.decimals)
 
-  final case class DBOrderExecutorFee(poolId: Option[PoolId], orderId: OrderId, outputId: BoxId, address: String, operatorFee: Long, timestamp: Long)
+  final case class DBOrderExecutorFee(
+    poolId: PoolId,
+    orderId: OrderId,
+    outputId: BoxId,
+    address: String,
+    operatorFee: Long,
+    timestamp: Long
+  )
 
   implicit val orderExecutorFeeQs: QuerySet[DBOrderExecutorFee] = OrderExecutorFeeSql
 

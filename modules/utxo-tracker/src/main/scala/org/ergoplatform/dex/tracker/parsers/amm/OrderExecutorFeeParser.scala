@@ -14,7 +14,7 @@ trait OrderExecutorFeeParser {
     o: A,
     output: Output,
     ts: Long,
-    pool: Option[CFMMPool]
+    pool: CFMMPool
   ): Option[OrderExecutorFee]
 }
 
@@ -28,7 +28,7 @@ object OrderExecutorFeeParser {
       o: A,
       output: Output,
       ts: Long,
-      pool: Option[CFMMPool]
+      pool: CFMMPool
     ): Option[OrderExecutorFee] = {
       val rewardPubKey = o match {
         case swap: CFMMVersionedOrder.SwapV0       => swap.params.redeemer
@@ -60,7 +60,7 @@ object OrderExecutorFeeParser {
       if (reservedErgoTrees.contains(template) || output.assets.nonEmpty || matchAddresses || !isP2PK)
         none
       else
-        address.map(e.toString).map(a => OrderExecutorFee(pool.map(_.poolId), o.id, output.boxId, a, output.value, ts))
+        address.map(e.toString).map(a => OrderExecutorFee(pool.poolId, o.id, output.boxId, a, output.value, ts))
     }
   }
 }

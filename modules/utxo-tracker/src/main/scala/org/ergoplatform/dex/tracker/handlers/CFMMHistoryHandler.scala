@@ -27,7 +27,6 @@ final class CFMMHistoryHandler[
 
   def handler: SettledTxHandler[F] =
     _.evalMap { tx =>
-      info"Going to parse next tx: $tx" >>
       parsers
         .traverse { parser =>
           def widen[A <: CFMMVersionedOrder.Any, E <: OrderEvaluation](eo: EvaluatedCFMMOrder[A, E]) =
