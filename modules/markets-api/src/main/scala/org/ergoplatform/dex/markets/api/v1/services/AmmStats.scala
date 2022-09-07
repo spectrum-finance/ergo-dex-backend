@@ -16,8 +16,8 @@ import org.ergoplatform.dex.markets.api.v1.models.amm.{
   TransactionsInfo
 }
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
-import org.ergoplatform.dex.markets.currencies.UsdUnits
-import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
+import org.ergoplatform.dex.markets.currencies.{UsdCurrencyId, UsdUnits}
+import org.ergoplatform.dex.markets.domain.{CryptoVolume, FeePercentProjection, Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
 import org.ergoplatform.dex.markets.repositories.{Orders, Pools}
 import tofu.doobie.transactor.Txr
@@ -26,7 +26,7 @@ import cats.syntax.traverse._
 import cats.syntax.option._
 import cats.syntax.parallel._
 import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
-import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
+import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, Currency, FiatUnits, FullAsset, MarketId}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.dex.markets.services.TokenFetcher
 import org.ergoplatform.ergo.TokenId
@@ -116,13 +116,30 @@ object AmmStats {
     }
 
     def getPoolsSummary: F[List[PoolSummary]] = millis.flatMap { now =>
-      val h24millis = 24.hours.toMillis
+      val h24millis  = 24.hours.toMillis
       val timeWindow = TimeWindow((now - h24millis).some, now.some)
       (pools.snapshots ||> txr.trans).flatMap { snapshots: List[PoolSnapshot] =>
         snapshots
-          .parTraverse(pool => getPoolSummary(pool.id, timeWindow))
+          .parTraverse(pool => getPoolSummaryV2(pool, timeWindow))
           .map(_.flatten)
       }
+    }
+
+    def getPoolSummaryV2(pool: PoolSnapshot, window: TimeWindow): F[Option[PoolSummary]] = {
+      val poolId = pool.id
+      (for {
+        lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits))
+        lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits))
+        tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
+      } yield PoolSummary(
+        poolId,
+        pool.lockedX,
+        pool.lockedY,
+        tvl,
+        Volume(BigDecimal(0), FiatUnits(Currency(UsdCurrencyId, 1)), window),
+        Fees(BigDecimal(0), FiatUnits(Currency(UsdCurrencyId, 1)), window),
+        FeePercentProjection(0)
+      )).value
     }
 
     def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {
