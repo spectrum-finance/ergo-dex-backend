@@ -91,7 +91,7 @@ object AmmStats {
                   assetInfo.ticker,
                   assetInfo.decimals
                 )
-        equiv <- OptionT(fiatSolver.convert(asset, UsdUnits))
+        equiv <- OptionT(fiatSolver.convert(asset, UsdUnits, List.empty))
       } yield FiatEquiv(equiv.value, UsdUnits)).value
 
     def getPlatformSummary(window: TimeWindow): F[PlatformSummary] = {
@@ -105,12 +105,12 @@ object AmmStats {
         validTokens              <- tokens.fetchTokens
         filteredSnaps =
           poolSnapshots.filter(ps => validTokens.contains(ps.lockedX.id) && validTokens.contains(ps.lockedY.id))
-        lockedX <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedX, UsdUnits).map(_.toList))
-        lockedY <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedY, UsdUnits).map(_.toList))
+        lockedX <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedX, UsdUnits, List.empty).map(_.toList))
+        lockedY <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedY, UsdUnits, List.empty).map(_.toList))
         tvl = TotalValueLocked(lockedX.map(_.value).sum + lockedY.map(_.value).sum, UsdUnits)
 
-        volumeByX <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByX, UsdUnits).map(_.toList))
-        volumeByY <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByY, UsdUnits).map(_.toList))
+        volumeByX <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByX, UsdUnits, List.empty).map(_.toList))
+        volumeByY <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByY, UsdUnits, List.empty).map(_.toList))
         volume = Volume(volumeByX.map(_.value).sum + volumeByY.map(_.value).sum, UsdUnits, window)
       } yield PlatformSummary(tvl, volume)
     }
@@ -120,16 +120,16 @@ object AmmStats {
       val timeWindow = TimeWindow((now - h24millis).some, now.some)
       (pools.snapshots ||> txr.trans).flatMap { snapshots: List[PoolSnapshot] =>
         snapshots
-          .parTraverse(pool => getPoolSummaryV2(pool, timeWindow))
+          .parTraverse(pool => getPoolSummaryV2(pool, timeWindow, snapshots))
           .map(_.flatten)
       }
     }
 
-    def getPoolSummaryV2(pool: PoolSnapshot, window: TimeWindow): F[Option[PoolSummary]] = {
+    def getPoolSummaryV2(pool: PoolSnapshot, window: TimeWindow, pools: List[PoolSnapshot]): F[Option[PoolSummary]] = {
       val poolId = pool.id
       (for {
-        lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits))
-        lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits))
+        lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, pools))
+        lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, pools))
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
       } yield PoolSummary(
         poolId,
@@ -152,15 +152,15 @@ object AmmStats {
         } yield (info, pool, vol, feesSnap)).value
       (for {
         (info, pool, vol, feesSnap) <- OptionT(queryPoolStats ||> txr.trans)
-        lockedX                     <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits))
-        lockedY                     <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits))
+        lockedX                     <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, List.empty))
+        lockedY                     <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, List.empty))
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
 
         volume <- vol match {
                     case Some(vol) =>
                       for {
-                        volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits))
-                        volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits))
+                        volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits, List.empty))
+                        volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits, List.empty))
                       } yield Volume(volX.value + volY.value, UsdUnits, window)
                     case None => OptionT.pure[F](Volume.empty(UsdUnits, window))
                   }
@@ -168,8 +168,8 @@ object AmmStats {
         fees <- feesSnap match {
                   case Some(feesSnap) =>
                     for {
-                      feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits))
-                      feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits))
+                      feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits, List.empty))
+                      feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits, List.empty))
                     } yield Fees(feesX.value + feesY.value, UsdUnits, window)
                   case None => OptionT.pure[F](Fees.empty(UsdUnits, window))
                 }
@@ -305,7 +305,7 @@ object AmmStats {
         volumes <- OptionT.liftF(
                      swaps.flatTraverse(swap =>
                        fiatSolver
-                         .convert(swap.asset, UsdUnits)
+                         .convert(swap.asset, UsdUnits, List.empty)
                          .map(_.toList.map(_.value))
                      )
                    )
@@ -318,10 +318,10 @@ object AmmStats {
         numTxs   <- OptionT.fromOption[F](deposits.headOption.map(_.numTxs))
         volumes <- OptionT.liftF(deposits.flatTraverse { deposit =>
                      fiatSolver
-                       .convert(deposit.assetX, UsdUnits)
+                       .convert(deposit.assetX, UsdUnits, List.empty)
                        .flatMap { optX =>
                          fiatSolver
-                           .convert(deposit.assetY, UsdUnits)
+                           .convert(deposit.assetY, UsdUnits, List.empty)
                            .map(optY =>
                              optX
                                .flatMap(eqX => optY.map(eqY => eqX.value + eqY.value))
