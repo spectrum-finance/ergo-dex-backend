@@ -105,12 +105,16 @@ object AmmStats {
         validTokens              <- tokens.fetchTokens
         filteredSnaps =
           poolSnapshots.filter(ps => validTokens.contains(ps.lockedX.id) && validTokens.contains(ps.lockedY.id))
-        lockedX <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedX, UsdUnits, List.empty).map(_.toList))
-        lockedY <- filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedY, UsdUnits, List.empty).map(_.toList))
+        lockedX <-
+          filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedX, UsdUnits, List.empty).map(_.toList))
+        lockedY <-
+          filteredSnaps.flatTraverse(pool => fiatSolver.convert(pool.lockedY, UsdUnits, List.empty).map(_.toList))
         tvl = TotalValueLocked(lockedX.map(_.value).sum + lockedY.map(_.value).sum, UsdUnits)
 
-        volumeByX <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByX, UsdUnits, List.empty).map(_.toList))
-        volumeByY <- volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByY, UsdUnits, List.empty).map(_.toList))
+        volumeByX <-
+          volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByX, UsdUnits, List.empty).map(_.toList))
+        volumeByY <-
+          volumes.flatTraverse(pool => fiatSolver.convert(pool.volumeByY, UsdUnits, List.empty).map(_.toList))
         volume = Volume(volumeByX.map(_.value).sum + volumeByY.map(_.value).sum, UsdUnits, window)
       } yield PlatformSummary(tvl, volume)
     }
@@ -125,18 +129,24 @@ object AmmStats {
       }
     }
 
-    def getPoolSummaryV2(pool: PoolSnapshot, window: TimeWindow, pools: List[PoolSnapshot]): F[Option[PoolSummary]] = {
+    def getPoolSummaryV2(pool: PoolSnapshot, window: TimeWindow, poolsL: List[PoolSnapshot]): F[Option[PoolSummary]] = {
       val poolId = pool.id
       (for {
-        lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, pools))
-        lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, pools))
+        lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, poolsL))
+        lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, poolsL))
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
+        vol <- OptionT(pools.volume(poolId, window) ||> txr.trans)
+        volume <-
+          for {
+            volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits, poolsL))
+            volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits, poolsL))
+          } yield Volume(volX.value + volY.value, UsdUnits, window)
       } yield PoolSummary(
         poolId,
         pool.lockedX,
         pool.lockedY,
         tvl,
-        Volume(BigDecimal(0), FiatUnits(Currency(UsdCurrencyId, 1)), window),
+        volume,
         Fees(BigDecimal(0), FiatUnits(Currency(UsdCurrencyId, 1)), window),
         FeePercentProjection(0)
       )).value

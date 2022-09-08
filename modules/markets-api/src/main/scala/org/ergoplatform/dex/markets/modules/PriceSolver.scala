@@ -88,12 +88,14 @@ object PriceSolver {
       target match {
         case CryptoUnits(units) =>
           if (asset.id != units.tokenId) {
-            val filtered = pools.filter { p => p.lockedX.id == asset.id || p.lockedY.id == asset.id }
-            val markets1 = parsePools(filtered)
-            markets1.find(_.contains(units.tokenId)).map { market =>
+            val marketsFromPools =
+              if (pools.isEmpty)
+                markets.getByAsset(asset.id)
+              else parsePools(pools.filter { p => p.lockedX.id == asset.id || p.lockedY.id == asset.id }).pure
+            marketsFromPools.map(_.find(_.contains(units.tokenId)).map { market =>
               val amountEquiv = BigDecimal(asset.amount) * market.priceBy(asset.id)
               AssetEquiv(asset, target, amountEquiv)
-            }.pure
+            })
           } else AssetEquiv(asset, target, BigDecimal(asset.amount)).someF
       }
   }
