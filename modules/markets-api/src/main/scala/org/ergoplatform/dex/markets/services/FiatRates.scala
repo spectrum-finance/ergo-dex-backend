@@ -78,6 +78,9 @@ object FiatRates {
         case None => fs2.Stream.eval(noneF)
       } >> run
     }
+      .handleErrorWith { err =>
+      fs2.Stream.eval(info"The error: ${err.getMessage} occurred.") >> run
+    }
 
     def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] = {
       def f: F[Option[BigDecimal]] =
