@@ -14,7 +14,7 @@ import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import sttp.client3.{SttpBackend, UriContext}
-import tofu.logging.Logs
+import tofu.logging.{Logging, Logs}
 import tofu.{Context, WithContext}
 
 import scala.concurrent.duration.FiniteDuration
@@ -37,6 +37,7 @@ class FiatRatesSpec extends AnyPropSpec with should.Matchers with CatsPlatform {
       implicit0(back: SttpBackend[IO, Any]) <- AsyncHttpClientCatsBackend[IO]()
       network                               <- ErgoExplorer.make[IO, IO]
       ref <- Ref.of[IO, BigDecimal](BigDecimal(0))
+      implicit0(logging: Logging[IO]) <- logs.forService[Unit]
       rates = new ErgoOraclesRateSource(network, memo, ref)
       ergUsdRate <- rates.rateOf(ErgoAssetClass, UsdUnits)
       _          <- IO.delay(println(ergUsdRate))

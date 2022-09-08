@@ -35,22 +35,26 @@ object FiatRates {
   val MemoTtl: FiniteDuration = 2.minutes
 
   def make[I[_]: FlatMap: Sync, F[_]: Monad: Clock: Sync](implicit
-                                                    network: ErgoExplorer[F],
-                                                    logs: Logs[I, F],
-                                                    makeRef: MakeRef[I, F]
+    network: ErgoExplorer[F],
+    logs: Logs[I, F],
+    makeRef: MakeRef[I, F]
   ): I[FiatRates[F]] =
     for {
       implicit0(l: Logging[F]) <- logs.forService[FiatRates[F]]
       memo                     <- Memoize.make[I, F, BigDecimal]
-      ref <- Ref.in[I, F, BigDecimal](BigDecimal(0))
+      ref                      <- Ref.in[I, F, BigDecimal](BigDecimal(0))
     } yield new FiatRatesTracing[F] attach new ErgoOraclesRateSource(network, memo, ref)
 
-  final class ErgoOraclesRateSource[F[_]: Monad](network: ErgoExplorer[F], memo: Memoize[F, BigDecimal], ref: Ref[F, BigDecimal])
-    extends FiatRates[F] {
+  final class ErgoOraclesRateSource[F[_]: Monad: Logging](
+    network: ErgoExplorer[F],
+    memo: Memoize[F, BigDecimal],
+    ref: Ref[F, BigDecimal]
+  ) extends FiatRates[F] {
 
     def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] =
       if (asset == ErgoAssetClass && units == UsdUnits) {
-        val pullFromNetwork =
+        val pullFromNetwork = {
+          info"Going to pull from network rate" >>
           network
             .getUtxoByToken(ErgUsdPoolNft, offset = 0, limit = 1)
             .map(_.headOption)
@@ -65,16 +69,16 @@ object FiatRates {
                 oneErg = math.pow(10, ErgoAssetDecimals.toDouble)
               } yield BigDecimal(oneErg) / BigDecimal(usdPrice)
             }
+        }
         for {
-          memoizedRate <- ref.get
-          res <- memoizedRate match {
-                   case rate if rate == BigDecimal(0) =>
+          memoizedRate <- info"Memo read $asset $units" >> memo.read.flatTap(r => info"Memo read completed $r")
+            res <- memoizedRate match {
+                   case Some(rate) => rate.someF
+                   case None =>
                      pullFromNetwork.flatTap {
-                       case Some(rate) => ref.set(rate)
+                       case Some(rate) => info"Memo memoize $asset $units $rate" >> memo.memoize(rate, MemoTtl).flatTap(_ => info"Memo memoize completed")
                        case None       => unit
                      }
-                   case rate => rate.someF
-
                  }
         } yield res
       } else noneF
