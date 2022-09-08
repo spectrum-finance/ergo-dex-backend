@@ -84,7 +84,7 @@ object App extends EnvApp[AppContext] {
       invalidator     = HttpCacheInvalidator.make[StreamF, RunF, fs2.Chunk]
       invalidatorProc = invalidator.run
       serverProc      = HttpServer.make[InitF, RunF](configs.http, runtime.platform.executor.asEC, configs.request)
-    } yield List(invalidatorProc, serverProc.translate(wr.liftF).drain) -> ctx
+    } yield List(rates.run, invalidatorProc, serverProc.translate(wr.liftF).drain) -> ctx
 
   private def makeConsumer[K: RecordDeserializer[RunF, *], V: RecordDeserializer[RunF, *]](conf: ConsumerConfig) = {
     implicit val maker = MakeKafkaConsumer.make[InitF, RunF, K, V]

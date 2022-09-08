@@ -1,6 +1,6 @@
 package org.ergoplatform.dex.markets.services
 
-import cats.effect.{Clock, Sync}
+import cats.effect.{Clock, Sync, Timer}
 import cats.effect.concurrent.Ref
 import cats.{FlatMap, Functor, Monad}
 import derevo.derive
@@ -21,10 +21,11 @@ import tofu.syntax.monadic._
 
 import scala.concurrent.duration._
 
-@derive(representableK)
 trait FiatRates[F[_]] {
 
   def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]]
+
+  def run: fs2.Stream[F, Unit]
 }
 
 object FiatRates {
@@ -34,7 +35,7 @@ object FiatRates {
 
   val MemoTtl: FiniteDuration = 2.minutes
 
-  def make[I[_]: FlatMap: Sync, F[_]: Monad: Clock: Sync](implicit
+  def make[I[_]: FlatMap: Sync, F[_]: Monad: Clock: Sync: Timer](implicit
     network: ErgoExplorer[F],
     logs: Logs[I, F],
     makeRef: MakeRef[I, F]
@@ -43,54 +44,68 @@ object FiatRates {
       implicit0(l: Logging[F]) <- logs.forService[FiatRates[F]]
       memo                     <- Memoize.make[I, F, BigDecimal]
       ref                      <- Ref.in[I, F, BigDecimal](BigDecimal(0))
-    } yield new FiatRatesTracing[F] attach new ErgoOraclesRateSource(network, memo, ref)
+      resolver = new ErgoOraclesRateSource(network, memo, ref)
+    } yield resolver
 
-  final class ErgoOraclesRateSource[F[_]: Monad: Logging](
+  final class ErgoOraclesRateSource[F[_]: Monad: Logging: Timer](
     network: ErgoExplorer[F],
     memo: Memoize[F, BigDecimal],
     ref: Ref[F, BigDecimal]
   ) extends FiatRates[F] {
 
-    def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] =
-      if (asset == ErgoAssetClass && units == UsdUnits) {
-        val pullFromNetwork = {
-          info"Going to pull from network rate" >>
-          network
-            .getUtxoByToken(ErgUsdPoolNft, offset = 0, limit = 1)
-            .map(_.headOption)
-            .map {
-              for {
-                out    <- _
-                (_, r) <- out.additionalRegisters.find { case (r, _) => r == RegisterId.R4 }
-                usdPrice <- r match {
-                              case SConstant.LongConstant(v) => Some(v)
-                              case _                         => None
-                            }
-                oneErg = math.pow(10, ErgoAssetDecimals.toDouble)
-              } yield BigDecimal(oneErg) / BigDecimal(usdPrice)
-            }
-        }
-        for {
-          memoizedRate <- info"Memo read $asset $units" >> memo.read.flatTap(r => info"Memo read completed $r")
+    def run: fs2.Stream[F, Unit] = {
+      val pullFromNetwork = {
+        info"Going to pull from network rate" >>
+        network
+          .getUtxoByToken(ErgUsdPoolNft, offset = 0, limit = 1)
+          .map(_.headOption)
+          .map {
+            for {
+              out    <- _
+              (_, r) <- out.additionalRegisters.find { case (r, _) => r == RegisterId.R4 }
+              usdPrice <- r match {
+                            case SConstant.LongConstant(v) => Some(v)
+                            case _                         => None
+                          }
+              oneErg = math.pow(10, ErgoAssetDecimals.toDouble)
+            } yield BigDecimal(oneErg) / BigDecimal(usdPrice)
+          }
+      }.flatTap(_ => info"rate from network finished")
+
+      fs2.Stream.eval(pullFromNetwork).flatMap {
+        case Some(rate) =>
+          fs2.Stream.eval(memo.memoize(rate, 356.days)) >> fs2.Stream.eval(Timer[F].sleep(1.minutes))
+        case None => fs2.Stream.eval(noneF)
+      } >> run
+    }
+
+    def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] = info"rateOf $asset $units" >> {
+        if (asset == ErgoAssetClass && units == UsdUnits) {
+          for {
+            memoizedRate <- info"Memo read $asset $units" >> memo.read.flatTap(r => info"Memo read completed $r")
             res <- memoizedRate match {
-                   case Some(rate) => rate.someF
-                   case None =>
-                     pullFromNetwork.flatTap {
-                       case Some(rate) => info"Memo memoize $asset $units $rate" >> memo.memoize(rate, MemoTtl).flatTap(_ => info"Memo memoize completed")
-                       case None       => unit
-                     }
-                 }
-        } yield res
-      } else noneF
+                     case Some(rate) => rate.someF
+                     case None       => noneF
+                   }
+          } yield res
+        } else noneF
+      } <* info"rateOf finished $asset $units"
   }
 
-  final class FiatRatesTracing[F[_]: FlatMap: Logging] extends FiatRates[Mid[F, *]] {
-
-    def rateOf(asset: AssetClass, units: FiatUnits): Mid[F, Option[BigDecimal]] =
-      for {
-        _ <- trace"rateOf(asset=$asset, units=$units)"
-        r <- _
-        _ <- trace"rateOf(asset=$asset, units=$units) -> $r"
-      } yield r
-  }
+//  final class FiatRatesTracing[F[_]: FlatMap: Logging] extends FiatRates[Mid[F, *]] {
+//
+//    def rateOf(asset: AssetClass, units: FiatUnits): Mid[F, Option[BigDecimal]] =
+//      for {
+//        _ <- trace"rateOf(asset=$asset, units=$units)"
+//        r <- _
+//        _ <- trace"rateOf(asset=$asset, units=$units) -> $r"
+//      } yield r
+//
+//    def run: Mid[F, Unit] =
+//      for {
+//        _ <- trace"run start"
+//        r <- _
+//        _ <- trace"run finish"
+//      } yield r
+//  }
 }
