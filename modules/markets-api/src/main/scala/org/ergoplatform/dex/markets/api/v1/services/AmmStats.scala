@@ -135,12 +135,18 @@ object AmmStats {
         lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, poolsL))
         lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, poolsL))
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
+        vol <- OptionT(pools.volume(poolId, window) ||> txr.trans)
+        volume <-
+          for {
+            volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits, poolsL))
+            volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits, poolsL))
+          } yield Volume(volX.value + volY.value, UsdUnits, window)
       } yield PoolSummary(
         poolId,
         pool.lockedX,
         pool.lockedY,
         tvl,
-        Volume.empty(UsdUnits, window),
+        volume,
         Fees(BigDecimal(0), FiatUnits(Currency(UsdCurrencyId, 1)), window),
         FeePercentProjection(0)
       )).value

@@ -42,7 +42,7 @@ object PriceSolver {
       logs
         .forService[CryptoPriceSolver[F]]
         .map(implicit l =>
-          Mid.attach[CryptoPriceSolver, F](new PriceSolverTracing[F, CryptoSolverType])(new CryptoSolver(markets))
+          Mid.attach[CryptoPriceSolver, F](new PriceSolverTracing[F, CryptoSolverType]("crypto"))(new CryptoSolver(markets))
         )
   }
 
@@ -61,7 +61,7 @@ object PriceSolver {
       logs
         .forService[FiatPriceSolver[F]]
         .map(implicit l =>
-          Mid.attach[FiatPriceSolver, F](new PriceSolverTracing[F, FiatSolverType])(
+          Mid.attach[FiatPriceSolver, F](new PriceSolverTracing[F, FiatSolverType]("fiat"))(
             new ViaErgFiatSolver(rates, cryptoSolver)
           )
         )
@@ -82,7 +82,7 @@ object PriceSolver {
       }
   }
 
-  final class CryptoSolver[F[_]: Monad](markets: Markets[F]) extends PriceSolver[F, CryptoSolverType] {
+  final class CryptoSolver[F[_]: Monad: Logging](markets: Markets[F]) extends PriceSolver[F, CryptoSolverType] {
 
     def convert(asset: FullAsset, target: ValueUnits[AssetRepr], pools: List[PoolSnapshot]): F[Option[AssetEquiv[AssetRepr]]] =
       target match {
@@ -90,8 +90,9 @@ object PriceSolver {
           if (asset.id != units.tokenId) {
             val marketsFromPools =
               if (pools.isEmpty)
-                markets.getByAsset(asset.id)
+                markets.getByAsset(asset.id).flatTap(r => info"[CryptoSolver]:get data from repo.")
               else parsePools(pools.filter { p => p.lockedX.id == asset.id || p.lockedY.id == asset.id }).pure
+                .flatTap(r => info"[CryptoSolver]:get data from pools.")
             marketsFromPools.map(_.find(_.contains(units.tokenId)).map { market =>
               val amountEquiv = BigDecimal(asset.amount) * market.priceBy(asset.id)
               AssetEquiv(asset, target, amountEquiv)
@@ -100,13 +101,13 @@ object PriceSolver {
       }
   }
 
-  final class PriceSolverTracing[F[_]: FlatMap: Logging, T <: PriceSolverType] extends PriceSolver[Mid[F, *], T] {
+  final class PriceSolverTracing[F[_]: FlatMap: Logging, T <: PriceSolverType](types: String) extends PriceSolver[Mid[F, *], T] {
 
     def convert(asset: FullAsset, target: ValueUnits[AssetRepr], pools: List[PoolSnapshot]): Mid[F, Option[AssetEquiv[AssetRepr]]] =
       for {
-        _ <- trace"convert(asset=$asset, target=$target)"
+        _ <- trace"convert.$types(asset=$asset, target=$target)"
         r <- _
-        _ <- trace"convert(asset=$asset, target=$target) -> $r"
+        _ <- trace"convert.$types(asset=$asset, target=$target) -> $r"
       } yield r
   }
 }

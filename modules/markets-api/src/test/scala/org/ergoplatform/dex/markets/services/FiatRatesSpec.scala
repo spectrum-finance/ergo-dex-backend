@@ -1,6 +1,7 @@
 package org.ergoplatform.dex.markets.services
 
 import cats.effect.IO
+import cats.effect.concurrent.Ref
 import cats.syntax.option._
 import org.ergoplatform.common.caching.Memoize
 import org.ergoplatform.dex.CatsPlatform
@@ -35,7 +36,8 @@ class FiatRatesSpec extends AnyPropSpec with should.Matchers with CatsPlatform {
     val test = for {
       implicit0(back: SttpBackend[IO, Any]) <- AsyncHttpClientCatsBackend[IO]()
       network                               <- ErgoExplorer.make[IO, IO]
-      rates = new ErgoOraclesRateSource(network, memo)
+      ref <- Ref.of[IO, BigDecimal](BigDecimal(0))
+      rates = new ErgoOraclesRateSource(network, memo, ref)
       ergUsdRate <- rates.rateOf(ErgoAssetClass, UsdUnits)
       _          <- IO.delay(println(ergUsdRate))
     } yield ()

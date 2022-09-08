@@ -1,6 +1,7 @@
 package org.ergoplatform.dex.markets.services
 
-import cats.effect.Clock
+import cats.effect.{Clock, Sync}
+import cats.effect.concurrent.Ref
 import cats.{FlatMap, Functor, Monad}
 import derevo.derive
 import org.ergoplatform.common.caching.Memoize
@@ -33,17 +34,18 @@ object FiatRates {
 
   val MemoTtl: FiniteDuration = 2.minutes
 
-  def make[I[_]: FlatMap, F[_]: Monad: Clock](implicit
-                                              network: ErgoExplorer[F],
-                                              logs: Logs[I, F],
-                                              makeRef: MakeRef[I, F]
+  def make[I[_]: FlatMap: Sync, F[_]: Monad: Clock: Sync](implicit
+                                                    network: ErgoExplorer[F],
+                                                    logs: Logs[I, F],
+                                                    makeRef: MakeRef[I, F]
   ): I[FiatRates[F]] =
     for {
       implicit0(l: Logging[F]) <- logs.forService[FiatRates[F]]
       memo                     <- Memoize.make[I, F, BigDecimal]
-    } yield new FiatRatesTracing[F] attach new ErgoOraclesRateSource(network, memo)
+      ref <- Ref.in[I, F, BigDecimal](BigDecimal(0))
+    } yield new FiatRatesTracing[F] attach new ErgoOraclesRateSource(network, memo, ref)
 
-  final class ErgoOraclesRateSource[F[_]: Monad](network: ErgoExplorer[F], memo: Memoize[F, BigDecimal])
+  final class ErgoOraclesRateSource[F[_]: Monad](network: ErgoExplorer[F], memo: Memoize[F, BigDecimal], ref: Ref[F, BigDecimal])
     extends FiatRates[F] {
 
     def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] =
@@ -64,14 +66,15 @@ object FiatRates {
               } yield BigDecimal(oneErg) / BigDecimal(usdPrice)
             }
         for {
-          memoizedRate <- memo.read
+          memoizedRate <- ref.get
           res <- memoizedRate match {
-                   case Some(rate) => rate.someF
-                   case None =>
+                   case rate if rate == BigDecimal(0) =>
                      pullFromNetwork.flatTap {
-                       case Some(rate) => memo.memoize(rate, MemoTtl)
+                       case Some(rate) => ref.set(rate)
                        case None       => unit
                      }
+                   case rate => rate.someF
+
                  }
         } yield res
       } else noneF
