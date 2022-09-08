@@ -44,7 +44,7 @@ trait AmmStats[F[_]] {
 
   def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]]
 
-  def getPoolsSummary: F[List[PoolSummary]]
+  def getPoolsSummary(window: TimeWindow): F[List[PoolSummary]]
 
   def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]]
 
@@ -115,12 +115,12 @@ object AmmStats {
       } yield PlatformSummary(tvl, volume)
     }
 
-    def getPoolsSummary: F[List[PoolSummary]] = millis.flatMap { now =>
+    def getPoolsSummary(window: TimeWindow): F[List[PoolSummary]] = millis.flatMap { now =>
       val h24millis  = 24.hours.toMillis
       val timeWindow = TimeWindow((now - h24millis).some, now.some)
       (pools.snapshots ||> txr.trans).flatMap { snapshots: List[PoolSnapshot] =>
         snapshots
-          .parTraverse(pool => getPoolSummaryV2(pool, timeWindow, snapshots))
+          .parTraverse(pool => getPoolSummaryV2(pool, window, snapshots))
           .map(_.flatten)
       }
     }
