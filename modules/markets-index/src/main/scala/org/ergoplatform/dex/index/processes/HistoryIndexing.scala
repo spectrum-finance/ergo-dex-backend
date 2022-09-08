@@ -1,15 +1,8 @@
 package org.ergoplatform.dex.index.processes
 
-import cats.data.NonEmptyList
 import cats.syntax.foldable._
-import cats.syntax.option._
 import cats.syntax.parallel._
 import cats.{Foldable, Functor, Monad, Parallel}
-import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
-import org.ergoplatform.dex.domain.amm.{Deposit, EvaluatedCFMMOrder, Redeem, Swap}
-import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
-import org.ergoplatform.dex.index.db.models.{DBDeposit, DBRedeem, DBSwap}
-import org.ergoplatform.dex.index.repositories.RepoBundle
 import org.ergoplatform.dex.index.streaming.CFMMHistConsumer
 import tofu.doobie.transactor.Txr
 import tofu.logging.{Logging, Logs}

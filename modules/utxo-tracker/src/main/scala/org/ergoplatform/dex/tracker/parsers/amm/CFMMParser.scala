@@ -2,13 +2,13 @@ package org.ergoplatform.dex.tracker.parsers.amm
 
 import cats.Monad
 import cats.data.OptionT
-import org.ergoplatform.dex.domain.amm.{CFMMOrderType, CFMMOrderVersion, CFMMVersionedOrder, EvaluatedCFMMOrder, OrderEvaluation}
+import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.amm.CFMMVersionedOrder._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.ergo.domain.Output
 import tofu.syntax.monadic._
 
-trait VersionedCFMMParser[+CT <: CFMMType, F[_]] {
+trait CFMMParser[+CT <: CFMMType, F[_]] {
   def deposit(box: Output): F[Option[CFMMVersionedOrder.AnyDeposit]]
 
   def redeem(box: Output): F[Option[CFMMVersionedOrder.AnyRedeem]]
@@ -16,23 +16,23 @@ trait VersionedCFMMParser[+CT <: CFMMType, F[_]] {
   def swap(box: Output): F[Option[CFMMVersionedOrder.AnySwap]]
 }
 
-object VersionedCFMMParser {
+object CFMMParser {
 
   implicit def makeT2TCFMMVersionedParser[F[_]: Monad](implicit
     current: CFMMOrdersParser[T2T_CFMM, F],
     v0: V0Parser[T2T_CFMM, F]
-  ): VersionedCFMMParser[T2T_CFMM, F] = make[T2T_CFMM, F]
+  ): CFMMParser[T2T_CFMM, F] = make[T2T_CFMM, F]
 
   implicit def makeN2TCFMMVersionedParser[F[_]: Monad](implicit
     current: CFMMOrdersParser[N2T_CFMM, F],
     v0: V0Parser[N2T_CFMM, F]
-  ): VersionedCFMMParser[N2T_CFMM, F] = make[N2T_CFMM, F]
+  ): CFMMParser[N2T_CFMM, F] = make[N2T_CFMM, F]
 
   private def make[CT <: CFMMType, F[_]: Monad](implicit
     current: CFMMOrdersParser[CT, F],
     v0: V0Parser[CT, F]
-  ): VersionedCFMMParser[CT, F] =
-    new VersionedCFMMParser[CT, F] {
+  ): CFMMParser[CT, F] =
+    new CFMMParser[CT, F] {
 
       def deposit(box: Output): F[Option[CFMMVersionedOrder.AnyDeposit]] =
         OptionT(current.deposit(box))

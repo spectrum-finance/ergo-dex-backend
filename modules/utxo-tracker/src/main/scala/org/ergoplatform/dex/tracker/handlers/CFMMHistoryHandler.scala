@@ -1,42 +1,27 @@
 package org.ergoplatform.dex.tracker.handlers
 
 import cats.effect.Clock
-import cats.implicits.none
 import cats.instances.list._
 import cats.syntax.traverse._
 import cats.{Functor, FunctorFilter, Monad}
 import mouse.all.anySyntaxMouse
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.streaming.{Producer, Record}
-import org.ergoplatform.ergo.state.Confirmed
-import org.ergoplatform.dex.domain.amm.{
-  CFMMOrder,
-  CFMMPool,
-  CFMMVersionedOrder,
-  EvaluatedCFMMOrder,
-  OrderEvaluation,
-  OrderId,
-  PoolId
-}
+import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.dex.tracker.parsers.amm.CFMMHistoryVersionedParser._
-import org.ergoplatform.dex.tracker.parsers.amm.{
-  CFMMHistoryVersionedParser,
-  CFMMOrdersParser,
-  CFMMPoolsParser,
-  VersionedCFMMParser
-}
+import org.ergoplatform.dex.tracker.parsers.amm.CFMMHistoryParser
+import org.ergoplatform.dex.tracker.parsers.amm.CFMMHistoryParser._
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
 import tofu.syntax.foption._
-import tofu.syntax.streams.all._
-import tofu.syntax.monadic._
 import tofu.syntax.logging._
+import tofu.syntax.monadic._
+import tofu.syntax.streams.all._
 
 final class CFMMHistoryHandler[
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,
   G[_]: Monad: Logging
-](parsers: List[CFMMHistoryVersionedParser[CFMMType, G]])(implicit
+](parsers: List[CFMMHistoryParser[CFMMType, G]])(implicit
   producer: Producer[OrderId, EvaluatedCFMMOrder[CFMMVersionedOrder.Any, OrderEvaluation], F]
 ) {
 
@@ -72,8 +57,8 @@ object CFMMHistoryHandler {
   ): I[SettledTxHandler[F]] =
     logs.forService[CFMMHistoryHandler[F, G]].map { implicit log =>
       val parsers =
-        CFMMHistoryVersionedParser[T2T_CFMM, G] ::
-        CFMMHistoryVersionedParser[N2T_CFMM, G] :: Nil
+        CFMMHistoryParser[T2T_CFMM, G] ::
+        CFMMHistoryParser[N2T_CFMM, G] :: Nil
       new CFMMHistoryHandler[F, G](parsers).handler
     }
 }

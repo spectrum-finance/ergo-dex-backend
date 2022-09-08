@@ -2,6 +2,7 @@ package org.ergoplatform.dex.tracker.parsers.amm
 
 import cats.effect.Clock
 import cats.{Applicative, Monad}
+import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
@@ -9,9 +10,7 @@ import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.dex.protocol.amm.{T2TCFMMTemplates => templates}
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.ergo.{Address, ErgoTreeTemplate, PubKey, TokenId}
-import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
-import sigmastate.serialization.GroupElementSerializer
+import org.ergoplatform.ergo.{ErgoTreeTemplate, PubKey, TokenId}
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.time.now

@@ -2,8 +2,9 @@ package org.ergoplatform.dex.index.processes
 
 import cats.data.NonEmptyList
 import cats.syntax.foldable._
-import cats.syntax.traverse._
 import cats.{Foldable, Functor, Monad}
+import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
+import org.ergoplatform.dex.index.db.models.DBBlock
 import org.ergoplatform.dex.index.repositories.RepoBundle
 import org.ergoplatform.dex.index.streaming.BlocksConsumer
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
@@ -13,8 +14,6 @@ import tofu.streams.{Chunks, Evals}
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import tofu.syntax.streams.chunks._
-import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
-import org.ergoplatform.dex.index.db.models.DBBlock
 import tofu.syntax.streams.evals._
 
 trait BlockIndexing[F[_]] {

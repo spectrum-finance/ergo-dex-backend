@@ -11,10 +11,8 @@ import org.ergoplatform.ergo.domain.{Output, SettledTransaction}
 import tofu.higherKind.Embed
 import tofu.syntax.foption._
 import tofu.syntax.monadic._
-import CFMMVersionedOrder._
-import VersionedCFMMParser._
 
-trait CFMMHistoryVersionedParser[+CT <: CFMMType, F[_]] {
+trait CFMMHistoryParser[+CT <: CFMMType, F[_]] {
 
   def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnySwap, SwapEvaluation]]]
 
@@ -23,59 +21,61 @@ trait CFMMHistoryVersionedParser[+CT <: CFMMType, F[_]] {
   def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyRedeem, RedeemEvaluation]]]
 }
 
-object CFMMHistoryVersionedParser {
+object CFMMHistoryParser {
 
-  def apply[CT <: CFMMType, F[_]](implicit ev: CFMMHistoryVersionedParser[CT, F]): CFMMHistoryVersionedParser[CT, F] = ev
+  def apply[CT <: CFMMType, F[_]](implicit ev: CFMMHistoryParser[CT, F]): CFMMHistoryParser[CT, F] = ev
 
-  implicit def embed[CT <: CFMMType]: Embed[CFMMHistoryVersionedParser[CT, *[_]]] = {
-    type Rep[F[_]] = CFMMHistoryVersionedParser[CT, F]
+  implicit def embed[CT <: CFMMType]: Embed[CFMMHistoryParser[CT, *[_]]] = {
+    type Rep[F[_]] = CFMMHistoryParser[CT, F]
     tofu.higherKind.derived.genEmbed[Rep]
   }
 
   implicit def t2tCFMMHistory[F[_]: Monad](implicit
-    orders: VersionedCFMMParser[T2T_CFMM, F],
+    orders: CFMMParser[T2T_CFMM, F],
     pools: CFMMPoolsParser[T2T_CFMM],
     evals: CFMMOrderEvaluationParser[F]
-  ): CFMMHistoryVersionedParser[T2T_CFMM, F] =
+  ): CFMMHistoryParser[T2T_CFMM, F] =
     new UniversalParser[T2T_CFMM, F]
 
   implicit def n2tCFMMHistory[F[_]: Monad](implicit
-    orders: VersionedCFMMParser[N2T_CFMM, F],
+    orders: CFMMParser[N2T_CFMM, F],
     pools: CFMMPoolsParser[N2T_CFMM],
     evals: CFMMOrderEvaluationParser[F]
-  ): CFMMHistoryVersionedParser[N2T_CFMM, F] =
+  ): CFMMHistoryParser[N2T_CFMM, F] =
     new UniversalParser[N2T_CFMM, F]
 
   final class UniversalParser[+CT <: CFMMType, F[_]: Monad](implicit
-    orders: VersionedCFMMParser[CT, F],
+    orders: CFMMParser[CT, F],
     pools: CFMMPoolsParser[CT],
     evals: CFMMOrderEvaluationParser[F]
-  ) extends CFMMHistoryVersionedParser[CT, F] {
+  ) extends CFMMHistoryParser[CT, F] {
 
     def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnySwap, SwapEvaluation]]] =
       parseSomeOrder(tx)(orders.swap, (o, _, a: CFMMVersionedOrder.AnySwap) => evals.parseSwapEval(o, a))
         .mapIn {
-          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV0, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV0, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
-          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV1, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV1, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
         }
 
-    def deposit(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyDeposit, DepositEvaluation]]] =
+    def deposit(
+      tx: SettledTransaction
+    ): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyDeposit, DepositEvaluation]]] =
       parseSomeOrder(tx)(orders.deposit, evals.parseDepositEval)
         .mapIn {
-          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV0, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV0, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
-          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV1, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV1, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
         }
 
     def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyRedeem, RedeemEvaluation]]] =
       parseSomeOrder(tx)(orders.redeem, evals.parseRedeemEval)
         .mapIn {
-          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV0, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV0, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
-          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV1, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV1, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
         }
 

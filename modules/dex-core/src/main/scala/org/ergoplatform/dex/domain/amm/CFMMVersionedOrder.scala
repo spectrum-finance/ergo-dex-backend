@@ -8,7 +8,7 @@ import tofu.logging.derivation.loggable
 import io.circe.syntax._
 import cats.syntax.either._
 
-sealed trait CFMMVersionedOrder[+version <: CFMMOrderVersion, +order <: CFMMOrderType] {
+sealed trait CFMMVersionedOrder[+V <: CFMMOrderVersion, +O <: CFMMOrderType] {
   val poolId: PoolId
   val box: Output
   val timestamp: Long
