@@ -79,33 +79,24 @@ object FiatRates {
       } >> run
     }
 
-    def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] = info"rateOf $asset $units" >> {
+    def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] = {
+      def f: F[Option[BigDecimal]] =
         if (asset == ErgoAssetClass && units == UsdUnits) {
           for {
-            memoizedRate <- info"Memo read $asset $units" >> memo.read.flatTap(r => info"Memo read completed $r")
+            _            <- info"Memo read $asset $units"
+            memoizedRate: Option[BigDecimal] <- memo.read
+            _            <- info"Memo read completed $memoizedRate"
             res <- memoizedRate match {
                      case Some(rate) => rate.someF
                      case None       => noneF
                    }
           } yield res
         } else noneF
-      } <* info"rateOf finished $asset $units"
+      for {
+        _  <- info"rateOf $asset $units"
+        f1 <- f
+        _  <- info"rateOf finished $asset $units"
+      } yield f1
+    }
   }
-
-//  final class FiatRatesTracing[F[_]: FlatMap: Logging] extends FiatRates[Mid[F, *]] {
-//
-//    def rateOf(asset: AssetClass, units: FiatUnits): Mid[F, Option[BigDecimal]] =
-//      for {
-//        _ <- trace"rateOf(asset=$asset, units=$units)"
-//        r <- _
-//        _ <- trace"rateOf(asset=$asset, units=$units) -> $r"
-//      } yield r
-//
-//    def run: Mid[F, Unit] =
-//      for {
-//        _ <- trace"run start"
-//        r <- _
-//        _ <- trace"run finish"
-//      } yield r
-//  }
 }
