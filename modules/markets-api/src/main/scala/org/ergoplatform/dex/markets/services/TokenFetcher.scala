@@ -29,6 +29,14 @@ object TokenFetcher {
 
   val network = "ergo"
 
+  val ergoToken: Token = Token(
+    network,
+    "0000000000000000000000000000000000000000000000000000000000000000",
+    9,
+    "Ergo",
+    "ERG"
+  )
+
   final case class Token(network: String, address: String, decimals: Int, name: String, ticker: String)
   final case class TokenResponse(tokens: List[Token])
 
@@ -63,5 +71,6 @@ object TokenFetcher {
         .send(backend)
         .absorbError
         .map(_.tokens.filter(_.network == network).map(tkn => TokenId.fromStringUnsafe(tkn.address)))
+        .map(ergoToken :: _)
   }
 }
