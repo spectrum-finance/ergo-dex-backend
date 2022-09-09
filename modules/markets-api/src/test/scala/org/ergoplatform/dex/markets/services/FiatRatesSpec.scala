@@ -1,6 +1,7 @@
 package org.ergoplatform.dex.markets.services
 
 import cats.effect.IO
+import cats.effect.concurrent.Ref
 import cats.syntax.option._
 import org.ergoplatform.common.caching.Memoize
 import org.ergoplatform.dex.CatsPlatform
@@ -13,9 +14,9 @@ import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import sttp.client3.{SttpBackend, UriContext}
-import tofu.logging.Logs
+import tofu.logging.{Logging, Logs}
 import tofu.{Context, WithContext}
-
+import tofu.fs2Instances._
 import scala.concurrent.duration.FiniteDuration
 
 class FiatRatesSpec extends AnyPropSpec with should.Matchers with CatsPlatform {
@@ -31,11 +32,13 @@ class FiatRatesSpec extends AnyPropSpec with should.Matchers with CatsPlatform {
   }
 
   property("Get ERG/USD rate") {
-    val memo = constantMemo(none[BigDecimal])
+    type S[A] = fs2.Stream[IO, A]
     val test = for {
       implicit0(back: SttpBackend[IO, Any]) <- AsyncHttpClientCatsBackend[IO]()
       network                               <- ErgoExplorer.make[IO, IO]
-      rates = new ErgoOraclesRateSource(network, memo)
+      ref                                   <- Ref.of[IO, Option[BigDecimal]](none)
+      implicit0(logging: Logging[IO])       <- logs.forService[Unit]
+      rates = new ErgoOraclesRateSource[IO](network, ref)
       ergUsdRate <- rates.rateOf(ErgoAssetClass, UsdUnits)
       _          <- IO.delay(println(ergUsdRate))
     } yield ()
