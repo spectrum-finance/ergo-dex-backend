@@ -1,31 +1,32 @@
 package org.ergoplatform.dex.markets.services
 
-import cats.effect.{Clock, Sync, Timer}
 import cats.effect.concurrent.Ref
-import cats.{FlatMap, Functor, Monad}
-import derevo.derive
-import org.ergoplatform.common.caching.Memoize
+import cats.effect.{Clock, Sync, Timer}
+import cats.syntax.option._
+import cats.{FlatMap, Monad}
 import org.ergoplatform.dex.domain.{AssetClass, FiatUnits}
 import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.protocol.constants.{ErgoAssetClass, ErgoAssetDecimals}
-import org.ergoplatform.ergo.domain.{RegisterId, SConstant}
 import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.domain.{RegisterId, SConstant}
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
+import tofu.Catches
 import tofu.concurrent.MakeRef
-import tofu.higherKind.Mid
-import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
+import tofu.streams.Evals
 import tofu.syntax.foption._
+import tofu.syntax.handle._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
+import tofu.syntax.streams.evals._
 
 import scala.concurrent.duration._
 
-trait FiatRates[F[_]] {
+trait FiatRates[F[_], S[_]] {
 
   def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]]
 
-  def run: fs2.Stream[F, Unit]
+  def run: S[Unit]
 }
 
 object FiatRates {
@@ -35,27 +36,25 @@ object FiatRates {
 
   val MemoTtl: FiniteDuration = 2.minutes
 
-  def make[I[_]: FlatMap: Sync, F[_]: Monad: Clock: Sync: Timer](implicit
+  def make[I[_]: FlatMap: Sync, S[_]: Monad: Evals[*[_], F]: Catches, F[_]: Monad: Clock: Sync: Timer](implicit
     network: ErgoExplorer[F],
     logs: Logs[I, F],
     makeRef: MakeRef[I, F]
-  ): I[FiatRates[F]] =
+  ): I[FiatRates[F, S]] =
     for {
-      implicit0(l: Logging[F]) <- logs.forService[FiatRates[F]]
-      memo                     <- Memoize.make[I, F, BigDecimal]
-      ref                      <- Ref.in[I, F, BigDecimal](BigDecimal(0))
-      resolver = new ErgoOraclesRateSource(network, memo, ref)
+      implicit0(l: Logging[F]) <- logs.forService[FiatRates[F, S]]
+      cache                    <- Ref.in[I, F, Option[BigDecimal]](none)
+      resolver = new ErgoOraclesRateSource[S, F](network, cache)
     } yield resolver
 
-  final class ErgoOraclesRateSource[F[_]: Monad: Logging: Timer](
+  final class ErgoOraclesRateSource[S[_]: Monad: Evals[*[_], F]: Catches, F[_]: Monad: Logging: Timer](
     network: ErgoExplorer[F],
-    memo: Memoize[F, BigDecimal],
-    ref: Ref[F, BigDecimal]
-  ) extends FiatRates[F] {
+    cache: Ref[F, Option[BigDecimal]]
+  ) extends FiatRates[F, S] {
 
-    def run: fs2.Stream[F, Unit] = {
-      val pullFromNetwork = {
-        info"Going to pull from network rate" >>
+    def run: S[Unit] = {
+      val pullFromNetwork =
+        info"Going to pull rate from network" >>
         network
           .getUtxoByToken(ErgUsdPoolNft, offset = 0, limit = 1)
           .map(_.headOption)
@@ -70,36 +69,25 @@ object FiatRates {
               oneErg = math.pow(10, ErgoAssetDecimals.toDouble)
             } yield BigDecimal(oneErg) / BigDecimal(usdPrice)
           }
-      }.flatTap(_ => info"rate from network finished")
+          .flatTap(_ => info"Pull rate from network finished")
 
-      fs2.Stream.eval(pullFromNetwork).flatMap {
+      eval(pullFromNetwork).flatMap {
         case Some(rate) =>
-          fs2.Stream.eval(memo.memoize(rate, 356.days)) >> fs2.Stream.eval(Timer[F].sleep(1.minutes))
-        case None => fs2.Stream.eval(noneF)
+          eval(cache.set(rate.some)) >> eval(info"Going to sleep $MemoTtl" >> Timer[F].sleep(MemoTtl))
+        case None => eval(unit[F])
       } >> run
     }
-      .handleErrorWith { err =>
-      fs2.Stream.eval(info"The error: ${err.getMessage} occurred.") >> run
-    }
+      .handleWith { err: Throwable =>
+        eval(info"The error: ${err.getMessage} occurred.") >> run
+      }
 
-    def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] = {
-      def f: F[Option[BigDecimal]] =
-        if (asset == ErgoAssetClass && units == UsdUnits) {
-          for {
-            _            <- info"Memo read $asset $units"
-            memoizedRate: Option[BigDecimal] <- memo.read
-            _            <- info"Memo read completed $memoizedRate"
-            res <- memoizedRate match {
-                     case Some(rate) => rate.someF
-                     case None       => noneF
-                   }
-          } yield res
-        } else noneF
-      for {
-        _  <- info"rateOf $asset $units"
-        f1 <- f
-        _  <- info"rateOf finished $asset $units"
-      } yield f1
-    }
+    def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] =
+      if (asset == ErgoAssetClass && units == UsdUnits) {
+        for {
+          _                                <- trace"Memo read $asset $units"
+          memoizedRate: Option[BigDecimal] <- cache.get
+          _                                <- trace"Memo read completed $memoizedRate"
+        } yield memoizedRate
+      } else noneF[F, BigDecimal]
   }
 }

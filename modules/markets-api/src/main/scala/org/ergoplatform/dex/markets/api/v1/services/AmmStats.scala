@@ -1,39 +1,28 @@
 package org.ergoplatform.dex.markets.api.v1.services
 
-import cats.{Monad, Parallel}
 import cats.data.OptionT
 import cats.effect.Clock
+import cats.syntax.parallel._
+import cats.syntax.traverse._
+import cats.{Monad, Parallel}
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.markets.api.v1.models.amm.{
-  AmmMarketSummary,
-  FiatEquiv,
-  PlatformSummary,
-  PoolSlippage,
-  PoolSummary,
-  PricePoint,
-  TransactionsInfo
-}
+import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
+import org.ergoplatform.dex.markets.api.v1.models.amm._
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
-import org.ergoplatform.dex.markets.currencies.{UsdCurrencyId, UsdUnits}
-import org.ergoplatform.dex.markets.domain.{CryptoVolume, FeePercentProjection, Fees, TotalValueLocked, Volume}
+import org.ergoplatform.dex.markets.currencies.UsdUnits
+import org.ergoplatform.dex.markets.db.models.amm
+import org.ergoplatform.dex.markets.db.models.amm.{PoolFeesSnapshot, PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
+import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
+import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
 import org.ergoplatform.dex.markets.repositories.{Orders, Pools}
-import tofu.doobie.transactor.Txr
-import mouse.anyf._
-import cats.syntax.traverse._
-import cats.syntax.option._
-import cats.syntax.parallel._
-import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
-import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, Currency, FiatUnits, FullAsset, MarketId}
-import org.ergoplatform.dex.markets.db.models.amm
-import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.dex.markets.services.TokenFetcher
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
+import tofu.doobie.transactor.Txr
 import tofu.syntax.monadic._
-import tofu.syntax.time.now._
 
 import scala.concurrent.duration._
 
@@ -120,54 +109,63 @@ object AmmStats {
       } yield PlatformSummary(tvl, volume)
     }
 
-    def getPoolsSummary(window: TimeWindow): F[List[PoolSummary]] = millis.flatMap { now =>
-      val h24millis  = 24.hours.toMillis
-      val timeWindow = TimeWindow((now - h24millis).some, now.some)
+    def getPoolsSummary(window: TimeWindow): F[List[PoolSummary]] =
       (pools.snapshots ||> txr.trans).flatMap { snapshots: List[PoolSnapshot] =>
         snapshots
-          .parTraverse(pool => getPoolSummaryV2(pool, window, snapshots))
+          .parTraverse(pool => getPoolSummaryUsingAllPools(pool, window, snapshots))
           .map(_.flatten)
       }
-    }
 
-    def getPoolSummaryV2(pool: PoolSnapshot, window: TimeWindow, poolsL: List[PoolSnapshot]): F[Option[PoolSummary]] = {
+    private def getPoolSummaryUsingAllPools(
+      pool: PoolSnapshot,
+      window: TimeWindow,
+      everyKnownPool: List[PoolSnapshot]
+    ): F[Option[PoolSummary]] = {
       val poolId = pool.id
 
-      def query =
-        for {
+      def poolData: D[Option[(amm.PoolInfo, Option[amm.PoolFeesSnapshot], Option[PoolVolumeSnapshot])]] =
+        (for {
           info     <- OptionT(pools.info(poolId))
           feesSnap <- OptionT.liftF(pools.fees(poolId, window))
-          vol      <- OptionT(pools.volume(poolId, window))
-        } yield (info, feesSnap, vol)
-      (for {
-        (info, feesSnap, vol) <- OptionT(query.value ||> txr.trans)
-        lockedX               <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, poolsL))
-        lockedY               <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, poolsL))
-        tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
+          vol      <- OptionT.liftF(pools.volume(poolId, window))
+        } yield (info, feesSnap, vol)).value
 
-        volume <-
-          for {
-            volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits, poolsL))
-            volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits, poolsL))
-          } yield Volume(volX.value + volY.value, UsdUnits, window)
-        fees <- feesSnap match {
-                  case Some(feesSnap) =>
-                    for {
-                      feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits, poolsL))
-                      feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits, poolsL))
-                    } yield Fees(feesX.value + feesY.value, UsdUnits, window)
-                  case None => OptionT.pure[F](Fees.empty(UsdUnits, window))
-                }
+      (for {
+        (info, feesSnap, vol) <- OptionT(poolData ||> txr.trans)
+        lockedX               <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, everyKnownPool))
+        lockedY               <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, everyKnownPool))
+        tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
+        volume            <- processPoolVolume(vol, window, everyKnownPool)
+        fees              <- processPoolFee(feesSnap, window, everyKnownPool)
         yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
-      } yield PoolSummary(
-        poolId,
-        pool.lockedX,
-        pool.lockedY,
-        tvl,
-        volume,
-        fees,
-        yearlyFeesPercent
-      )).value
+      } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
+    }
+
+    private def processPoolVolume(
+      vol: Option[PoolVolumeSnapshot],
+      window: TimeWindow,
+      everyKnownPool: List[PoolSnapshot]
+    ): OptionT[F, Volume] =
+      vol match {
+        case Some(vol) =>
+          for {
+            volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits, everyKnownPool))
+            volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits, everyKnownPool))
+          } yield Volume(volX.value + volY.value, UsdUnits, window)
+        case None => OptionT.pure[F](Volume.empty(UsdUnits, window))
+      }
+
+    private def processPoolFee(
+      feesSnap: Option[PoolFeesSnapshot],
+      window: TimeWindow,
+      everyKnownPool: List[PoolSnapshot]
+    ): OptionT[F, Fees] = feesSnap match {
+      case Some(feesSnap) =>
+        for {
+          feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits, everyKnownPool))
+          feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits, everyKnownPool))
+        } yield Fees(feesX.value + feesY.value, UsdUnits, window)
+      case None => OptionT.pure[F](Fees.empty(UsdUnits, window))
     }
 
     def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {
@@ -183,25 +181,8 @@ object AmmStats {
         lockedX                     <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, List.empty))
         lockedY                     <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, List.empty))
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
-
-        volume <- vol match {
-                    case Some(vol) =>
-                      for {
-                        volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits, List.empty))
-                        volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits, List.empty))
-                      } yield Volume(volX.value + volY.value, UsdUnits, window)
-                    case None => OptionT.pure[F](Volume.empty(UsdUnits, window))
-                  }
-
-        fees <- feesSnap match {
-                  case Some(feesSnap) =>
-                    for {
-                      feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits, List.empty))
-                      feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits, List.empty))
-                    } yield Fees(feesX.value + feesY.value, UsdUnits, window)
-                  case None => OptionT.pure[F](Fees.empty(UsdUnits, window))
-                }
-
+        volume            <- processPoolVolume(vol, window, List.empty)
+        fees              <- processPoolFee(feesSnap, window, List.empty)
         yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
       } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
     }

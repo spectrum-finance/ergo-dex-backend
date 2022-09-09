@@ -23,13 +23,17 @@ trait PriceSolver[F[_], T <: PriceSolverType] {
 
   type AssetRepr = T#AssetRepr
 
-  def convert(asset: FullAsset, target: ValueUnits[AssetRepr], pools: List[PoolSnapshot]): F[Option[AssetEquiv[AssetRepr]]]
+  def convert(
+    asset: FullAsset,
+    target: ValueUnits[AssetRepr],
+    knownPools: List[PoolSnapshot]
+  ): F[Option[AssetEquiv[AssetRepr]]]
 }
 
 object PriceSolver {
 
-  private def parsePools(pools: List[PoolSnapshot]): List[Market] =
-    pools.map(p => Market.fromReserves(p.lockedX, p.lockedY))
+  val fiatSolverType   = "Fiat solver"
+  val cryptoSolverType = "Crypto solver"
 
   type CryptoPriceSolver[F[_]] = PriceSolver[F, CryptoSolverType]
 
@@ -42,7 +46,9 @@ object PriceSolver {
       logs
         .forService[CryptoPriceSolver[F]]
         .map(implicit l =>
-          Mid.attach[CryptoPriceSolver, F](new PriceSolverTracing[F, CryptoSolverType]("crypto"))(new CryptoSolver(markets))
+          Mid.attach[CryptoPriceSolver, F](new PriceSolverTracing[F, CryptoSolverType](cryptoSolverType))(
+            new CryptoSolver(markets)
+          )
         )
   }
 
@@ -53,28 +59,32 @@ object PriceSolver {
     implicit def representableK: RepresentableK[FiatPriceSolver] =
       tofu.higherKind.derived.genRepresentableK
 
-    def make[I[_]: Functor, F[_]: Monad](implicit
-      rates: FiatRates[F],
+    def make[I[_]: Functor, F[_]: Monad, S[_]](implicit
+      rates: FiatRates[F, S],
       cryptoSolver: CryptoPriceSolver[F],
       logs: Logs[I, F]
     ): I[FiatPriceSolver[F]] =
       logs
         .forService[FiatPriceSolver[F]]
         .map(implicit l =>
-          Mid.attach[FiatPriceSolver, F](new PriceSolverTracing[F, FiatSolverType]("fiat"))(
+          Mid.attach[FiatPriceSolver, F](new PriceSolverTracing[F, FiatSolverType](fiatSolverType))(
             new ViaErgFiatSolver(rates, cryptoSolver)
           )
         )
   }
 
-  final class ViaErgFiatSolver[F[_]: Monad](rates: FiatRates[F], cryptoSolver: CryptoPriceSolver[F])
+  final class ViaErgFiatSolver[F[_]: Monad, S[_]](rates: FiatRates[F, S], cryptoSolver: CryptoPriceSolver[F])
     extends PriceSolver[F, FiatSolverType] {
 
-    def convert(asset: FullAsset, target: ValueUnits[AssetRepr], pools: List[PoolSnapshot]): F[Option[AssetEquiv[AssetRepr]]] =
+    def convert(
+      asset: FullAsset,
+      target: ValueUnits[AssetRepr],
+      knownPools: List[PoolSnapshot]
+    ): F[Option[AssetEquiv[AssetRepr]]] =
       target match {
         case fiat @ FiatUnits(_) =>
           (for {
-            ergEquiv <- OptionT(cryptoSolver.convert(asset, constants.ErgoUnits, pools))
+            ergEquiv <- OptionT(cryptoSolver.convert(asset, constants.ErgoUnits, knownPools))
             ergRate  <- OptionT(rates.rateOf(constants.ErgoAssetClass, fiat))
             fiatEquiv    = ergEquiv.value / math.pow(10, ErgoAssetDecimals - fiat.currency.decimals) * ergRate
             fiatEquivFmt = fiatEquiv.setScale(0, RoundingMode.FLOOR)
@@ -84,15 +94,26 @@ object PriceSolver {
 
   final class CryptoSolver[F[_]: Monad: Logging](markets: Markets[F]) extends PriceSolver[F, CryptoSolverType] {
 
-    def convert(asset: FullAsset, target: ValueUnits[AssetRepr], pools: List[PoolSnapshot]): F[Option[AssetEquiv[AssetRepr]]] =
+    def convert(
+      asset: FullAsset,
+      target: ValueUnits[AssetRepr],
+      knownPools: List[PoolSnapshot]
+    ): F[Option[AssetEquiv[AssetRepr]]] =
       target match {
         case CryptoUnits(units) =>
           if (asset.id != units.tokenId) {
             val marketsFromPools =
-              if (pools.isEmpty)
-                markets.getByAsset(asset.id).flatTap(r => info"[CryptoSolver]:get data from repo.")
-              else parsePools(pools.filter { p => p.lockedX.id == asset.id || p.lockedY.id == asset.id }).pure
-                .flatTap(r => info"[CryptoSolver]:get data from pools.")
+              Either
+                .cond(
+                  knownPools.isEmpty,
+                  markets.getByAsset(asset.id).flatTap(_ => info"Convert $asset using markets repo."),
+                  Markets
+                    .parsePools(knownPools.filter(p => p.lockedX.id == asset.id || p.lockedY.id == asset.id))
+                    .pure
+                    .flatTap(_ => info"Convert $asset using known pools.")
+                )
+                .merge
+
             marketsFromPools.map(_.find(_.contains(units.tokenId)).map { market =>
               val amountEquiv = BigDecimal(asset.amount) * market.priceBy(asset.id)
               AssetEquiv(asset, target, amountEquiv)
@@ -101,13 +122,18 @@ object PriceSolver {
       }
   }
 
-  final class PriceSolverTracing[F[_]: FlatMap: Logging, T <: PriceSolverType](types: String) extends PriceSolver[Mid[F, *], T] {
+  final class PriceSolverTracing[F[_]: FlatMap: Logging, T <: PriceSolverType](solverType: String)
+    extends PriceSolver[Mid[F, *], T] {
 
-    def convert(asset: FullAsset, target: ValueUnits[AssetRepr], pools: List[PoolSnapshot]): Mid[F, Option[AssetEquiv[AssetRepr]]] =
+    def convert(
+      asset: FullAsset,
+      target: ValueUnits[AssetRepr],
+      pools: List[PoolSnapshot]
+    ): Mid[F, Option[AssetEquiv[AssetRepr]]] =
       for {
-        _ <- trace"convert.$types(asset=$asset, target=$target)"
+        _ <- trace"[$solverType]: convert(asset=$asset, target=$target)"
         r <- _
-        _ <- trace"convert.$types(asset=$asset, target=$target) -> $r"
+        _ <- trace"[$solverType]: convert(asset=$asset, target=$target) -> $r"
       } yield r
   }
 }

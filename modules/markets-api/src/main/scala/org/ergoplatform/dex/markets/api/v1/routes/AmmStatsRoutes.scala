@@ -4,11 +4,8 @@ import cats.effect.{Concurrent, ContextShift, Timer}
 import cats.syntax.semigroupk._
 import org.ergoplatform.common.http.AdaptThrowable.AdaptThrowableEitherT
 import org.ergoplatform.common.http.HttpError
-import org.ergoplatform.common.http.cache.CacheMiddleware.CachingMiddleware
 import org.ergoplatform.common.http.syntax._
-import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.markets.api.v1.endpoints.AmmStatsEndpoints
-import org.ergoplatform.dex.markets.api.v1.models.amm.PoolSummary
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
 import org.ergoplatform.dex.markets.configs.RequestConfig
 import org.http4s.HttpRoutes
@@ -26,7 +23,9 @@ final class AmmStatsRoutes[
   private val interpreter = Http4sServerInterpreter(opts)
 
   def routes: HttpRoutes[F] =
-    getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+> getPoolStatsR <+> getPoolsStatsR <+> getAvgPoolSlippageR <+> getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR
+    getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+>
+    getPoolStatsR <+> getPoolsSummaryR <+> getAvgPoolSlippageR <+>
+    getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR
 
   def getSwapTxsR: HttpRoutes[F] =
     interpreter.toRoutes(getSwapTxs)(tw => stats.getSwapTransactions(tw).adaptThrowable.value)
@@ -42,8 +41,8 @@ final class AmmStatsRoutes[
     stats.getPoolSummary(poolId, tw).adaptThrowable.orNotFound(s"PoolStats{poolId=$poolId}").value
   }
 
-  def getPoolsStatsR: HttpRoutes[F] = interpreter.toRoutes(getPoolsStats) { w =>
-    stats.getPoolsSummary(w).adaptThrowable.value
+  def getPoolsSummaryR: HttpRoutes[F] = interpreter.toRoutes(getPoolsSummary) { tw =>
+    stats.getPoolsSummary(tw).adaptThrowable.value
   }
 
   def getPlatformStatsR: HttpRoutes[F] = interpreter.toRoutes(getPlatformStats) { tw =>
