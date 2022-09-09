@@ -59,7 +59,7 @@ object PriceSolver {
     implicit def representableK: RepresentableK[FiatPriceSolver] =
       tofu.higherKind.derived.genRepresentableK
 
-    def make[I[_]: Functor, F[_]: Monad, S[_]](implicit
+    def make[I[_]: Functor, F[_]: Monad](implicit
       rates: FiatRates[F],
       cryptoSolver: CryptoPriceSolver[F],
       logs: Logs[I, F]

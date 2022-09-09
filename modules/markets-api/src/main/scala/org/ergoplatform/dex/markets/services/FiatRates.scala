@@ -27,7 +27,7 @@ object FiatRates {
   val ErgUsdPoolNft: TokenId =
     TokenId.fromStringUnsafe("011d3364de07e5a26f0c4eef0852cddb387039a921b7154ef3cab22c6eda887f")
 
-  def make[I[_]: FlatMap: Sync, F[_]: Monad: Clock: Sync: Timer](implicit
+  def make[I[_]: FlatMap, F[_]: Monad: Clock: Timer](implicit
     network: ErgoExplorer[F],
     logs: Logs[I, F],
     cache: Ref[F, Option[BigDecimal]]

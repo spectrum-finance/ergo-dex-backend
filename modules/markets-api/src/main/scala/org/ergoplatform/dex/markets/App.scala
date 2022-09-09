@@ -79,7 +79,7 @@ object App extends EnvApp[AppContext] {
       implicit0(rates: FiatRates[RunF])                <- Resource.eval(FiatRates.make[InitF, RunF])
       implicit0(ratesProcess: RatesProcess[StreamF])   <- Resource.eval(RatesProcess.make[InitF, RunF, StreamF])
       implicit0(cryptoSolver: CryptoPriceSolver[RunF]) <- Resource.eval(CryptoPriceSolver.make[InitF, RunF])
-      implicit0(fiatSolver: FiatPriceSolver[RunF])     <- Resource.eval(FiatPriceSolver.make[InitF, RunF, StreamF])
+      implicit0(fiatSolver: FiatPriceSolver[RunF])     <- Resource.eval(FiatPriceSolver.make[InitF, RunF])
       implicit0(tokenFetcher: TokenFetcher[RunF])      <- Resource.eval(TokenFetcher.make[InitF, RunF])
       implicit0(node: ErgoNode[RunF])                  <- Resource.eval(ErgoNode.make[InitF, RunF])
       implicit0(network: ErgoNetwork[RunF]) = ErgoNetwork.make[RunF]
