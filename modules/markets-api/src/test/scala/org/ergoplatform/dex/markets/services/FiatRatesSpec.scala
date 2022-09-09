@@ -38,7 +38,7 @@ class FiatRatesSpec extends AnyPropSpec with should.Matchers with CatsPlatform {
       network                               <- ErgoExplorer.make[IO, IO]
       ref                                   <- Ref.of[IO, Option[BigDecimal]](none)
       implicit0(logging: Logging[IO])       <- logs.forService[Unit]
-      rates = new ErgoOraclesRateSource[S, IO](network, ref)
+      rates = new ErgoOraclesRateSource[IO](network, ref)
       ergUsdRate <- rates.rateOf(ErgoAssetClass, UsdUnits)
       _          <- IO.delay(println(ergUsdRate))
     } yield ()

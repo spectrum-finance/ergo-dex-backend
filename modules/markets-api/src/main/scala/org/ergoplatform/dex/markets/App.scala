@@ -1,5 +1,6 @@
 package org.ergoplatform.dex.markets
 
+import cats.effect.concurrent.Ref
 import cats.effect.{Blocker, Resource}
 import cats.tagless.syntax.functorK._
 import fs2.kafka.serde._
@@ -37,6 +38,8 @@ import tofu.logging.Logs
 import tofu.syntax.unlift._
 import zio.interop.catz._
 import zio.{ExitCode, URIO, ZEnv}
+import cats.syntax.option._
+import org.ergoplatform.dex.markets.processes.RatesProcess
 
 object App extends EnvApp[AppContext] {
 
@@ -72,7 +75,9 @@ object App extends EnvApp[AppContext] {
       implicit0(httpRespCache: HttpResponseCaching[RunF]) <- Resource.eval(HttpResponseCaching.make[InitF, RunF])
       implicit0(httpCache: CachingMiddleware[RunF]) = CacheMiddleware.make[RunF]
       implicit0(markets: Markets[RunF])                <- Resource.eval(Markets.make[InitF, RunF, xa.DB])
-      implicit0(rates: FiatRates[RunF, StreamF])                <- Resource.eval(FiatRates.make[InitF, StreamF, RunF])
+      implicit0(cache: Ref[RunF, Option[BigDecimal]])  <- Resource.eval(Ref.in[InitF, RunF, Option[BigDecimal]](none))
+      implicit0(rates: FiatRates[RunF])                <- Resource.eval(FiatRates.make[InitF, RunF])
+      implicit0(ratesProcess: RatesProcess[StreamF])   <- Resource.eval(RatesProcess.make[InitF, RunF, StreamF])
       implicit0(cryptoSolver: CryptoPriceSolver[RunF]) <- Resource.eval(CryptoPriceSolver.make[InitF, RunF])
       implicit0(fiatSolver: FiatPriceSolver[RunF])     <- Resource.eval(FiatPriceSolver.make[InitF, RunF, StreamF])
       implicit0(tokenFetcher: TokenFetcher[RunF])      <- Resource.eval(TokenFetcher.make[InitF, RunF])
@@ -84,7 +89,7 @@ object App extends EnvApp[AppContext] {
       invalidator     = HttpCacheInvalidator.make[StreamF, RunF, fs2.Chunk]
       invalidatorProc = invalidator.run
       serverProc      = HttpServer.make[InitF, RunF](configs.http, runtime.platform.executor.asEC, configs.request)
-    } yield List(rates.run, invalidatorProc, serverProc.translate(wr.liftF).drain) -> ctx
+    } yield List(ratesProcess.run, invalidatorProc, serverProc.translate(wr.liftF).drain) -> ctx
 
   private def makeConsumer[K: RecordDeserializer[RunF, *], V: RecordDeserializer[RunF, *]](conf: ConsumerConfig) = {
     implicit val maker = MakeKafkaConsumer.make[InitF, RunF, K, V]

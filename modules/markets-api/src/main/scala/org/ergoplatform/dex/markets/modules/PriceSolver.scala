@@ -60,7 +60,7 @@ object PriceSolver {
       tofu.higherKind.derived.genRepresentableK
 
     def make[I[_]: Functor, F[_]: Monad, S[_]](implicit
-      rates: FiatRates[F, S],
+      rates: FiatRates[F],
       cryptoSolver: CryptoPriceSolver[F],
       logs: Logs[I, F]
     ): I[FiatPriceSolver[F]] =
@@ -73,7 +73,7 @@ object PriceSolver {
         )
   }
 
-  final class ViaErgFiatSolver[F[_]: Monad, S[_]](rates: FiatRates[F, S], cryptoSolver: CryptoPriceSolver[F])
+  final class ViaErgFiatSolver[F[_]: Monad](rates: FiatRates[F], cryptoSolver: CryptoPriceSolver[F])
     extends PriceSolver[F, FiatSolverType] {
 
     def convert(
