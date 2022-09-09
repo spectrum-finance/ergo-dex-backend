@@ -70,7 +70,8 @@ object TokenFetcher {
         .response(asJson[TokenResponse])
         .send(backend)
         .absorbError
-        .map(_.tokens.filter(_.network == network).map(tkn => TokenId.fromStringUnsafe(tkn.address)))
-        .map(ergoToken :: _)
+        .map { resp =>
+          (ergoToken :: resp.tokens).filter(_.network == network).map(tkn => TokenId.fromStringUnsafe(tkn.address))
+        }
   }
 }
