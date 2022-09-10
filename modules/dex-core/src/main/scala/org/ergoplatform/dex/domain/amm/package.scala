@@ -12,6 +12,7 @@ import org.ergoplatform.common.HexString
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.ergo.{BoxId, TokenId}
 import scodec.bits.ByteVector
+import scodec.codecs.{uint16, utf8}
 import sttp.tapir.{Codec, Schema, Validator}
 import tofu.logging.derivation.loggable
 
@@ -82,6 +83,24 @@ package object amm {
 
     implicit val get: Get[OrderId] = deriving
     implicit val put: Put[OrderId] = deriving
+
+    implicit def codec: scodec.Codec[OrderId] =
+      scodec.codecs.variableSizeBits(uint16, utf8).xmap(OrderId(_), _.value)
+
+    implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OrderId]     = serializerViaCirceEncoder
+    implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OrderId] = deserializerViaKafkaDecoder
+  }
+
+  @derive(show, loggable, encoder, decoder)
+  case class WeightedOrder(weight: Long, orderId: OrderId, timestamp: Long)
+
+  object WeightedOrder {
+
+    def fromOrder(order: CFMMOrder): WeightedOrder =
+      WeightedOrder(order.maxMinerFee, order.id, order.timestamp)
+
+    implicit val ord: Ordering[WeightedOrder] =
+      (x: WeightedOrder, y: WeightedOrder) => x.weight compare y.weight
 
     implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, OrderId]     = serializerViaCirceEncoder
     implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, OrderId] = deserializerViaKafkaDecoder

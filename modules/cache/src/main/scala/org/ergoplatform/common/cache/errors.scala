@@ -13,4 +13,9 @@ object errors {
     extends Exception(s"Failed to decode value {$showValue}. $reason")
 
   object BinaryDecodingFailed extends Errors.Companion[BinaryDecodingFailed]
+
+  final case class ValueNotFound(key: String)
+    extends Exception(s"Failed to get value by key {$key}.")
+
+  object ValueNotFound extends Errors.Companion[ValueNotFound]
 }

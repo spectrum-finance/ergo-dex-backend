@@ -8,6 +8,10 @@ import tofu.logging.derivation.loggable
 import scala.concurrent.duration.FiniteDuration
 
 @derive(pureconfigReader, loggable)
-final case class ExecutionConfig(order: FiniteDuration)
+final case class BacklogConfig(
+  orderLifetime: FiniteDuration,
+  orderExecutionTime: FiniteDuration,
+  suspendedOrdersExecutionProbabilityPercent: Int
+)
 
-object ExecutionConfig extends Context.Companion[ExecutionConfig]
+object BacklogConfig extends Context.Companion[BacklogConfig]

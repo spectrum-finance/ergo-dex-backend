@@ -158,7 +158,7 @@ lazy val ammExecutor = utils
   )
   .settings(nativePackagerSettings("amm-executor"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
-  .dependsOn(Seq(core, http).map(_ % allConfigDependency): _*)
+  .dependsOn(Seq(core, http, cache).map(_ % allConfigDependency): _*)
 
 lazy val poolResolver = utils
   .mkModule("pool-resolver", "PoolResolver")

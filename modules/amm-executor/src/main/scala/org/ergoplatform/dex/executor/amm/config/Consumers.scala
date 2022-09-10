@@ -8,6 +8,7 @@ import tofu.logging.derivation.loggable
 @derive(pureconfigReader, loggable)
 final case class Consumers(
   confirmedOrders: ConsumerConfig,
+  cfmmHistory: ConsumerConfig,
   unconfirmedOrders: ConsumerConfig,
   ordersRetry: ConsumerConfig
 )
