@@ -4,8 +4,10 @@ import cats.tagless.syntax.functorK._
 import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
+import doobie.util.query.Query0
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
+import org.ergoplatform.dex.markets.api.v1.models.charts.ChartGap
 import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
 import org.ergoplatform.ergo.TokenId
@@ -67,6 +69,10 @@ trait Pools[F[_]] {
   /** Get full asset info by id.
    */
   def assetById(id: TokenId): F[Option[AssetInfo]]
+
+  def getChartsByGap(gap: ChartGap, poolId: PoolId, from: Long, to: Long): F[List[AvgAssetAmountsWithPrev]]
+
+  def getLatestChartByGap(gap: ChartGap, poolId: PoolId): F[Option[AvgAssetAmount]]
 }
 
 object Pools {
@@ -116,6 +122,12 @@ object Pools {
 
     def assetById(id: TokenId): ConnectionIO[Option[AssetInfo]] =
       sql.getAssetById(id).option
+
+    def getChartsByGap(gap: ChartGap, poolId: PoolId, from: Long, to: Long): ConnectionIO[List[AvgAssetAmountsWithPrev]] =
+      sql.getChartsByGap(gap, poolId, from, to).to[List]
+
+    def getLatestChartByGap(gap: ChartGap, poolId: PoolId): ConnectionIO[Option[AvgAssetAmount]] =
+      sql.getLatestChartByGap(gap, poolId).option
   }
 
   final class PoolsTracing[F[_]: FlatMap: Logging] extends Pools[Mid[F, *]] {
@@ -202,6 +214,20 @@ object Pools {
         _ <- trace"assetById(id=$id)"
         r <- _
         _ <- trace"assetById(id=$id) -> ${r.size} assets selected"
+      } yield r
+
+    def getChartsByGap(gap: ChartGap, poolId: PoolId, from: Long, to: Long): Mid[F, List[AvgAssetAmountsWithPrev]] =
+      for {
+        _ <- trace"getChartsByGap($gap, $poolId, $from, $to)"
+        r <- _
+        _ <- trace"getChartsByGap($gap, $poolId, $from, $to) -> ${r.size} points selected"
+      } yield r
+
+    def getLatestChartByGap(gap: ChartGap, poolId: PoolId): Mid[F, Option[AvgAssetAmount]] =
+      for {
+        _ <- trace"getLatestChartByGap($gap, $poolId)"
+        r <- _
+        _ <- trace"getLatestChartByGap($gap, $poolId) -> ${r.map(_.timestamp)} point selected."
       } yield r
   }
 }

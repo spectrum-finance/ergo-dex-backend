@@ -5,11 +5,16 @@ import cats.syntax.semigroupk._
 import org.ergoplatform.common.http.AdaptThrowable.AdaptThrowableEitherT
 import org.ergoplatform.common.http.HttpError
 import org.ergoplatform.common.http.syntax._
+import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.markets.api.v1.endpoints.AmmStatsEndpoints
+import org.ergoplatform.dex.markets.api.v1.models.charts.ChartGap
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
 import org.ergoplatform.dex.markets.configs.RequestConfig
 import org.http4s.HttpRoutes
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
+import cats.syntax.either._
+import cats.syntax.applicative._
+import org.ergoplatform.dex.markets.api.v1.models.amm.PricePoint
 
 final class AmmStatsRoutes[
   F[_]: Concurrent: ContextShift: Timer: AdaptThrowableEitherT[*[_], HttpError]
@@ -25,7 +30,7 @@ final class AmmStatsRoutes[
   def routes: HttpRoutes[F] =
     getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+>
     getPoolStatsR <+> getPoolsSummaryR <+> getAvgPoolSlippageR <+>
-    getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR
+    getPoolPriceChartR <+> getPoolPriceChartWithGapsR <+> getAmmMarketsR <+> convertToFiatR
 
   def getSwapTxsR: HttpRoutes[F] =
     interpreter.toRoutes(getSwapTxs)(tw => stats.getSwapTransactions(tw).adaptThrowable.value)
@@ -55,6 +60,19 @@ final class AmmStatsRoutes[
 
   def getPoolPriceChartR: HttpRoutes[F] = interpreter.toRoutes(getPoolPriceChart) { case (poolId, window, res) =>
     stats.getPoolPriceChart(poolId, window, res).adaptThrowable.value
+  }
+
+  def getPoolPriceChartWithGapsR: HttpRoutes[F] = interpreter.toRoutes(getPoolPriceChartWithGaps) {
+    case (poolId, window, gap) =>
+      def validateChartGap(gap: ChartGap, window: TimeWindow): Boolean =
+        (for {
+          from <- window.from
+          to   <- window.to
+          period = to - from
+        } yield period <= gap.minimalGap).getOrElse(true)
+
+      if (validateChartGap(gap, window)) stats.getChartsByGap(gap, poolId, window).adaptThrowable.value
+      else (HttpError.Unknown(500, s"Invalid from to value for selected gap."): HttpError).asLeft[List[PricePoint]].pure
   }
 
   def getAmmMarketsR: HttpRoutes[F] = interpreter.toRoutes(getAmmMarkets) { tw =>

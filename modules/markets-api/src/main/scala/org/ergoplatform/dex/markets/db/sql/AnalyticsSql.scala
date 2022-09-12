@@ -5,6 +5,7 @@ import doobie.util.query.Query0
 import doobie.{Fragment, LogHandler}
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
+import org.ergoplatform.dex.markets.api.v1.models.charts.ChartGap
 import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.ergo.TokenId
 
@@ -234,6 +235,53 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |where output_amount_lp is not null
          |${timeWindowCond(tw, "and", "s")}
          """.stripMargin.query[DepositInfo]
+
+  def getChartsByGap(gap: ChartGap, poolId: PoolId, from: Long, to: Long): Query0[AvgAssetAmountsWithPrev] =
+    sql"""
+         |SELECT * FROM (
+         |	SELECT
+         |	  ts AS curr,
+         |	  lag(ts) OVER (ORDER BY ts) AS prev,
+         |	  avg_x_amount AS curr_avg_x_amount,
+         |	  lag(avg_x_amount) OVER (ORDER BY ts) AS prev_avg_x_amount,
+         |	  avg_y_amount AS curr_avg_y_amount,
+         |	  lag(avg_y_amount) OVER (ORDER BY ts) AS prev_avg_y_amount
+         |	FROM (
+         |	  SELECT ${selectionMod(gap)} AS ts, avg(p.x_amount) AS avg_x_amount, avg(p.y_amount) AS avg_y_amount
+         |	  FROM pools p
+         |	  LEFT JOIN blocks b ON b.height = p.height
+         |    WHERE pool_id = $poolId
+         |    GROUP BY ts
+         |  ) AS s1
+         |) AS s2
+         |WHERE ${comparisonMod(gap, from, to)}
+         |ORDER BY s2.curr DESC;
+       """.stripMargin.query[AvgAssetAmountsWithPrev]
+
+  def getLatestChartByGap(gap: ChartGap, poolId: PoolId): Query0[AvgAssetAmount] =
+    sql"""
+         |SELECT max(${selectionMod(gap)}) AS ts, avg(p.x_amount) AS avg_x_amount, avg(p.y_amount) AS avg_y_amount
+         |FROM pools p
+         |LEFT JOIN blocks b ON b.height = p.height
+         |WHERE pool_id = $poolId
+       """.stripMargin.query[AvgAssetAmount]
+
+  private def selectionMod(gap: ChartGap): Fragment =
+    gap match {
+      case ChartGap.Gap5min | ChartGap.Gap15min | ChartGap.Gap30min =>
+        Fragment.const(s"round_minutes (to_timestamp(b.timestamp / 1000)::timestamp without time zone, ${gap.pgValue})")
+      case _ =>
+        Fragment.const(s"to_char(to_timestamp(b.timestamp / 1000) at time zone 'UTC', '${gap.dateFormat}')")
+    }
+
+  private def comparisonMod(gap: ChartGap, from: Long, to: Long): Fragment =
+    gap match {
+      case ChartGap.Gap5min | ChartGap.Gap15min | ChartGap.Gap30min =>
+        Fragment.const(s"s2.curr > to_timestamp($from / 1000) and s2.curr <= to_timestamp($to / 1000)")
+      case _ =>
+        Fragment.const(s"s2.curr > to_char(to_timestamp($from / 1000) at time zone 'UTC', '${gap.dateFormat}')") ++
+          Fragment.const(s"and s2.curr <= to_char(to_timestamp($to / 1000) at time zone 'UTC', '${gap.dateFormat}')")
+    }
 
   private def timeWindowCond(tw: TimeWindow, condKeyword: String, alias: String): Fragment =
     if (tw.from.nonEmpty || tw.to.nonEmpty)
