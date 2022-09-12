@@ -20,7 +20,7 @@ sealed abstract class ChartGap(
   val value: String,
   val dateFormat: String,
   val timeWindow: FiniteDuration,
-  val pgValue: Int, /** This value is used only for minutes aggregation. E.g. 5 means the gap is 5 minute, 15 - 15 means gap. */
+  val pgValue: Int, /** This value is used only for minutes aggregation. E.g. 5 means the 5 minutes gap , 15 - 15 means gap. */
   val minimalGap: Long,
   val javaDateFormat: String
 ) extends StringEnumEntry
