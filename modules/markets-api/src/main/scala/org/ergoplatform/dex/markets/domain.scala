@@ -12,7 +12,10 @@ object domain {
   @derive(encoder, decoder)
   final case class TotalValueLocked(value: BigDecimal, units: FiatUnits)
 
-  implicit val schemaTvl: Schema[TotalValueLocked] = Schema.derived
+  object TotalValueLocked {
+    implicit val schemaTvl: Schema[TotalValueLocked] = Schema.derived
+    def empty(units: FiatUnits): TotalValueLocked = TotalValueLocked(BigDecimal(0), units)
+  }
 
   @derive(encoder, decoder)
   final case class Volume(value: BigDecimal, units: FiatUnits, window: TimeWindow)

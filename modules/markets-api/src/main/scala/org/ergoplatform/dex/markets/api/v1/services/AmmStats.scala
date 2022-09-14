@@ -17,13 +17,19 @@ import org.ergoplatform.dex.markets.api.v1.models.amm.{
 }
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
 import org.ergoplatform.dex.markets.currencies.UsdUnits
-import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
+import org.ergoplatform.dex.markets.domain.{CryptoVolume, FeePercentProjection, Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
 import org.ergoplatform.dex.markets.repositories.{Orders, Pools}
 import tofu.doobie.transactor.Txr
 import mouse.anyf._
 import cats.syntax.traverse._
-import org.ergoplatform.dex.markets.db.models.amm.{PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
+import org.ergoplatform.dex.markets.db.models.amm.{
+  PoolFeesSnapshot,
+  PoolInfo,
+  PoolSnapshot,
+  PoolTrace,
+  PoolVolumeSnapshot
+}
 import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.dex.markets.services.TokenFetcher
@@ -110,6 +116,38 @@ object AmmStats {
       } yield PlatformSummary(tvl, volume)
     }
 
+    private def calcPoolStats(
+      info: PoolInfo,
+      pool: PoolSnapshot,
+      volumeOpt: Option[PoolVolumeSnapshot],
+      feeOpt: Option[PoolFeesSnapshot],
+      window: TimeWindow
+    ): OptionT[F, PoolSummary] =
+      for {
+        lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits))
+        lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits))
+        tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
+
+        volume <- volumeOpt match {
+                    case Some(vol) =>
+                      for {
+                        volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits))
+                        volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits))
+                      } yield Volume(volX.value + volY.value, UsdUnits, window)
+                    case None => OptionT.pure[F](Volume.empty(UsdUnits, window))
+                  }
+
+        fees <- feeOpt match {
+                  case Some(feesSnap) =>
+                    for {
+                      feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits))
+                      feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits))
+                    } yield Fees(feesX.value + feesY.value, UsdUnits, window)
+                  case None => OptionT.pure[F](Fees.empty(UsdUnits, window))
+                }
+        yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
+      } yield PoolSummary(pool.id, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)
+
     def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {
       val queryPoolStats =
         (for {
@@ -121,31 +159,10 @@ object AmmStats {
       (for {
         (info, pool, vol, feesSnap) <- OptionT(queryPoolStats ||> txr.trans)
         validTokens                 <- OptionT.liftF(tokens.fetchTokens)
-        lockedX                     <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits))
-        lockedY                     <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits))
-        tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
 
-        volume <- vol match {
-                    case Some(vol) =>
-                      for {
-                        volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits))
-                        volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits))
-                      } yield Volume(volX.value + volY.value, UsdUnits, window)
-                    case None => OptionT.pure[F](Volume.empty(UsdUnits, window))
-                  }
-
-        fees <- feesSnap match {
-                  case Some(feesSnap) =>
-                    for {
-                      feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits))
-                      feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits))
-                    } yield Fees(feesX.value + feesY.value, UsdUnits, window)
-                  case None => OptionT.pure[F](Fees.empty(UsdUnits, window))
-                }
-        yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
         res <- if (validTokens.contains(pool.lockedX.id) && validTokens.contains(pool.lockedY.id))
-                 OptionT.pure[F](PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent))
-               else OptionT.none[F, PoolSummary]
+                 calcPoolStats(info, pool, vol, feesSnap, window)
+               else OptionT.pure[F](PoolSummary.empty(pool, window))
       } yield res).value
     }
 
