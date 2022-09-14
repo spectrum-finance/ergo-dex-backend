@@ -1,24 +1,20 @@
 package org.ergoplatform.dex.markets.services
 
-import cats.effect.Clock
-import cats.{FlatMap, Functor, Monad}
+import cats.effect.concurrent.Ref
+import cats.effect.{Clock, Sync, Timer}
+import cats.{FlatMap, Monad}
 import derevo.derive
-import org.ergoplatform.common.caching.Memoize
 import org.ergoplatform.dex.domain.{AssetClass, FiatUnits}
 import org.ergoplatform.dex.markets.currencies.UsdUnits
-import org.ergoplatform.dex.protocol.constants.{ErgoAssetClass, ErgoAssetDecimals}
-import org.ergoplatform.ergo.domain.{RegisterId, SConstant}
+import org.ergoplatform.dex.protocol.constants.ErgoAssetClass
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
-import tofu.concurrent.MakeRef
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.foption._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
-
-import scala.concurrent.duration._
 
 @derive(representableK)
 trait FiatRates[F[_]] {
@@ -31,59 +27,30 @@ object FiatRates {
   val ErgUsdPoolNft: TokenId =
     TokenId.fromStringUnsafe("011d3364de07e5a26f0c4eef0852cddb387039a921b7154ef3cab22c6eda887f")
 
-  val MemoTtl: FiniteDuration = 2.minutes
-
-  def make[I[_]: FlatMap, F[_]: Monad: Clock](implicit
-                                              network: ErgoExplorer[F],
-                                              logs: Logs[I, F],
-                                              makeRef: MakeRef[I, F]
+  def make[I[_]: FlatMap, F[_]: Monad: Clock: Timer](implicit
+    network: ErgoExplorer[F],
+    logs: Logs[I, F],
+    cache: Ref[F, Option[BigDecimal]]
   ): I[FiatRates[F]] =
-    for {
-      implicit0(l: Logging[F]) <- logs.forService[FiatRates[F]]
-      memo                     <- Memoize.make[I, F, BigDecimal]
-    } yield new FiatRatesTracing[F] attach new ErgoOraclesRateSource(network, memo)
+    logs.forService[FiatRates[F]].map(implicit __ => new Tracing[F] attach new ErgoOraclesRateSource[F](network, cache))
 
-  final class ErgoOraclesRateSource[F[_]: Monad](network: ErgoExplorer[F], memo: Memoize[F, BigDecimal])
-    extends FiatRates[F] {
+  final class ErgoOraclesRateSource[F[_]: Monad: Logging: Timer](
+    network: ErgoExplorer[F],
+    cache: Ref[F, Option[BigDecimal]]
+  ) extends FiatRates[F] {
 
     def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] =
-      if (asset == ErgoAssetClass && units == UsdUnits) {
-        val pullFromNetwork =
-          network
-            .getUtxoByToken(ErgUsdPoolNft, offset = 0, limit = 1)
-            .map(_.headOption)
-            .map {
-              for {
-                out    <- _
-                (_, r) <- out.additionalRegisters.find { case (r, _) => r == RegisterId.R4 }
-                usdPrice <- r match {
-                              case SConstant.LongConstant(v) => Some(v)
-                              case _                         => None
-                            }
-                oneErg = math.pow(10, ErgoAssetDecimals.toDouble)
-              } yield BigDecimal(oneErg) / BigDecimal(usdPrice)
-            }
-        for {
-          memoizedRate <- memo.read
-          res <- memoizedRate match {
-                   case Some(rate) => rate.someF
-                   case None =>
-                     pullFromNetwork.flatTap {
-                       case Some(rate) => memo.memoize(rate, MemoTtl)
-                       case None       => unit
-                     }
-                 }
-        } yield res
-      } else noneF
+      if (asset == ErgoAssetClass && units == UsdUnits) cache.get
+      else noneF[F, BigDecimal]
   }
 
-  final class FiatRatesTracing[F[_]: FlatMap: Logging] extends FiatRates[Mid[F, *]] {
+  final class Tracing[F[_]: Logging: Monad] extends FiatRates[Mid[F, *]] {
 
     def rateOf(asset: AssetClass, units: FiatUnits): Mid[F, Option[BigDecimal]] =
       for {
-        _ <- trace"rateOf(asset=$asset, units=$units)"
+        _ <- trace"Memo read $asset $units"
         r <- _
-        _ <- trace"rateOf(asset=$asset, units=$units) -> $r"
+        _ <- trace"Memo read completed $r"
       } yield r
   }
 }
