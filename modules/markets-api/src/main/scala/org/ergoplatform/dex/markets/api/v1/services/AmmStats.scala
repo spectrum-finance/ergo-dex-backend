@@ -130,11 +130,20 @@ object AmmStats {
           .map(_.flatten)
       }
 
+    def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] =
+      (for {
+        validTokens <- OptionT.liftF(tokens.fetchTokens)
+        pool        <- OptionT(pools.snapshot(poolId) ||> txr.trans)
+        res <- if (validTokens.contains(pool.lockedX.id) && validTokens.contains(pool.lockedY.id))
+          OptionT(getPoolSummaryUsingAllPools(pool, window, List.empty))
+        else OptionT.pure[F](PoolSummary.empty(pool, window))
+      } yield res).value
+
     private def getPoolSummaryUsingAllPools(
-                                             pool: PoolSnapshot,
-                                             window: TimeWindow,
-                                             everyKnownPool: List[PoolSnapshot]
-                                           ): F[Option[PoolSummary]] = {
+      pool: PoolSnapshot,
+      window: TimeWindow,
+      everyKnownPool: List[PoolSnapshot]
+    ): F[Option[PoolSummary]] = {
       val poolId = pool.id
 
       def poolData: D[Option[(amm.PoolInfo, Option[amm.PoolFeesSnapshot], Option[PoolVolumeSnapshot])]] =
@@ -156,10 +165,10 @@ object AmmStats {
     }
 
     private def processPoolVolume(
-                                   vol: Option[PoolVolumeSnapshot],
-                                   window: TimeWindow,
-                                   everyKnownPool: List[PoolSnapshot]
-                                 ): OptionT[F, Volume] =
+      vol: Option[PoolVolumeSnapshot],
+      window: TimeWindow,
+      everyKnownPool: List[PoolSnapshot]
+    ): OptionT[F, Volume] =
       vol match {
         case Some(vol) =>
           for {
@@ -170,66 +179,16 @@ object AmmStats {
       }
 
     private def processPoolFee(
-                                feesSnap: Option[PoolFeesSnapshot],
-                                window: TimeWindow,
-                                everyKnownPool: List[PoolSnapshot]
-                              ): OptionT[F, Fees] = feesSnap match {
+      feesSnap: Option[PoolFeesSnapshot],
+      window: TimeWindow,
+      everyKnownPool: List[PoolSnapshot]
+    ): OptionT[F, Fees] = feesSnap match {
       case Some(feesSnap) =>
         for {
           feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits, everyKnownPool))
           feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits, everyKnownPool))
         } yield Fees(feesX.value + feesY.value, UsdUnits, window)
       case None => OptionT.pure[F](Fees.empty(UsdUnits, window))
-    }
-
-    private def calcPoolStats(
-                               info: PoolInfo,
-                               pool: PoolSnapshot,
-                               volumeOpt: Option[PoolVolumeSnapshot],
-                               feeOpt: Option[PoolFeesSnapshot],
-                               window: TimeWindow
-                             ): OptionT[F, PoolSummary] =
-      for {
-        lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits))
-        lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits))
-        tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
-
-        volume <- volumeOpt match {
-          case Some(vol) =>
-            for {
-              volX <- OptionT(fiatSolver.convert(vol.volumeByX, UsdUnits))
-              volY <- OptionT(fiatSolver.convert(vol.volumeByY, UsdUnits))
-            } yield Volume(volX.value + volY.value, UsdUnits, window)
-          case None => OptionT.pure[F](Volume.empty(UsdUnits, window))
-        }
-
-        fees <- feeOpt match {
-          case Some(feesSnap) =>
-            for {
-              feesX <- OptionT(fiatSolver.convert(feesSnap.feesByX, UsdUnits))
-              feesY <- OptionT(fiatSolver.convert(feesSnap.feesByY, UsdUnits))
-            } yield Fees(feesX.value + feesY.value, UsdUnits, window)
-          case None => OptionT.pure[F](Fees.empty(UsdUnits, window))
-        }
-        yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
-      } yield PoolSummary(pool.id, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)
-
-    def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {
-      val queryPoolStats =
-        (for {
-          info     <- OptionT(pools.info(poolId))
-          pool     <- OptionT(pools.snapshot(poolId))
-          vol      <- OptionT.liftF(pools.volume(poolId, window))
-          feesSnap <- OptionT.liftF(pools.fees(poolId, window))
-        } yield (info, pool, vol, feesSnap)).value
-      (for {
-        (info, pool, vol, feesSnap) <- OptionT(queryPoolStats ||> txr.trans)
-        validTokens                 <- OptionT.liftF(tokens.fetchTokens)
-
-        res <- if (validTokens.contains(pool.lockedX.id) && validTokens.contains(pool.lockedY.id))
-          calcPoolStats(info, pool, vol, feesSnap, window)
-        else OptionT.pure[F](PoolSummary.empty(pool, window))
-      } yield res).value
     }
 
     private def calculatePoolSlippagePercent(initState: PoolTrace, finalState: PoolTrace): BigDecimal = {
