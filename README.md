@@ -1,6 +1,6 @@
-# ErgoDEX off-chain services
+# Spectrum.DEX off-chain services
 
-A set of off-chain services facilitating ErgoDEX functioning.
+A set of off-chain services facilitating Spectrum.DEX functioning.
 
 AMM DEX services:
  - UTXO Tracker - extracts AMM orders and pool state updates from the UTXO feed
