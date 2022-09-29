@@ -9,6 +9,7 @@ object versions {
   val Http4sVersion      = "0.22.11"
   val CirceVersion       = "0.13.0"
   val CatsVersion        = "2.5.0"
+  val CatsRetryVersion   = "2.1.0"
   val CatsEffectVersion  = "2.4.1"
   val CatsTaglessVersion = "0.14.0"
   val MouseVersion       = "0.26.2"

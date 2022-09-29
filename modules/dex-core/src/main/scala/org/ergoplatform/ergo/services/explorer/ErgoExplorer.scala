@@ -69,7 +69,7 @@ trait ErgoExplorer[F[_]] {
 
   /** Get token info by token id.
     */
-  def getTokenInfo(tokenId: TokenId): F[TokenInfo]
+  def getTokenInfo(tokenId: TokenId): F[Option[TokenInfo]]
 }
 
 object ErgoExplorer {
@@ -114,7 +114,7 @@ final class ErgoExplorerTracing[F[_]: Logging: FlatMap] extends ErgoExplorer[Mid
       _  <- trace"getUtxoByToken(..) -> $os"
     } yield os
 
-  def getTokenInfo(tokenId: TokenId): Mid[F, TokenInfo] =
+  def getTokenInfo(tokenId: TokenId): Mid[F, Option[TokenInfo]] =
     for {
       _  <- trace"getTokenInfo(tokenId=$tokenId)"
       os <- _
@@ -192,12 +192,12 @@ class CombinedErgoExplorer[F[_]: MonadThrow](config: NetworkConfig)(implicit bac
       .absorbError
       .map(_.items)
 
-  def getTokenInfo(tokenId: TokenId): F[TokenInfo] =
+  def getTokenInfo(tokenId: TokenId): F[Option[TokenInfo]] =
     basicRequest
       .get(explorerUri.withPathSegment(tokenInfoPathSeg(tokenId)))
       .response(asJson[TokenInfo])
       .send(backend)
-      .absorbError
+      .absorbServerError
 }
 
 trait ErgoExplorerStreaming[S[_], F[_]] extends ErgoExplorer[F] {
@@ -243,7 +243,7 @@ object ErgoExplorerStreaming {
     def getUtxoByToken(tokenId: TokenId, offset: Int, limit: Int): F[List[Output]] =
       tft.flatMap(_.getUtxoByToken(tokenId, offset, limit))
 
-    def getTokenInfo(tokenId: TokenId): F[TokenInfo] =
+    def getTokenInfo(tokenId: TokenId): F[Option[TokenInfo]] =
       tft.flatMap(_.getTokenInfo(tokenId))
 
     def streamUnspentOutputs(gOffset: Long, limit: Int): S[Output] =

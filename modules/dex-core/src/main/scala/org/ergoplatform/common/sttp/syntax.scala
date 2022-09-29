@@ -15,6 +15,12 @@ object syntax {
 
     def absorbError(implicit R: Throws[F], A: Monad[F]): F[A] =
       fr.flatMap(_.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise)
+
+    def absorbServerError(implicit R: Throws[F], A: Monad[F]): F[Option[A]] =
+      fr.flatMap[Option[A]] { res =>
+        if (res.code.isClientError) Option.empty[A].pure[F]
+        else res.body.leftMap(resEx => ResponseError(resEx.getMessage)).toRaise.map(Some(_))
+      }
   }
 
   implicit class PlainResponseOps[F[_], A](private val fr: F[Response[Either[String, A]]])

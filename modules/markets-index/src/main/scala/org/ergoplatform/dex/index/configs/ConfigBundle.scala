@@ -24,7 +24,8 @@ final case class ConfigBundle(
   @promote utxoTracker: LedgerTrackingConfig,
   @promote txTracker: TxTrackerConfig,
   @promote blockTracker: BlockTrackerConfig,
-  redis: RedisConfig
+  redis: RedisConfig,
+  poolsIndexing: PoolsIndexingConfig
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {
