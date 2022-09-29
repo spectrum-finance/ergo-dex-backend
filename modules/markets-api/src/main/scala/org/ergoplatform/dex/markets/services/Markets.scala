@@ -33,6 +33,9 @@ trait Markets[F[_]] {
 
 object Markets {
 
+  def parsePools(pools: List[PoolSnapshot]): List[Market] =
+    pools.map(p => Market.fromReserves(p.lockedX, p.lockedY))
+
   val MemoTtl: FiniteDuration = 4.minutes
 
   def make[I[_]: FlatMap, F[_]: Monad: Clock, D[_]](implicit
@@ -47,9 +50,6 @@ object Markets {
         new MarketsTracing[F] attach (new MarketsMemo(poolsF, memo) attach new Live(poolsF))
       }
     }
-
-  private def parsePools(pools: List[PoolSnapshot]): List[Market] =
-    pools.map(p => Market.fromReserves(p.lockedX, p.lockedY))
 
   final class Live[F[_]: Monad](pools: Pools[F]) extends Markets[F] {
 

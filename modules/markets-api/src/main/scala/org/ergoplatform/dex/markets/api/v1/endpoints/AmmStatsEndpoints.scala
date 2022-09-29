@@ -53,6 +53,15 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .name("Pool stats")
       .description("Get statistics on the pool with the given ID")
 
+  def getPoolsSummary: Endpoint[TimeWindow, HttpError, List[PoolSummary], Any] =
+    baseEndpoint.get
+      .in(PathPrefix / "pools" / "stats")
+      .in(timeWindow)
+      .out(jsonBody[List[PoolSummary]])
+      .tag(Group)
+      .name("Pools statistic")
+      .description("Get statistic about every known pool")
+
   def getPlatformStats: Endpoint[TimeWindow, HttpError, PlatformSummary, Any] =
     baseEndpoint.get
       .in(PathPrefix / "platform" / "stats")
