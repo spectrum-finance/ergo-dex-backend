@@ -8,7 +8,7 @@ import org.ergoplatform.dex.domain.locks.LiquidityLock
 import org.ergoplatform.dex.domain.locks.types.LockId
 import org.ergoplatform.dex.index.sql._
 import org.ergoplatform.ergo._
-import org.ergoplatform.ergo.domain.{LedgerMetadata, Block}
+import org.ergoplatform.ergo.domain.{Block, LedgerMetadata}
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo
 import org.ergoplatform.ergo.state.ConfirmedIndexed
 import CFMMVersionedOrder._
@@ -24,9 +24,8 @@ object models {
 
   implicit val blockQs: QuerySet[DBBlock] = BlocksSql
 
-  implicit val dbBlockView: Extract[Block, DBBlock] = {
-    case Block(id, height, timestamp) =>
-      DBBlock(id, height, timestamp)
+  implicit val dbBlockView: Extract[Block, DBBlock] = { case Block(id, height, timestamp) =>
+    DBBlock(id, height, timestamp)
   }
 
   final case class DBLiquidityLock(
@@ -79,10 +78,6 @@ object models {
       )
   }
 
-  sealed trait DBModel
-
-  final case class DBSwapV1() extends DBModel
-
   final case class DBSwap(
     orderId: OrderId,
     poolId: PoolId,
@@ -97,13 +92,14 @@ object models {
     dexFeePerTokenNum: Long,
     dexFeePerTokenDenom: Long,
     redeemer: PubKey,
-    protocolVersion: ProtocolVersion
-  ) extends DBModel
+    protocolVersion: ProtocolVersion,
+    contractVersion: CFMMOrderVersion
+  )
 
   implicit val swapQs: QuerySet[DBSwap] = SwapOrdersSql
 
   implicit val swapView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnySwap, SwapEvaluation], DBSwap] = {
-    case EvaluatedCFMMOrder(swap: AnySwap, ev, pool) =>
+    case EvaluatedCFMMOrder(swap: AnySwap, ev, pool, _) =>
       val (minerFee, params) = swap match {
         case swap: SwapV0 => (None, swap.params)
         case swap: SwapV1 => (swap.maxMinerFee.some, swap.params)
@@ -122,7 +118,8 @@ object models {
         params.dexFeePerTokenNum,
         params.dexFeePerTokenDenom,
         params.redeemer,
-        ProtocolVersion.Initial
+        ProtocolVersion.Initial,
+        swap.version
       )
   }
 
@@ -138,13 +135,14 @@ object models {
     outputAmountY: Option[Long],
     dexFee: Long,
     redeemer: PubKey,
-    protocolVersion: ProtocolVersion
+    protocolVersion: ProtocolVersion,
+    contractVersion: CFMMOrderVersion
   )
 
   implicit val redeemQs: QuerySet[DBRedeem] = RedeemOrdersSql
 
   implicit val redeemView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyRedeem, RedeemEvaluation], DBRedeem] = {
-    case EvaluatedCFMMOrder(redeem, ev, pool) =>
+    case EvaluatedCFMMOrder(redeem, ev, pool, _) =>
       val (minerFee, params) = redeem match {
         case redeem: RedeemV0 => (None, redeem.params)
         case redeem: RedeemV1 => (redeem.maxMinerFee.some, redeem.params)
@@ -161,7 +159,8 @@ object models {
         ev.map(_.outputY.value),
         params.dexFee,
         params.redeemer,
-        ProtocolVersion.Initial
+        ProtocolVersion.Initial,
+        redeem.version
       )
   }
 
@@ -178,13 +177,14 @@ object models {
     outputAmountLP: Option[Long],
     dexFee: Long,
     redeemer: PubKey,
-    protocolVersion: ProtocolVersion
+    protocolVersion: ProtocolVersion,
+    contractVersion: CFMMOrderVersion
   )
 
   implicit val depositQs: QuerySet[DBDeposit] = DepositOrdersSql
 
   implicit val depositView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyDeposit, DepositEvaluation], DBDeposit] = {
-    case EvaluatedCFMMOrder(deposit, ev, pool) =>
+    case EvaluatedCFMMOrder(deposit, ev, pool, _) =>
       val (minerFee, params) = deposit match {
         case deposit: DepositV0 => (None, deposit.params)
         case deposit: DepositV1 => (deposit.maxMinerFee.some, deposit.params)
@@ -202,7 +202,8 @@ object models {
         ev.map(_.outputLP.value),
         params.dexFee,
         params.redeemer,
-        ProtocolVersion.Initial
+        ProtocolVersion.Initial,
+        deposit.version
       )
   }
 
@@ -214,4 +215,26 @@ object models {
 
   implicit val extractAssets: Extract[TokenInfo, DBAssetInfo] =
     ti => DBAssetInfo(ti.id, ti.name.map(Ticker.apply), ti.decimals)
+
+  final case class DBOrderExecutorFee(
+    poolId: PoolId,
+    orderId: OrderId,
+    outputId: BoxId,
+    address: String,
+    operatorFee: Long,
+    timestamp: Long
+  )
+
+  implicit val orderExecutorFeeQs: QuerySet[DBOrderExecutorFee] = OrderExecutorFeeSql
+
+  implicit val orderExecutorFeeView: Extract[OrderExecutorFee, DBOrderExecutorFee] =
+    orderExecutorFee =>
+      DBOrderExecutorFee(
+        orderExecutorFee.poolId,
+        orderExecutorFee.orderId,
+        orderExecutorFee.outputId,
+        orderExecutorFee.address,
+        orderExecutorFee.operatorFee,
+        orderExecutorFee.timestamp
+      )
 }
