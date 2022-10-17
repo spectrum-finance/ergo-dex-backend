@@ -1,14 +1,8 @@
 package org.ergoplatform.dex.index.processes
 
-import cats.data.NonEmptyList
 import cats.syntax.foldable._
-import cats.syntax.option._
-import cats.{Foldable, Functor, Monad}
-import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
-import org.ergoplatform.dex.domain.amm.{Deposit, EvaluatedCFMMOrder, Redeem, Swap}
-import org.ergoplatform.dex.index.db.Extract.syntax.ExtractOps
-import org.ergoplatform.dex.index.db.models.{DBDeposit, DBRedeem, DBSwap}
-import org.ergoplatform.dex.index.repositories.RepoBundle
+import cats.syntax.parallel._
+import cats.{Foldable, Functor, Monad, Parallel}
 import org.ergoplatform.dex.index.streaming.CFMMHistConsumer
 import tofu.doobie.transactor.Txr
 import tofu.logging.{Logging, Logs}
@@ -27,12 +21,12 @@ object HistoryIndexing {
   def make[
     I[_]: Functor,
     S[_]: Functor: Evals[*[_], F]: Chunks[*[_], C],
-    F[_]: Monad,
+    F[_]: Monad: Parallel,
     D[_]: Monad,
     C[_]: Functor: Foldable
   ](implicit
     orders: CFMMHistConsumer[S, F],
-    repoBundle: RepoBundle[D],
+    handlers: List[AnyOrdersHandler[D]],
     txr: Txr.Aux[F, D],
     logs: Logs[I, F]
   ): I[HistoryIndexing[S]] =
@@ -42,12 +36,12 @@ object HistoryIndexing {
 
   final class CFMMIndexing[
     S[_]: Functor: Evals[*[_], F]: Chunks[*[_], C],
-    F[_]: Monad: Logging,
+    F[_]: Monad: Logging: Parallel,
     D[_]: Monad,
     C[_]: Functor: Foldable
   ](implicit
     orders: CFMMHistConsumer[S, F],
-    repos: RepoBundle[D],
+    handlers: List[AnyOrdersHandler[D]],
     txr: Txr.Aux[F, D]
   ) extends HistoryIndexing[S] {
 
@@ -59,35 +53,14 @@ object HistoryIndexing {
         }
         .evalTap { case (xs, _) => warn"[${xs.count(_.isEmpty)}] records discarded." }
         .evalMap { case (rs, commit) =>
-          val orders = rs.flatten
-          val (swaps, others) = orders.partitionEither {
-            case EvaluatedCFMMOrder(o: Swap, Some(ev: SwapEvaluation), p) =>
-              Left(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBSwap])
-            case EvaluatedCFMMOrder(o: Swap, _, p) =>
-              Left(EvaluatedCFMMOrder(o, none[SwapEvaluation], p).extract[DBSwap])
-            case EvaluatedCFMMOrder(o: Deposit, Some(ev: DepositEvaluation), p) =>
-              Right(Left(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBDeposit]))
-            case EvaluatedCFMMOrder(o: Deposit, _, p) =>
-              Right(Left(EvaluatedCFMMOrder(o, none[DepositEvaluation], p).extract[DBDeposit]))
-            case EvaluatedCFMMOrder(o: Redeem, Some(ev: RedeemEvaluation), p) =>
-              Right(Right(EvaluatedCFMMOrder(o, Some(ev), p).extract[DBRedeem]))
-            case EvaluatedCFMMOrder(o: Redeem, _, p) =>
-              Right(Right(EvaluatedCFMMOrder(o, none[RedeemEvaluation], p).extract[DBRedeem]))
-          }
-          val (deposits, redeems) = others.partitionEither(identity)
-          def insertNel[A](xs: List[A])(insert: NonEmptyList[A] => D[Int]) =
-            NonEmptyList.fromList(xs).fold(0.pure[D])(insert)
-          val insert =
-            for {
-              ss <- insertNel(swaps)(repos.swaps.insert)
-              ds <- insertNel(deposits)(repos.deposits.insert)
-              rs <- insertNel(redeems)(repos.redeems.insert)
-            } yield ss + ds + rs
-          for {
-            n <- txr.trans(insert)
-            _ <- info"[$n] orders indexed"
-            _ <- commit.getOrElse(unit[F])
-          } yield ()
+          handlers
+            .parTraverse { handler =>
+              txr.trans(handler.handle(rs.flatten)): F[Int]
+            }
+            .map(_.sum)
+            .flatMap { num =>
+              info"[$num] orders indexed" *> commit.getOrElse(unit[F])
+            }
         }
   }
 }

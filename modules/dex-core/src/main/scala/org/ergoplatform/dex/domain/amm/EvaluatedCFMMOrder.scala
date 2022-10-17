@@ -4,15 +4,16 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import tofu.logging.derivation.loggable
 
-/** Either executed or cancelled CFMM order.
+/** Either executed or cancelled CFMM versioned order.
   */
 @derive(encoder, decoder, loggable)
-final case class EvaluatedCFMMOrder[A <: CFMMOrder, E <: OrderEvaluation](
+final case class EvaluatedCFMMOrder[A <: CFMMVersionedOrder.Any, E <: OrderEvaluation](
   order: A,
   eval: Option[E],
-  pool: Option[CFMMPool]
+  pool: Option[CFMMPool],
+  orderExecutorFee: Option[OrderExecutorFee]
 )
 
 object EvaluatedCFMMOrder {
-  type Any = EvaluatedCFMMOrder[CFMMOrder, OrderEvaluation]
+  type Any = EvaluatedCFMMOrder[CFMMVersionedOrder.Any, OrderEvaluation]
 }

@@ -4,6 +4,7 @@ import cats.effect.Clock
 import cats.{Applicative, Monad}
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.AssetAmount
+import org.ergoplatform.dex.domain.amm.CFMMVersionedOrder._
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMType.N2T_CFMM
@@ -16,59 +17,56 @@ import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.time._
 
-final class N2TCFMMOrdersParser[F[_]: Applicative](ts: Long)(implicit
+final class N2TCFMMOrdersV0Parser[F[_]: Applicative](ts: Long)(implicit
   e: ErgoAddressEncoder
-) extends CFMMOrdersParser[N2T_CFMM, F] {
+) extends V0Parser[N2T_CFMM, F] {
 
-  def deposit(box: Output): F[Option[Deposit]] = {
+  def depositV0(box: Output): F[Option[DepositV0]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.deposit) {
+      if (template == templates.depositV0) {
         for {
-          poolId      <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
-          maxMinerFee <- tree.constants.parseLong(22)
-          inX         <- tree.constants.parseLong(16).map(AssetAmount.native)
-          inY         <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
-          dexFee      <- tree.constants.parseLong(15)
-          redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
+          poolId   <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
+          inX      <- tree.constants.parseLong(16).map(AssetAmount.native)
+          inY      <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
+          dexFee   <- tree.constants.parseLong(15)
+          redeemer <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = DepositParams(inX, inY, dexFee, redeemer)
-        } yield Deposit(poolId, maxMinerFee, ts, params, box)
+        } yield DepositV0(poolId, ts, params, box)
       } else None
     parsed.pure
   }
 
-  def redeem(box: Output): F[Option[Redeem]] = {
+  def redeemV0(box: Output): F[Option[RedeemV0]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.redeem) {
+      if (template == templates.redeemV0) {
         for {
-          poolId      <- tree.constants.parseBytea(11).map(PoolId.fromBytes)
-          maxMinerFee <- tree.constants.parseLong(16)
-          inLP        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
-          dexFee      <- tree.constants.parseLong(12)
-          redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
+          poolId   <- tree.constants.parseBytea(11).map(PoolId.fromBytes)
+          inLP     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
+          dexFee   <- tree.constants.parseLong(12)
+          redeemer <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = RedeemParams(inLP, dexFee, redeemer)
-        } yield Redeem(poolId, maxMinerFee, ts, params, box)
+        } yield RedeemV0(poolId, ts, params, box)
       } else None
     parsed.pure
   }
 
-  def swap(box: Output): F[Option[Swap]] = {
+  def swapV0(box: Output): F[Option[SwapV0]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.swapSell) swapSell(box, tree)
-      else if (template == templates.swapBuy) swapBuy(box, tree)
+      if (template == templates.swapSellV0) swapSellV0(box, tree)
+      else if (template == templates.swapBuyV0) swapBuyV0(box, tree)
       else None
     parsed.pure
   }
 
-  private def swapSell(box: Output, tree: ErgoTree) =
+  private def swapSellV0(box: Output, tree: ErgoTree): Option[SwapV0] =
     for {
       poolId       <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
-      maxMinerFee  <- tree.constants.parseLong(22)
       baseAmount   <- tree.constants.parseLong(2).map(AssetAmount.native)
       outId        <- tree.constants.parseBytea(9).map(TokenId.fromBytes)
       minOutAmount <- tree.constants.parseLong(10)
@@ -77,12 +75,11 @@ final class N2TCFMMOrdersParser[F[_]: Applicative](ts: Long)(implicit
       dexFeePerTokenDenom <- tree.constants.parseLong(12)
       redeemer            <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
       params = SwapParams(baseAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
-    } yield Swap(poolId, maxMinerFee, ts, params, box)
+    } yield SwapV0(poolId, ts, params, box)
 
-  private def swapBuy(box: Output, tree: ErgoTree) =
+  private def swapBuyV0(box: Output, tree: ErgoTree): Option[SwapV0] =
     for {
       poolId       <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
-      maxMinerFee  <- tree.constants.parseLong(19)
       inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
       minOutAmount <- tree.constants.parseLong(10)
       outAmount = AssetAmount.native(minOutAmount)
@@ -91,11 +88,11 @@ final class N2TCFMMOrdersParser[F[_]: Applicative](ts: Long)(implicit
       dexFeePerTokenNum = dexFeePerTokenDenom - dexFeePerTokenNumDiff
       redeemer <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
       params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
-    } yield Swap(poolId, maxMinerFee, ts, params, box)
+    } yield SwapV0(poolId, ts, params, box)
 }
 
-object N2TCFMMOrdersParser {
+object N2TCFMMOrdersV0Parser {
 
-  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): CFMMOrdersParser[N2T_CFMM, F] =
-    now.millis.map(ts => new N2TCFMMOrdersParser(ts): CFMMOrdersParser[N2T_CFMM, F]).embed
+  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): V0Parser[N2T_CFMM, F] =
+    now.millis.map(ts => new N2TCFMMOrdersV0Parser(ts): V0Parser[N2T_CFMM, F]).embed
 }

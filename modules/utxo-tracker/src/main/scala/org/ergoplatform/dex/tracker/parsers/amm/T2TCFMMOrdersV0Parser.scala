@@ -4,6 +4,7 @@ import cats.effect.Clock
 import cats.{Applicative, Monad}
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.AssetAmount
+import org.ergoplatform.dex.domain.amm.CFMMVersionedOrder._
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
@@ -15,53 +16,50 @@ import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.time.now
 
-final class T2TCFMMOrdersParser[F[_]: Applicative: Clock](ts: Long)(implicit
+final class T2TCFMMOrdersV0Parser[F[_]: Applicative: Clock](ts: Long)(implicit
   e: ErgoAddressEncoder
-) extends CFMMOrdersParser[T2T_CFMM, F] {
+) extends V0Parser[T2T_CFMM, F] {
 
-  def deposit(box: Output): F[Option[Deposit]] = {
+  def depositV0(box: Output): F[Option[DepositV0]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.deposit) {
+      if (template == templates.depositV0) {
         for {
-          poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
-          maxMinerFee <- tree.constants.parseLong(25)
-          inX         <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
-          inY         <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount))
-          dexFee      <- tree.constants.parseLong(15)
-          redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
+          poolId   <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
+          inX      <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
+          inY      <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount))
+          dexFee   <- tree.constants.parseLong(15)
+          redeemer <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = DepositParams(inX, inY, dexFee, redeemer)
-        } yield Deposit(poolId, maxMinerFee, ts, params, box)
+        } yield DepositV0(poolId, ts, params, box)
       } else None
     parsed.pure
   }
 
-  def redeem(box: Output): F[Option[Redeem]] = {
+  def redeemV0(box: Output): F[Option[RedeemV0]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.redeem) {
+      if (template == templates.redeemV0) {
         for {
-          poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
-          maxMinerFee <- tree.constants.parseLong(19)
-          inLP        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
-          dexFee      <- tree.constants.parseLong(15)
-          redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
+          poolId   <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
+          inLP     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
+          dexFee   <- tree.constants.parseLong(15)
+          redeemer <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = RedeemParams(inLP, dexFee, redeemer)
-        } yield Redeem(poolId, maxMinerFee, ts, params, box)
+        } yield RedeemV0(poolId, ts, params, box)
       } else None
     parsed.pure
   }
 
-  def swap(box: Output): F[Option[Swap]] = {
+  def swapV0(box: Output): F[Option[SwapV0]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.swap) {
+      if (template == templates.swapV0) {
         for {
           poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
-          maxMinerFee  <- tree.constants.parseLong(21)
           inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
           outId        <- tree.constants.parseBytea(2).map(TokenId.fromBytes)
           minOutAmount <- tree.constants.parseLong(15)
@@ -70,14 +68,14 @@ final class T2TCFMMOrdersParser[F[_]: Applicative: Clock](ts: Long)(implicit
           dexFeePerTokenDenom <- tree.constants.parseLong(17)
           redeemer            <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
-        } yield Swap(poolId, maxMinerFee, ts, params, box)
+        } yield SwapV0(poolId, ts, params, box)
       } else None
     parsed.pure
   }
 }
 
-object T2TCFMMOrdersParser {
+object T2TCFMMOrdersV0Parser {
 
-  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): CFMMOrdersParser[T2T_CFMM, F] =
-    now.millis.map(ts => new T2TCFMMOrdersParser(ts): CFMMOrdersParser[T2T_CFMM, F]).embed
+  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): V0Parser[T2T_CFMM, F] =
+    now.millis.map(ts => new T2TCFMMOrdersV0Parser(ts): V0Parser[T2T_CFMM, F]).embed
 }

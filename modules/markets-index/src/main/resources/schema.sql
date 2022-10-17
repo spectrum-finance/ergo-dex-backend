@@ -32,7 +32,7 @@ create table if not exists public.swaps (
     order_id public.hash32type primary key,
     pool_id public.hash32type not null,
     pool_state_id public.hash32type,
-    max_miner_fee bigint not null,
+    max_miner_fee bigint,
     timestamp bigint not null,
     input_id public.hash32type not null,
     input_value bigint not null,
@@ -42,7 +42,8 @@ create table if not exists public.swaps (
     dex_fee_per_token_num bigint not null,
     dex_fee_per_token_denom bigint not null,
     redeemer public.pubkey not null,
-    protocol_version integer not null
+    protocol_version integer not null,
+    contract_version integer not null
 );
 
 alter table public.swaps owner to ergo_admin;
@@ -57,7 +58,7 @@ create table if not exists public.redeems (
     order_id public.hash32type primary key,
     pool_id public.hash32type not null,
     pool_state_id public.hash32type,
-    max_miner_fee bigint not null,
+    max_miner_fee bigint,
     timestamp bigint not null,
     lp_id public.hash32type not null,
     lp_amount bigint not null,
@@ -65,7 +66,8 @@ create table if not exists public.redeems (
     output_amount_y bigint,
     dex_fee bigint not null,
     redeemer public.pubkey not null,
-    protocol_version integer not null
+    protocol_version integer not null,
+    contract_version integer not null
 );
 
 alter table public.redeems owner to ergo_admin;
@@ -79,7 +81,7 @@ create table if not exists public.deposits (
     order_id public.hash32type primary key,
     pool_id public.hash32type not null,
     pool_state_id public.hash32type,
-    max_miner_fee bigint not null,
+    max_miner_fee bigint,
     timestamp bigint not null,
     input_id_x public.hash32type not null,
     input_amount_x bigint not null,
@@ -88,7 +90,8 @@ create table if not exists public.deposits (
     output_amount_lp bigint,
     dex_fee bigint not null,
     redeemer public.pubkey not null,
-    protocol_version integer not null
+    protocol_version integer not null,
+    contract_version integer not null
 );
 
 alter table public.deposits owner to ergo_admin;
@@ -128,3 +131,17 @@ create table if not exists public.blocks (
 );
 
 create index blocks__height on public.blocks using btree (height);
+
+create table if not exists public.order_executor_fee (
+    pool_id public.hash32type not null,
+    order_id public.hash32type not null,
+    output_id public.hash32type primary key,
+    address public.address not null,
+    fee bigint not null,
+    timestamp bigint not null
+);
+
+alter table public.order_executor_fee owner to ergo_admin;
+
+create index order_executor__addr on public.order_executor_fee using btree (address);
+create index order_executor__ts on public.order_executor_fee using btree (timestamp);

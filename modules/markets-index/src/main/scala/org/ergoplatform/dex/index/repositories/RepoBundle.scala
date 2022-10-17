@@ -3,15 +3,7 @@ package org.ergoplatform.dex.index.repositories
 import cats.{~>, FlatMap}
 import cats.tagless.FunctorK
 import cats.tagless.syntax.functorK._
-import org.ergoplatform.dex.index.db.models.{
-  DBAssetInfo,
-  DBBlock,
-  DBDeposit,
-  DBLiquidityLock,
-  DBPoolSnapshot,
-  DBRedeem,
-  DBSwap
-}
+import org.ergoplatform.dex.index.db.models._
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.logging.Logs
@@ -24,7 +16,8 @@ final case class RepoBundle[F[_]](
   pools: MonoRepo[DBPoolSnapshot, F],
   assets: AssetRepo[F],
   locks: MonoRepo[DBLiquidityLock, F],
-  blocks: MonoRepo[DBBlock, F]
+  blocks: MonoRepo[DBBlock, F],
+  orderExecutorFee: MonoRepo[DBOrderExecutorFee, F]
 )
 
 object RepoBundle {
@@ -40,7 +33,8 @@ object RepoBundle {
           af.pools.mapK(fk),
           af.assets.mapK(fk),
           af.locks.mapK(fk),
-          af.blocks.mapK(fk)
+          af.blocks.mapK(fk),
+          af.orderExecutorFee.mapK(fk)
         )
     }
 
@@ -49,12 +43,13 @@ object RepoBundle {
     logs: Logs[I, D]
   ): I[RepoBundle[D]] =
     for {
-      swaps    <- MonoRepo.make[I, D, DBSwap]
-      deposits <- MonoRepo.make[I, D, DBDeposit]
-      redeems  <- MonoRepo.make[I, D, DBRedeem]
-      pools    <- MonoRepo.make[I, D, DBPoolSnapshot]
-      assets   <- AssetRepo.make[I, D]
-      locks    <- MonoRepo.make[I, D, DBLiquidityLock]
-      blocks   <- MonoRepo.make[I, D, DBBlock]
-    } yield RepoBundle(swaps, deposits, redeems, pools, assets, locks, blocks)
+      swaps            <- MonoRepo.make[I, D, DBSwap]
+      deposits         <- MonoRepo.make[I, D, DBDeposit]
+      redeems          <- MonoRepo.make[I, D, DBRedeem]
+      pools            <- MonoRepo.make[I, D, DBPoolSnapshot]
+      assets           <- AssetRepo.make[I, D]
+      locks            <- MonoRepo.make[I, D, DBLiquidityLock]
+      blocks           <- MonoRepo.make[I, D, DBBlock]
+      orderExecutorFee <- MonoRepo.make[I, D, DBOrderExecutorFee]
+    } yield RepoBundle(swaps, deposits, redeems, pools, assets, locks, blocks, orderExecutorFee)
 }

@@ -3,18 +3,22 @@ package org.ergoplatform.dex.tracker.parsers.amm
 import cats.Applicative
 import cats.syntax.option._
 import org.ergoplatform.dex.domain.AssetAmount
+import org.ergoplatform.dex.domain.amm.{CFMMPool, CFMMVersionedOrder}
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
-import org.ergoplatform.dex.domain.amm.{CFMMPool, Deposit, Redeem, Swap}
 import org.ergoplatform.ergo.domain.Output
 import tofu.syntax.monadic._
 
 trait CFMMOrderEvaluationParser[F[_]] {
 
-  def parseSwapEval(output: Output, order: Swap): F[Option[SwapEvaluation]]
+  def parseSwapEval(output: Output, order: CFMMVersionedOrder.AnySwap): F[Option[SwapEvaluation]]
 
-  def parseDepositEval(output: Output, pool: CFMMPool, order: Deposit): F[Option[DepositEvaluation]]
+  def parseDepositEval(
+    output: Output,
+    pool: CFMMPool,
+    order: CFMMVersionedOrder.AnyDeposit
+  ): F[Option[DepositEvaluation]]
 
-  def parseRedeemEval(output: Output, pool: CFMMPool, order: Redeem): F[Option[RedeemEvaluation]]
+  def parseRedeemEval(output: Output, pool: CFMMPool, order: CFMMVersionedOrder.AnyRedeem): F[Option[RedeemEvaluation]]
 }
 
 object CFMMOrderEvaluationParser {
@@ -24,23 +28,45 @@ object CFMMOrderEvaluationParser {
 
   final class UniversalParser[F[_]: Applicative] extends CFMMOrderEvaluationParser[F] {
 
-    def parseSwapEval(output: Output, order: Swap): F[Option[SwapEvaluation]] =
-      if (output.ergoTree == order.params.redeemer.ergoTree) {
+    def parseSwapEval(output: Output, order: CFMMVersionedOrder.AnySwap): F[Option[SwapEvaluation]] = {
+      val config = order match {
+        case swap: CFMMVersionedOrder.SwapV1 => swap.params
+        case swap: CFMMVersionedOrder.SwapV0 => swap.params
+      }
+      if (output.ergoTree == config.redeemer.ergoTree) {
         val outputAmount =
-          if (order.params.minOutput.isNative) Some(AssetAmount.native(output.value))
-          else output.assets.find(_.tokenId == order.params.minOutput.id).map(AssetAmount.fromBoxAsset)
+          if (config.minOutput.isNative) Some(AssetAmount.native(output.value))
+          else output.assets.find(_.tokenId == config.minOutput.id).map(AssetAmount.fromBoxAsset)
         outputAmount.map(out => SwapEvaluation(out)).pure
       } else none[SwapEvaluation].pure
+    }
 
-    def parseDepositEval(output: Output, pool: CFMMPool, order: Deposit): F[Option[DepositEvaluation]] =
-      if (output.ergoTree == order.params.redeemer.ergoTree) {
+    def parseDepositEval(
+      output: Output,
+      pool: CFMMPool,
+      order: CFMMVersionedOrder.AnyDeposit
+    ): F[Option[DepositEvaluation]] = {
+      val config = order match {
+        case deposit: CFMMVersionedOrder.DepositV1 => deposit.params
+        case deposit: CFMMVersionedOrder.DepositV0 => deposit.params
+      }
+      if (output.ergoTree == config.redeemer.ergoTree) {
         val outputAmountLP =
           output.assets.find(_.tokenId == pool.lp.id).map(AssetAmount.fromBoxAsset)
         outputAmountLP.map(out => DepositEvaluation(out)).pure
       } else none[DepositEvaluation].pure
+    }
 
-    def parseRedeemEval(output: Output, pool: CFMMPool, order: Redeem): F[Option[RedeemEvaluation]] =
-      if (output.ergoTree == order.params.redeemer.ergoTree) {
+    def parseRedeemEval(
+      output: Output,
+      pool: CFMMPool,
+      order: CFMMVersionedOrder.AnyRedeem
+    ): F[Option[RedeemEvaluation]] = {
+      val config = order match {
+        case redeem: CFMMVersionedOrder.RedeemV1 => redeem.params
+        case redeem: CFMMVersionedOrder.RedeemV0 => redeem.params
+      }
+      if (output.ergoTree == config.redeemer.ergoTree) {
         val outputAmountX =
           if (pool.x.isNative) Some(AssetAmount.native(output.value))
           else output.assets.find(_.tokenId == pool.x.id).map(AssetAmount.fromBoxAsset)
@@ -52,5 +78,6 @@ object CFMMOrderEvaluationParser {
           outY <- outputAmountY
         } yield RedeemEvaluation(outX, outY)).pure
       } else none[RedeemEvaluation].pure
+    }
   }
 }
