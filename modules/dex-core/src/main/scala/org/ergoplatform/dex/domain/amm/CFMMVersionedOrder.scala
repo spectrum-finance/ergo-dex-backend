@@ -13,7 +13,7 @@ sealed trait CFMMVersionedOrder[+V <: CFMMOrderVersion, +O <: CFMMOrderType] {
   val box: Output
   val timestamp: Long
 
-  val version: version
+  val version: V
 
   def id: OrderId = OrderId.fromBoxId(box.boxId)
 }
