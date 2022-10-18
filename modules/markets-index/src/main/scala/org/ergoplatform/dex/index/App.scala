@@ -118,9 +118,9 @@ object App extends EnvApp[ConfigBundle] {
       txTracker <-
         Resource.eval(
           TxTracker.make[InitF, StreamF, RunF](
-            List(cfmmHistoryHandler)//, cfmmPoolsHandler, lqLocksHandler, txHandler)
+            List(txHandler)//cfmmHistoryHandler,   cfmmPoolsHandler, lqLocksHandler, )
           )
-        )
+        ) //
       implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])
       implicit0(handlers: List[AnyOrdersHandler[xa.DB]]) = AnyOrdersHandler.makeOrdersHandlers[xa.DB]
       historyIndexer <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
