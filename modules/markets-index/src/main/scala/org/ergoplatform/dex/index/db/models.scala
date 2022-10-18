@@ -19,7 +19,7 @@ import tofu.logging.derivation.loggable
 object models {
 
   @derive(loggable)
-  final case class PoolStateLatest(
+  final case class PoolSnapshot(
     lpAmount: BigDecimal,
     xId: String,
     xAmount: BigDecimal,
@@ -252,48 +252,51 @@ object models {
       )
 
   @derive(loggable)
-  final case class DBLpState(
-                              address: String,
-                              poolId: String,
-                              boxId: String,
-                              txId: String,
-                              blockId: String,
-                              balance: BigDecimal,
-                              timestamp: Long,
-                              weight: BigDecimal,
-                              op: String,
-                              amount: BigDecimal,
-                              gap: Long,
-                              lpErg: BigDecimal,
-                              txHeight: Long,
-                              poolStateId: String
-                            )
+  final case class LiquidityProviderSnapshot(
+    address: String,
+    poolId: PoolId,
+    lpId: TokenId,
+    boxId: String,
+    txId: String,
+    blockId: String,
+    balance: BigDecimal,
+    timestamp: Long,
+    weight: BigDecimal,
+    op: String,
+    amount: BigDecimal,
+    gap: Long,
+    lpErg: BigDecimal,
+    txHeight: Long,
+    poolStateId: String
+  )
 
-  object DBLpState {
+  object LiquidityProviderSnapshot {
 
     def initial(
-                 address: String,
-                 poolId: String,
-                 boxId: String,
-                 ts: Long,
-                 txId: String,
-                 blockId: String,
-                 txHeight: Long
-               ): DBLpState =
-      DBLpState(
-        address   = address,
-        poolId    = poolId,
-        boxId     = boxId,
-        balance   = BigDecimal(0),
-        timestamp = ts,
-        weight    = BigDecimal(0),
-        op        = "init",
-        amount    = 0,
-        gap       = 0,
-        lpErg     = 0,
-        txHeight  = txHeight,
-        txId      = txId,
-        blockId   = blockId,
+      address: String,
+      poolId: PoolId,
+      lpId: TokenId,
+      boxId: String,
+      ts: Long,
+      txId: String,
+      blockId: String,
+      txHeight: Long
+    ): LiquidityProviderSnapshot =
+      LiquidityProviderSnapshot(
+        address     = address,
+        poolId      = poolId,
+        lpId        = lpId,
+        boxId       = boxId,
+        balance     = BigDecimal(0),
+        timestamp   = ts,
+        weight      = BigDecimal(0),
+        op          = "init",
+        amount      = 0,
+        gap         = 0,
+        lpErg       = 0,
+        txHeight    = txHeight,
+        txId        = txId,
+        blockId     = blockId,
         poolStateId = ""
       )
   }

@@ -22,7 +22,7 @@ trait QuerySet[T] {
   final def insertNoConflict(implicit lh: LogHandler, w: Write[T]): Update[T] =
     Update[T](s"insert into $tableName ($fieldsString) values ($holdersString) on conflict do nothing")
 
-  private def fieldsString: String =
+  def fieldsString: String =
     fields.mkString(", ")
 
   private def holdersString: String =

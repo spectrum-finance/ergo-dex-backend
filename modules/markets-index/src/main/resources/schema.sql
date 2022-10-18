@@ -152,6 +152,7 @@ create table if not exists public.state (
     id Integer not null default nextval('state_seq'),
     address Text not null,
     pool_id Text not null,
+    lp_id Text not null,
     box_id Text not null,
     tx_id Text not null,
     block_id Text not null,
@@ -164,7 +165,7 @@ create table if not exists public.state (
     lpErg Text not null,
     txHeight BIGINT not null,
     poolStateId Text not null,
-    PRIMARY KEY (box_id, op)
+    PRIMARY KEY (box_id, op, pool_id)
 );
 
 alter table public.state owner to ergo_admin;

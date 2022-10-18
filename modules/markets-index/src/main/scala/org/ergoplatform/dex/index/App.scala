@@ -18,11 +18,11 @@ import org.ergoplatform.dex.index.processes.{
   AnyOrdersHandler,
   BlockIndexing,
   HistoryIndexing,
-  LPStateIndexing,
+  LiquidityProvidersIndexing,
   LocksIndexing,
   PoolsIndexing
 }
-import org.ergoplatform.dex.index.repositories.{LPStateRepo, RepoBundle}
+import org.ergoplatform.dex.index.repositories.{LiquidityProvidersRepo, RepoBundle}
 import org.ergoplatform.dex.index.streaming.{
   BlocksConsumer,
   CFMMHistConsumer,
@@ -105,19 +105,20 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(ledger: LedgerStreaming[StreamF]) = LedgerStreaming.make[StreamF, RunF]
       cfmmPoolsHandler <-
         Resource.eval(SettledCFMMPoolsHandler.make[InitF, StreamF, RunF]).map(liftSettledOutputs[StreamF])
-      lqLocksHandler                       <- Resource.eval(LiquidityLocksHandler.make[InitF, StreamF, RunF]).map(liftOutputs[StreamF])
-      cfmmHistoryHandler                   <- Resource.eval(CFMMHistoryHandler.make[InitF, StreamF, RunF]).map(liftSettledTx[StreamF])
-      blockHandler                         <- Resource.eval(BlockHistoryHandler.make[InitF, StreamF, RunF])
-      txHandler                            <- Resource.eval(ExtendedSettledTxHandler.make[InitF, StreamF, RunF])
-      implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
-      implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
-      blockTracker                         <- Resource.eval(BlockTracker.make[InitF, StreamF, RunF](blockHandler))
-      implicit0(repo: LPStateRepo[RunF])   <- Resource.eval(LPStateRepo.make[InitF, RunF, xa.DB])
-      stateIndexing                        <- Resource.eval(LPStateIndexing.make[InitF, StreamF, RunF, Chunk](configs.stateIndexerConfig))
+      lqLocksHandler                                <- Resource.eval(LiquidityLocksHandler.make[InitF, StreamF, RunF]).map(liftOutputs[StreamF])
+      cfmmHistoryHandler                            <- Resource.eval(CFMMHistoryHandler.make[InitF, StreamF, RunF]).map(liftSettledTx[StreamF])
+      blockHandler                                  <- Resource.eval(BlockHistoryHandler.make[InitF, StreamF, RunF])
+      txHandler                                     <- Resource.eval(ExtendedSettledTxHandler.make[InitF, StreamF, RunF])
+      implicit0(redis: Redis.Plain[RunF])           <- Redis.make[InitF, RunF](configs.redis)
+      implicit0(cache: TrackerCache[RunF])          <- Resource.eval(TrackerCache.make[InitF, RunF])
+      blockTracker                                  <- Resource.eval(BlockTracker.make[InitF, StreamF, RunF](blockHandler))
+      implicit0(repo: LiquidityProvidersRepo[RunF]) <- Resource.eval(LiquidityProvidersRepo.make[InitF, RunF, xa.DB])
+//      stateIndexing <-
+//        Resource.eval(LiquidityProvidersIndexing.make[InitF, StreamF, RunF, Chunk](configs.stateIndexerConfig))
       txTracker <-
         Resource.eval(
           TxTracker.make[InitF, StreamF, RunF](
-            List(stateIndexing.handler, cfmmHistoryHandler, cfmmPoolsHandler, lqLocksHandler, txHandler)
+            List(cfmmHistoryHandler, cfmmPoolsHandler, lqLocksHandler, txHandler)
           )
         )
       implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])

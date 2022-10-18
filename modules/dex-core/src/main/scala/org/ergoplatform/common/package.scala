@@ -5,6 +5,7 @@ import cats.syntax.either._
 import cats.syntax.functor._
 import cats.{Applicative, Show}
 import derevo.derive
+import derevo.pureconfig.pureconfigReader
 import doobie.{Get, Put}
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.refineV
@@ -13,16 +14,19 @@ import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
 import org.ergoplatform.common.errors.RefinementFailed
-import org.ergoplatform.ergo.constraints.{Base58Spec, HexStringType, UrlStringType}
+import org.ergoplatform.ergo.constraints.{HexStringType, UrlStringType}
 import pureconfig.ConfigReader
 import pureconfig.error.CannotConvert
-import scorex.crypto.encode.Base58
 import scorex.util.encode.Base16
 import sttp.tapir.{Codec, CodecFormat, DecodeResult, Schema, Validator}
 import tofu.logging.Loggable
 import tofu.logging.derivation.loggable
 import tofu.syntax.raise._
 import tofu.{Raise, WithContext, WithLocal}
+import eu.timepit.refined._
+import eu.timepit.refined.auto._
+
+import scala.util.Try
 
 package object common {
 
@@ -32,6 +36,11 @@ package object common {
   }
 
   object HexString {
+
+    implicit val pureConfigInstance: ConfigReader[HexString] = ConfigReader.fromString { string =>
+      fromString[Try](string).toEither.leftMap(err => CannotConvert(string, "HexString", err.getMessage))
+    }
+
     // circe instances
     implicit val encoder: Encoder[HexString] = deriving
     implicit val decoder: Decoder[HexString] = deriving

@@ -9,11 +9,12 @@ import cats.{Applicative, Show}
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
+import derevo.pureconfig.pureconfigReader
 import doobie._
 import scodec.codecs._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex, Url}
-import eu.timepit.refined.{refineV, W}
+import eu.timepit.refined.{W, refineV}
 import fs2.kafka.RecordDeserializer
 import fs2.kafka.serde._
 import io.circe.refined._
@@ -116,7 +117,7 @@ package object ergo {
       BoxId(s)
   }
 
-  @derive(show, encoder, decoder, loggable)
+  @derive(show, encoder, decoder, loggable, pureconfigReader)
   @newtype case class TokenId(value: HexString) {
     def unwrapped: String = value.unwrapped
   }

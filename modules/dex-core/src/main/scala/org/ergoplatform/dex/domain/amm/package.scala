@@ -4,6 +4,7 @@ import cats.effect.Sync
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
+import derevo.pureconfig.pureconfigReader
 import doobie.{Get, Put}
 import fs2.kafka.serde.{deserializerViaKafkaDecoder, serializerViaCirceEncoder}
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
@@ -39,7 +40,7 @@ package object amm {
     val Initial: ProtocolVersion = ProtocolVersion(1)
   }
 
-  @derive(show, loggable, encoder, decoder)
+  @derive(show, loggable, encoder, decoder, pureconfigReader)
   @newtype final case class PoolId(value: TokenId) {
     def unwrapped: String = value.unwrapped
   }

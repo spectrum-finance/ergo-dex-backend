@@ -54,12 +54,12 @@ object dependencies {
     ).map(_ % CirceVersion)
 
   val Cats: List[ModuleID] = List(
-    "org.typelevel" %% "cats-core"           % CatsVersion,
-    "org.typelevel" %% "cats-effect"         % CatsEffectVersion,
-    "org.typelevel" %% "cats-tagless-macros" % CatsTaglessVersion,
-    "org.typelevel" %% "cats-tagless-core"   % CatsTaglessVersion,
-    "org.typelevel" %% "mouse"               % MouseVersion,
-    "com.github.cb372" %% "cats-retry"       % CatsRetryVersion
+    "org.typelevel"    %% "cats-core"           % CatsVersion,
+    "org.typelevel"    %% "cats-effect"         % CatsEffectVersion,
+    "org.typelevel"    %% "cats-tagless-macros" % CatsTaglessVersion,
+    "org.typelevel"    %% "cats-tagless-core"   % CatsTaglessVersion,
+    "org.typelevel"    %% "mouse"               % MouseVersion,
+    "com.github.cb372" %% "cats-retry"          % CatsRetryVersion
   )
 
   val Redis = List(
