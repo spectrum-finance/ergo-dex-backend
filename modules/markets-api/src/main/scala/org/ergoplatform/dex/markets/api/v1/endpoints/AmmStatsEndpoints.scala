@@ -126,7 +126,7 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
 
   def getSwapsStats: Endpoint[String, HttpError, TraderAirdropInfo, Any] =
     baseEndpoint.get
-      .in("airdrop" / "traiders")
+      .in("airdrop" / "traders")
       .in(address)
       .out(jsonBody[TraderAirdropInfo])
       .tag(Group)

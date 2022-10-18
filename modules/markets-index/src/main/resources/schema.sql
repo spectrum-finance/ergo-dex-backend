@@ -163,7 +163,8 @@ create table if not exists public.state (
     gap BIGINT not null,
     lpErg Text not null,
     txHeight BIGINT not null,
-    poolStateId Text not null
+    poolStateId Text not null,
+    PRIMARY KEY (box_id, op)
 );
 
 alter table public.state owner to ergo_admin;

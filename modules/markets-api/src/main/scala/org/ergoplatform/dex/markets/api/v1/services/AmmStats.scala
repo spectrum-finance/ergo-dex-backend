@@ -363,7 +363,7 @@ object AmmStats {
     ): F[Option[PoolStats]] = {
       val poolId = pool.id
 
-      def poolData: D[Option[(amm.PoolInfo, Option[amm.PoolFeesSnapshot], Option[PoolVolumeSnapshot])]] =
+      def poolData: D[Option[(PoolInfo, Option[PoolFeesSnapshot], Option[PoolVolumeSnapshot])]] =
         (for {
           info     <- OptionT(pools.info(poolId))
           feesSnap <- OptionT.liftF(pools.fees(poolId, window))
