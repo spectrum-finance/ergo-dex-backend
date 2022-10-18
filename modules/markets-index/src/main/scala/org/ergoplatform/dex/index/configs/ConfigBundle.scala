@@ -25,6 +25,7 @@ final case class ConfigBundle(
   @promote txTracker: TxTrackerConfig,
   @promote blockTracker: BlockTrackerConfig,
   redis: RedisConfig,
+  poolsIndexing: PoolsIndexingConfig,
   stateIndexerConfig: StateIndexerConfig
 )
 
