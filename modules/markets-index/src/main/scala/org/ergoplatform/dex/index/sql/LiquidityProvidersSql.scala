@@ -32,7 +32,7 @@ object LiquidityProvidersSql extends QuerySet[LiquidityProviderSnapshot] {
   def getLatestLiquidityProviderSnapshot(address: String, poolId: PoolId)(implicit
     lh: LogHandler
   ): Query0[LiquidityProviderSnapshot] =
-    sql"""|select $fieldsString from state
+    sql"""|select address, pool_id, lp_id, box_id, tx_id, block_id, balance, timestamp, weight, op, amount, gap, lpErg, txHeight, poolStateId from state
           |where address = $address and pool_id = $poolId order by id desc limit 1
           """.stripMargin.query[LiquidityProviderSnapshot]
 
