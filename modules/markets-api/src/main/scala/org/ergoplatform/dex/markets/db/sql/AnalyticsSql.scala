@@ -11,7 +11,7 @@ import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.ergo.TokenId
 
 final class AnalyticsSql(implicit lg: LogHandler) {
-  val sPools = Fragment.const(${Pools.pools.values.toList.map(_.unwrapped).map(s => s"'$s'").mkString(", ")})
+  val sPools = Fragment.const(Pools.pools.values.toList.map(_.unwrapped).map(s => s"'$s'").mkString(", "))
 
   def getAssetTicket: Query0[AssetTicket] =
     sql"select id, ticker from assets where ticker is not null".query
