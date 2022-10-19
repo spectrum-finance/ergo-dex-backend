@@ -14,6 +14,9 @@ import tofu.logging.derivation.loggable
 object amm {
 
   @derive(loggable)
+  final case class AssetTicket(id: String, ticket: String)
+
+  @derive(loggable)
   final case class OffChainOperatorState(operations: Int, totalReward: BigDecimal)
 
   @derive(loggable)

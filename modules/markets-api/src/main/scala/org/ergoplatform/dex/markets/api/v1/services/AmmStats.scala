@@ -229,53 +229,54 @@ object AmmStats {
       .sequence
 
     def getLqProviderInfo(address: String): F[LpResultProd] =
-      PPools.pools.toList
-        .map { case (_, pId) =>
-          def query: F[(LqProviderStateDB, BigDecimal, Int, String)] =
-            (for {
-              state    <- orders.getLqProviderState(address, pId.unwrapped)
-              snapshot <- pools.snapshot(pId)
-              pair <- snapshot.fold("unknown / unknown".pure[D]) { s =>
-                        for {
-                          x <- orders.getAssetTicket(s.lockedX.id.unwrapped)
-                          y <- orders.getAssetTicket(s.lockedY.id.unwrapped)
-                        } yield s"${x.getOrElse("unknown")} / ${y.getOrElse("unknown")}"
-                      }
-              totalWeight    <- orders.getTotalWeight
-              addressesCount <- orders.getLqUsers
-            } yield (
-              state.getOrElse(LqProviderStateDB.empty(address)),
-              totalWeight,
-              addressesCount,
-              pair
-            )) ||> txr.trans
+      (orders.getAssetTicket ||> txr.trans).flatMap { assets: List[AssetTicket] =>
+        PPools.pools.toList
+          .map { case (_, pId) =>
+            def query: F[(LqProviderStateDB, BigDecimal, Int, String)] =
+              (for {
+                state    <- orders.getLqProviderState(address, pId.unwrapped)
+                snapshot <- pools.snapshot(pId)
+                pair = snapshot.fold("unknown / unknown") { s =>
+                         val x = assets.find(_.id == s.lockedX.id.unwrapped).getOrElse("unknown")
+                         val y = assets.find(_.id == s.lockedY.id.unwrapped).getOrElse("unknown")
+                         s"$x / $y"
+                       }
+                totalWeight    <- orders.getTotalWeight
+                addressesCount <- orders.getLqUsers
+              } yield (
+                state.getOrElse(LqProviderStateDB.empty(address)),
+                totalWeight,
+                addressesCount,
+                pair
+              )) ||> txr.trans
 
-          query.map { case (state, totalWeight, addressesCount, pair) =>
-            val weight = 2000 * addressesCount * (state.totalWeight / totalWeight)
+            query.map { case (state, totalWeight, addressesCount, pair) =>
+              val weight = 2000 * addressesCount * (state.totalWeight / totalWeight)
 
-            LpResultDev(
-              weight.setScale(6, RoundingMode.HALF_UP),
-              state.totalWeight,
-              state.totalCount,
-              state.totalErgValue,
-              state.totalTime,
-              s"${TimeUnit.MILLISECONDS.toHours(state.totalTime.toLong)}h",
-              pair
+              LpResultDev(
+                weight.setScale(6, RoundingMode.HALF_UP),
+                state.totalWeight,
+                state.totalCount,
+                state.totalErgValue,
+                state.totalTime,
+                s"${TimeUnit.MILLISECONDS.toHours(state.totalTime.toLong)}h",
+                pair
+              )
+            }
+          }
+          .parSequence
+          .map { pools =>
+            LpResultProd(
+              address,
+              pools.map(_.totatSpfReward).sum,
+              pools.map(_.totalWeight).sum,
+              pools.map(_.totalErgValue).sum,
+              s"${TimeUnit.MILLISECONDS.toHours(pools.map(_.totalTime).sum.toLong)}h",
+              pools.map(_.operations).sum,
+              pools.filter(_.totalErgValue > 0)
             )
           }
-        }
-        .parSequence
-        .map { pools =>
-          LpResultProd(
-            address,
-            pools.map(_.totatSpfReward).sum,
-            pools.map(_.totalWeight).sum,
-            pools.map(_.totalErgValue).sum,
-            s"${TimeUnit.MILLISECONDS.toHours(pools.map(_.totalTime).sum.toLong)}h",
-            pools.map(_.operations).sum,
-            pools.filter(_.totalErgValue > 0)
-          )
-        }
+      }
 
     def convertToFiat(id: TokenId, amount: Long): F[Option[FiatEquiv]] =
       (for {

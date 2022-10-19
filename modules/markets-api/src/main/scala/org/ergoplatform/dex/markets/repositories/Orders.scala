@@ -46,7 +46,7 @@ trait Orders[F[_]] {
 
   def getOffChainParticipantsCount(from: Long, to: Option[Long]): F[Int]
 
-  def getAssetTicket(id: String): F[Option[String]]
+  def getAssetTicket: F[List[AssetTicket]]
 }
 
 object Orders {
@@ -61,8 +61,8 @@ object Orders {
 
   final class Live(sql: AnalyticsSql) extends Orders[ConnectionIO] {
 
-    def getAssetTicket(id: String): ConnectionIO[Option[String]] =
-      sql.getAssetTicket(id).option
+    def getAssetTicket: ConnectionIO[List[AssetTicket]] =
+      sql.getAssetTicket.to[List]
 
     def getOffChainParticipantsCount(from: Long, to: Option[Long]): ConnectionIO[Int] =
       sql.getOffChainParticipantsCount(from, to).unique
@@ -107,11 +107,11 @@ object Orders {
 
   final class OrdersTracing[F[_]: FlatMap: Logging] extends Orders[Mid[F, *]] {
 
-    def getAssetTicket(id: String) =
+    def getAssetTicket =
       for {
-        _ <- trace"getAssetTicket($id)"
+        _ <- trace"getAssetTicket()"
         r <- _
-        _ <- trace"getAssetTicket($id) -> ${r} res"
+        _ <- trace"getAssetTicket() -> ${r} res"
       } yield r
 
     def getOffChainParticipantsCount(from: Long, to: Option[Long]) =
