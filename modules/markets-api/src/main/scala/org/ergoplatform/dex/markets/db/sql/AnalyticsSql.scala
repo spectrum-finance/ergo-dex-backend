@@ -11,6 +11,7 @@ import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.ergo.TokenId
 
 final class AnalyticsSql(implicit lg: LogHandler) {
+  val sPools = Fragment.const(${Pools.pools.values.toList.map(_.unwrapped).map(s => s"'$s'").mkString(", ")})
 
   def getAssetTicket: Query0[AssetTicket] =
     sql"select id, ticker from assets where ticker is not null".query
@@ -61,26 +62,25 @@ final class AnalyticsSql(implicit lg: LogHandler) {
        """.stripMargin.query
   }
 
-  def getSwapsState(key: org.ergoplatform.ergo.PubKey): Query0[SwapState] =
+  def getSwapsState(key: org.ergoplatform.ergo.PubKey): Query0[SwapState] = {
     sql"""
          |select input_id, input_value, output_amount
          |from swaps where timestamp > 1633910400000 and redeemer = $key and
-         |pool_id in (${Pools.pools.values.toList.map(_.unwrapped).mkString(", ")}) and output_amount is not null
+         |pool_id in ($sPools) and output_amount is not null
          |""".stripMargin.query
+  }
 
   def getTotalWeight: Query0[BigDecimal] =
     sql"""
-         |select sum(weight::decimal) from state
+         |select COALESCE(sum(weight::decimal), 0) from state
          |where timestamp > 1633910400000 and amount != 9223372036854774807
-         |and pool_id in (${Pools.pools.values.toList.map(_.unwrapped).mkString(", ")})
+         |and pool_id in ($sPools)
          """.stripMargin.query
 
   def getSwapUsersCount: Query0[Int] =
     sql"""
          |select count(distinct redeemer) from swaps
-         |where timestamp > 1633910400000 and output_amount is not null and pool_id in (${Pools.pools.values.toList
-      .map(_.unwrapped)
-      .mkString(", ")})
+         |where timestamp > 1633910400000 and output_amount is not null and pool_id in ($sPools)
        """.stripMargin.query
 
   def getLqUsers: Query0[Int] = {
@@ -88,7 +88,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
     sql"""
           |select count(distinct address) from state
           |where timestamp > 1633910400000 and amount != 9223372036854774807
-          |and pool_id in (${Pools.pools.values.toList.map(_.unwrapped).mkString(", ")})
+          |and pool_id in ($sPools)
        """.stripMargin.query
   }
 
