@@ -55,26 +55,22 @@ object TxTracker {
       eval(cache.lastScannedTxOffset).repeat
         .flatMap { lastOffset =>
           eval(network.getNetworkInfo).flatMap { networkParams =>
-            val offset = lastOffset max conf.initialOffset
-            if (offset > 4184100) {
-              eval(info"Offset reach sync state $offset")
-            } else {
-              val maxOffset  = networkParams.maxTxGix
-              val nextOffset = (offset + conf.batchSize) min maxOffset
-              val scan =
-                eval(info"Requesting TX batch {offset=$offset, maxOffset=$maxOffset, batchSize=${conf.batchSize} ..") >>
-                ledger
-                  .streamExtendedTxs(offset, conf.batchSize)
-                  .evalTap(tx => trace"Scanning TX ${tx.id}")
-                  .flatTap(tx => emits(handlers.map(_(tx.pure[F]))).parFlattenUnbounded)
-                  .void
-              val finalizeOffset = eval(cache.setLastScannedTxOffset(nextOffset))
-              val pause =
-                eval(info"Upper limit {maxOffset=$maxOffset} was reached. Retrying in ${conf.retryDelay.toSeconds}s") >>
-                unit[F].delay(conf.retryDelay)
+            val offset     = lastOffset max conf.initialOffset
+            val maxOffset  = networkParams.maxTxGix
+            val nextOffset = (offset + conf.batchSize) min maxOffset
+            val scan =
+              eval(info"Requesting TX batch {offset=$offset, maxOffset=$maxOffset, batchSize=${conf.batchSize} ..") >>
+              ledger
+                .streamExtendedTxs(offset, conf.batchSize)
+                .evalTap(tx => trace"Scanning TX ${tx.id}")
+                .flatTap(tx => emits(handlers.map(_(tx.pure[F]))).parFlattenUnbounded)
+                .void
+            val finalizeOffset = eval(cache.setLastScannedTxOffset(nextOffset))
+            val pause =
+              eval(info"Upper limit {maxOffset=$maxOffset} was reached. Retrying in ${conf.retryDelay.toSeconds}s") >>
+              unit[F].delay(conf.retryDelay)
 
-              emits(if (offset != maxOffset) List(scan, finalizeOffset) else List(pause)).flatten
-            }
+            emits(if (offset != maxOffset) List(scan, finalizeOffset) else List(pause)).flatten
           }
         }
         .handleWith[Throwable] { e =>
