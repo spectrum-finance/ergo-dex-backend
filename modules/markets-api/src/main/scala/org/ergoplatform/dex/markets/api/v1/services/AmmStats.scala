@@ -228,14 +228,19 @@ object AmmStats {
       }
       .sequence
 
-    def getLqProviderInfo(address: String): F[LpResultProd] =
-      (orders.getAssetTicket ||> txr.trans).flatMap { assets: List[AssetTicket] =>
+    def getLqProviderInfo(address: String): F[LpResultProd] = {
+      def query: F[(List[AssetTicket], List[PoolSnapshot])] =
+        (for {
+          assets    <- orders.getAssetTicket
+          snapshots <- pools.snapshots
+        } yield (assets, snapshots)) ||> txr.trans
+      query.flatMap { case (assets: List[AssetTicket], snapshots: List[PoolSnapshot]) =>
         PPools.pools.toList
           .map { case (_, pId) =>
             def query: F[(LqProviderStateDB, BigDecimal, Int, String)] =
               (for {
-                state    <- orders.getLqProviderState(address, pId.unwrapped)
-                snapshot <- pools.snapshot(pId)
+                state <- orders.getLqProviderState(address, pId.unwrapped)
+                snapshot = snapshots.find(_.id == pId)
                 pair = snapshot.fold("unknown / unknown") { s =>
                          val x = assets.find(_.id == s.lockedX.id.unwrapped).getOrElse("unknown")
                          val y = assets.find(_.id == s.lockedY.id.unwrapped).getOrElse("unknown")
@@ -277,6 +282,7 @@ object AmmStats {
             )
           }
       }
+    }
 
     def convertToFiat(id: TokenId, amount: Long): F[Option[FiatEquiv]] =
       (for {

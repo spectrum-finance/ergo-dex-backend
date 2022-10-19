@@ -13,7 +13,7 @@ import org.ergoplatform.ergo.TokenId
 final class AnalyticsSql(implicit lg: LogHandler) {
 
   def getAssetTicket: Query0[AssetTicket] =
-    sql"select id, ticker from assets".query
+    sql"select id, ticker from assets where ticker is not null".query
 
   def getOffChainParticipantsCount(from: Long, to: Option[Long]): Query0[Int] =
     sql"""select count(distinct address) from order_executor_fee where timestamp > $from ${toTimestamp(to)}""".query
@@ -23,7 +23,9 @@ final class AnalyticsSql(implicit lg: LogHandler) {
 
   def getOffChainState(address: String, from: Long, to: Option[Long]): Query0[OffChainOperatorState] =
     sql"""
-         |select count(1), COALESCE(SUM(fee),0) from order_executor_fee where address = $address and timestamp > $from ${toTimestamp(to)}
+         |select count(1), COALESCE(SUM(fee),0) from order_executor_fee where address = $address and timestamp > $from ${toTimestamp(
+      to
+    )}
        """.stripMargin.query
 
   def getTotalOffChainOperationsCount(from: Long, to: Option[Long]): Query0[Int] =
@@ -35,8 +37,13 @@ final class AnalyticsSql(implicit lg: LogHandler) {
     to.map(to => sql"and timestamp < $to").getOrElse(Fragment.empty)
 
   def checkIfBetaTester(key: org.ergoplatform.ergo.PubKey): Query0[Int] = {
-    val poolsIds = (Pools.betaTesterPools.values.toList ::: Pools.pools.values.toList).map(_.unwrapped)
-      .mkString(", ")
+    val poolsIds = Fragment.const(
+      (Pools.betaTesterPools.values.toList ::: Pools.pools.values.toList)
+        .map(_.unwrapped)
+        .map(s => s"'$s'")
+        .mkString(", ")
+    )
+
     sql"""
          |select count(distinct addr) from (
          |    select DISTINCT redeemer from swaps where timestamp > 1628640000000 and timestamp < 1636502400000
@@ -61,18 +68,19 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |pool_id in (${Pools.pools.values.toList.map(_.unwrapped).mkString(", ")}) and output_amount is not null
          |""".stripMargin.query
 
-  def getTotalWeight: Query0[BigDecimal] = {
+  def getTotalWeight: Query0[BigDecimal] =
     sql"""
          |select sum(weight::decimal) from state
          |where timestamp > 1633910400000 and amount != 9223372036854774807
          |and pool_id in (${Pools.pools.values.toList.map(_.unwrapped).mkString(", ")})
          """.stripMargin.query
-  }
 
   def getSwapUsersCount: Query0[Int] =
     sql"""
          |select count(distinct redeemer) from swaps
-         |where timestamp > 1633910400000 and output_amount is not null and pool_id in (${Pools.pools.values.toList.map(_.unwrapped).mkString(", ")})
+         |where timestamp > 1633910400000 and output_amount is not null and pool_id in (${Pools.pools.values.toList
+      .map(_.unwrapped)
+      .mkString(", ")})
        """.stripMargin.query
 
   def getLqUsers: Query0[Int] = {
