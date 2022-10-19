@@ -25,7 +25,24 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |order by p.gindex desc limit 1;
          """.stripMargin.query[PoolSnapshot]
 
-  def getPoolSnapshots: Query0[PoolSnapshot] =
+  def getPoolSnapshots(hasTicker: Boolean): Query0[PoolSnapshot] = {
+
+    val assetJoin =
+      if (hasTicker) Fragment.const(
+      """left join (
+        | select * from assets where ticker is not null 
+        |) ax on ax.id = p.x_id
+        |left join (
+        |select * from assets where ticker is not null
+        |) ay on ay.id = p.y_id
+        |""".stripMargin
+      )
+      else
+        Fragment.const(
+        """left join assets ax on ax.id = p.x_id
+         |left join assets ay on ay.id = p.y_id""".stripMargin
+        )
+
     sql"""
          |select p.pool_id, p.x_id, p.x_amount, ax.ticker, ax.decimals, p.y_id, p.y_amount, ay.ticker, ay.decimals, (p.x_amount::decimal) * p.y_amount as lq
          |from pools p
@@ -34,11 +51,11 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |	from pools
          |	group by pool_id
          |) as px on p.pool_id = px.pool_id and p.gindex = px.gindex
-         |left join assets ax on ax.id = p.x_id
-         |left join assets ay on ay.id = p.y_id
+         $assetJoin
          |where px.gindex = p.gindex
          |order by lq desc
          """.stripMargin.query[PoolSnapshot]
+  }
 
   def getPoolSnapshotsByAsset(asset: TokenId): Query0[PoolSnapshot] =
     sql"""

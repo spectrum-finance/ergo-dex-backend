@@ -24,7 +24,7 @@ final class AmmStatsRoutes[
 
   def routes: HttpRoutes[F] =
     getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+>
-    getPoolStatsR <+> getPoolsSummaryR <+> getAvgPoolSlippageR <+>
+    getPoolStatsR <+> getPoolsStatsR <+> getPoolsSummaryR <+> getAvgPoolSlippageR <+>
     getPoolPriceChartR <+> getAmmMarketsR <+> convertToFiatR
 
   def getSwapTxsR: HttpRoutes[F] =
@@ -38,11 +38,15 @@ final class AmmStatsRoutes[
   }
 
   def getPoolStatsR: HttpRoutes[F] = interpreter.toRoutes(getPoolStats) { case (poolId, tw) =>
-    stats.getPoolSummary(poolId, tw).adaptThrowable.orNotFound(s"PoolStats{poolId=$poolId}").value
+    stats.getPoolStats(poolId, tw).adaptThrowable.orNotFound(s"PoolStats{poolId=$poolId}").value
   }
 
-  def getPoolsSummaryR: HttpRoutes[F] = interpreter.toRoutes(getPoolsSummary) { tw =>
-    stats.getPoolsSummary(tw).adaptThrowable.value
+  def getPoolsStatsR: HttpRoutes[F] = interpreter.toRoutes(getPoolsStats) { tw =>
+    stats.getPoolsStats(tw).adaptThrowable.value
+  }
+
+  def getPoolsSummaryR: HttpRoutes[F] = interpreter.toRoutes(getPoolsSummary) { _ =>
+    stats.getPoolsSummary.adaptThrowable.value
   }
 
   def getPlatformStatsR: HttpRoutes[F] = interpreter.toRoutes(getPlatformStats) { tw =>
