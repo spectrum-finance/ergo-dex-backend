@@ -87,13 +87,14 @@ object LiquidityProvidersIndexing {
                         )
                       )
                       .flatMap { snapshot =>
+                        val balance = snapshot.balance - amount
                         repo
                           .getLatestPoolSnapshot(poolId, tx.inclusionHeight)
                           .flatMap { maybePool =>
                             val updatedSnapshot = maybePool
                               .map { pool =>
-                                val gap     = tx.timestamp - snapshot.timestamp
-                                val balance = snapshot.balance - amount
+                                val gap = tx.timestamp - snapshot.timestamp
+
                                 val lpPrice =
                                   ((if (pool.xId == ErgoAssetId.unwrapped)
                                       balance * pool.xAmount / (constants.cfmm.TotalEmissionLP - pool.lpAmount)
@@ -122,6 +123,7 @@ object LiquidityProvidersIndexing {
                                 snapshot.copy(
                                   op        = "withdraw. No such pool",
                                   amount    = amount,
+                                  balance   = balance,
                                   boxId     = in.output.boxId.value,
                                   txId      = tx.id.value,
                                   blockId   = tx.blockId.value,
@@ -164,9 +166,9 @@ object LiquidityProvidersIndexing {
                         )
                       )
                       .flatMap { state =>
+                        val balance = state.balance + amount
                         repo.getLatestPoolSnapshot(poolId, tx.inclusionHeight).flatMap { maybePool =>
                           val timeGap = tx.timestamp - state.timestamp
-                          val balance = state.balance + amount
 
                           val updatedSnapshot = maybePool
                             .map { pool =>
@@ -201,6 +203,7 @@ object LiquidityProvidersIndexing {
                                 amount    = amount,
                                 boxId     = out.output.boxId.value,
                                 txId      = tx.id.value,
+                                balance   = balance,
                                 blockId   = tx.blockId.value,
                                 txHeight  = tx.inclusionHeight,
                                 timestamp = tx.timestamp
