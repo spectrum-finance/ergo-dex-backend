@@ -113,22 +113,23 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(cache: TrackerCache[RunF])          <- Resource.eval(TrackerCache.make[InitF, RunF])
       blockTracker                                  <- Resource.eval(BlockTracker.make[InitF, StreamF, RunF](blockHandler))
       implicit0(repo: LiquidityProvidersRepo[RunF]) <- Resource.eval(LiquidityProvidersRepo.make[InitF, RunF, xa.DB])
-//      stateIndexing <-
-//        Resource.eval(LiquidityProvidersIndexing.make[InitF, StreamF, RunF, Chunk](configs.stateIndexerConfig))
+      stateIndexing <-
+        Resource.eval(LiquidityProvidersIndexing.make[InitF, StreamF, RunF, Chunk](configs.stateIndexerConfig))
       txTracker <-
         Resource.eval(
           TxTracker.make[InitF, StreamF, RunF](
-            List(cfmmHistoryHandler, cfmmPoolsHandler, lqLocksHandler)//, txHandler)
+            List(stateIndexing)//cfmmHistoryHandler, cfmmPoolsHandler, lqLocksHandler) //, txHandler)
           )
-        ) //
+        )
       implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])
       implicit0(handlers: List[AnyOrdersHandler[xa.DB]]) = AnyOrdersHandler.makeOrdersHandlers[xa.DB]
       historyIndexer <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      poolsIndexer   <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      locksIndexer   <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      blocksIndexer  <- Resource.eval(BlockIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+
+      poolsIndexer  <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      locksIndexer  <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      blocksIndexer <- Resource.eval(BlockIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       processes =
-        txTracker.run :: blockTracker.run :: blocksIndexer.run :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: Nil
+        txTracker.run :: Nil// :: blockTracker.run :: blocksIndexer.run :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: Nil
     } yield (processes, configs)
   // format:on
 
