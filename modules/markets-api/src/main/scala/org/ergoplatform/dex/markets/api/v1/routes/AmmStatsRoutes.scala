@@ -59,12 +59,12 @@ final class AmmStatsRoutes[
   def checkEarlyOffChainR: HttpRoutes[F] = interpreter.toRoutes(getEarlyOffChainOperatorsState) { case (address) =>
     val from = 1628640000000L
     val to   = Some(1636502400000L)
-    stats.getOffChainReward(address, from, to, 2500, none).adaptThrowable.value
+    stats.getOffChainReward(address, from, to, 2500, none, none).adaptThrowable.value
   }
 
   def checkOffChainR: HttpRoutes[F] = interpreter.toRoutes(getOffChainOperatorsState) { case (address) =>
     val from = 1636502400000L
-    stats.getOffChainReward(address, from, None, 1500, none).adaptThrowable.value
+    stats.getOffChainReward(address, from, None, 1500, none, none).adaptThrowable.value
   }
 
   def checkEarlyOffChainChartsR: HttpRoutes[F] = interpreter.toRoutes(getEarlyOffChainOperatorsStateCharts) { _ =>

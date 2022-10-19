@@ -73,7 +73,8 @@ trait AmmStats[F[_]] {
     from: Long,
     to: Option[Long],
     multiplier: Int,
-    cohortSize: Option[Int]
+    cohortSize: Option[Int],
+    total: Option[Int]
   ): F[OffChainSpfReward]
 
   def getOffChainRewardsForAllAddresses(from: Long, to: Option[Long], multiplier: Int): F[List[OffChainCharts]]
@@ -107,14 +108,15 @@ object AmmStats {
   ) extends AmmStats[F] {
 
     def getOffChainRewardsForAllAddresses(from: Long, to: Option[Long], multiplier: Int): F[List[OffChainCharts]] = {
-      def query: F[(List[String], Int)] = (for {
+      def query: F[(List[String], Int, Int)] = (for {
         addresses <- orders.getAllOffChainAddresses(from, to)
         count     <- orders.getOffChainParticipantsCount(from, to)
-      } yield (addresses, count)) ||> txr.trans
+        total     <- orders.getTotalOffChainOperationsCount(from, to)
+      } yield (addresses, count, total)) ||> txr.trans
 
-      query.flatMap { case (addresses, count) =>
+      query.flatMap { case (addresses, count, total) =>
         addresses
-          .map(getOffChainReward(_, from, to, multiplier, count.some))
+          .map(getOffChainReward(_, from, to, multiplier, count.some, total.some))
           .sequence
           .map(_.map(reward => OffChainCharts(reward.address, reward.spfReward)).sortBy(_.spfReward).reverse)
       }
@@ -125,19 +127,20 @@ object AmmStats {
       from: Long,
       to: Option[Long],
       multiplier: Int,
-      cohortSize: Option[Int]
+      cohortSize: Option[Int],
+      total: Option[Int]
     ): F[OffChainSpfReward] = {
       def query: F[(Option[OffChainOperatorState], Int, Int)] =
         (for {
           state     <- orders.getOffChainState(address, from, to)
-          total     <- orders.getTotalOffChainOperationsCount(from, to)
+          totalSize <- total.fold(orders.getTotalOffChainOperationsCount(from, to))(_.pure[D])
           groupSize <- cohortSize.fold(orders.getOffChainParticipantsCount(from, to))(_.pure[D])
-        } yield (state, total, groupSize)) ||> txr.trans
+        } yield (state, totalSize, groupSize)) ||> txr.trans
 
-      query.map { case (stateOpt, total, size) =>
+      query.map { case (stateOpt, totalSize, size) =>
         stateOpt
           .map { state =>
-            val spfReward = multiplier * size * (state.operations / BigDecimal(total))
+            val spfReward = multiplier * size * (state.operations / BigDecimal(totalSize))
             OffChainSpfReward(
               address,
               spfReward.setScale(6, RoundingMode.HALF_UP),
@@ -158,8 +161,9 @@ object AmmStats {
         .map { pk: PubKey =>
           def query: F[(List[SwapState], List[PoolSnapshot], Int)] =
             (for {
-              state <- orders.getSwapsState(pk)
-              pools <- PPools.pools.values.toList.traverse(p => pools.snapshot(p)).map(_.flatten)
+              state     <- orders.getSwapsState(pk)
+              snapshots <- pools.snapshots
+              pools = snapshots.filter(s => PPools.pools.values.toList.contains(s.id))
               users <- orders.getSwapUsersCount
             } yield (state, pools, users)) ||> txr.trans
 
@@ -229,12 +233,14 @@ object AmmStats {
       .sequence
 
     def getLqProviderInfo(address: String): F[LpResultProd] = {
-      def query: F[(List[AssetTicket], List[PoolSnapshot])] =
+      def query: F[(List[AssetTicket], List[PoolSnapshot], Int, BigDecimal)] =
         (for {
-          assets    <- orders.getAssetTicket
-          snapshots <- pools.snapshots
-        } yield (assets, snapshots)) ||> txr.trans
-      query.flatMap { case (assets: List[AssetTicket], snapshots: List[PoolSnapshot]) =>
+          assets         <- orders.getAssetTicket
+          snapshots      <- pools.snapshots
+          addressesCount <- orders.getLqUsers
+          totalWeight    <- orders.getTotalWeight
+        } yield (assets, snapshots, addressesCount, totalWeight)) ||> txr.trans
+      query.flatMap { case (assets: List[AssetTicket], snapshots: List[PoolSnapshot], addressesCount, totalWeight) =>
         PPools.pools.toList
           .map { case (_, pId) =>
             def query: F[(LqProviderStateDB, BigDecimal, Int, String)] =
@@ -242,12 +248,10 @@ object AmmStats {
                 state <- orders.getLqProviderState(address, pId.unwrapped)
                 snapshot = snapshots.find(_.id == pId)
                 pair = snapshot.fold("unknown / unknown") { s =>
-                         val x = assets.find(_.id == s.lockedX.id.unwrapped).getOrElse("unknown")
-                         val y = assets.find(_.id == s.lockedY.id.unwrapped).getOrElse("unknown")
+                         val x = assets.find(_.id == s.lockedX.id.unwrapped).map(_.ticket).getOrElse("unknown")
+                         val y = assets.find(_.id == s.lockedY.id.unwrapped).map(_.ticket).getOrElse("unknown")
                          s"$x / $y"
                        }
-                totalWeight    <- orders.getTotalWeight
-                addressesCount <- orders.getLqUsers
               } yield (
                 state.getOrElse(LqProviderStateDB.empty(address)),
                 totalWeight,
