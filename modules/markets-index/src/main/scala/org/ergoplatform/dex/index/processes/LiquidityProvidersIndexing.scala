@@ -118,7 +118,17 @@ object LiquidityProvidersIndexing {
                                   poolStateId = pool.stateId
                                 )
                               }
-                              .getOrElse(snapshot.copy(op = "Withdraw. No such pool"))
+                              .getOrElse(
+                                snapshot.copy(
+                                  op        = "withdraw. No such pool",
+                                  amount    = amount,
+                                  boxId     = in.output.boxId.value,
+                                  txId      = tx.id.value,
+                                  blockId   = tx.blockId.value,
+                                  txHeight  = tx.inclusionHeight,
+                                  timestamp = tx.timestamp
+                                )
+                              )
 
                             repo.insert(NonEmptyList.one(updatedSnapshot)) >>= { c =>
                               info"Asset $lpId in input for address $address inserted. New snapshot is: $updatedSnapshot"
@@ -185,7 +195,17 @@ object LiquidityProvidersIndexing {
                                 poolStateId = pool.stateId
                               )
                             }
-                            .getOrElse(state.copy(op = "Deposit. No such pool"))
+                            .getOrElse(
+                              state.copy(
+                                op        = "deposit. No such pool",
+                                amount    = amount,
+                                boxId     = out.output.boxId.value,
+                                txId      = tx.id.value,
+                                blockId   = tx.blockId.value,
+                                txHeight  = tx.inclusionHeight,
+                                timestamp = tx.timestamp
+                              )
+                            )
 
                           repo.insert(NonEmptyList.one(updatedSnapshot)) >>= { c =>
                             info"Asset $lpId in input for address $address inserted. New snapshot is: $updatedSnapshot"
