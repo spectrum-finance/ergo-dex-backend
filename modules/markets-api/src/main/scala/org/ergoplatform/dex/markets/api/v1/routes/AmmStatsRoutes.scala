@@ -26,7 +26,7 @@ final class AmmStatsRoutes[
   private val interpreter = Http4sServerInterpreter(opts)
 
   def routes: HttpRoutes[F] =
-    getLqProviderInfoWithOperationsR <+> getLqProviderInfoR <+> checkIfBetaTesterR <+> checkEarlyOffChainR <+>
+    getLqProviderInfoR <+> checkIfBetaTesterR <+> checkEarlyOffChainR <+>
       checkOffChainR <+> checkEarlyOffChainChartsR <+> checkOffChainChartsR <+> getSwapsStatsR
 
 

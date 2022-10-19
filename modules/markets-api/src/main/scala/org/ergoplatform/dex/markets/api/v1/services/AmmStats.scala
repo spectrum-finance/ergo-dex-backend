@@ -38,6 +38,8 @@ import tofu.syntax.time.now.millis
 import scala.concurrent.duration._
 import scala.math.BigDecimal.RoundingMode
 
+import org.ergoplatform.dex.markets.api.v1.models.amm.{Pools => PPools}
+
 trait AmmStats[F[_]] {
 
   def convertToFiat(id: TokenId, amount: Long): F[Option[FiatEquiv]]
@@ -157,15 +159,14 @@ object AmmStats {
           def query: F[(List[SwapState], List[PoolSnapshot], Int)] =
             (for {
               state <- orders.getSwapsState(pk)
-              pools <- ApiPool.values.toList
-                         .traverse(p => pools.snapshot(PoolId(TokenId.fromStringUnsafe(p.poolId))))
-                         .map(_.flatten)
+              pools <- PPools.pools.values.toList.traverse(p => pools.snapshot(p)).map(_.flatten)
               users <- orders.getSwapUsersCount
             } yield (state, pools, users)) ||> txr.trans
 
           query.map { case (states, snapshots, groupSize) =>
             val userAmount = states.map { state =>
-              if (state.inputId == ErgoAssetId.unwrapped) state.inputValue else state.outputAmount
+              if (state.inputId == ErgoAssetId.unwrapped) state.inputValue
+              else state.outputAmount
             }.sum
 
             val poolAmount = snapshots.map { p1 =>
@@ -180,12 +181,17 @@ object AmmStats {
         }
         .sequence
 
-    def getLqProviderInfoWithOperations(address: String, pool: ApiPool, from: Long, to: Long): F[LqProviderAirdropInfo] = {
+    def getLqProviderInfoWithOperations(
+      address: String,
+      pool: ApiPool,
+      from: Long,
+      to: Long
+    ): F[LqProviderAirdropInfo] = {
 
       def query: F[(List[DBLpState], LqProviderStateDB, BigDecimal, Int)] =
         (for {
-          states         <- orders.getLqProviderStates(address, pool.poolLp, from, to)
-          state          <- orders.getLqProviderState(address, pool.poolLp)
+          states         <- orders.getLqProviderStates(address, pool.poolId, from, to)
+          state          <- orders.getLqProviderState(address, pool.poolId)
           totalWeight    <- orders.getTotalWeight
           addressesCount <- orders.getLqUsers
         } yield (states, state.getOrElse(LqProviderStateDB.empty(address)), totalWeight, addressesCount)) ||> txr.trans
@@ -223,16 +229,28 @@ object AmmStats {
       .sequence
 
     def getLqProviderInfo(address: String): F[LpResultProd] =
-      ApiPool.values.toList
-        .map { apiPool =>
-          def query: F[(LqProviderStateDB, BigDecimal, Int)] =
+      PPools.pools.toList
+        .map { case (_, pId) =>
+          def query: F[(LqProviderStateDB, BigDecimal, Int, String)] =
             (for {
-              state          <- orders.getLqProviderState(address, apiPool.poolLp)
+              state    <- orders.getLqProviderState(address, pId.unwrapped)
+              snapshot <- pools.snapshot(pId)
+              pair <- snapshot.fold("unknown / unknown".pure[D]) { s =>
+                        for {
+                          x <- orders.getAssetTicket(s.lockedX.id.unwrapped)
+                          y <- orders.getAssetTicket(s.lockedY.id.unwrapped)
+                        } yield s"${x.getOrElse("unknown")} / ${y.getOrElse("unknown")}"
+                      }
               totalWeight    <- orders.getTotalWeight
               addressesCount <- orders.getLqUsers
-            } yield (state.getOrElse(LqProviderStateDB.empty(address)), totalWeight, addressesCount)) ||> txr.trans
+            } yield (
+              state.getOrElse(LqProviderStateDB.empty(address)),
+              totalWeight,
+              addressesCount,
+              pair
+            )) ||> txr.trans
 
-          query.map { case (state, totalWeight, addressesCount) =>
+          query.map { case (state, totalWeight, addressesCount, pair) =>
             val weight = 2000 * addressesCount * (state.totalWeight / totalWeight)
 
             LpResultDev(
@@ -242,7 +260,7 @@ object AmmStats {
               state.totalErgValue,
               state.totalTime,
               s"${TimeUnit.MILLISECONDS.toHours(state.totalTime.toLong)}h",
-              apiPool.poolText
+              pair
             )
           }
         }
@@ -255,7 +273,7 @@ object AmmStats {
             pools.map(_.totalErgValue).sum,
             s"${TimeUnit.MILLISECONDS.toHours(pools.map(_.totalTime).sum.toLong)}h",
             pools.map(_.operations).sum,
-            pools
+            pools.filter(_.totalErgValue > 0)
           )
         }
 

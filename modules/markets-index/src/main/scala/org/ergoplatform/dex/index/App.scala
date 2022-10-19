@@ -78,8 +78,6 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
-      implicit0(txnsConsumer: TxnsConsumer[StreamF, RunF]) =
-        makeConsumer[TxId, ExtendedSettledTx](configs.consumers.txns)
       implicit0(poolCons: CFMMPoolsConsumer[StreamF, RunF]) =
         makeConsumer[PoolId, ConfirmedIndexed[CFMMPool]](configs.consumers.cfmmPools)
       implicit0(ammHistCons: CFMMHistConsumer[StreamF, RunF]) =
@@ -96,8 +94,6 @@ object App extends EnvApp[ConfigBundle] {
         Producer.make[InitF, StreamF, RunF, LockId, Confirmed[LiquidityLock]](configs.producers.lqLocks)
       implicit0(blockProd: Producer[BlockId, Block, StreamF]) <-
         Producer.make[InitF, StreamF, RunF, BlockId, Block](configs.producers.blocks)
-      implicit0(txProd: Producer[TxId, ExtendedSettledTx, StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, TxId, ExtendedSettledTx](configs.producers.txns)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(explorer: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
@@ -108,7 +104,6 @@ object App extends EnvApp[ConfigBundle] {
       lqLocksHandler                                <- Resource.eval(LiquidityLocksHandler.make[InitF, StreamF, RunF]).map(liftOutputs[StreamF])
       cfmmHistoryHandler                            <- Resource.eval(CFMMHistoryHandler.make[InitF, StreamF, RunF]).map(liftSettledTx[StreamF])
       blockHandler                                  <- Resource.eval(BlockHistoryHandler.make[InitF, StreamF, RunF])
-      txHandler                                     <- Resource.eval(ExtendedSettledTxHandler.make[InitF, StreamF, RunF])
       implicit0(redis: Redis.Plain[RunF])           <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF])          <- Resource.eval(TrackerCache.make[InitF, RunF])
       blockTracker                                  <- Resource.eval(BlockTracker.make[InitF, StreamF, RunF](blockHandler))
@@ -118,7 +113,7 @@ object App extends EnvApp[ConfigBundle] {
       txTracker <-
         Resource.eval(
           TxTracker.make[InitF, StreamF, RunF](
-            List(stateIndexing)//cfmmHistoryHandler, cfmmPoolsHandler, lqLocksHandler) //, txHandler)
+            List(stateIndexing)//cfmmHistoryHandler, cfmmPoolsHandler, lqLocksHandler))
           )
         )
       implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])
