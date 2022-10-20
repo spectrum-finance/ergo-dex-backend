@@ -129,9 +129,9 @@ object Pools {
 
     def snapshots(hasTicker: Boolean): Mid[F, List[PoolSnapshot]] =
       for {
-        _ <- trace"snapshots"
+        _ <- trace"snapshots(hasTicker=$hasTicker)"
         r <- _
-        _ <- trace"snapshots -> ${r.size} snapshots selected"
+        _ <- trace"snapshots(hasTicker=$hasTicker) -> ${r.size} snapshots selected"
       } yield r
 
     def snapshotsByAsset(asset: TokenId): Mid[F, List[PoolSnapshot]] =

@@ -24,7 +24,7 @@ import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.doobie.transactor.Txr
 import tofu.syntax.monadic._
-
+import tofu.syntax.time.now.millis
 import scala.concurrent.duration._
 
 trait AmmStats[F[_]] {
@@ -112,10 +112,21 @@ object AmmStats {
       } yield PlatformSummary(tvl, volume)
     }
 
-    def getPoolsSummary: F[List[PoolSummary]] =
+    def getPoolsSummary: F[List[PoolSummary]] = {
+      val day = 3600000 * 24
+
+      val queryPoolData: TimeWindow => D[(List[PoolVolumeSnapshot], List[PoolSnapshot])] =
+        tw =>
+          for {
+            volumes   <- pools.volumes(tw)
+            snapshots <- pools.snapshots(true)
+          } yield (volumes, snapshots)
+
       for {
-        validTokens                   <- tokens.fetchTokens
-        snapshots: List[PoolSnapshot] <- pools.snapshots(true) ||> txr.trans
+        currTs <- millis
+        tw = TimeWindow(Some(currTs - day), Some(currTs))
+        validTokens          <- tokens.fetchTokens
+        (volumes, snapshots) <- queryPoolData(tw) ||> txr.trans
         filtered = snapshots.filter(ps => ps.lockedX.id == ErgoAssetId && validTokens.contains(ps.lockedY.id))
         poolsTvl <- filtered.flatTraverse(p => processPoolTvl(p).map(_.map(tvl => (tvl, p))).map(_.toList))
         maxTvlPools =
@@ -125,24 +136,37 @@ object AmmStats {
               tvls.maxBy(_._1.value)._2
             }
             .toList
-        res = maxTvlPools.map { pool =>
-                val x = pool.lockedX
-                val y = pool.lockedY
-                PoolSummary(
-                  x.id,
-                  x.ticker.get,
-                  x.ticker.get,
-                  y.id,
-                  y.ticker.get,
-                  y.ticker.get,
-                  RealPrice
-                    .calculate(x.amount, x.decimals, y.amount, y.decimals)
-                    .setScale(6),
-                  x.amount,
-                  y.amount
-                )
+        res = maxTvlPools.flatMap { pool =>
+                volumes.find(_.poolId == pool.id).toList.map { vol =>
+                  val x  = pool.lockedX
+                  val y  = pool.lockedY
+                  val vx = vol.volumeByX
+                  val vy = vol.volumeByY
+                  PoolSummary(
+                    x.id,
+                    x.ticker.get,
+                    x.ticker.get,
+                    y.id,
+                    y.ticker.get,
+                    y.ticker.get,
+                    RealPrice
+                      .calculate(x.amount, x.decimals, y.amount, y.decimals)
+                      .setScale(6),
+                    CryptoVolume(
+                      BigDecimal(vx.amount),
+                      CryptoUnits(AssetClass(vx.id, vx.ticker, vx.decimals)),
+                      tw
+                    ),
+                    CryptoVolume(
+                      BigDecimal(vy.amount),
+                      CryptoUnits(AssetClass(vy.id, vy.ticker, vy.decimals)),
+                      tw
+                    )
+                  )
+                }
               }
       } yield res
+    }
 
     private def processPoolTvl(pool: PoolSnapshot): F[Option[TotalValueLocked]] =
       (for {

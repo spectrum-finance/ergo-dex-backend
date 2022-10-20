@@ -68,7 +68,7 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .out(jsonBody[List[PoolSummary]])
       .tag(Group)
       .name("Pools summary")
-      .description("Get summary by every known pool")
+      .description("Get summary by every known pool with max TVL")
 
   def getPlatformStats: Endpoint[TimeWindow, HttpError, PlatformSummary, Any] =
     baseEndpoint.get

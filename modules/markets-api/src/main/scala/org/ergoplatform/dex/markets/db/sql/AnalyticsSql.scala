@@ -28,18 +28,19 @@ final class AnalyticsSql(implicit lg: LogHandler) {
   def getPoolSnapshots(hasTicker: Boolean): Query0[PoolSnapshot] = {
 
     val assetJoin =
-      if (hasTicker) Fragment.const(
-      """left join (
+      if (hasTicker)
+        Fragment.const(
+          """left join (
         | select * from assets where ticker is not null 
         |) ax on ax.id = p.x_id
         |left join (
         |select * from assets where ticker is not null
         |) ay on ay.id = p.y_id
         |""".stripMargin
-      )
+        )
       else
         Fragment.const(
-        """left join assets ax on ax.id = p.x_id
+          """left join assets ax on ax.id = p.x_id
          |left join assets ay on ay.id = p.y_id""".stripMargin
         )
 
