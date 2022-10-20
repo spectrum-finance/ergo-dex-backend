@@ -72,7 +72,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
 
   def getTotalWeight: Query0[BigDecimal] =
     sql"""
-         |select COALESCE(sum(weight::decimal), 0) from state
+         |select COALESCE(sum(abs(weight::decimal)), 0) from state
          |where timestamp > 1633910400000 and amount != 9223372036854774807
          |and pool_id in ($sPools)
          """.stripMargin.query
@@ -94,14 +94,14 @@ final class AnalyticsSql(implicit lg: LogHandler) {
 
   def getLqProviderState(address: String, pool: String): Query0[LqProviderStateDB] =
     sql"""
-         |select address, COALESCE(sum(weight::decimal), 0), count(1), COALESCE(sum(lpErg::decimal), 0), COALESCE(sum(gap), 0) from state
+         |select address, COALESCE(sum(abs(weight::decimal)), 0), count(1), COALESCE(sum(abs(lpErg::decimal)), 0), COALESCE(sum(gap), 0) from state
          |where address = $address and pool_id = $pool and amount != 9223372036854774807
          |group by address
          |""".stripMargin.query
 
   def getLqProviderStates(address: String, pool: String, from: Long, to: Long): Query0[DBLpState] =
     sql"""
-         |select pool_id, tx_id, balance, timestamp, op, amount from state
+         |select pool_id, tx_id, abs(balance), timestamp, op, amount from state
          |where address = $address and pool_id = $pool and timestamp > $from and timestamp < $to
          |and amount != 9223372036854774807
          |""".stripMargin.query
