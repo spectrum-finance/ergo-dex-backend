@@ -130,6 +130,8 @@ create table if not exists public.blocks (
     timestamp bigint not null
 );
 
+alter table public.blocks owner to ergo_admin;
+
 create index blocks__height on public.blocks using btree (height);
 
 create table if not exists public.order_executor_fee (
