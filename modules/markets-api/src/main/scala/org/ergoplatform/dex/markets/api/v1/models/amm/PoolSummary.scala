@@ -4,7 +4,6 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.dex.domain.Ticker
 import org.ergoplatform.dex.markets.api.v1.models.amm.types.RealPrice
-import org.ergoplatform.dex.markets.domain.CryptoVolume
 import org.ergoplatform.ergo.TokenId
 import sttp.tapir.Schema
 
@@ -17,8 +16,8 @@ final case class PoolSummary(
   quoteName: Ticker,
   quoteSymbol: Ticker,
   lastPrice: RealPrice,
-  baseVolume: CryptoVolume,
-  quoteVolume: CryptoVolume
+  baseVolume: BigDecimal,
+  quoteVolume: BigDecimal
 )
 
 object PoolSummary {

@@ -140,8 +140,6 @@ object AmmStats {
                 volumes.find(_.poolId == pool.id).toList.map { vol =>
                   val x  = pool.lockedX
                   val y  = pool.lockedY
-                  val vx = vol.volumeByX
-                  val vy = vol.volumeByY
                   PoolSummary(
                     x.id,
                     x.ticker.get,
@@ -152,16 +150,8 @@ object AmmStats {
                     RealPrice
                       .calculate(x.amount, x.decimals, y.amount, y.decimals)
                       .setScale(6),
-                    CryptoVolume(
-                      BigDecimal(vx.amount),
-                      CryptoUnits(AssetClass(vx.id, vx.ticker, vx.decimals)),
-                      tw
-                    ),
-                    CryptoVolume(
-                      BigDecimal(vy.amount),
-                      CryptoUnits(AssetClass(vy.id, vy.ticker, vy.decimals)),
-                      tw
-                    )
+                    vol.volumeByX.amount,
+                    vol.volumeByY.amount
                   )
                 }
               }
