@@ -220,7 +220,7 @@ object LiquidityProvidersIndexing {
             }.void
           }.void
 
-        outputsF >> inputsF
+        inputsF >> outputsF
       }
 
       eval(process >> info"Processing tx ${tx.id} finished.")
