@@ -113,7 +113,7 @@ object App extends EnvApp[ConfigBundle] {
       txTracker <-
         Resource.eval(
           TxTracker.make[InitF, StreamF, RunF](
-            List(cfmmHistoryHandler, cfmmPoolsHandler, lqLocksHandler) //stateIndexing
+            List(stateIndexing, cfmmHistoryHandler, cfmmPoolsHandler, lqLocksHandler)
           )
         )
       implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])
