@@ -4,7 +4,7 @@ import cats.data.OptionT
 import cats.effect.Clock
 import cats.syntax.parallel._
 import cats.syntax.traverse._
-import cats.{Monad, Parallel}
+import cats.{Functor, Monad, Parallel}
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
@@ -23,8 +23,10 @@ import org.ergoplatform.dex.protocol.constants.ErgoAssetId
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.doobie.transactor.Txr
+import tofu.logging.{Logging, Logs}
 import tofu.syntax.monadic._
 import tofu.syntax.time.now.millis
+
 import scala.concurrent.duration._
 
 trait AmmStats[F[_]] {
@@ -125,8 +127,8 @@ object AmmStats {
       for {
         currTs <- millis
         tw = TimeWindow(Some(currTs - day), Some(currTs))
-        validTokens          <- tokens.fetchTokens
-        (volumes, snapshots) <- queryPoolData(tw) ||> txr.trans
+        validTokens                                                        <- tokens.fetchTokens
+        (volumes: List[PoolVolumeSnapshot], snapshots: List[PoolSnapshot]) <- queryPoolData(tw) ||> txr.trans
         filtered = snapshots.filter(ps => ps.lockedX.id == ErgoAssetId && validTokens.contains(ps.lockedY.id))
         poolsTvl <- filtered.flatTraverse(p => processPoolTvl(p).map(_.map(tvl => (tvl, p))).map(_.toList))
         maxTvlPools =
@@ -138,8 +140,8 @@ object AmmStats {
             .toList
         res = maxTvlPools.flatMap { pool =>
                 volumes.find(_.poolId == pool.id).toList.map { vol =>
-                  val x  = pool.lockedX
-                  val y  = pool.lockedY
+                  val x = pool.lockedX
+                  val y = pool.lockedY
                   PoolSummary(
                     x.id,
                     x.ticker.get,
@@ -150,8 +152,8 @@ object AmmStats {
                     RealPrice
                       .calculate(x.amount, x.decimals, y.amount, y.decimals)
                       .setScale(6),
-                    vol.volumeByX.amount,
-                    vol.volumeByY.amount
+                    BigDecimal(vol.volumeByX.amount) / BigDecimal(10).pow(vol.volumeByX.decimals.getOrElse(0)),
+                    BigDecimal(vol.volumeByY.amount) / BigDecimal(10).pow(vol.volumeByY.decimals.getOrElse(0))
                   )
                 }
               }
