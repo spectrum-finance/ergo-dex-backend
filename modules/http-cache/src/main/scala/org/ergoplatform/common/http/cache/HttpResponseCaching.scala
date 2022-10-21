@@ -9,10 +9,11 @@ import org.ergoplatform.common.http.cache.models.CachedResponse._
 import org.ergoplatform.common.http.cache.types.RequestHash32
 import org.http4s._
 import scodec.bits.ByteVector
-import tofu.logging.Logs
+import tofu.logging.{Logging, Logs}
 import tofu.logging.derivation.loggable.generate
 import tofu.syntax.embed._
-import tofu.syntax.monadic.{TofuFlatMapOps, TofuFunctorOps}
+import tofu.syntax.logging._
+import tofu.syntax.monadic._
 
 trait HttpResponseCaching[F[_]] {
 
@@ -40,7 +41,7 @@ object HttpResponseCaching {
       new RedisCaching[F](cache)
     }
 
-  class RedisCaching[F[_]: Monad: Sync](cache: Cache[F]) extends HttpResponseCaching[F] {
+  class RedisCaching[F[_]: Monad: Sync: Logging](cache: Cache[F]) extends HttpResponseCaching[F] {
 
     def process(req: Request[F]): F[Option[Response[F]]] =
       (for {
@@ -54,6 +55,6 @@ object HttpResponseCaching {
       }
 
     def invalidateAll: F[Unit] =
-      cache.flushAll
+      info"Going to invalidate http cache" >> cache.flushAll <* info"Http cache invalidated"
   }
 }
