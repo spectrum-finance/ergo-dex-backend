@@ -20,7 +20,8 @@ import org.ergoplatform.dex.index.processes.{
   HistoryIndexing,
   LiquidityProvidersIndexing,
   LocksIndexing,
-  PoolsIndexing
+  PoolsIndexing,
+  StatesResolver
 }
 import org.ergoplatform.dex.index.repositories.{LiquidityProvidersRepo, RepoBundle}
 import org.ergoplatform.dex.index.streaming.{
@@ -120,11 +121,13 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(handlers: List[AnyOrdersHandler[xa.DB]]) = AnyOrdersHandler.makeOrdersHandlers[xa.DB]
       historyIndexer <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
 
-      poolsIndexer  <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      locksIndexer  <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      blocksIndexer <- Resource.eval(BlockIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      poolsIndexer   <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      locksIndexer   <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      blocksIndexer  <- Resource.eval(BlockIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
+      statesResolver <- Resource.eval(StatesResolver.make[InitF, RunF])
+      _              <- Resource.eval(statesResolver.resolve).mapK(isoKRun.tof)
       processes = blockTracker.run :: blocksIndexer.run :: Nil
-        //txTracker.run ::  :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: Nil
+      //txTracker.run ::  :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: Nil
     } yield (processes, configs)
   // format:on
 

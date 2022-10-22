@@ -19,6 +19,17 @@ import tofu.logging.derivation.loggable
 object models {
 
   @derive(loggable)
+  final case class UnresolvedState(
+    address: String,
+    poolId: PoolId,
+    lpId: TokenId,
+    balance: BigDecimal,
+    lpErg: BigDecimal,
+    timestamp: Long,
+    boxId: String
+  )
+
+  @derive(loggable)
   final case class PoolSnapshot(
     lpAmount: BigDecimal,
     xId: String,
@@ -298,6 +309,32 @@ object models {
         txId        = txId,
         blockId     = blockId,
         poolStateId = ""
+      )
+
+    def resolved(
+      address: String,
+      poolId: PoolId,
+      lpId: TokenId,
+      ts: Long,
+      weight: BigDecimal,
+      gap: Long
+    ): LiquidityProviderSnapshot =
+      LiquidityProviderSnapshot(
+        address     = address,
+        poolId      = poolId,
+        lpId        = lpId,
+        boxId       = "resolved",
+        txId        = "resolved",
+        blockId     = "resolved",
+        balance     = BigDecimal(0),
+        timestamp   = ts,
+        weight      = weight,
+        op          = "Resolve",
+        amount      = BigDecimal(0),
+        gap         = gap,
+        lpErg       = BigDecimal(0),
+        txHeight    = 0,
+        poolStateId = "resolved"
       )
   }
 }

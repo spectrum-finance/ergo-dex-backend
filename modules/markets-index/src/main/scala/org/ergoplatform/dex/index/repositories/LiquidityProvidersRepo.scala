@@ -6,7 +6,7 @@ import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.index.db.models.{LiquidityProviderSnapshot, PoolSnapshot}
+import org.ergoplatform.dex.index.db.models.{LiquidityProviderSnapshot, PoolSnapshot, UnresolvedState}
 import org.ergoplatform.dex.index.sql.LiquidityProvidersSql
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
@@ -16,7 +16,6 @@ import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
-
 import cats.tagless.syntax.functorK._
 
 @derive(representableK)
@@ -25,6 +24,8 @@ trait LiquidityProvidersRepo[F[_]] extends MonoRepo[LiquidityProviderSnapshot, F
   def getLatestLiquidityProviderSnapshot(address: String, poolId: PoolId): F[Option[LiquidityProviderSnapshot]]
 
   def getLatestPoolSnapshot(poolId: PoolId, to: Long): F[Option[PoolSnapshot]]
+
+  def getAllUnresolvedStates: F[List[UnresolvedState]]
 }
 
 object LiquidityProvidersRepo {
@@ -51,11 +52,21 @@ object LiquidityProvidersRepo {
     def getLatestPoolSnapshot(poolId: PoolId, to: Long): ConnectionIO[Option[PoolSnapshot]] =
       LiquidityProvidersSql.getLatestPoolSnapshot(poolId, to).option
 
+    def getAllUnresolvedStates: ConnectionIO[List[UnresolvedState]] =
+      LiquidityProvidersSql.getAllUnresolvedStates.to[List]
+
     def insert(entities: NonEmptyList[LiquidityProviderSnapshot]): ConnectionIO[Int] =
       LiquidityProvidersSql.insertNoConflict.updateMany(entities)
   }
 
   final private class Tracing[F[_]: Monad: Logging] extends LiquidityProvidersRepo[Mid[F, *]] {
+
+    def getAllUnresolvedStates =
+      for {
+        _ <- info"getAllUnresolvedStates()"
+        r <- _
+        _ <- info"getAllUnresolvedStates() -> $r"
+      } yield r
 
     def getLatestPoolSnapshot(poolId: PoolId, to: Long): Mid[F, Option[PoolSnapshot]] =
       for {

@@ -5,7 +5,7 @@ import doobie.implicits._
 import doobie.util.log.LogHandler
 import org.ergoplatform.common.sql.QuerySet
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.index.db.models.{LiquidityProviderSnapshot, PoolSnapshot}
+import org.ergoplatform.dex.index.db.models.{LiquidityProviderSnapshot, PoolSnapshot, UnresolvedState}
 
 object LiquidityProvidersSql extends QuerySet[LiquidityProviderSnapshot] {
 
@@ -42,5 +42,16 @@ object LiquidityProvidersSql extends QuerySet[LiquidityProviderSnapshot] {
           |where pool_id = $poolId and height <= $to
           |order by height desc limit 1;
        """.stripMargin.query
+
+  def getAllUnresolvedStates: Query0[UnresolvedState] =
+    sql"""
+         |select s1.address, s1.pool_id, s1.lp_id, s1.balance, s1.lperg, s1.timestamp, s1.box_id from state s1
+         |  left join (
+         |    select address, pool_id, max(id) as id
+         |    from state
+         |    where balance::decimal != 0 GROUP by address, pool_id
+         |  ) s2 on s2.id = s1.id
+         |where s1.id = s2.id"""
+      .stripMargin.query
 
 }
