@@ -15,7 +15,7 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
   val Group      = "ammStats"
 
   def endpoints: List[Endpoint[_, _, _, _]] =
-    getSwapTxs :: getDepositTxs :: getPoolLocks :: getPlatformStats :: getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart :: getAmmMarkets :: convertToFiat :: Nil
+    getSwapTxs :: getDepositTxs :: getPoolLocks :: getPlatformStats :: getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart :: convertToFiat :: Nil
 
   def getSwapTxs: Endpoint[TimeWindow, HttpError, TransactionsInfo, Any] =
     baseEndpoint.get
@@ -97,15 +97,6 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .tag(Group)
       .name("Pool chart")
       .description("Get price chart by pool")
-
-  def getAmmMarkets: Endpoint[TimeWindow, HttpError, List[AmmMarketSummary], Any] =
-    baseEndpoint.get
-      .in(PathPrefix / "markets")
-      .in(timeWindow)
-      .out(jsonBody[List[AmmMarketSummary]])
-      .tag(Group)
-      .name("All pools stats")
-      .description("Get statistics on all pools")
 
   def convertToFiat: Endpoint[ConvertionRequest, HttpError, FiatEquiv, Any] =
     baseEndpoint.post

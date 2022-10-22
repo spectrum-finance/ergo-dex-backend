@@ -4,17 +4,17 @@ import cats.data.OptionT
 import cats.effect.Clock
 import cats.syntax.parallel._
 import cats.syntax.traverse._
-import cats.{Functor, Monad, Parallel}
+import cats.{Monad, Parallel}
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
+import org.ergoplatform.dex.domain.FullAsset
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FiatUnits, FullAsset, MarketId}
 import org.ergoplatform.dex.markets.api.v1.models.amm._
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
-import org.ergoplatform.dex.markets.currencies.{UsdCurrency, UsdUnits}
+import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.markets.db.models.amm
 import org.ergoplatform.dex.markets.db.models.amm.{PoolFeesSnapshot, PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
-import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
+import org.ergoplatform.dex.markets.domain.{Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
 import org.ergoplatform.dex.markets.repositories.{Orders, Pools}
@@ -23,10 +23,8 @@ import org.ergoplatform.dex.protocol.constants.ErgoAssetId
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.doobie.transactor.Txr
-import tofu.logging.{Logging, Logs}
 import tofu.syntax.monadic._
 import tofu.syntax.time.now.millis
-
 import scala.concurrent.duration._
 
 trait AmmStats[F[_]] {
@@ -44,8 +42,6 @@ trait AmmStats[F[_]] {
   def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]]
 
   def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): F[List[PricePoint]]
-
-  def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]]
 
   def getSwapTransactions(window: TimeWindow): F[TransactionsInfo]
 
@@ -321,47 +317,6 @@ object AmmStats {
               PricePoint(amount.timestamp, price.setScale(RealPrice.defaultScale))
             }
           case _ => List.empty
-        }
-    }
-
-    def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]] = {
-      val queryPoolStats = for {
-        volumes   <- pools.volumes(window)
-        snapshots <- pools.snapshots()
-      } yield (volumes, snapshots)
-
-      txr
-        .trans(queryPoolStats)
-        .map { case (volumes: List[PoolVolumeSnapshot], snapshots: List[PoolSnapshot]) =>
-          snapshots.flatMap { snapshot =>
-            val currentOpt = volumes
-              .find(_.poolId == snapshot.id)
-
-            currentOpt.toList.map { vol =>
-              val tx = snapshot.lockedX
-              val ty = snapshot.lockedY
-              val vx = vol.volumeByX
-              val vy = vol.volumeByY
-              AmmMarketSummary(
-                MarketId(tx.id, ty.id),
-                tx.id,
-                tx.ticker,
-                ty.id,
-                ty.ticker,
-                RealPrice.calculate(tx.amount, tx.decimals, ty.amount, ty.decimals).setScale(6),
-                CryptoVolume(
-                  BigDecimal(vx.amount),
-                  CryptoUnits(AssetClass(vx.id, vx.ticker, vx.decimals)),
-                  window
-                ),
-                CryptoVolume(
-                  BigDecimal(vy.amount),
-                  CryptoUnits(AssetClass(vy.id, vy.ticker, vy.decimals)),
-                  window
-                )
-              )
-            }
-          }
         }
     }
 
