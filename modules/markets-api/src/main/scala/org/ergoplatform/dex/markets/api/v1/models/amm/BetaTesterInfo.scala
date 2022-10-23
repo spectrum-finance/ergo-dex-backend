@@ -6,7 +6,7 @@ import sttp.tapir.Schema
 import tofu.logging.derivation.loggable
 
 @derive(loggable, encoder, decoder)
-final case class BetaTesterInfo(betaTester: Boolean, reward: Int)
+final case class BetaTesterInfo(betaTester: Boolean, spfResult: Int)
 
 object BetaTesterInfo {
   implicit val BetaTesterReq: Schema[BetaTesterInfo] = Schema.derived

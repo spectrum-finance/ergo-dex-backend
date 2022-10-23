@@ -167,7 +167,7 @@ create table if not exists public.state (
     lpErg Text not null,
     txHeight BIGINT not null,
     poolStateId Text not null,
-    PRIMARY KEY (box_id, op, pool_id)
+    PRIMARY KEY (address, box_id, op, pool_id)
 );
 
 GRANT USAGE, SELECT ON SEQUENCE state_seq TO ergo_admin;

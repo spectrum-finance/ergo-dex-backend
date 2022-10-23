@@ -118,7 +118,7 @@ object AmmStats {
         addresses
           .map(getOffChainReward(_, from, to, multiplier, count.some, total.some))
           .sequence
-          .map(_.map(reward => OffChainCharts(reward.address, reward.spfReward)).sortBy(_.spfReward).reverse)
+          .map(_.map(reward => OffChainCharts(reward.address, reward.spfResult)).sortBy(_.spfReward).reverse)
       }
     }
 
@@ -277,7 +277,7 @@ object AmmStats {
           .map { pools =>
             LpResultProd(
               address,
-              pools.map(_.totatSpfReward).sum,
+              pools.map(_.totalSpfReward).sum,
               pools.map(_.totalWeight).sum,
               pools.map(_.totalErgValue).sum,
               s"${TimeUnit.MILLISECONDS.toHours(pools.map(_.totalTime).sum.toLong)}h",

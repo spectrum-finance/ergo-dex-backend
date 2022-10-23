@@ -125,7 +125,7 @@ object App extends EnvApp[ConfigBundle] {
       locksIndexer   <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       blocksIndexer  <- Resource.eval(BlockIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       statesResolver <- Resource.eval(StatesResolver.make[InitF, RunF])
-      _              <- Resource.eval(statesResolver.resolve).mapK(isoKRun.tof)
+//      _              <- Resource.eval(statesResolver.resolve).mapK(isoKRun.tof)
       processes = blockTracker.run :: blocksIndexer.run :: Nil
       //txTracker.run ::  :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: Nil
     } yield (processes, configs)

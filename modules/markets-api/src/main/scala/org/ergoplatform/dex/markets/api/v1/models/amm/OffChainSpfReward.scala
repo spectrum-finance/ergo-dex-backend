@@ -6,7 +6,7 @@ import sttp.tapir.Schema
 import tofu.logging.derivation.loggable
 
 @derive(loggable, encoder, decoder)
-final case class OffChainSpfReward(address: String, spfReward: BigDecimal, operations: Int, totalFee: BigDecimal)
+final case class OffChainSpfReward(address: String, spfResult: BigDecimal, operations: Int, totalFee: BigDecimal)
 
 object OffChainSpfReward {
 
