@@ -277,12 +277,12 @@ object AmmStats {
           .map { pools =>
             LpResultProd(
               address,
-              pools.map(_.totalSpfReward).sum,
-              pools.map(_.totalWeight).sum,
-              pools.map(_.totalErgValue).sum,
-              s"${TimeUnit.MILLISECONDS.toHours(pools.map(_.totalTime).sum.toLong)}h",
+              pools.map(_.spfReward).sum,
+              pools.map(_.weight).sum,
+              pools.map(_.ergValue).sum,
+              s"${TimeUnit.MILLISECONDS.toHours(pools.map(_.time).sum.toLong)}h",
               pools.map(_.operations).sum,
-              pools.filter(_.totalErgValue > 0)
+              pools.filter(_.ergValue > 0)
             )
           }
       }

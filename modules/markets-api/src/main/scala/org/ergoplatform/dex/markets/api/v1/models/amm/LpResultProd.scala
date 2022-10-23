@@ -8,7 +8,7 @@ import tofu.logging.derivation.loggable
 @derive(loggable, decoder, encoder)
 final case class LpResultProd(
   address: String,
-  spfReward: BigDecimal,
+  totalSpfReward: BigDecimal,
   totalWeight: BigDecimal,
   totalErgValue: BigDecimal,
   totalTime: String,

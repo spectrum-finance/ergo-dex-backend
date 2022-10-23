@@ -7,12 +7,12 @@ import tofu.logging.derivation.loggable
 
 @derive(loggable, decoder, encoder)
 final case class LpResultDev(
-  totalSpfReward: BigDecimal,
-  totalWeight: BigDecimal,
+  spfReward: BigDecimal,
+  weight: BigDecimal,
   operations: Int,
-  totalErgValue: BigDecimal,
-  totalTime: BigDecimal,
-  totalTimeHours: String,
+  ergValue: BigDecimal,
+  time: BigDecimal,
+  timeHours: String,
   pool: String
 )
 
