@@ -15,7 +15,9 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
   val Group      = "ammStats"
 
   def endpoints: List[Endpoint[_, _, _, _]] =
-    getSwapTxs :: getDepositTxs :: getPoolLocks :: getPlatformStats :: getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart :: convertToFiat :: Nil
+    getSwapTxs :: getDepositTxs :: getPoolLocks :: getPlatformStats ::
+    getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart ::
+    convertToFiat :: getPoolsSummary :: Nil
 
   def getSwapTxs: Endpoint[TimeWindow, HttpError, TransactionsInfo, Any] =
     baseEndpoint.get
