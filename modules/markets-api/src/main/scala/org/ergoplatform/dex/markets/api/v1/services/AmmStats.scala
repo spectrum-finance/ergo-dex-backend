@@ -178,7 +178,9 @@ object AmmStats {
               else BigDecimal(p1.lockedX.amount) * 2
             }.sum
 
-            val spfReward = (200 * groupSize * (userAmount / poolAmount)).setScale(6, RoundingMode.HALF_UP)
+            val spfRewardRaw = (200 * groupSize * (userAmount / poolAmount)).setScale(6, RoundingMode.HALF_UP)
+
+            val spfReward = if (spfRewardRaw > BigDecimal(10).pow(4)) BigDecimal(10).pow(4) else spfRewardRaw
 
             TraderAirdropInfo(userAmount / BigDecimal(10).pow(9), spfReward, states.length)
           }
