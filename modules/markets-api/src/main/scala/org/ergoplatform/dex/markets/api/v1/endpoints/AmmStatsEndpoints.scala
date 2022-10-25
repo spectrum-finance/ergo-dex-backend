@@ -15,7 +15,9 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
   val Group      = "ammStats"
 
   def endpoints: List[Endpoint[_, _, _, _]] =
-    getSwapTxs :: getDepositTxs :: getPoolLocks :: getPlatformStats :: getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart :: getAmmMarkets :: convertToFiat :: Nil
+    getSwapTxs :: getDepositTxs :: getPoolLocks :: getPlatformStats ::
+    getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart ::
+    convertToFiat :: getPoolsSummary :: Nil
 
   def getSwapTxs: Endpoint[TimeWindow, HttpError, TransactionsInfo, Any] =
     baseEndpoint.get
@@ -44,23 +46,31 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .name("Pool locks")
       .description("Get liquidity locks for the pool with the given ID")
 
-  def getPoolStats: Endpoint[(PoolId, TimeWindow), HttpError, PoolSummary, Any] =
+  def getPoolStats: Endpoint[(PoolId, TimeWindow), HttpError, PoolStats, Any] =
     baseEndpoint.get
       .in(PathPrefix / "pool" / path[PoolId].description("Asset reference") / "stats")
       .in(timeWindow)
-      .out(jsonBody[PoolSummary])
+      .out(jsonBody[PoolStats])
       .tag(Group)
       .name("Pool stats")
       .description("Get statistics on the pool with the given ID")
 
-  def getPoolsSummary: Endpoint[TimeWindow, HttpError, List[PoolSummary], Any] =
+  def getPoolsStats: Endpoint[TimeWindow, HttpError, List[PoolStats], Any] =
     baseEndpoint.get
       .in(PathPrefix / "pools" / "stats")
       .in(timeWindow)
-      .out(jsonBody[List[PoolSummary]])
+      .out(jsonBody[List[PoolStats]])
       .tag(Group)
       .name("Pools statistic")
       .description("Get statistic about every known pool")
+
+  def getPoolsSummary: Endpoint[Unit, HttpError, List[PoolSummary], Any] =
+    baseEndpoint.get
+      .in(PathPrefix / "pools" / "summary")
+      .out(jsonBody[List[PoolSummary]])
+      .tag(Group)
+      .name("Pools summary")
+      .description("Get summary by every known pool with max TVL")
 
   def getPlatformStats: Endpoint[TimeWindow, HttpError, PlatformSummary, Any] =
     baseEndpoint.get
@@ -89,15 +99,6 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .tag(Group)
       .name("Pool chart")
       .description("Get price chart by pool")
-
-  def getAmmMarkets: Endpoint[TimeWindow, HttpError, List[AmmMarketSummary], Any] =
-    baseEndpoint.get
-      .in(PathPrefix / "markets")
-      .in(timeWindow)
-      .out(jsonBody[List[AmmMarketSummary]])
-      .tag(Group)
-      .name("All pools stats")
-      .description("Get statistics on all pools")
 
   def convertToFiat: Endpoint[ConvertionRequest, HttpError, FiatEquiv, Any] =
     baseEndpoint.post

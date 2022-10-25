@@ -7,23 +7,24 @@ import cats.syntax.traverse._
 import cats.{Monad, Parallel}
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
+import org.ergoplatform.dex.domain.FullAsset
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
 import org.ergoplatform.dex.markets.api.v1.models.amm._
 import org.ergoplatform.dex.markets.api.v1.models.amm.types._
 import org.ergoplatform.dex.markets.currencies.UsdUnits
 import org.ergoplatform.dex.markets.db.models.amm
 import org.ergoplatform.dex.markets.db.models.amm.{PoolFeesSnapshot, PoolSnapshot, PoolTrace, PoolVolumeSnapshot}
-import org.ergoplatform.dex.markets.domain.{CryptoVolume, Fees, TotalValueLocked, Volume}
+import org.ergoplatform.dex.markets.domain.{Fees, TotalValueLocked, Volume}
 import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
 import org.ergoplatform.dex.markets.repositories.{Orders, Pools}
 import org.ergoplatform.dex.markets.services.TokenFetcher
+import org.ergoplatform.dex.protocol.constants.ErgoAssetId
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.doobie.transactor.Txr
 import tofu.syntax.monadic._
-
+import tofu.syntax.time.now.millis
 import scala.concurrent.duration._
 
 trait AmmStats[F[_]] {
@@ -32,15 +33,15 @@ trait AmmStats[F[_]] {
 
   def getPlatformSummary(window: TimeWindow): F[PlatformSummary]
 
-  def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]]
+  def getPoolStats(poolId: PoolId, window: TimeWindow): F[Option[PoolStats]]
 
-  def getPoolsSummary(window: TimeWindow): F[List[PoolSummary]]
+  def getPoolsStats(window: TimeWindow): F[List[PoolStats]]
+
+  def getPoolsSummary: F[List[PoolSummary]]
 
   def getAvgPoolSlippage(poolId: PoolId, depth: Int): F[Option[PoolSlippage]]
 
   def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): F[List[PricePoint]]
-
-  def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]]
 
   def getSwapTransactions(window: TimeWindow): F[TransactionsInfo]
 
@@ -87,7 +88,7 @@ object AmmStats {
     def getPlatformSummary(window: TimeWindow): F[PlatformSummary] = {
       val queryPlatformStats =
         for {
-          poolSnapshots <- pools.snapshots
+          poolSnapshots <- pools.snapshots()
           volumes       <- pools.volumes(window)
         } yield (poolSnapshots, volumes)
       for {
@@ -109,8 +110,61 @@ object AmmStats {
       } yield PlatformSummary(tvl, volume)
     }
 
-    def getPoolsSummary(window: TimeWindow): F[List[PoolSummary]] =
-      (pools.snapshots ||> txr.trans).flatMap { snapshots: List[PoolSnapshot] =>
+    def getPoolsSummary: F[List[PoolSummary]] = {
+      val day = 3600000 * 24
+
+      val queryPoolData: TimeWindow => D[(List[PoolVolumeSnapshot], List[PoolSnapshot])] =
+        tw =>
+          for {
+            volumes   <- pools.volumes(tw)
+            snapshots <- pools.snapshots(true)
+          } yield (volumes, snapshots)
+
+      for {
+        currTs <- millis
+        tw = TimeWindow(Some(currTs - day), Some(currTs))
+        validTokens                                                        <- tokens.fetchTokens
+        (volumes: List[PoolVolumeSnapshot], snapshots: List[PoolSnapshot]) <- queryPoolData(tw) ||> txr.trans
+        filtered = snapshots.filter(ps => ps.lockedX.id == ErgoAssetId && validTokens.contains(ps.lockedY.id))
+        poolsTvl <- filtered.flatTraverse(p => processPoolTvl(p).map(_.map(tvl => (tvl, p))).map(_.toList))
+        maxTvlPools =
+          poolsTvl
+            .groupBy { case (_, pool) => (pool.lockedX.id, pool.lockedY.id) }
+            .map { case (_, tvls) =>
+              tvls.maxBy(_._1.value)._2
+            }
+            .toList
+        res = maxTvlPools.flatMap { pool =>
+                volumes.find(_.poolId == pool.id).toList.map { vol =>
+                  val x = pool.lockedX
+                  val y = pool.lockedY
+                  PoolSummary(
+                    x.id,
+                    x.ticker.get,
+                    x.ticker.get,
+                    y.id,
+                    y.ticker.get,
+                    y.ticker.get,
+                    RealPrice
+                      .calculate(x.amount, x.decimals, y.amount, y.decimals)
+                      .setScale(6),
+                    BigDecimal(vol.volumeByX.amount) / BigDecimal(10).pow(vol.volumeByX.decimals.getOrElse(0)),
+                    BigDecimal(vol.volumeByY.amount) / BigDecimal(10).pow(vol.volumeByY.decimals.getOrElse(0))
+                  )
+                }
+              }
+      } yield res
+    }
+
+    private def processPoolTvl(pool: PoolSnapshot): F[Option[TotalValueLocked]] =
+      (for {
+        lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, List.empty))
+        lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, List.empty))
+        tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
+      } yield tvl).value
+
+    def getPoolsStats(window: TimeWindow): F[List[PoolStats]] =
+      (pools.snapshots() ||> txr.trans).flatMap { snapshots: List[PoolSnapshot] =>
         snapshots
           .parTraverse(pool => getPoolSummaryUsingAllPools(pool, window, snapshots))
           .map(_.flatten)
@@ -120,7 +174,7 @@ object AmmStats {
       pool: PoolSnapshot,
       window: TimeWindow,
       everyKnownPool: List[PoolSnapshot]
-    ): F[Option[PoolSummary]] = {
+    ): F[Option[PoolStats]] = {
       val poolId = pool.id
 
       def poolData: D[Option[(amm.PoolInfo, Option[amm.PoolFeesSnapshot], Option[PoolVolumeSnapshot])]] =
@@ -138,7 +192,7 @@ object AmmStats {
         volume            <- processPoolVolume(vol, window, everyKnownPool)
         fees              <- processPoolFee(feesSnap, window, everyKnownPool)
         yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
-      } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
+      } yield PoolStats(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
     }
 
     private def processPoolVolume(
@@ -168,7 +222,7 @@ object AmmStats {
       case None => OptionT.pure[F](Fees.empty(UsdUnits, window))
     }
 
-    def getPoolSummary(poolId: PoolId, window: TimeWindow): F[Option[PoolSummary]] = {
+    def getPoolStats(poolId: PoolId, window: TimeWindow): F[Option[PoolStats]] = {
       val queryPoolStats =
         (for {
           info     <- OptionT(pools.info(poolId))
@@ -184,7 +238,7 @@ object AmmStats {
         volume            <- processPoolVolume(vol, window, List.empty)
         fees              <- processPoolFee(feesSnap, window, List.empty)
         yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
-      } yield PoolSummary(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
+      } yield PoolStats(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
     }
 
     private def calculatePoolSlippagePercent(initState: PoolTrace, finalState: PoolTrace): BigDecimal = {
@@ -263,47 +317,6 @@ object AmmStats {
               PricePoint(amount.timestamp, price.setScale(RealPrice.defaultScale))
             }
           case _ => List.empty
-        }
-    }
-
-    def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]] = {
-      val queryPoolStats = for {
-        volumes   <- pools.volumes(window)
-        snapshots <- pools.snapshots
-      } yield (volumes, snapshots)
-
-      txr
-        .trans(queryPoolStats)
-        .map { case (volumes: List[PoolVolumeSnapshot], snapshots: List[PoolSnapshot]) =>
-          snapshots.flatMap { snapshot =>
-            val currentOpt = volumes
-              .find(_.poolId == snapshot.id)
-
-            currentOpt.toList.map { vol =>
-              val tx = snapshot.lockedX
-              val ty = snapshot.lockedY
-              val vx = vol.volumeByX
-              val vy = vol.volumeByY
-              AmmMarketSummary(
-                MarketId(tx.id, ty.id),
-                tx.id,
-                tx.ticker,
-                ty.id,
-                ty.ticker,
-                RealPrice.calculate(tx.amount, tx.decimals, ty.amount, ty.decimals).setScale(6),
-                CryptoVolume(
-                  BigDecimal(vx.amount),
-                  CryptoUnits(AssetClass(vx.id, vx.ticker, vx.decimals)),
-                  window
-                ),
-                CryptoVolume(
-                  BigDecimal(vy.amount),
-                  CryptoUnits(AssetClass(vy.id, vy.ticker, vy.decimals)),
-                  window
-                )
-              )
-            }
-          }
         }
     }
 

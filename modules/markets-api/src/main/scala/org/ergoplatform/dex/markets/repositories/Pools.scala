@@ -26,7 +26,7 @@ trait Pools[F[_]] {
 
   /** Get snapshots of all pools.
     */
-  def snapshots: F[List[PoolSnapshot]]
+  def snapshots(hasTicker: Boolean = false): F[List[PoolSnapshot]]
 
   /** Get snapshots of those pools that involve the given asset.
     */
@@ -84,8 +84,8 @@ object Pools {
     def info(id: PoolId): ConnectionIO[Option[PoolInfo]] =
       sql.getInfo(id).option
 
-    def snapshots: ConnectionIO[List[PoolSnapshot]] =
-      sql.getPoolSnapshots.to[List]
+    def snapshots(hasTicker: Boolean = false): ConnectionIO[List[PoolSnapshot]] =
+      sql.getPoolSnapshots(hasTicker).to[List]
 
     def snapshotsByAsset(asset: TokenId): ConnectionIO[List[PoolSnapshot]] =
       sql.getPoolSnapshotsByAsset(asset).to[List]
@@ -127,11 +127,11 @@ object Pools {
         _ <- trace"info(poolId=$poolId) -> ${r.size} info entities selected"
       } yield r
 
-    def snapshots: Mid[F, List[PoolSnapshot]] =
+    def snapshots(hasTicker: Boolean): Mid[F, List[PoolSnapshot]] =
       for {
-        _ <- trace"snapshots"
+        _ <- trace"snapshots(hasTicker=$hasTicker)"
         r <- _
-        _ <- trace"snapshots -> ${r.size} snapshots selected"
+        _ <- trace"snapshots(hasTicker=$hasTicker) -> ${r.size} snapshots selected"
       } yield r
 
     def snapshotsByAsset(asset: TokenId): Mid[F, List[PoolSnapshot]] =

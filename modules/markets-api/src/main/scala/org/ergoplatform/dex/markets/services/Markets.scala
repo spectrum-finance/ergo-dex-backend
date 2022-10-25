@@ -54,7 +54,7 @@ object Markets {
   final class Live[F[_]: Monad](pools: Pools[F]) extends Markets[F] {
 
     def getAll: F[List[Market]] =
-      pools.snapshots.map(parsePools)
+      pools.snapshots().map(parsePools)
 
     def getByAsset(id: TokenId): F[List[Market]] =
       pools.snapshotsByAsset(id).map(parsePools)
@@ -78,7 +78,7 @@ object Markets {
           maybeMarkets <- memo.read
           res <- maybeMarkets match {
                    case Some(markets) => markets.filter(_.contains(id)).pure
-                   case None          => fa.flatTap(_ => pools.snapshots.map(parsePools) >>= (memo.memoize(_, MemoTtl)))
+                   case None          => fa.flatTap(_ => pools.snapshots().map(parsePools) >>= (memo.memoize(_, MemoTtl)))
                  }
         } yield res
   }

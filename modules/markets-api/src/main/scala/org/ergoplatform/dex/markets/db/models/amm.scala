@@ -1,8 +1,11 @@
 package org.ergoplatform.dex.markets.db.models
 
+import derevo.circe.{decoder, encoder}
+import derevo.derive
 import org.ergoplatform.dex.domain.{FullAsset, Ticker}
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.ergo.TokenId
+import tofu.logging.derivation.loggable
 
 object amm {
 
@@ -19,6 +22,7 @@ object amm {
     def evalDecimals: Int = decimals.getOrElse(0)
   }
 
+  @derive(loggable)
   final case class PoolSnapshot(
     id: PoolId,
     lockedX: FullAsset,
@@ -26,6 +30,7 @@ object amm {
     dummy: String
   )
 
+  @derive(loggable)
   final case class PoolVolumeSnapshot(
     poolId: PoolId,
     volumeByX: FullAsset,
