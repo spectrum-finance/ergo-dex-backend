@@ -39,7 +39,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
 
   def checkIfBetaTester(key: org.ergoplatform.ergo.PubKey): Query0[Int] = {
     val poolsIds = Fragment.const(
-      (Pools.betaTesterPools.values.toList ::: Pools.pools.values.toList)
+      (Pools.betaTesterPools ::: Pools.pools.values.toList)
         .map(_.unwrapped)
         .map(s => s"'$s'")
         .mkString(", ")
