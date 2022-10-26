@@ -19,6 +19,7 @@ object constants {
     T2TCFMMTemplates.redeemV0,
     T2TCFMMTemplates.depositV2,
     T2TCFMMTemplates.depositV1,
+    T2TCFMMTemplates.depositV0,
     ergoBaseOutput,
     ErgoTreeTemplate.fromBytes(AMMContracts.N2TCFMMContracts.pool.template),
     ErgoTreeTemplate.fromBytes(AMMContracts.T2TCFMMContracts.pool.template)
