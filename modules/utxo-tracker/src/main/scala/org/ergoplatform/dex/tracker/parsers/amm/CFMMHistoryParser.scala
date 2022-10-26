@@ -71,6 +71,8 @@ object CFMMHistoryParser {
             x.copy(order = o.copy(timestamp = tx.timestamp))
           case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV1, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
+          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV2, _, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
         }
 
     def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyRedeem, RedeemEvaluation]]] =

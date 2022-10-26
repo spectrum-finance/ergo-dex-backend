@@ -187,7 +187,8 @@ object models {
     case EvaluatedCFMMOrder(deposit, ev, pool, _) =>
       val (minerFee, params) = deposit match {
         case deposit: DepositV0 => (None, deposit.params)
-        case deposit: DepositV1 => (deposit.maxMinerFee.some, deposit.params)
+        case deposit: DepositV1 => (None, deposit.params)
+        case deposit: DepositV2 => (deposit.maxMinerFee.some, deposit.params)
       }
       DBDeposit(
         OrderId.fromBoxId(deposit.box.boxId),

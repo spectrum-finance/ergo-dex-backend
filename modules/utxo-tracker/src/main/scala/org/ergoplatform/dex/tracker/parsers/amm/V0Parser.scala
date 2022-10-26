@@ -3,12 +3,14 @@ package org.ergoplatform.dex.tracker.parsers.amm
 import cats.Monad
 import cats.effect.Clock
 import org.ergoplatform.ErgoAddressEncoder
-import org.ergoplatform.dex.domain.amm.CFMMVersionedOrder.{DepositV0, RedeemV0, SwapV0}
+import org.ergoplatform.dex.domain.amm.CFMMVersionedOrder._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.ergo.domain.Output
 import tofu.higherKind.Embed
 
 trait V0Parser[+CT <: CFMMType, F[_]] {
+
+  def depositV1(box: Output): F[Option[DepositV1]]
 
   def depositV0(box: Output): F[Option[DepositV0]]
 

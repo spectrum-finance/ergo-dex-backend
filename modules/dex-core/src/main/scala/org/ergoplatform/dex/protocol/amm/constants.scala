@@ -5,20 +5,20 @@ import org.ergoplatform.ergo.ErgoTreeTemplate
 object constants {
 
   val reservedErgoTrees: List[ErgoTreeTemplate] = List(
-    N2TCFMMTemplates.deposit,
+    N2TCFMMTemplates.depositV2,
     N2TCFMMTemplates.redeem,
     N2TCFMMTemplates.swapBuyV0,
     N2TCFMMTemplates.swapBuy,
     N2TCFMMTemplates.swapSellV0,
     N2TCFMMTemplates.swapSell,
-    N2TCFMMTemplates.depositV0,
+    N2TCFMMTemplates.depositV1,
     N2TCFMMTemplates.redeemV0,
     T2TCFMMTemplates.swap,
     T2TCFMMTemplates.swapV0,
     T2TCFMMTemplates.redeem,
     T2TCFMMTemplates.redeemV0,
-    T2TCFMMTemplates.deposit,
-    T2TCFMMTemplates.depositV0,
+    T2TCFMMTemplates.depositV2,
+    T2TCFMMTemplates.depositV1,
     ergoBaseOutput,
     ErgoTreeTemplate.fromBytes(AMMContracts.N2TCFMMContracts.pool.template),
     ErgoTreeTemplate.fromBytes(AMMContracts.T2TCFMMContracts.pool.template)

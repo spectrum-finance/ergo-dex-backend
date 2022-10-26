@@ -53,6 +53,7 @@ object HistoryIndexing {
         }
         .evalTap { case (xs, _) => warn"[${xs.count(_.isEmpty)}] records discarded." }
         .evalMap { case (rs, commit) =>
+          info"Got orders ${rs.flatten.mkString(s",")}" >>
           handlers
             .parTraverse { handler =>
               txr.trans(handler.handle(rs.flatten)): F[Int]

@@ -24,7 +24,7 @@ final class N2TCFMMOrdersParser[F[_]: Applicative](ts: Long)(implicit
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.deposit) {
+      if (template == templates.depositV2) {
         for {
           poolId      <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
           maxMinerFee <- tree.constants.parseLong(22)

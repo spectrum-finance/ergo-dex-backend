@@ -80,9 +80,13 @@ object AnyOrdersHandler {
           EvaluatedCFMMOrder(o: AnyDeposit, Some(ev), p, r).extract[DBDeposit]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV1, Some(ev: DepositEvaluation), p, r) =>
           EvaluatedCFMMOrder(o: AnyDeposit, Some(ev), p, r).extract[DBDeposit]
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV2, Some(ev: DepositEvaluation), p, r) =>
+          EvaluatedCFMMOrder(o: AnyDeposit, Some(ev), p, r).extract[DBDeposit]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV0, _, p, r) =>
           EvaluatedCFMMOrder(o: AnyDeposit, none[DepositEvaluation], p, r).extract[DBDeposit]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV1, _, p, r) =>
+          EvaluatedCFMMOrder(o: AnyDeposit, none[DepositEvaluation], p, r).extract[DBDeposit]
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV2, _, p, r) =>
           EvaluatedCFMMOrder(o: AnyDeposit, none[DepositEvaluation], p, r).extract[DBDeposit]
       }) match {
         case Some(nel) => repo.insert(nel)

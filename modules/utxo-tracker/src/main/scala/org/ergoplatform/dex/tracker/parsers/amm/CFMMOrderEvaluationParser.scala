@@ -47,6 +47,7 @@ object CFMMOrderEvaluationParser {
       order: CFMMVersionedOrder.AnyDeposit
     ): F[Option[DepositEvaluation]] = {
       val config = order match {
+        case deposit: CFMMVersionedOrder.DepositV2 => deposit.params
         case deposit: CFMMVersionedOrder.DepositV1 => deposit.params
         case deposit: CFMMVersionedOrder.DepositV0 => deposit.params
       }
