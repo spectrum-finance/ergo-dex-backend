@@ -1,17 +1,13 @@
 package org.ergoplatform.dex.domain.amm
 
-import cats.Show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import io.circe.{Decoder, Encoder, Json, ParsingFailure}
+import io.circe.{Decoder, Encoder, Json}
 import org.ergoplatform.ergo.domain.Output
 import tofu.logging.derivation.loggable
 import io.circe.syntax._
-import io.circe.parser.parse
 import cats.syntax.either._
 import io.circe.derivation.{deriveDecoder, deriveEncoder}
-import org.ergoplatform.dex.domain.amm
-import tofu.logging.Loggable
 
 sealed trait CFMMVersionedOrder[+V <: CFMMOrderVersion, +O <: CFMMOrderType] {
   val poolId: PoolId
@@ -24,10 +20,6 @@ sealed trait CFMMVersionedOrder[+V <: CFMMOrderVersion, +O <: CFMMOrderType] {
 }
 
 object CFMMVersionedOrder {
-
-  implicit val showCfmmAny: Show[CFMMVersionedOrder.Any] = order => s"CFMMVersionedOrder.Any(${order.version})"
-
-  implicit val loggableCfmmAny: Loggable[CFMMVersionedOrder.Any] = Loggable.show
 
   implicit val encoderAny: Encoder[CFMMVersionedOrder.Any] = {
     case o: SwapV1    => o.asJson
