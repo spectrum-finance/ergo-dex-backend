@@ -44,14 +44,10 @@ final class AmmStatsRoutes[
     stats.getPoolStats(poolId, tw).adaptThrowable.orNotFound(s"PoolStats{poolId=$poolId}").value
   }
 
-  def getPoolsStatsR: HttpRoutes[F] = interpreter.toRoutes(getPoolsStats) { tw =>
-    stats.getPoolsStats(tw).adaptThrowable.value
   def getLqProviderInfoR: HttpRoutes[F] = interpreter.toRoutes(getLqProviderInfoE) { address =>
     stats.getLqProviderInfo(address).adaptThrowable.value
   }
 
-  def getPoolsSummaryR: HttpRoutes[F] = interpreter.toRoutes(getPoolsSummary) { _ =>
-    stats.getPoolsSummary.adaptThrowable.value
   def checkIfBetaTesterR: HttpRoutes[F] = interpreter.toRoutes(checkIfBettaTesterE) { case (address) =>
     stats.checkIfBetaTester(address).adaptThrowable.orNotFound(s"BetaTester{addr=$address}").value
   }

@@ -96,7 +96,7 @@ object AmmStats {
     e: ErgoAddressEncoder
   ): AmmStats[F] = new Live[F, D]()
 
-  final class Live[F[_]: Monad: Parallel, D[_]: Monad](implicit
+  final class Live[F[_]: Monad: Parallel: Clock, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
     orders: Orders[D],
@@ -162,7 +162,7 @@ object AmmStats {
           def query: F[(List[SwapState], List[PoolSnapshot], Int)] =
             (for {
               state     <- orders.getSwapsState(pk)
-              snapshots <- pools.snapshots
+              snapshots <- pools.snapshots()
               pools = snapshots.filter(s => PPools.pools.values.toList.contains(s.id))
               users <- orders.getSwapUsersCount
             } yield (state, pools, users)) ||> txr.trans
@@ -238,7 +238,7 @@ object AmmStats {
       def query: F[(List[AssetTicket], List[PoolSnapshot], Int, BigDecimal)] =
         (for {
           assets         <- orders.getAssetTicket
-          snapshots      <- pools.snapshots
+          snapshots      <- pools.snapshots()
           addressesCount <- orders.getLqUsers
           totalWeight    <- orders.getTotalWeight
         } yield (assets, snapshots, addressesCount, totalWeight)) ||> txr.trans

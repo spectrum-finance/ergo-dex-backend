@@ -16,7 +16,9 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
   val Group      = "ammStats"
 
   def endpoints: List[Endpoint[_, _, _, _]] =
-    getSwapsStats :: getOffChainOperatorsState :: getEarlyOffChainOperatorsStateCharts :: getOffChainOperatorsStateCharts :: getEarlyOffChainOperatorsState :: checkIfBettaTesterE :: getLqProviderInfoE :: getLqProviderInfoWithOperationsRE :: Nil
+    getSwapsStats :: getOffChainOperatorsState :: getEarlyOffChainOperatorsStateCharts ::
+      getOffChainOperatorsStateCharts :: getEarlyOffChainOperatorsState :: checkIfBettaTesterE ::
+      getLqProviderInfoE :: Nil
 
   def getSwapTxs: Endpoint[TimeWindow, HttpError, TransactionsInfo, Any] =
     baseEndpoint.get
@@ -114,14 +116,6 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .name("Check off chain operators")
       .description("Check off chain operators")
 
-  def getFullStateE: Endpoint[(String, String), HttpError, LqProviderStateDB, Any] =
-    baseEndpoint.get
-      .in("state" / "all" / path[String].description("Address") / path[String].description("Pool id"))
-      .out(jsonBody[LqProviderStateDB])
-      .tag(Group)
-      .name("get full lp state")
-      .description("Get full statistics of lp")
-
   def getSwapsStats: Endpoint[String, HttpError, TraderAirdropInfo, Any] =
     baseEndpoint.get
       .in("airdrop" / "traders")
@@ -131,7 +125,7 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .name("Swaps stats")
       .description("Get statistics of swaps using address")
 
-  def getPoolStats: Endpoint[(PoolId, TimeWindow), HttpError, PoolSummary, Any] =
+  def getPoolStats: Endpoint[(PoolId, TimeWindow), HttpError, PoolStats, Any] =
     baseEndpoint.get
       .in(PathPrefix / "pool" / path[PoolId].description("Asset reference") / "stats")
       .in(timeWindow)

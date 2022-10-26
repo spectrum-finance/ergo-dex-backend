@@ -4,11 +4,9 @@ import cats.tagless.syntax.functorK._
 import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
-import doobie.util.query.Query0
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
-import scorex.crypto.authds.merkle.sparse.BlockchainSimulator.PubKey
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.higherKind.Mid
@@ -181,7 +179,7 @@ object Orders {
       for {
         _ <- trace"getLqProviderStates(address=$address, pool=$pool)"
         r <- _
-        _ <- trace"getLqProviderStates(address=$address, pool=$pool) -> $r res"
+        _ <- trace"getLqProviderStates(address=$address, pool=$pool) -> ${r} res"
       } yield r
 
     def getLqProviderStates(address: String, pool: String, from: Long, to: Long) =

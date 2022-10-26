@@ -2,9 +2,6 @@ package org.ergoplatform.dex.markets.db.models
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import derevo.circe.{decoder, encoder}
-import derevo.derive
-import org.ergoplatform.dex.domain.{FullAsset, Ticker}
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.domain.{FullAsset, Ticker}
 import org.ergoplatform.ergo.TokenId
