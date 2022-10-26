@@ -35,7 +35,7 @@ object CFMMVersionedOrder {
     case o: RedeemV0  => o.asJson
     case o: DepositV2 => o.asJson
     case o: DepositV1 => o.asJson
-    case o: DepositV0 => o.asJson
+    case o: DepositV0 => DepositV0Helper.encoderDepositV0(o)
   }
 
   implicit val decoderAny: Decoder[CFMMVersionedOrder.Any] = x =>
@@ -44,7 +44,7 @@ object CFMMVersionedOrder {
       .leftFlatMap(_ => x.as[RedeemV1])
       .leftFlatMap(_ => x.as[RedeemV0])
       .leftFlatMap(_ => x.as[DepositV2])
-      .leftFlatMap(_ => x.as[DepositV0])
+      .leftFlatMap(_ => DepositV0Helper.decoderDepositV0.tryDecode(x))
       .leftFlatMap(_ => x.as[DepositV1])
 
   type Any = CFMMVersionedOrder[CFMMOrderVersion, CFMMOrderType]
@@ -79,35 +79,27 @@ object CFMMVersionedOrder {
     val version: CFMMOrderVersion.V1 = CFMMOrderVersion.v1
   }
 
+  @derive(encoder, decoder, loggable)
   final case class DepositV0(poolId: PoolId, timestamp: Long, params: DepositParams, box: Output)
     extends CFMMVersionedOrder[CFMMOrderVersion.V0, CFMMOrderType.Deposit] {
     val version: CFMMOrderVersion.V0 = CFMMOrderVersion.v0
   }
 
-  object DepositV0 {
+  object DepositV0
 
-    implicit val showDepositV0: Show[DepositV0] = order =>
-      s"DepositV0(${order.version}, ${order.poolId}, ${order.timestamp}, ${order.params}, ${order.box})"
-
-    implicit val loggableDepositV0: Loggable[DepositV0] = Loggable.show
+  object DepositV0Helper {
 
     implicit val encoderDepositV0: Encoder[DepositV0] = (d: DepositV0) =>
       Json.obj(
-        ("poolId", Json.fromString(d.poolId.unwrapped)),
-        ("timestamp", Json.fromLong(d.timestamp)),
-        ("params", d.params.asJson),
-        ("box", d.box.asJson),
-        ("version", (d.version: amm.CFMMOrderVersion).asJson)
+        ("version", (d.version: amm.CFMMOrderVersion).asJson),
+        ("depositV0", d.asJson)
       )
 
-    implicit val decoder: Decoder[DepositV0] = c =>
+    implicit val decoderDepositV0: Decoder[DepositV0] = c =>
       for {
-        poolId    <- c.downField("poolId").as[PoolId]
-        timestamp <- c.downField("timestamp").as[Long]
-        params    <- c.downField("params").as[DepositParams]
-        box       <- c.downField("box").as[Output]
-        _         <- c.downField("version").as[CFMMOrderVersion]
-      } yield DepositV0(poolId, timestamp, params, box)
+        deposit <- c.downField("depositV0").as[DepositV0]
+        _       <- c.downField("version").as[CFMMOrderVersion]
+      } yield deposit
   }
 
   @derive(encoder, decoder, loggable)
