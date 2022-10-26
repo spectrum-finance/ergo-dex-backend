@@ -60,7 +60,7 @@ object TxTracker {
               eval(info"Requesting TX batch {offset=$offset, maxOffset=$maxOffset, batchSize=${conf.batchSize} ..") >>
               ledger
                 .streamExtendedTxs(offset, conf.batchSize)
-                .evalTap(tx => trace"Scanning TX $tx")
+                .evalTap(tx => trace"Scanning TX ${tx.id}")
                 .flatTap(tx => emits(handlers.map(_(tx.pure[F]))).parFlattenUnbounded)
                 .void
             val finalizeOffset = eval(cache.setLastScannedTxOffset(nextOffset))

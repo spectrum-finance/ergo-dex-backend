@@ -36,7 +36,8 @@ object CFMMParser {
 
       def deposit(box: Output): F[Option[CFMMVersionedOrder.AnyDeposit]] =
         OptionT(current.deposit(box))
-          .map(s => DepositV1(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnyDeposit)
+          .map(s => DepositV2(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnyDeposit)
+          .orElseF(v0.depositV1(box).map(r => r: Option[CFMMVersionedOrder.AnyDeposit]))
           .orElseF(v0.depositV0(box).map(r => r: Option[CFMMVersionedOrder.AnyDeposit]))
           .value
 

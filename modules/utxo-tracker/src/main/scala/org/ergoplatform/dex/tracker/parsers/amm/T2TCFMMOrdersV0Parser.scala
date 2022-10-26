@@ -20,16 +20,33 @@ final class T2TCFMMOrdersV0Parser[F[_]: Applicative: Clock](ts: Long)(implicit
   e: ErgoAddressEncoder
 ) extends V0Parser[T2T_CFMM, F] {
 
+  def depositV1(box: Output): F[Option[DepositV1]] = {
+    val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
+    val template = ErgoTreeTemplate.fromBytes(tree.template)
+    val parsed =
+      if (template == templates.depositV1) {
+        for {
+          poolId   <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
+          inX      <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
+          inY      <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount))
+          dexFee   <- tree.constants.parseLong(15)
+          redeemer <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
+          params = DepositParams(inX, inY, dexFee, redeemer)
+        } yield DepositV1(poolId, ts, params, box)
+      } else None
+    parsed.pure
+  }
+
   def depositV0(box: Output): F[Option[DepositV0]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
       if (template == templates.depositV0) {
         for {
-          poolId   <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
+          poolId   <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
           inX      <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
           inY      <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount))
-          dexFee   <- tree.constants.parseLong(15)
+          dexFee   <- tree.constants.parseLong(11)
           redeemer <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = DepositParams(inX, inY, dexFee, redeemer)
         } yield DepositV0(poolId, ts, params, box)
