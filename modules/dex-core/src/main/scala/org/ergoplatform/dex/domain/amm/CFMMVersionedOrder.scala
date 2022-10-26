@@ -92,7 +92,7 @@ object CFMMVersionedOrder {
 
     implicit val decoderDepositV0: Decoder[DepositV0] =
       deriveDecoder
-        .validate(_.get("version").toOption.nonEmpty, "There is no version in deposit version v0.")
+        .validate(_.field("version").success.nonEmpty, "There is no version in deposit version v0.")
   }
 
   @derive(encoder, decoder, loggable)
