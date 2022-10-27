@@ -11,7 +11,7 @@ import tofu.logging.derivation.loggable
 object amm {
 
   @derive(loggable)
-  final case class SwapStateUser(address: PubKey, avgTime: BigDecimal, avgErg: BigDecimal)
+  final case class SwapStateUser(address: PubKey, avgTime: BigDecimal, avgErg: BigDecimal, weight: BigDecimal)
 
   @derive(loggable)
   final case class SwapStateSummary(avgTime: BigDecimal, avgErg: BigDecimal)

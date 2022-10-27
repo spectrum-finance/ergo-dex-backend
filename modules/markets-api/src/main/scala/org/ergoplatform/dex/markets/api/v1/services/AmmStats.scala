@@ -161,7 +161,7 @@ object AmmStats {
         .map(PubKey.fromBytes)
         .toOption
         .map { pk: PubKey =>
-          def query: F[(Option[SwapStateUser], SwapStateSummary, List[SwapState], Int)] =
+          def query: F[(Option[SwapStateUser], BigDecimal, List[SwapState], Int)] =
             (for {
               user  <- orders.getUserSwapData(pk)
               total <- orders.getSummary
@@ -171,7 +171,7 @@ object AmmStats {
 
           query.map {
             case (Some(user), total, states, count) =>
-              val reward = (200 * count * (user.avgTime / total.avgTime) * (user.avgErg / total.avgErg)).setScale(6, RoundingMode.HALF_UP)
+              val reward = (200 * count * user.weight / total).setScale(6, RoundingMode.HALF_UP)
 
               val userAmount = states.map { state =>
                 if (state.inputId == ErgoAssetId.unwrapped) state.inputValue

@@ -8,7 +8,8 @@ object SwapStateSql extends QuerySet[DBSwapsState] {
     val fields: List[String] = List(
       "address",
       "avg_time_use",
-      "avg_erg_amount"
+      "avg_erg_amount",
+      "weight"
     )
 
     val tableName: String = "swaps_state"

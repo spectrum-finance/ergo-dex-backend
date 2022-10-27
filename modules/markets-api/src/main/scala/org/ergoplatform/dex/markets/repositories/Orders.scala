@@ -50,7 +50,7 @@ trait Orders[F[_]] {
 
   def getUserSwapData(key: org.ergoplatform.ergo.PubKey): F[Option[SwapStateUser]]
 
-  def getSummary: F[SwapStateSummary]
+  def getSummary: F[BigDecimal]
 }
 
 object Orders {
@@ -68,7 +68,7 @@ object Orders {
     def getUserSwapData(key: org.ergoplatform.ergo.PubKey): ConnectionIO[Option[SwapStateUser]] =
       sql.getUserSwapData(key).option
 
-    def getSummary: ConnectionIO[SwapStateSummary] =
+    def getSummary: ConnectionIO[BigDecimal] =
       sql.getSummary.unique
 
     def getAssetTicket: ConnectionIO[List[AssetTicket]] =

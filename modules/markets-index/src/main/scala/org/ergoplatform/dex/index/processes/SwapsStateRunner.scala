@@ -40,11 +40,11 @@ object SwapsStateRunner {
                 m -> s
               }
 
-              val avgUse    = statePerMonthV.map(_._1).sum.setScale(6, RoundingMode.HALF_UP)
+              val avgUse    = (statePerMonthV.map(_._1).sum / 12).setScale(6, RoundingMode.HALF_UP)
               val avgAmount = (statePerMonthV.map(_._2).sum / BigDecimal(10).pow(9)).setScale(9, RoundingMode.HALF_UP)
 
               info"avgUse: $avgUse, avgAmount: $avgAmount" >> sql.insert2(
-                NonEmptyList.one(DBSwapsState(key, avgUse, avgAmount))
+                NonEmptyList.one(DBSwapsState(key, avgUse, avgAmount, avgUse * avgAmount))
               )
             }
           }

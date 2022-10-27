@@ -57,7 +57,8 @@ object models {
   final case class DBSwapsState(
     address: PubKey,
     avgTimeUse: BigDecimal,
-    avgErgAmount: BigDecimal
+    avgErgAmount: BigDecimal,
+    weight: BigDecimal
   )
 
   final case class DBLiquidityLock(
