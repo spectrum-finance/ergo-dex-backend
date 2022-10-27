@@ -17,7 +17,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
     sql"""select * from swaps_state where address=$key""".query[SwapStateUser]
 
   def getSummary: Query0[SwapStateSummary] =
-    sql"""select sum(avg_time_use), sum(avg_erg_amount) from swaps_state""".query[SwapStateSummary]
+    sql"""select sum(avg_time_use::decimal), sum(avg_erg_amount::decimal) from swaps_state""".query[SwapStateSummary]
 
   def getAssetTicket: Query0[AssetTicket] =
     sql"select id, ticker from assets where ticker is not null".query
