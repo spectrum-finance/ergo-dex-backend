@@ -161,16 +161,17 @@ object AmmStats {
         .map(PubKey.fromBytes)
         .toOption
         .map { pk: PubKey =>
-          def query: F[(Option[SwapStateUser], SwapStateSummary, List[SwapState])] =
+          def query: F[(Option[SwapStateUser], SwapStateSummary, List[SwapState], Int)] =
             (for {
               user  <- orders.getUserSwapData(pk)
               total <- orders.getSummary
               state <- orders.getSwapsState(pk)
-            } yield (user, total, state)) ||> txr.trans
+              count <- orders.getSwapUsersCount
+            } yield (user, total, state, count)) ||> txr.trans
 
           query.map {
-            case (Some(v), s, states) =>
-              val reward = (200 * (v.avgTime / s.avgTime) * (v.avgErg / s.avgErg)).setScale(6, RoundingMode.HALF_UP)
+            case (Some(user), total, states, count) =>
+              val reward = (200 * count * (user.avgTime / total.avgTime) * (user.avgErg / total.avgErg)).setScale(6, RoundingMode.HALF_UP)
 
               val userAmount = states.map { state =>
                 if (state.inputId == ErgoAssetId.unwrapped) state.inputValue
