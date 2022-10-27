@@ -4,11 +4,17 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.domain.{FullAsset, Ticker}
-import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.{PubKey, TokenId}
 import sttp.tapir.Schema
 import tofu.logging.derivation.loggable
 
 object amm {
+
+  @derive(loggable)
+  final case class SwapStateUser(address: PubKey, avgTime: BigDecimal, avgErg: BigDecimal)
+
+  @derive(loggable)
+  final case class SwapStateSummary(avgTime: BigDecimal, avgErg: BigDecimal)
 
   @derive(loggable)
   final case class AssetTicket(id: String, ticket: String)

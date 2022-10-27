@@ -13,6 +13,12 @@ import org.ergoplatform.ergo.TokenId
 final class AnalyticsSql(implicit lg: LogHandler) {
   val sPools = Fragment.const(Pools.pools.values.toList.map(_.unwrapped).map(s => s"'$s'").mkString(", "))
 
+  def getUserSwapData(key: org.ergoplatform.ergo.PubKey): Query0[SwapStateUser] =
+    sql"""select * from swaps_state where address=$key""".query[SwapStateUser]
+
+  def getSummary: Query0[SwapStateSummary] =
+    sql"""select sum(avg_time_use), sum(avg_erg_amount) from swaps_state""".query[SwapStateSummary]
+
   def getAssetTicket: Query0[AssetTicket] =
     sql"select id, ticker from assets where ticker is not null".query
 

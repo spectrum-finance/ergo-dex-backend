@@ -47,6 +47,10 @@ trait Orders[F[_]] {
   def getOffChainParticipantsCount(from: Long, to: Option[Long]): F[Int]
 
   def getAssetTicket: F[List[AssetTicket]]
+
+  def getUserSwapData(key: org.ergoplatform.ergo.PubKey): F[Option[SwapStateUser]]
+
+  def getSummary: F[SwapStateSummary]
 }
 
 object Orders {
@@ -60,6 +64,12 @@ object Orders {
     }
 
   final class Live(sql: AnalyticsSql) extends Orders[ConnectionIO] {
+
+    def getUserSwapData(key: org.ergoplatform.ergo.PubKey): ConnectionIO[Option[SwapStateUser]] =
+      sql.getUserSwapData(key).option
+
+    def getSummary: ConnectionIO[SwapStateSummary] =
+      sql.getSummary.unique
 
     def getAssetTicket: ConnectionIO[List[AssetTicket]] =
       sql.getAssetTicket.to[List]
@@ -106,6 +116,20 @@ object Orders {
   }
 
   final class OrdersTracing[F[_]: FlatMap: Logging] extends Orders[Mid[F, *]] {
+
+    def getUserSwapData(key: org.ergoplatform.ergo.PubKey) =
+      for {
+        _ <- trace"getUserSwapData($key)"
+        r <- _
+        _ <- trace"getUserSwapData($key) -> $r res"
+      } yield r
+
+    def getSummary =
+      for {
+        _ <- trace"getSummary()"
+        r <- _
+        _ <- trace"getSummary() -> $r res"
+      } yield r
 
     def getAssetTicket =
       for {

@@ -78,6 +78,8 @@ trait AmmStats[F[_]] {
   ): F[OffChainSpfReward]
 
   def getOffChainRewardsForAllAddresses(from: Long, to: Option[Long], multiplier: Int): F[List[OffChainCharts]]
+
+  def getSwapInfoState(address: String): F[Option[TraderAirdropInfo]]
 }
 
 object AmmStats {
@@ -151,6 +153,35 @@ object AmmStats {
           .getOrElse(OffChainSpfReward.empty(address))
       }
     }
+
+    def getSwapInfoState(address: String): F[Option[TraderAirdropInfo]] =
+      e
+        .fromString(address)
+        .collect { case address: P2PKAddress => address.pubkeyBytes }
+        .map(PubKey.fromBytes)
+        .toOption
+        .map { pk: PubKey =>
+          def query: F[(Option[SwapStateUser], SwapStateSummary, List[SwapState])] =
+            (for {
+              user  <- orders.getUserSwapData(pk)
+              total <- orders.getSummary
+              state <- orders.getSwapsState(pk)
+            } yield (user, total, state)) ||> txr.trans
+
+          query.map {
+            case (Some(v), s, states) =>
+              val reward = (200 * (v.avgTime / s.avgTime) * (v.avgErg / s.avgErg)).setScale(6, RoundingMode.HALF_UP)
+
+              val userAmount = states.map { state =>
+                if (state.inputId == ErgoAssetId.unwrapped) state.inputValue
+                else state.outputAmount
+              }.sum
+
+              TraderAirdropInfo(userAmount / BigDecimal(10).pow(9), reward, states.length).some
+            case _ => None
+          }
+
+        }.sequence.map(_.flatten)
 
     def getSwapInfo(address: String): F[Option[TraderAirdropInfo]] =
       e

@@ -75,7 +75,7 @@ final class AmmStatsRoutes[
   }
 
   def getSwapsStatsR: HttpRoutes[F] = interpreter.toRoutes(getSwapsStats) { address =>
-    stats.getSwapInfo(address).adaptThrowable.orNotFound(s"SwapsStats{address=$address}").value
+    stats.getSwapInfoState(address).adaptThrowable.orNotFound(s"SwapsStats{address=$address}").value
   }
 }
 
