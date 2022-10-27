@@ -8,6 +8,8 @@ import cats.syntax.traverse._
 import org.ergoplatform.dex.index.db.models.SwapAvg
 import tofu.logging.{Logging, Logs}
 
+import scala.math.BigDecimal.RoundingMode
+
 trait SwapsStateRunner[F[_]] {
   def run: F[Unit]
 }
@@ -37,8 +39,8 @@ object SwapsStateRunner {
                 m -> s
               }
 
-              val avgUse    = statePerMonthV.map(_._1).sum
-              val avgAmount = statePerMonthV.map(_._1).sum
+              val avgUse    = statePerMonthV.map(_._1).sum.setScale(6, RoundingMode.HALF_UP)
+              val avgAmount = (statePerMonthV.map(_._2).sum / BigDecimal(10).pow(9)).setScale(9, RoundingMode.HALF_UP)
 
               info"avgUse: $avgUse, avgAmount: $avgAmount"
             }
