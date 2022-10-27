@@ -39,6 +39,12 @@ trait LiquidityProvidersRepo[F[_]] extends MonoRepo[LiquidityProviderSnapshot, F
   def getDaysOfSwapsByAddress(key: org.ergoplatform.ergo.PubKey): F[List[SwapAvg]]
 
   def insert2(entities: NonEmptyList[DBSwapsState]): F[Int]
+
+  def getTotalErg: F[BigDecimal]
+
+  def getErgByUser(key: org.ergoplatform.ergo.PubKey): F[BigDecimal]
+
+  def update2(key: org.ergoplatform.ergo.PubKey, value: BigDecimal): F[Int]
 }
 
 object LiquidityProvidersRepo {
@@ -62,6 +68,12 @@ object LiquidityProvidersRepo {
     ): ConnectionIO[Option[LiquidityProviderSnapshot]] =
       LiquidityProvidersSql.getLatestLiquidityProviderSnapshot(address, poolId).option
 
+    def update2(key: org.ergoplatform.ergo.PubKey, value: BigDecimal): doobie.ConnectionIO[Int] =
+      LiquidityProvidersSql.update2(key, value).run
+    def getErgByUser(key: org.ergoplatform.ergo.PubKey): ConnectionIO[BigDecimal] =
+      LiquidityProvidersSql.getErgByUser(key).unique
+    def getTotalErg: ConnectionIO[BigDecimal] =
+      LiquidityProvidersSql.getTotalErg.unique
     def getLatestPoolSnapshot(poolId: PoolId, to: Long): ConnectionIO[Option[PoolSnapshot]] =
       LiquidityProvidersSql.getLatestPoolSnapshot(poolId, to).option
 
@@ -82,6 +94,25 @@ object LiquidityProvidersRepo {
   }
 
   final private class Tracing[F[_]: Monad: Logging] extends LiquidityProvidersRepo[Mid[F, *]] {
+    def update2(key: org.ergoplatform.ergo.PubKey, value: BigDecimal) =
+      for {
+        _ <- info"update2($key, $value)"
+        r <- _
+        _ <- info"update2($key, $value) -> res is $r"
+      } yield r
+
+    def getErgByUser(key: org.ergoplatform.ergo.PubKey) =
+      for {
+        _ <- info"getErgByUser($key)"
+        r <- _
+        _ <- info"getErgByUser($key) -> $r"
+      } yield r
+    def getTotalErg =
+      for {
+        _ <- info"getTotalErg()"
+        r <- _
+        _ <- info"getTotalErg() -> $r"
+      } yield r
 
     def getDaysOfSwapsByAddress(key: org.ergoplatform.ergo.PubKey) =
       for {

@@ -13,4 +13,5 @@ object SwapStateSql extends QuerySet[DBSwapsState] {
     )
 
     val tableName: String = "swaps_state"
+
 }

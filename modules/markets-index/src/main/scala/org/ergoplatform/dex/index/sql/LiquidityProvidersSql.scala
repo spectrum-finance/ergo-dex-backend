@@ -188,4 +188,12 @@ object LiquidityProvidersSql extends QuerySet[LiquidityProviderSnapshot] {
          |	ts;
      """.stripMargin.query[SwapAvg]
 
+  def getTotalErg: Query0[BigDecimal] =
+    sql"""select sum(avg_erg_amount) from swaps_state""".query
+
+  def getErgByUser(key: org.ergoplatform.ergo.PubKey): Query0[BigDecimal] =
+    sql"""select avg_erg_amount from swaps_state where address=$key""".query
+
+  def update2(key: org.ergoplatform.ergo.PubKey, value: BigDecimal): doobie.Update0 =
+    sql"""UPDATE swaps_state set erg_percents=$value where address=$key""".update
 }
