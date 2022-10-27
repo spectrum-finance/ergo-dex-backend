@@ -6,8 +6,14 @@ import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.index.db.models.{LiquidityProviderSnapshot, PoolSnapshot, SwapAvg, UnresolvedState}
-import org.ergoplatform.dex.index.sql.LiquidityProvidersSql
+import org.ergoplatform.dex.index.db.models.{
+  DBSwapsState,
+  LiquidityProviderSnapshot,
+  PoolSnapshot,
+  SwapAvg,
+  UnresolvedState
+}
+import org.ergoplatform.dex.index.sql.{LiquidityProvidersSql, SwapStateSql}
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.doobie.transactor.Txr
@@ -31,6 +37,8 @@ trait LiquidityProvidersRepo[F[_]] extends MonoRepo[LiquidityProviderSnapshot, F
   def selectAllSwapUsers: F[List[PubKey]]
 
   def getDaysOfSwapsByAddress(key: org.ergoplatform.ergo.PubKey): F[List[SwapAvg]]
+
+  def insert2(entities: NonEmptyList[DBSwapsState]): F[Int]
 }
 
 object LiquidityProvidersRepo {
@@ -68,6 +76,9 @@ object LiquidityProvidersRepo {
 
     def insert(entities: NonEmptyList[LiquidityProviderSnapshot]): ConnectionIO[Int] =
       LiquidityProvidersSql.insertNoConflict.updateMany(entities)
+
+    def insert2(entities: NonEmptyList[DBSwapsState]): doobie.ConnectionIO[Int] =
+      SwapStateSql.insertNoConflict.updateMany(entities)
   }
 
   final private class Tracing[F[_]: Monad: Logging] extends LiquidityProvidersRepo[Mid[F, *]] {
@@ -109,6 +120,12 @@ object LiquidityProvidersRepo {
 
     def insert(entities: NonEmptyList[LiquidityProviderSnapshot]): Mid[F, Int] =
       trace"Going to insert new lp state ${entities.toList}" *> _.flatTap(r => trace"Insert finished for $r entities.")
+
+    def insert2(entities: NonEmptyList[DBSwapsState]) =
+      trace"Going to insert2 new swaps state ${entities.toList.mkString(",")}" *> _.flatTap(r =>
+        trace"Insert finished for $r entities."
+      )
+
   }
 
 }

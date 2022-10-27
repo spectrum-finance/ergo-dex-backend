@@ -1,11 +1,12 @@
 package org.ergoplatform.dex.index.processes
 
+import cats.data.NonEmptyList
 import cats.{Functor, Monad}
 import org.ergoplatform.dex.index.repositories.LiquidityProvidersRepo
 import tofu.syntax.monadic._
 import tofu.syntax.logging._
 import cats.syntax.traverse._
-import org.ergoplatform.dex.index.db.models.SwapAvg
+import org.ergoplatform.dex.index.db.models.{DBSwapsState, SwapAvg}
 import tofu.logging.{Logging, Logs}
 
 import scala.math.BigDecimal.RoundingMode
@@ -42,7 +43,9 @@ object SwapsStateRunner {
               val avgUse    = statePerMonthV.map(_._1).sum.setScale(6, RoundingMode.HALF_UP)
               val avgAmount = (statePerMonthV.map(_._2).sum / BigDecimal(10).pow(9)).setScale(9, RoundingMode.HALF_UP)
 
-              info"avgUse: $avgUse, avgAmount: $avgAmount"
+              info"avgUse: $avgUse, avgAmount: $avgAmount" >> sql.insert2(
+                NonEmptyList.one(DBSwapsState(key, avgUse, avgAmount))
+              )
             }
           }
         }.sequence

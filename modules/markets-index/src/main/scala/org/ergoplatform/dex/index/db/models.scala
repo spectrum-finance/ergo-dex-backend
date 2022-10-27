@@ -54,6 +54,12 @@ object models {
     DBBlock(id, height, timestamp)
   }
 
+  final case class DBSwapsState(
+    address: PubKey,
+    avgTimeUse: BigDecimal,
+    avgErgAmount: BigDecimal
+  )
+
   final case class DBLiquidityLock(
     id: LockId,
     deadline: Int,
