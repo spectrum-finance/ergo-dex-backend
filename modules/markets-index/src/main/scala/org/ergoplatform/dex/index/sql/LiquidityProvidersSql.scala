@@ -165,8 +165,7 @@ object LiquidityProvidersSql extends QuerySet[LiquidityProviderSnapshot] {
          |	output_amount IS NOT NULL
          |	AND timestamp > 1633910400000
          |	AND pool_id in($sPools)
-         |GROUP BY
-         |	redeemer limit 10;
+         |GROUP BY;
        """.stripMargin.query
 
   def getDaysOfSwapsByAddress(key: org.ergoplatform.ergo.PubKey): doobie.Query0[SwapAvg] =

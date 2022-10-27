@@ -176,8 +176,8 @@ alter table public.state owner to ergo_admin;
 
 create table if not exists public.swaps_state (
     address Text not null,
-    avg_time_use BIGINT not null,
-    avg_erg_amount BIGINT not null,
+    avg_time_use Text not null,
+    avg_erg_amount Text not null,
     PRIMARY KEY (address)
 );
 
