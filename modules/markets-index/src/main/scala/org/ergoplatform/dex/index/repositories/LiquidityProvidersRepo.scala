@@ -6,7 +6,7 @@ import derevo.derive
 import doobie.ConnectionIO
 import doobie.util.log.LogHandler
 import org.ergoplatform.dex.domain.amm.PoolId
-import org.ergoplatform.dex.index.db.models.{LiquidityProviderSnapshot, PoolSnapshot, UnresolvedState}
+import org.ergoplatform.dex.index.db.models.{LiquidityProviderSnapshot, PoolSnapshot, SwapAvg, UnresolvedState}
 import org.ergoplatform.dex.index.sql.LiquidityProvidersSql
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
@@ -17,6 +17,7 @@ import tofu.logging.{Logging, Logs}
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import cats.tagless.syntax.functorK._
+import org.ergoplatform.ergo.PubKey
 
 @derive(representableK)
 trait LiquidityProvidersRepo[F[_]] extends MonoRepo[LiquidityProviderSnapshot, F] {
@@ -26,6 +27,10 @@ trait LiquidityProvidersRepo[F[_]] extends MonoRepo[LiquidityProviderSnapshot, F
   def getLatestPoolSnapshot(poolId: PoolId, to: Long): F[Option[PoolSnapshot]]
 
   def getAllUnresolvedStates: F[List[UnresolvedState]]
+
+  def selectAllSwapUsers: F[List[PubKey]]
+
+  def getDaysOfSwapsByAddress(key: org.ergoplatform.ergo.PubKey): F[List[SwapAvg]]
 }
 
 object LiquidityProvidersRepo {
@@ -55,11 +60,31 @@ object LiquidityProvidersRepo {
     def getAllUnresolvedStates: ConnectionIO[List[UnresolvedState]] =
       LiquidityProvidersSql.getAllUnresolvedStates.to[List]
 
+    def selectAllSwapUsers: ConnectionIO[List[PubKey]] =
+      LiquidityProvidersSql.selectAllSwapUsers.to[List]
+
+    def getDaysOfSwapsByAddress(key: org.ergoplatform.ergo.PubKey): ConnectionIO[List[SwapAvg]] =
+      LiquidityProvidersSql.getDaysOfSwapsByAddress(key).to[List]
+
     def insert(entities: NonEmptyList[LiquidityProviderSnapshot]): ConnectionIO[Int] =
       LiquidityProvidersSql.insertNoConflict.updateMany(entities)
   }
 
   final private class Tracing[F[_]: Monad: Logging] extends LiquidityProvidersRepo[Mid[F, *]] {
+
+    def getDaysOfSwapsByAddress(key: org.ergoplatform.ergo.PubKey) =
+      for {
+        _ <- info"getDaysOfSwapsByAddress($key)"
+        r <- _
+        _ <- info"getDaysOfSwapsByAddress($key) -> $r"
+      } yield r
+
+    def selectAllSwapUsers =
+      for {
+        _ <- info"selectAllSwapUsers()"
+        r <- _
+        _ <- info"selectAllSwapUsers() -> $r"
+      } yield r
 
     def getAllUnresolvedStates =
       for {

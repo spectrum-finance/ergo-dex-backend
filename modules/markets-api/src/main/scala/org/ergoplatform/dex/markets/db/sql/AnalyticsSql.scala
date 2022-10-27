@@ -62,13 +62,12 @@ final class AnalyticsSql(implicit lg: LogHandler) {
        """.stripMargin.query
   }
 
-  def getSwapsState(key: org.ergoplatform.ergo.PubKey): Query0[SwapState] = {
+  def getSwapsState(key: org.ergoplatform.ergo.PubKey): Query0[SwapState] =
     sql"""
          |select input_id, input_value, output_amount
          |from swaps where timestamp > 1633910400000 and redeemer = $key and
          |pool_id in ($sPools) and output_amount is not null
          |""".stripMargin.query
-  }
 
   def getTotalWeight: Query0[BigDecimal] =
     sql"""

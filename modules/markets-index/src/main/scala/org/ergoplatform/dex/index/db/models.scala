@@ -19,6 +19,9 @@ import tofu.logging.derivation.loggable
 object models {
 
   @derive(loggable)
+  final case class SwapAvg(date: String, sum: BigDecimal)
+
+  @derive(loggable)
   final case class UnresolvedState(
     address: String,
     poolId: PoolId,
