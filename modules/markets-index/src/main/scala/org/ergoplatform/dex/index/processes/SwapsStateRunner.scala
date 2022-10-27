@@ -28,33 +28,33 @@ object SwapsStateRunner {
     def run: F[Unit] =
       sql.selectAllSwapUsers
         .flatMap { users =>
-//          users
-//            .map { key =>
-//              sql.getDaysOfSwapsByAddress(key).flatMap { dates =>
-//                val grouped: Map[String, List[SwapAvg]] = dates.groupBy { avg =>
-//                  avg.date.take(7)
-//                }
-//                info"Grouped dates are: $grouped".flatMap { _ =>
-//                  val statePerMonthV: List[(BigDecimal, BigDecimal)] =
-//                    grouped.values.toList.map { daysInMonth: List[SwapAvg] =>
-//                      val m = daysInMonth.length / BigDecimal(30)
-//                      val s = daysInMonth.map(_.sum).sum
-//
-//                      m -> s
-//                    }
-//
-//                  val avgUse = (statePerMonthV.map(_._1).sum / 12).setScale(6, RoundingMode.HALF_UP)
-//                  val avgAmount =
-//                    (statePerMonthV.map(_._2).sum / BigDecimal(10).pow(9)).setScale(9, RoundingMode.HALF_UP)
-//                  val weight = avgUse * avgAmount
-//                  info"avgUse: $avgUse, avgAmount: $avgAmount, weight: $weight" >> sql.insert2(
-//                    NonEmptyList.one(DBSwapsState(key, avgUse, avgAmount, weight))
-//                  )
-//                }
-//              }
-//            }
-//            .sequence
-//            .as(users)
+          users
+            .map { key =>
+              sql.getDaysOfSwapsByAddress(key).flatMap { dates =>
+                val grouped: Map[String, List[SwapAvg]] = dates.groupBy { avg =>
+                  avg.date.take(7)
+                }
+                info"Grouped dates are: $grouped".flatMap { _ =>
+                  val statePerMonthV: List[(BigDecimal, BigDecimal)] =
+                    grouped.values.toList.map { daysInMonth: List[SwapAvg] =>
+                      val m = daysInMonth.length / BigDecimal(30)
+                      val s = daysInMonth.map(_.sum).sum
+
+                      m -> s
+                    }
+
+                  val avgUse = (statePerMonthV.map(_._1).sum / 12).setScale(6, RoundingMode.HALF_UP)
+                  val avgAmount =
+                    (statePerMonthV.map(_._2).sum / BigDecimal(10).pow(9)).setScale(9, RoundingMode.HALF_UP)
+                  val weight = avgUse * avgAmount
+                  info"avgUse: $avgUse, avgAmount: $avgAmount, weight: $weight" >> sql.insert2(
+                    NonEmptyList.one(DBSwapsState(key, avgUse, avgAmount, weight))
+                  )
+                }
+              }
+            }
+            .sequence
+            .as(users)
           users.pure
         }
         .flatMap { users =>

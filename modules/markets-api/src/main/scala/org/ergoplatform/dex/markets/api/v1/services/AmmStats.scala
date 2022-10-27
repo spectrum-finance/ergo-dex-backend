@@ -170,8 +170,8 @@ object AmmStats {
             } yield (user, total, state, count)) ||> txr.trans
 
           query.map {
-            case (Some(user), total, states, count) =>
-              val reward = (200 * count * user.weight / total).setScale(6, RoundingMode.HALF_UP)
+            case (Some(user), totalErg, states, count) =>
+              val reward = (200 * count * user.avgErg / totalErg).setScale(6, RoundingMode.HALF_UP)
 
               val userAmount = states.map { state =>
                 if (state.inputId == ErgoAssetId.unwrapped) state.inputValue
