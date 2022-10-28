@@ -56,17 +56,17 @@ object SwapsStateRunner {
             .sequence
             .as(users)
           users.pure
-        }
-        .flatMap { users =>
-          sql.getTotalErg.flatMap { total =>
-            users.map { key =>
-              sql.getErgByUser(key).flatMap { userBalance =>
-                val res = userBalance / total
-//                val r1 = (200 * 18882 * user.weight / total).setScale(6, RoundingMode.HALF_UP)
-                sql.update2(key, res)
-              }
-            }.sequence
-          }.void
-        }
+        }.void
+//        .flatMap { users =>
+//          sql.getTotalErg.flatMap { total =>
+//            users.map { key =>
+//              sql.getErgByUser(key).flatMap { userBalance =>
+//                val res = userBalance / total
+////                val r1 = (200 * 18882 * user.weight / total).setScale(6, RoundingMode.HALF_UP)
+//                sql.update2(key, res)
+//              }
+//            }.sequence
+//          }.void
+//        }
   }
 }

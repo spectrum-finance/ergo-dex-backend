@@ -179,7 +179,7 @@ create table if not exists public.swaps_state (
     avg_time_use decimal not null,
     avg_erg_amount decimal not null,
     weight decimal not null,
-    erg_percents decimal,
+--    erg_percents decimal,
     PRIMARY KEY (address)
 );
 
