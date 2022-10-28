@@ -54,8 +54,6 @@ object SwapsStateRunner {
               }
             }
             .sequence
-            .as(users)
-          users.pure
         }.void
 //        .flatMap { users =>
 //          sql.getTotalErg.flatMap { total =>
