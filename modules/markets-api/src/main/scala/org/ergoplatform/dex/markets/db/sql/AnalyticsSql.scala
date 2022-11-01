@@ -100,7 +100,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
   def getLqProviderState(address: String, pool: String): Query0[LqProviderStateDB] =
     sql"""
          |select address, COALESCE(sum(weight::decimal), 0), count(1), COALESCE(sum(lpErg::decimal), 0), COALESCE(sum(gap), 0) from state
-         |where address = $address and pool_id = $pool and amount != 9223372036854774807
+         |where address = $address and pool_id = $pool and amount != 9223372036854774807 and timestamp > 1633910400000
          |group by address
          |""".stripMargin.query
 

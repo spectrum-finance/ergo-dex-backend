@@ -294,7 +294,7 @@ object AmmStats {
               )) ||> txr.trans
 
             query.map { case (state, totalWeight, addressesCount, pair) =>
-              val weight = 2000 * addressesCount * (state.totalWeight / totalWeight)
+              val weight = 1000 * addressesCount * (state.totalWeight / totalWeight)
 
               LpResultDev(
                 weight.setScale(6, RoundingMode.HALF_UP),
