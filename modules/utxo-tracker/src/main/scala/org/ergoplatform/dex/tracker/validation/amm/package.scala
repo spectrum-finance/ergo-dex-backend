@@ -13,7 +13,7 @@ package object amm {
 
   type RuleViolation = String
 
-  type CFMMRules[F[_]] = CFMMOrder => F[Option[RuleViolation]]
+  type CFMMRules[F[_]] = CFMMOrder.Any => F[Option[RuleViolation]]
 
   implicit def embed: Embed[CFMMRules] =
     new Embed[CFMMRules] {

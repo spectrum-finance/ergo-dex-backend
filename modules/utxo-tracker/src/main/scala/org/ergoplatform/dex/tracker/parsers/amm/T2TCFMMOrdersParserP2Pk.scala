@@ -7,7 +7,7 @@ import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
-import org.ergoplatform.dex.protocol.amm.{T2TCFMMTemplates => templates}
+import org.ergoplatform.dex.protocol.amm.{ParserType, T2TCFMMTemplates => templates}
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{ErgoTreeTemplate, PubKey, TokenId}
@@ -15,15 +15,15 @@ import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.time.now
 
-final class T2TCFMMOrdersParser[F[_]: Applicative: Clock](ts: Long)(implicit
+final class T2TCFMMOrdersParserP2Pk[F[_]: Applicative: Clock](ts: Long)(implicit
   e: ErgoAddressEncoder
-) extends CFMMOrdersParser[T2T_CFMM, F] {
+) extends CFMMOrdersParser[T2T_CFMM, ParserType.Default, F] {
 
-  def deposit(box: Output): F[Option[Deposit]] = {
+  def deposit(box: Output): F[Option[CFMMOrder.Deposit]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    val parsed =
-      if (template == templates.depositV2) {
+    val parsed: Option[CFMMOrder.Deposit] =
+      if (template == templates.depositLatest) {
         for {
           poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
           maxMinerFee <- tree.constants.parseLong(25)
@@ -32,16 +32,16 @@ final class T2TCFMMOrdersParser[F[_]: Applicative: Clock](ts: Long)(implicit
           dexFee      <- tree.constants.parseLong(15)
           redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = DepositParams(inX, inY, dexFee, redeemer)
-        } yield Deposit(poolId, maxMinerFee, ts, params, box)
+        } yield CFMMOrder.Deposit(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }
 
-  def redeem(box: Output): F[Option[Redeem]] = {
+  def redeem(box: Output): F[Option[CFMMOrder.Redeem]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    val parsed =
-      if (template == templates.redeem) {
+    val parsed: Option[CFMMOrder.Redeem] =
+      if (template == templates.redeemLatest) {
         for {
           poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
           maxMinerFee <- tree.constants.parseLong(19)
@@ -49,16 +49,16 @@ final class T2TCFMMOrdersParser[F[_]: Applicative: Clock](ts: Long)(implicit
           dexFee      <- tree.constants.parseLong(15)
           redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = RedeemParams(inLP, dexFee, redeemer)
-        } yield Redeem(poolId, maxMinerFee, ts, params, box)
+        } yield CFMMOrder.Redeem(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }
 
-  def swap(box: Output): F[Option[Swap]] = {
+  def swap(box: Output): F[Option[CFMMOrder.SwapAny]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    val parsed =
-      if (template == templates.swap) {
+    val parsed: Option[CFMMOrder.SwapAny] =
+      if (template == templates.swapLatest) {
         for {
           poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
           maxMinerFee  <- tree.constants.parseLong(21)
@@ -70,14 +70,14 @@ final class T2TCFMMOrdersParser[F[_]: Applicative: Clock](ts: Long)(implicit
           dexFeePerTokenDenom <- tree.constants.parseLong(17)
           redeemer            <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
-        } yield Swap(poolId, maxMinerFee, ts, params, box)
+        } yield CFMMOrder.Swap(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }
 }
 
-object T2TCFMMOrdersParser {
+object T2TCFMMOrdersParserP2Pk {
 
-  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): CFMMOrdersParser[T2T_CFMM, F] =
-    now.millis.map(ts => new T2TCFMMOrdersParser(ts): CFMMOrdersParser[T2T_CFMM, F]).embed
+  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): CFMMOrdersParser[T2T_CFMM, ParserType.Default, F] =
+    now.millis.map(ts => new T2TCFMMOrdersParserP2Pk(ts): CFMMOrdersParser[T2T_CFMM, ParserType.Default, F]).embed
 }

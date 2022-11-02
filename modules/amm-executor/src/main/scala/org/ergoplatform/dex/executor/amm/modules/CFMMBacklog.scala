@@ -6,11 +6,11 @@ trait CFMMBacklog[F[_]] {
 
   /** Put an order to the backlog.
     */
-  def put(order: CFMMOrder): F[Unit]
+  def put(order: CFMMOrder.Any): F[Unit]
 
   /** Get candidate order for execution. Blocks until an order is available.
     */
-  def get: F[CFMMOrder]
+  def get: F[CFMMOrder.Any]
 
   /** Put an order from the backlog.
     */

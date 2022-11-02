@@ -30,7 +30,7 @@ object CFMMOrderEvaluationParser {
 
     def parseSwapEval(output: Output, order: CFMMVersionedOrder.AnySwap): F[Option[SwapEvaluation]] = {
       val config = order match {
-        case swap: CFMMVersionedOrder.SwapV1 => swap.params
+        case swap: CFMMVersionedOrder.SwapP2Pk => swap.params
         case swap: CFMMVersionedOrder.SwapV0 => swap.params
       }
       if (output.ergoTree == config.redeemer.ergoTree) {

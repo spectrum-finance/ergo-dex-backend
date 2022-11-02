@@ -10,6 +10,7 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
+import org.ergoplatform.dex.protocol.amm.ParserType
 import org.ergoplatform.dex.tracker.parsers.amm.CFMMOrdersParser
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
 import org.ergoplatform.ergo.state.LedgerStatus
@@ -23,8 +24,8 @@ final class CFMMOpsHandler[
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,
   G[_]: Monad: Logging,
   Status[_]: LedgerStatus
-](parsers: List[CFMMOrdersParser[CFMMType, G]])(implicit
-  producer: Producer[OrderId, Status[CFMMOrder], F],
+](parsers: List[CFMMOrdersParser[CFMMType, ParserType.Any, G]])(implicit
+  producer: Producer[OrderId, Status[CFMMOrder[CFMMOrderType.Any]], F],
   rules: CFMMRules[G]
 ) {
 
@@ -36,7 +37,7 @@ final class CFMMOpsHandler[
             deposit <- parser.deposit(out)
             redeem  <- parser.redeem(out)
             swap    <- parser.swap(out)
-          } yield deposit orElse redeem orElse swap orElse none[CFMMOrder]
+          } yield deposit orElse redeem orElse swap orElse none[CFMMOrder[CFMMOrderType.Any]]
         }
         .map(_.reduce(_ orElse _))
     }.unNone
@@ -45,7 +46,7 @@ final class CFMMOpsHandler[
         eval(rules(op)) >>=
           (_.fold(op.pure[F])(e => eval(debug"Rule violation: $e") >> Evals[F, G].monoidK.empty))
       }
-      .map(op => Record[OrderId, Status[CFMMOrder]](op.id, LedgerStatus.lift(op)))
+      .map(op => Record[OrderId, Status[CFMMOrder[CFMMOrderType.Any]]](op.id, LedgerStatus.lift(op)))
       .thrush(producer.produce)
 }
 
@@ -57,15 +58,17 @@ object CFMMOpsHandler {
     G[_]: Monad: Clock,
     Status[_]: LedgerStatus
   ](implicit
-    producer: Producer[OrderId, Status[CFMMOrder], F],
+    producer: Producer[OrderId, Status[CFMMOrder.Any], F],
     rules: CFMMRules[G],
     logs: Logs[I, G],
     encoder: ErgoAddressEncoder
   ): I[BoxHandler[F]] =
     logs.forService[CFMMOpsHandler[F, G, Status]].map { implicit log =>
       val parsers =
-        CFMMOrdersParser[T2T_CFMM, G] ::
-        CFMMOrdersParser[N2T_CFMM, G] :: Nil
+        CFMMOrdersParser[T2T_CFMM, G, ParserType.Default] ::
+        CFMMOrdersParser[N2T_CFMM, G, ParserType.Default] ::
+        CFMMOrdersParser[T2T_CFMM, G, ParserType.MultiAddress] ::
+        CFMMOrdersParser[N2T_CFMM, G, ParserType.MultiAddress] :: Nil
       new CFMMOpsHandler[F, G, Status](parsers).handler
     }
 }

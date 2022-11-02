@@ -3,12 +3,14 @@ package org.ergoplatform.dex.executor.amm.interpreters
 import cats.{Functor, Monad}
 import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
+import org.ergoplatform.dex.domain.amm.CFMMOrder.{Deposit, Redeem}
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterpreterTracing
+import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMContracts
 import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.ergo.syntax._
@@ -116,8 +118,14 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     (tx, nextPool).pure
   }
 
-  def swap(swap: Swap, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
+  def swap(swap: CFMMOrder.SwapAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
     swapParams(swap, pool).toRaise.map { case (input, output, dexFee) =>
+      val (maxMinerFee, redeemer, minOutput) = swap match {
+        case CFMMOrder.Swap(_, maxMinerFee, _, params, _) =>
+          (maxMinerFee, params.redeemer.toErgoTree, params.minOutput)
+        case CFMMOrder.SwapMultiAddress(_, maxMinerFee, _, params, _) =>
+          (maxMinerFee, ErgoTreeSerializer.default.deserialize(params.redeemer), params.minOutput)
+      }
       val poolBox0 = pool.box
       val swapBox  = swap.box
       val swapIn   = new Input(swapBox.boxId.toErgo, ProverResult.empty)
@@ -137,14 +145,14 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         ),
         additionalRegisters = mkPoolRegs(pool)
       )
-      val minerFee    = monetary.minerFee min swap.maxMinerFee
+      val minerFee    = monetary.minerFee min maxMinerFee
       val minerFeeBox = new ErgoBoxCandidate(minerFee, minerFeeProp, ctx.currentHeight)
       val dexFeeBox   = new ErgoBoxCandidate(dexFee, dexFeeProp, ctx.currentHeight)
       val rewardBox = new ErgoBoxCandidate(
         value            = swapBox.value - minerFeeBox.value - dexFeeBox.value,
-        ergoTree         = swap.params.redeemer.toErgoTree,
+        ergoTree         = redeemer,
         creationHeight   = ctx.currentHeight,
-        additionalTokens = mkTokens(swap.params.minOutput.id -> output.value)
+        additionalTokens = mkTokens(minOutput.id -> output.value)
       )
       val inputs      = Vector(poolIn, swapIn)
       val outs        = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
