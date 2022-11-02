@@ -60,6 +60,8 @@ object CFMMHistoryParser {
             x.copy(order = o.copy(timestamp = tx.timestamp))
           case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapP2Pk, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
+          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapMultiAddress, _, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
         }
 
     def deposit(

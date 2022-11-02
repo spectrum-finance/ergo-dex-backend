@@ -31,13 +31,14 @@ object OrderExecutorFeeParser {
       pool: CFMMPool
     ): Option[OrderExecutorFee] = {
       val rewardPubKey = o match {
-        case swap: CFMMVersionedOrder.SwapV0       => swap.params.redeemer
-        case swap: CFMMVersionedOrder.SwapP2Pk       => swap.params.redeemer
-        case deposit: CFMMVersionedOrder.DepositV0 => deposit.params.redeemer
-        case deposit: CFMMVersionedOrder.DepositV1 => deposit.params.redeemer
-        case deposit: CFMMVersionedOrder.DepositV2 => deposit.params.redeemer
-        case redeem: CFMMVersionedOrder.RedeemV0   => redeem.params.redeemer
-        case redeem: CFMMVersionedOrder.RedeemV1   => redeem.params.redeemer
+        case swap: CFMMVersionedOrder.SwapV0           => swap.params.redeemer
+        case swap: CFMMVersionedOrder.SwapP2Pk         => swap.params.redeemer
+        case swap: CFMMVersionedOrder.SwapMultiAddress => PubKey.fromBytes(swap.params.redeemer.toBytea)
+        case deposit: CFMMVersionedOrder.DepositV0     => deposit.params.redeemer
+        case deposit: CFMMVersionedOrder.DepositV1     => deposit.params.redeemer
+        case deposit: CFMMVersionedOrder.DepositV2     => deposit.params.redeemer
+        case redeem: CFMMVersionedOrder.RedeemV0       => redeem.params.redeemer
+        case redeem: CFMMVersionedOrder.RedeemV1       => redeem.params.redeemer
       }
 
       val tree     = ErgoTreeSerializer.default.deserialize(output.ergoTree)
