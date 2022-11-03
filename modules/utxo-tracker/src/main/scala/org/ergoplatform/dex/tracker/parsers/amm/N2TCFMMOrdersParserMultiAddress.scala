@@ -37,27 +37,27 @@ final class N2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(
 
   private def swapSell(box: Output, tree: ErgoTree): Option[CFMMOrder.SwapMultiAddress] =
     for {
-      poolId       <- tree.constants.parseBytea(7).map(PoolId.fromBytes)
-      maxMinerFee  <- tree.constants.parseLong(22)
-      baseAmount   <- tree.constants.parseLong(12).map(AssetAmount.native)
-      outId        <- tree.constants.parseBytea(9).map(TokenId.fromBytes)
-      minOutAmount <- tree.constants.parseLong(10)
+      poolId       <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
+      maxMinerFee  <- tree.constants.parseLong(23)
+      baseAmount   <- tree.constants.parseLong(1).map(AssetAmount.native)
+      outId        <- tree.constants.parseBytea(10).map(TokenId.fromBytes)
+      minOutAmount <- tree.constants.parseLong(11)
       outAmount = AssetAmount(outId, minOutAmount)
-      dexFeePerTokenNum   <- tree.constants.parseLong(15)
-      dexFeePerTokenDenom <- tree.constants.parseLong(17)
-      redeemer            <- tree.constants.parseBytea(8).map(SErgoTree.fromBytes)
+      dexFeePerTokenNum   <- tree.constants.parseLong(12)
+      dexFeePerTokenDenom <- tree.constants.parseLong(13)
+      redeemer            <- tree.constants.parseBytea(9).map(SErgoTree.fromBytes)
       params = SwapParams(baseAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
     } yield CFMMOrder.SwapMultiAddress(poolId, maxMinerFee, ts, params, box)
 
   private def swapBuy(box: Output, tree: ErgoTree): Option[CFMMOrder.SwapMultiAddress] =
     for {
       poolId       <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
-      maxMinerFee  <- tree.constants.parseLong(19)
+      maxMinerFee  <- tree.constants.parseLong(20)
       inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
       minOutAmount <- tree.constants.parseLong(11)
       outAmount = AssetAmount.native(minOutAmount)
-      dexFeePerTokenDenom   <- tree.constants.parseLong(12)
-      dexFeePerTokenNumDiff <- tree.constants.parseLong(15)
+      dexFeePerTokenDenom   <- tree.constants.parseLong(5)
+      dexFeePerTokenNumDiff <- tree.constants.parseLong(6)
       dexFeePerTokenNum = dexFeePerTokenDenom - dexFeePerTokenNumDiff
       redeemer <- tree.constants.parseBytea(10).map(SErgoTree.fromBytes)
       params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)

@@ -30,15 +30,15 @@ final class T2TCFMMOrderParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(i
     val parsed: Option[CFMMOrder.SwapAny] =
       if (template == templates.swapMultiAddress) {
         for {
-          poolId       <- tree.constants.parseBytea(15).map(PoolId.fromBytes)
+          poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
           maxMinerFee  <- tree.constants.parseLong(22)
           inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
           outId        <- tree.constants.parseBytea(1).map(TokenId.fromBytes)
-          minOutAmount <- tree.constants.parseLong(17)
+          minOutAmount <- tree.constants.parseLong(16)
           outAmount = AssetAmount(outId, minOutAmount)
-          dexFeePerTokenNum   <- tree.constants.parseLong(18)
-          dexFeePerTokenDenom <- tree.constants.parseLong(19)
-          redeemer            <- tree.constants.parseBytea(16).map(SErgoTree.fromBytes)
+          dexFeePerTokenNum   <- tree.constants.parseLong(17)
+          dexFeePerTokenDenom <- tree.constants.parseLong(18)
+          redeemer            <- tree.constants.parseBytea(15).map(SErgoTree.fromBytes)
           params = SwapParams(
                      inAmount,
                      outAmount,
