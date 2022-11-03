@@ -25,27 +25,27 @@ final class T2TCFMMOrderParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(i
   def redeem(box: Output): F[Option[CFMMOrder.Redeem]] = noneF
 
   def swap(box: Output): F[Option[CFMMOrder.SwapAny]] = {
-    val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree) //todo: check if tree -> address -> address tree
+    val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed: Option[CFMMOrder.SwapAny] =
-      if (template == templates.swapLatest) {
+      if (template == templates.swapMultiAddress) {
         for {
-          poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
-          maxMinerFee  <- tree.constants.parseLong(21)
+          poolId       <- tree.constants.parseBytea(15).map(PoolId.fromBytes)
+          maxMinerFee  <- tree.constants.parseLong(22)
           inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
-          outId        <- tree.constants.parseBytea(2).map(TokenId.fromBytes)
-          minOutAmount <- tree.constants.parseLong(15)
+          outId        <- tree.constants.parseBytea(1).map(TokenId.fromBytes)
+          minOutAmount <- tree.constants.parseLong(17)
           outAmount = AssetAmount(outId, minOutAmount)
-          dexFeePerTokenNum   <- tree.constants.parseLong(16)
-          dexFeePerTokenDenom <- tree.constants.parseLong(17)
+          dexFeePerTokenNum   <- tree.constants.parseLong(18)
+          dexFeePerTokenDenom <- tree.constants.parseLong(19)
+          redeemer            <- tree.constants.parseBytea(16).map(SErgoTree.fromBytes)
           params = SwapParams(
                      inAmount,
                      outAmount,
                      dexFeePerTokenNum,
                      dexFeePerTokenDenom,
-                     SErgoTree
-                       .fromBytes(tree.bytes)
-                   ) // todo tree is incorrect!!!
+                     redeemer
+                   )
         } yield CFMMOrder.SwapMultiAddress(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure

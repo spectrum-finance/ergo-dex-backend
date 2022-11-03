@@ -162,17 +162,17 @@ object n2tContracts {
   val swapBuy: String =
     """
       |{   // Token -> ERG
-      |    val FeeDenom            = 1000
-      |    val FeeNum              = 996
+      |    val FeeDenom = 1000
+      |    val FeeNum   = 996
       |    val DexFeePerTokenNum   = 1L
       |    val DexFeePerTokenDenom = 10L
-      |    val MinQuoteAmount      = 800L
       |
       |    val poolIn = INPUTS(0)
       |
       |    val validTrade =
       |        if (INPUTS.size == 2 && poolIn.tokens.size == 3) {
-      |            val baseAmount = SELF.tokens(0)._2
+      |            val baseToken  = SELF.tokens(0) // token being sold
+      |            val baseAmount = baseToken._2
       |
       |            val poolNFT = poolIn.tokens(0)._1  // first token id is NFT
       |
@@ -184,19 +184,14 @@ object n2tContracts {
       |            val rewardBox = OUTPUTS(1)
       |
       |            val deltaNErgs    = rewardBox.value - SELF.value // this is quoteAmount - fee
-      |            val quoteAmount   = deltaNErgs.toBigInt * DexFeePerTokenDenom / (DexFeePerTokenDenom - DexFeePerTokenNum)
+      |            val quoteAmount   = deltaNErgs * DexFeePerTokenDenom / (DexFeePerTokenDenom - DexFeePerTokenNum)
       |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
       |            val fairPrice     = poolReservesX * baseAmount * FeeNum <= relaxedOutput * (poolReservesY * FeeDenom + baseAmount * FeeNum)
-      |
-      |            val validMinerFee = OUTPUTS.map { (o: Box) =>
-      |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
-      |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
       |
       |            validPoolIn &&
       |            rewardBox.propositionBytes == Pk.propBytes &&
       |            quoteAmount >= MinQuoteAmount &&
-      |            fairPrice &&
-      |            validMinerFee
+      |            fairPrice
       |        } else false
       |
       |    sigmaProp(Pk || validTrade)
@@ -283,6 +278,93 @@ object n2tContracts {
       |        validAction &&
       |        validStorageRent
       |    )
+      |}
+      |""".stripMargin
+
+   val swapBuyV2: String =
+     """
+       |// Constants:
+       |// RedeemerPropBytes: Coll[Byte] - Bytes of the redeemer's proposition
+       |// RefundProp: SigmaProp - Proposition that should be proved in order to refund the order
+       |{   // Token -> ERG
+       |    val FeeDenom = 1000
+       |    val FeeNum   = 996
+       |    val DexFeePerTokenNum   = 1L
+       |    val DexFeePerTokenDenom = 10L
+       |
+       |    val poolIn = INPUTS(0)
+       |
+       |    val validTrade =
+       |        if (INPUTS.size == 2 && poolIn.tokens.size == 3) {
+       |            val baseToken  = SELF.tokens(0) // token being sold
+       |            val baseAmount = baseToken._2
+       |
+       |            val poolNFT = poolIn.tokens(0)._1  // first token id is NFT
+       |
+       |            val poolReservesX = poolIn.value.toBigInt   // nanoErgs is X asset amount
+       |            val poolReservesY = poolIn.tokens(2)._2.toBigInt // third token amount is Y asset amount
+       |
+       |            val validPoolIn = poolNFT == PoolNFT
+       |
+       |            val rewardBox = OUTPUTS(1)
+       |
+       |            val deltaNErgs    = rewardBox.value - SELF.value // this is quoteAmount - fee
+       |            val quoteAmount   = deltaNErgs * DexFeePerTokenDenom / (DexFeePerTokenDenom - DexFeePerTokenNum)
+       |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
+       |            val fairPrice     = poolReservesX * baseAmount * FeeNum <= relaxedOutput * (poolReservesY * FeeDenom + baseAmount * FeeNum)
+       |
+       |            validPoolIn &&
+       |            rewardBox.propositionBytes == RedeemerPropBytes &&
+       |            quoteAmount >= MinQuoteAmount &&
+       |            fairPrice
+       |        } else false
+       |
+       |    sigmaProp(RefundProp || validTrade)
+       |}
+       |""".stripMargin
+
+  val swapSellV2: String =
+    """
+      |// Constants:
+      |// RedeemerPropBytes: Coll[Byte] - Bytes of the redeemer's proposition
+      |// RefundProp: SigmaProp - Proposition that should be proved in order to refund the order
+      |{   // ERG -> Token
+      |    val FeeDenom = 1000
+      |    val FeeNum   = 996
+      |    val DexFeePerTokenNum   = 1L
+      |    val DexFeePerTokenDenom = 10L
+      |
+      |    val poolIn = INPUTS(0)
+      |
+      |    val validTrade =
+      |        if (INPUTS.size == 2 && poolIn.tokens.size == 3) {
+      |            val poolNFT = poolIn.tokens(0)._1
+      |
+      |            val poolY = poolIn.tokens(2)
+      |
+      |            val poolReservesX = poolIn.value.toBigInt
+      |            val poolReservesY = poolY._2.toBigInt
+      |            val validPoolIn   = poolNFT == PoolNFT
+      |
+      |            val rewardBox = OUTPUTS(1)
+      |
+      |            val quoteAsset  = rewardBox.tokens(0)
+      |            val quoteAmount = quoteAsset._2
+      |
+      |            val fairDexFee = rewardBox.value >= SELF.value - quoteAmount * DexFeePerTokenNum / DexFeePerTokenDenom - BaseAmount
+      |
+      |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
+      |            val fairPrice     = poolReservesY * BaseAmount * FeeNum <= relaxedOutput * (poolReservesX * FeeDenom + BaseAmount * FeeNum)
+      |
+      |            validPoolIn &&
+      |            rewardBox.propositionBytes == RedeemerPropBytes &&
+      |            quoteAsset._1 == QuoteId &&
+      |            quoteAmount >= MinQuoteAmount &&
+      |            fairDexFee &&
+      |            fairPrice
+      |        } else false
+      |
+      |    sigmaProp(RefundProp || validTrade)
       |}
       |""".stripMargin
 }
