@@ -16,7 +16,7 @@ import tofu.syntax.foption.noneF
 import tofu.syntax.monadic._
 import tofu.syntax.time.now
 
-final class T2TCFMMOrderParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(implicit
+final class T2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(implicit
   e: ErgoAddressEncoder
 ) extends CFMMOrdersParser[T2T_CFMM, ParserType.MultiAddress, F] {
 
@@ -52,10 +52,10 @@ final class T2TCFMMOrderParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(i
   }
 }
 
-object T2TCFMMOrderParserMultiAddress {
+object T2TCFMMOrdersParserMultiAddress {
 
   def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): CFMMOrdersParser[T2T_CFMM, ParserType.MultiAddress, F] =
     now.millis
-      .map(ts => new T2TCFMMOrderParserMultiAddress(ts): CFMMOrdersParser[T2T_CFMM, ParserType.MultiAddress, F])
+      .map(ts => new T2TCFMMOrdersParserMultiAddress(ts): CFMMOrdersParser[T2T_CFMM, ParserType.MultiAddress, F])
       .embed
 }

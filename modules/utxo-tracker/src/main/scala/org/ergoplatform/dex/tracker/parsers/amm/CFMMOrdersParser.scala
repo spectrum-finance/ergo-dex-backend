@@ -24,7 +24,7 @@ object CFMMOrdersParser {
     ev: CFMMOrdersParser[CT, T, F]
   ): CFMMOrdersParser[CT, T, F] = ev
 
-  implicit def embed[CT <: CFMMType, T <: ParserType]: Embed[CFMMOrdersParser[CT,  T, *[_]]] = {
+  implicit def embed[CT <: CFMMType, T <: ParserType]: Embed[CFMMOrdersParser[CT, T, *[_]]] = {
     type Rep[F[_]] = CFMMOrdersParser[CT, T, F]
     tofu.higherKind.derived.genEmbed[Rep]
   }
@@ -42,7 +42,7 @@ object CFMMOrdersParser {
   implicit def t2tCfmmOpsMultiAddr[F[_]: Monad: Clock](implicit
     e: ErgoAddressEncoder
   ): CFMMOrdersParser[T2T_CFMM, ParserType.MultiAddress, F] =
-    T2TCFMMOrderParserMultiAddress.make[F]
+    T2TCFMMOrdersParserMultiAddress.make[F]
 
   implicit def n2tCfmmOpsMultiAddr[F[_]: Monad: Clock](implicit
     e: ErgoAddressEncoder

@@ -1,9 +1,10 @@
 package org.ergoplatform.dex.demo
 
 import org.ergoplatform.ErgoAddressEncoder
-import org.ergoplatform.dex.protocol.{sigmaUtils, ErgoTreeSerializer}
+import org.ergoplatform.dex.domain.amm.PoolId
+import org.ergoplatform.dex.protocol.{ErgoTreeSerializer, sigmaUtils}
 import org.ergoplatform.dex.sources.{lockContracts, n2tContracts, t2tContracts}
-import org.ergoplatform.ergo.{ErgoTreeTemplate, PubKey, SErgoTree}
+import org.ergoplatform.ergo.{ErgoTreeTemplate, PubKey, SErgoTree, TokenId}
 import scorex.crypto.hash.Sha256
 import scorex.util.encode.Base16
 import sigmastate.Values.ErgoTree
@@ -15,18 +16,27 @@ import org.ergoplatform.ergo.syntax._
 
 object TreePrinter extends App {
 
+  val e = ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
+
+
   implicit private val IR: IRContext = new CompiletimeIRContext()
   val sigma                          = SigmaCompiler(ErgoAddressEncoder.MainnetNetworkPrefix)
 
+  val s = e.fromString("9fGjWT89UgC6KYqUcLiDG8NGtAF9rEznEcryYqj9Z4W42PZRjas").get
+
+  val s1 = e.fromString("H3AA3N1iey8DqJarK13ccAQBa1ZWmoBkmacJcNgR2zk83bSdxrxps32TPsDnEuyANMmsqrRn6XPvtNbRrVA1WkztQQLmFqikouURGsJux5LouDFfU1p7aPxmAr5p1RZefPvZNVhtrmhj5ELM9QzdojLaG1Gg6eDyuEQqfHNkPhjm2nX6EK5QRk7PWXT7ichMqr3vDKJqioP92P94tdL7SYQWTb7Uvfaw6E6xtUX6jsuiRyFC4fgVtKmvAxKKSmdxhUvmtvaEjkkSdmdt7pd57e8FhhzkYiojPb23CxQ3dK2prmdzCCFeRWuS4bxJeysU5LjcRvbU7ERKq28bKUR5eU5DL2cGwvkBfAHUXiBAA3GSq1Sp1P3NTciE1VnL1US7H4T7q4MMeBE7NDNk1MKamdFU8mrVSFPPs57jALA8tAeH5uXja27hZjM3PufE6eHFQ2mnX64LU6oYNyLbzTQMvQUQpA4DyUcgD7Dp47vzcTV5kcEp3XEyubESLcD4veCUGRweEEnrcW3PkbPaQdiMcuTE3N4UshDw5uXatFcWQo9QPxVKpwXx7R7JbqHM6PYXjkZDS").get
+
+
+
   val env = Map(
-    "RedeemerPropBytes" -> Array.fill(32)(7: Byte),
+    "RedeemerPropBytes" -> s.script.bytes,
     "RefundProp" -> false,
     "Pk" -> DLogProverInput(BigInt(Long.MaxValue).bigInteger).publicImage,
-    "PoolNFT" -> Array.fill(32)(0: Byte),
-    "QuoteId" -> Array.fill(32)(1.toByte),
+    "PoolNFT" -> PoolId.fromStringUnsafe("f1fb942ebd039dc782fd9109acdb60aabea4dc7e75e9c813b6528c62692fc781").value.value.toBytes,
+    "QuoteId" -> TokenId.fromStringUnsafe("ef802b475c06189fdbf844153cdc1d449a5ba87cce13d11bb47b5a539f27f12b").value.toBytes,
     "DexFee" -> 999999L,
     "SelfX" -> 888888L,
-    "MaxMinerFee" -> 777777L,
+    "MaxMinerFee" -> 0L,
     "MinerPropBytes" -> Base16
       .decode(
         "1005040004000e36100204a00b08cd0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ea02d192a39a8cc7a701730073011001020402d19683030193a38cc7b2a57300000193c2b2a57301007473027303830108cdeeac93b1a57304"
@@ -88,7 +98,7 @@ object TreePrinter extends App {
 //  printAll("DeFi_Prims", Primitives_Trees)
 
 //  printTree("deposit", n2tContracts.deposit)
-  printTree("swapV2", t2tContracts.swap)
+  printTree("swapV2", n2tContracts.swapSellV2)
   val src =
     "1999030f0400040204020404040405feffffffffffffffff0105feffffffffffffffff01050004d00f040004000406050005000580dac409d819d601b2a5730000d602e4c6a70404d603db63087201d604db6308a7d605b27203730100d606b27204730200d607b27203730300d608b27204730400d6099973058c720602d60a999973068c7205027209d60bc17201d60cc1a7d60d99720b720cd60e91720d7307d60f8c720802d6107e720f06d6117e720d06d612998c720702720fd6137e720c06d6147308d6157e721206d6167e720a06d6177e720906d6189c72117217d6199c72157217d1ededededededed93c27201c2a793e4c672010404720293b27203730900b27204730a00938c7205018c720601938c7207018c72080193b17203730b9593720a730c95720e929c9c721072117e7202069c7ef07212069a9c72137e7214067e9c720d7e72020506929c9c721372157e7202069c7ef0720d069a9c72107e7214067e9c72127e7202050695ed720e917212730d907216a19d721872139d72197210ed9272189c721672139272199c7216721091720b730e"
   val tree = ErgoTreeSerializer.default.deserialize(SErgoTree.unsafeFromString(src))

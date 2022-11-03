@@ -56,12 +56,19 @@ object MakeSwapProxy extends App with SigmaPlatform {
   require(BigInt(reservesX) * inY * poolFeeNum <= relaxedOutX * (BigInt(reservesY) * 1000 + inY * poolFeeNum))
 
   val swapEnv = Map(
-    "Pk"             -> selfPk,
+    "RedeemerPropBytes" -> Array.fill(32)(7: Byte),
     "PoolNFT"        -> Base16.decode(poolIn.assets(0).tokenId.unwrapped).get,
-    "MinQuoteAmount" -> outX,
-    "QuoteId"        -> Base16.decode(poolX.tokenId.unwrapped).get
+//    "MinQuoteAmount" -> outX,
+    "QuoteId"        -> Base16.decode(poolX.tokenId.unwrapped).get,
+    "MinerPropBytes" -> Base16
+      .decode(
+        "1005040004000e36100204a00b08cd0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ea02d192a39a8cc7a701730073011001020402d19683030193a38cc7b2a57300000193c2b2a57301007473027303830108cdeeac93b1a57304"
+      )
+      .get,
+    "MaxMinerFee" -> 777777L,
+    "RefundProp" -> false
   )
-  val swapProp = ErgoTree.fromProposition(sigma.compile(swapEnv, t2tContracts.swap).asSigmaProp)
+  val swapProp = ErgoTree.fromProposition(sigma.compile(swapEnv, t2tContracts.swapV2).asSigmaProp)
 
   val swap = new ErgoBoxCandidate(
     SafeMinAmountNErg + dexFeeNErg + minerFeeNErg,
@@ -89,11 +96,12 @@ object MakeSwapProxy extends App with SigmaPlatform {
   val inputs0 = Vector(new UnsignedInput(ADKey @@ Base16.decode(inputId).get))
   val outs0   = Vector(swap, change, minerFeeBox)
   val utx0    = UnsignedErgoLikeTransaction(inputs0, outs0)
-  val tx0     = ErgoUnsafeProver.prove(utx0, sk)
+  val tx0: ErgoLikeTransaction = ErgoUnsafeProver.prove(utx0, sk)
 
-  println("Submitting init tx")
-  val s0 = submitTx(tx0)
-  println(s0.map(id => s"Done. $id"))
+
+  println(s"Submitting init tx: $tx0")
+//  val s0 = submitTx(tx0)
+//  println(s0.map(id => s"Done. $id"))
 }
 
 object ExecuteRefund extends App with SigmaPlatform {
