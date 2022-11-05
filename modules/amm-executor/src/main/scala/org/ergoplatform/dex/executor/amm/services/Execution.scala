@@ -5,7 +5,7 @@ import cats.{Functor, Monad}
 import org.ergoplatform.dex.domain.amm.CFMMOrder
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.errors.TxFailed
-import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
+import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectP2STree}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.protocol.amm.AMMType.CFMMType
@@ -76,7 +76,10 @@ object Execution {
                        }
             } yield res
 
-          executeF.handleWith[ExecutionFailed](e => warnCause"Order execution failed" (e) as Option(order))
+          executeF.handleWith[ExecutionFailed] {
+            case e: IncorrectP2STree => warnCause"Order execution failed" (e) as none
+            case e                   => warnCause"Order execution failed" (e) as Some(order)
+          }
         case None =>
           warn"Order{id=${order.id}} references an unknown Pool{id=${order.poolId}}" as Some(order)
       }
