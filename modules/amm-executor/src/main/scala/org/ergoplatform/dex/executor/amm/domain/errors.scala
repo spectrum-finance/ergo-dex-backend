@@ -3,6 +3,7 @@ package org.ergoplatform.dex.executor.amm.domain
 import cats.syntax.show._
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.PoolId
+import org.ergoplatform.ergo.{BoxId, SErgoTree}
 import tofu.Errors
 
 object errors {
@@ -20,4 +21,8 @@ object errors {
     extends ExecutionFailed(
       s"Price slipped down too much for Pool{id=$poolId}. {maxDexFee=${maxDexFee.show}, actualDexFee=${actualDexFee.show}}"
     )
+
+  final case class IncorrectP2STree(poolId: PoolId, orderId: BoxId, tree: SErgoTree, err: String) extends ExecutionFailed(
+    s"Incorrect P2S tree for pool $poolId and order $orderId: $tree. Err is: $err"
+  )
 }
