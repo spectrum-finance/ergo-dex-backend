@@ -48,7 +48,7 @@ object Execution {
             order match {
               case deposit: Deposit => interpreter.deposit(deposit, pool)
               case redeem: Redeem   => interpreter.redeem(redeem, pool)
-              case swap: Swap       => interpreter.swap(swap, pool)
+              case swap: SwapAny    => interpreter.swap(swap, pool)
             }
           val executeF =
             for {
