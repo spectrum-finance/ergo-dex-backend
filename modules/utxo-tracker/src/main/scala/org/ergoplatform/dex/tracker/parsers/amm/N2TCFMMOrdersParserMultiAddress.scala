@@ -39,7 +39,7 @@ final class N2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(
     for {
       poolId       <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
       maxMinerFee  <- tree.constants.parseLong(23)
-      baseAmount   <- tree.constants.parseLong(1).map(AssetAmount.native)
+      baseAmount   <- tree.constants.parseLong(18).map(AssetAmount.native)
       outId        <- tree.constants.parseBytea(10).map(TokenId.fromBytes)
       minOutAmount <- tree.constants.parseLong(11)
       outAmount = AssetAmount(outId, minOutAmount)
