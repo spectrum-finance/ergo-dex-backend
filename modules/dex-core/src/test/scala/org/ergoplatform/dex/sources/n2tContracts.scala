@@ -335,8 +335,8 @@ object n2tContracts {
       |{   // ERG -> Token
       |    val FeeDenom            = 1000
       |    val FeeNum              = 996
-      |    val DexFeePerTokenNum   = 10000000L
-      |    val DexFeePerTokenDenom = 5L
+      |    val DexFeePerTokenNum   = 101L
+      |    val DexFeePerTokenDenom = 105L
       |    val MinQuoteAmount      = 3L
       |
       |    val poolIn = INPUTS(0)
