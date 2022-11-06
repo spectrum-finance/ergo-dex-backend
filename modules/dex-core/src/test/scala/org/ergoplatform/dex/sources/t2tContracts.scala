@@ -260,8 +260,8 @@ object t2tContracts {
       |{
       |    val FeeDenom = 1000
       |    val FeeNum   = 996
-      |    val DexFeePerTokenNum   = 1L
-      |    val DexFeePerTokenDenom = 2L
+      |    val DexFeePerTokenNum   = 10000000L
+      |    val DexFeePerTokenDenom = 5L
       |    val MinQuoteAmount      = 3L
       |
       |    val poolIn = INPUTS(0)

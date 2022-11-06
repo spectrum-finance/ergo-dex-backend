@@ -291,9 +291,9 @@ object n2tContracts {
        |{   // Token -> ERG
        |    val FeeDenom            = 1000
        |    val FeeNum              = 996
-       |    val DexFeePerTokenNum   = 7L
-       |    val DexFeePerTokenDenom = 11L
-       |    val MinQuoteAmount      = 800L
+       |    val DexFeePerTokenNum   = 10000000L
+       |    val DexFeePerTokenDenom = 5L
+       |    val MinQuoteAmount      = 3L
        |
        |    val poolIn = INPUTS(0)
        |
@@ -335,10 +335,9 @@ object n2tContracts {
       |{   // ERG -> Token
       |    val FeeDenom            = 1000
       |    val FeeNum              = 996
-      |    val DexFeePerTokenNum   = 7L
-      |    val DexFeePerTokenDenom = 11L
-      |    val MinQuoteAmount      = 800L
-      |    val BaseAmount          = 1201L
+      |    val DexFeePerTokenNum   = 10000000L
+      |    val DexFeePerTokenDenom = 5L
+      |    val MinQuoteAmount      = 3L
       |
       |    val poolIn = INPUTS(0)
       |
