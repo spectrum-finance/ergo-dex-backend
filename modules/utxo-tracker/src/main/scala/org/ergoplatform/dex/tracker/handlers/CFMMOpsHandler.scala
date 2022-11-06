@@ -65,10 +65,11 @@ object CFMMOpsHandler {
   ): I[BoxHandler[F]] =
     logs.forService[CFMMOpsHandler[F, G, Status]].map { implicit log =>
       val parsers =
-//        CFMMOrdersParser[T2T_CFMM, G, ParserType.Default] ::
-//        CFMMOrdersParser[N2T_CFMM, G, ParserType.Default] ::
+        CFMMOrdersParser[T2T_CFMM, G, ParserType.Default] ::
+        CFMMOrdersParser[N2T_CFMM, G, ParserType.Default] ::
         CFMMOrdersParser[T2T_CFMM, G, ParserType.MultiAddress] ::
-        CFMMOrdersParser[N2T_CFMM, G, ParserType.MultiAddress] :: Nil
+        CFMMOrdersParser[N2T_CFMM, G, ParserType.MultiAddress] ::
+        Nil
       new CFMMOpsHandler[F, G, Status](parsers).handler
     }
 }

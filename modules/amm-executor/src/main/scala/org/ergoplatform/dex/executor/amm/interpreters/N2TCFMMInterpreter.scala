@@ -7,7 +7,7 @@ import org.ergoplatform.dex.domain.amm.CFMMOrder.{Deposit, Redeem}
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectP2STree}
+import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectMultiAddressSwapTree}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterpreterTracing
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMContracts
@@ -123,7 +123,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         case CFMMOrder.SwapMultiAddress(_, maxMinerFee, _, params, box) =>
           Either
             .catchNonFatal(ErgoTreeSerializer.default.deserialize(params.redeemer))
-            .leftMap(s => IncorrectP2STree(pool.poolId, box.boxId, params.redeemer, s.getMessage))
+            .leftMap(s => IncorrectMultiAddressSwapTree(pool.poolId, box.boxId, params.redeemer, s.getMessage))
             .toRaise
             .map(tree => (maxMinerFee, params.input, tree, params.minOutput))
       }).map { case (maxMinerFee, inputSwap, redeemer, minOutput) =>
