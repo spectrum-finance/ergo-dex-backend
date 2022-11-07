@@ -11,7 +11,7 @@ object PostgresTransactor {
     config: PgConfig
   ): Resource[F, HikariTransactor[F]] =
     for {
-      cp      <- ExecutionContexts.fixedThreadPool(size = 16)
+      cp      <- ExecutionContexts.fixedThreadPool(size = 32)
       blocker <- Blocker[F]
       xa <- HikariTransactor.newHikariTransactor[F](
               driverClassName = "org.postgresql.Driver",
