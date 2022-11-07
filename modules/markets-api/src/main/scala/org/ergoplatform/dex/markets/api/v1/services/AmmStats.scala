@@ -238,30 +238,32 @@ object AmmStats {
     ): F[Option[PoolStats]] = {
       val poolId = pool.id
 
-      def poolData
-        : D[Option[(amm.PoolInfo, Option[amm.PoolFeesSnapshot], Option[PoolVolumeSnapshot], Long, Long, Long, Long)]] =
+      def poolData: D[Option[(amm.PoolInfo, Option[amm.PoolFeeAndVolumeSnapshot], Long, Long, Long)]] =
         (for {
-          start    <- OptionT.liftF(millis[D])
-          info     <- OptionT(pools.info(poolId))
-          v1       <- OptionT.liftF(millis[D])
-          feesSnap <- OptionT.liftF(pools.fees(poolId, window))
-          v2       <- OptionT.liftF(millis[D])
-          vol      <- OptionT.liftF(pools.volume(poolId, window))
-          v3       <- OptionT.liftF(millis[D])
-        } yield (info, feesSnap, vol, start, v1, v2, v3)).value
+          start <- OptionT.liftF(millis[D])
+          info  <- OptionT(pools.info(poolId))
+          v1    <- OptionT.liftF(millis[D])
+          sAndF <- OptionT.liftF(pools.getPoolFeesAndVolumes(poolId, window))
+//          feesSnap <- OptionT.liftF(pools.fees(poolId, window))
+//          v2       <- OptionT.liftF(millis[D])
+//          vol      <- OptionT.liftF(pools.volume(poolId, window))
+          v3 <- OptionT.liftF(millis[D])
+        } yield (info, sAndF, start, v1, v3)).value
 
       (for {
         start                                     <- OptionT.liftF(millis[F])
-        (info, feesSnap, vol, start1, v1, v2, v3) <- OptionT(poolData ||> txr.trans)
-        _                                         <- OptionT.liftF(info"pD: ${v1 - start1}, ${v2 - start1}, ${v3 - start1}")
-        pData                                     <- OptionT.liftF(millis[F])
-        _                                         <- OptionT.liftF(info"Pool data: ${pData - start}")
-        lockedX                                   <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, everyKnownPool))
-        lX                                        <- OptionT.liftF(millis[F])
-        _                                         <- OptionT.liftF(info"lX: ${lX - start}")
-        lockedY                                   <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, everyKnownPool))
-        lY                                        <- OptionT.liftF(millis[F])
-        _                                         <- OptionT.liftF(info"lY: ${lY - start}")
+        (info, feesAndVolumeSnap, start1, v1, v3) <- OptionT(poolData ||> txr.trans)
+        feesSnap = feesAndVolumeSnap.map(s => PoolFeesSnapshot(s.poolId, s.volumeByXFee, s.volumeByYFee))
+        vol      = feesAndVolumeSnap.map(s => PoolVolumeSnapshot(s.poolId, s.volumeByXVolume, s.volumeByYVolume))
+        _       <- OptionT.liftF(info"pD: ${v1 - start1}, ${v3 - start1}")
+        pData   <- OptionT.liftF(millis[F])
+        _       <- OptionT.liftF(info"Pool data: ${pData - start}")
+        lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, everyKnownPool))
+        lX      <- OptionT.liftF(millis[F])
+        _       <- OptionT.liftF(info"lX: ${lX - start}")
+        lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, everyKnownPool))
+        lY      <- OptionT.liftF(millis[F])
+        _       <- OptionT.liftF(info"lY: ${lY - start}")
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
         volume            <- processPoolVolume(vol, window, everyKnownPool)
         vO                <- OptionT.liftF(millis[F])

@@ -31,6 +31,15 @@ object amm {
   )
 
   @derive(loggable)
+  final case class PoolFeeAndVolumeSnapshot(
+    poolId: PoolId,
+    volumeByXFee: FullAsset,
+    volumeByYFee: FullAsset,
+    volumeByXVolume: FullAsset,
+    volumeByYVolume: FullAsset
+  )
+
+  @derive(loggable)
   final case class PoolVolumeSnapshot(
     poolId: PoolId,
     volumeByX: FullAsset,

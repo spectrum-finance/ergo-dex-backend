@@ -4,6 +4,7 @@ import cats.tagless.syntax.functorK._
 import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
+import doobie.util.query.Query0
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.amm._
@@ -67,6 +68,8 @@ trait Pools[F[_]] {
   /** Get full asset info by id.
    */
   def assetById(id: TokenId): F[Option[AssetInfo]]
+
+  def getPoolFeesAndVolumes(poolId: PoolId, tw: TimeWindow): F[Option[PoolFeeAndVolumeSnapshot]]
 }
 
 object Pools {
@@ -102,6 +105,9 @@ object Pools {
     def fees(window: TimeWindow): ConnectionIO[List[PoolFeesSnapshot]] =
       sql.getPoolFees(window).to[List]
 
+    def getPoolFeesAndVolumes(poolId: PoolId, tw: TimeWindow): ConnectionIO[Option[PoolFeeAndVolumeSnapshot]] =
+      sql.getPoolFeesAndVolumes(poolId, tw).option
+
     def fees(id: PoolId, window: TimeWindow): ConnectionIO[Option[PoolFeesSnapshot]] =
       sql.getPoolFees(id, window).option
 
@@ -119,6 +125,14 @@ object Pools {
   }
 
   final class PoolsTracing[F[_]: FlatMap: Logging] extends Pools[Mid[F, *]] {
+
+
+    def getPoolFeesAndVolumes(poolId: PoolId, tw: TimeWindow) =
+      for {
+        _ <- trace"getPoolFeesAndVolumes(poolId=$poolId, tw: $tw)"
+        r <- _
+        _ <- trace"getPoolFeesAndVolumes(poolId=$poolId, tw: $tw) -> ${r}"
+      } yield r
 
     def info(poolId: PoolId): Mid[F, Option[PoolInfo]] =
       for {

@@ -163,6 +163,55 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |where sx.pool_id is not null
          """.stripMargin.query[PoolFeesSnapshot]
 
+
+  def getPoolFeesAndVolumes(poolId: PoolId, tw: TimeWindow): Query0[PoolFeeAndVolumeSnapshot] = {
+    val tsCond =
+      Fragment.const(
+        s"${tw.from.map(ts => s"and s.timestamp >= $ts").getOrElse("")} ${tw.to.map(ts => s"and s.timestamp <= $ts").getOrElse("")}"
+      )
+    sql"""
+         |select distinct on (p.pool_id)
+         |  p.pool_id,
+         |
+         |  p.x_id,
+         |  sx.tx,
+         |  ax.ticker,
+         |  ax.decimals,
+         |
+         |  p.y_id,
+         |  sx.ty,
+         |  ay.ticker,
+         |  ay.decimals,
+         |
+         |  p.x_id,
+         |  sx.tx1,
+         |  ax.ticker,
+         |  ax.decimals,
+         |
+         |  p.y_id,
+         |  sx.ty1,
+         |  ay.ticker,
+         |  ay.decimals
+         |
+         |from pools p
+         |left join (
+         |  select
+         |    s.pool_id,
+         |    cast(sum(case when (s.input_id = p.y_id) then s.output_amount::decimal * (1000 - p.fee_num) / 1000 else 0 end) as bigint) as tx,
+         |    cast(sum(case when (s.input_id = p.x_id) then s.output_amount::decimal * (1000 - p.fee_num) / 1000 else 0 end) as bigint) as ty,
+         |    cast(sum(case when (s.input_id = p.y_id) then s.output_amount else 0 end) as BIGINT) as tx1,
+         |    cast(sum(case when (s.input_id = p.x_id) then s.output_amount else 0 end) as BIGINT) as ty1
+         |  from swaps s
+         |  left join pools p on p.pool_state_id = s.pool_state_id
+         |  where p.pool_id = $poolId $tsCond
+         |  group by s.pool_id
+         |) as sx on sx.pool_id = p.pool_id
+         |left join assets ax on ax.id = p.x_id
+         |left join assets ay on ay.id = p.y_id
+         |where sx.pool_id is not null
+         """.stripMargin.query[PoolFeeAndVolumeSnapshot]
+  }
+
   def getPoolFees(poolId: PoolId, tw: TimeWindow): Query0[PoolFeesSnapshot] = {
     val tsCond =
       Fragment.const(
