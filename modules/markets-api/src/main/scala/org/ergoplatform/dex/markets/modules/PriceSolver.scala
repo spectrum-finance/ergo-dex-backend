@@ -2,6 +2,7 @@ package org.ergoplatform.dex.markets.modules
 
 import cats.{FlatMap, Functor, Monad}
 import cats.data.OptionT
+import cats.effect.Clock
 import org.ergoplatform.dex.domain._
 import org.ergoplatform.dex.markets.db.models.amm.PoolSnapshot
 import org.ergoplatform.dex.markets.services.{FiatRates, Markets}
@@ -12,6 +13,7 @@ import tofu.logging.{Logging, Logs}
 import tofu.syntax.monadic._
 import tofu.syntax.foption._
 import tofu.syntax.logging._
+import tofu.syntax.time.now.millis
 
 import scala.math.BigDecimal.RoundingMode
 
@@ -42,7 +44,7 @@ object PriceSolver {
     implicit def representableK: RepresentableK[CryptoPriceSolver] =
       tofu.higherKind.derived.genRepresentableK
 
-    def make[I[_]: Functor, F[_]: Monad](implicit markets: Markets[F], logs: Logs[I, F]): I[CryptoPriceSolver[F]] =
+    def make[I[_]: Functor, F[_]: Monad: Clock](implicit markets: Markets[F], logs: Logs[I, F]): I[CryptoPriceSolver[F]] =
       logs
         .forService[CryptoPriceSolver[F]]
         .map(implicit l =>
@@ -92,7 +94,7 @@ object PriceSolver {
       }
   }
 
-  final class CryptoSolver[F[_]: Monad: Logging](markets: Markets[F]) extends PriceSolver[F, CryptoSolverType] {
+  final class CryptoSolver[F[_]: Monad: Logging: Clock](markets: Markets[F]) extends PriceSolver[F, CryptoSolverType] {
 
     def convert(
       asset: FullAsset,
@@ -107,9 +109,11 @@ object PriceSolver {
                 .cond(
                   knownPools.isEmpty,
                   markets.getByAsset(asset.id).flatTap(_ => info"Convert $asset using markets repo."),
-                  Markets
-                    .parsePools(knownPools.filter(p => p.lockedX.id == asset.id || p.lockedY.id == asset.id))
-                    .pure
+                  millis.flatMap { start =>
+                    val res = Markets
+                      .parsePools(knownPools.filter(p => p.lockedX.id == asset.id || p.lockedY.id == asset.id))
+                    millis >>= { finish => info"CryptoSolver for asset: $asset took :${finish - start}".as(res) }
+                  }
                     .flatTap(_ => info"Convert $asset using known pools.")
                 )
                 .merge

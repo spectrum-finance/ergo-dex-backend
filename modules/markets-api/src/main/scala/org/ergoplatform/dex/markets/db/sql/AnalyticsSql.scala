@@ -165,6 +165,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
 
 
   def getPoolFeesAndVolumes(poolId: PoolId, tw: TimeWindow): Query0[PoolFeeAndVolumeSnapshot] = {
+    //select s.timestamp from swaps s where s.pool_id = $id order by s.timestamp asc limit 1
     val tsCond =
       Fragment.const(
         s"${tw.from.map(ts => s"and s.timestamp >= $ts").getOrElse("")} ${tw.to.map(ts => s"and s.timestamp <= $ts").getOrElse("")}"

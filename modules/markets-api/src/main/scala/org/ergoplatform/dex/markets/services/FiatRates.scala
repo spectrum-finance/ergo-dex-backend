@@ -15,6 +15,7 @@ import tofu.logging.{Logging, Logs}
 import tofu.syntax.foption._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
+import tofu.syntax.time.now.millis
 
 @derive(representableK)
 trait FiatRates[F[_]] {
@@ -34,13 +35,19 @@ object FiatRates {
   ): I[FiatRates[F]] =
     logs.forService[FiatRates[F]].map(implicit __ => new Tracing[F] attach new ErgoOraclesRateSource[F](network, cache))
 
-  final class ErgoOraclesRateSource[F[_]: Monad: Logging: Timer](
+  final class ErgoOraclesRateSource[F[_]: Monad: Logging: Timer: Clock](
     network: ErgoExplorer[F],
     cache: Ref[F, Option[BigDecimal]]
   ) extends FiatRates[F] {
 
     def rateOf(asset: AssetClass, units: FiatUnits): F[Option[BigDecimal]] =
-      if (asset == ErgoAssetClass && units == UsdUnits) cache.get
+      if (asset == ErgoAssetClass && units == UsdUnits) {
+        millis.flatMap { start =>
+          cache.get.flatTap { _ =>
+            millis >>= { finish: Long => info"rateOf: $asset is ${finish - start}" }
+          }
+        }
+      }
       else noneF[F, BigDecimal]
   }
 
