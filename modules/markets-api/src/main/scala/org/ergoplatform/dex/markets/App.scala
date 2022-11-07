@@ -83,8 +83,8 @@ object App extends EnvApp[AppContext] {
       implicit0(tokenFetcher: TokenFetcher[RunF])      <- Resource.eval(TokenFetcher.make[InitF, RunF])
       implicit0(node: ErgoNode[RunF])                  <- Resource.eval(ErgoNode.make[InitF, RunF])
       implicit0(network: ErgoNetwork[RunF]) = ErgoNetwork.make[RunF]
-      implicit0(stats: AmmStats[RunF])      = AmmStats.make[RunF, xa.DB]
-      implicit0(locks: LqLocks[RunF])       = LqLocks.make[RunF, xa.DB]
+      implicit0(stats: AmmStats[RunF]) <- Resource.eval(AmmStats.make[InitF, RunF, xa.DB])
+      implicit0(locks: LqLocks[RunF]) = LqLocks.make[RunF, xa.DB]
 
       invalidator     = HttpCacheInvalidator.make[StreamF, RunF, fs2.Chunk]
       invalidatorProc = invalidator.run

@@ -48,6 +48,7 @@ create table if not exists public.swaps (
 
 alter table public.swaps owner to ergo_admin;
 
+create index swaps__timestamp on public.swaps using btree (timestamp);
 create index swaps__pool_id on public.swaps using btree (pool_id);
 create index swaps__pool_state_id on public.swaps using btree (pool_state_id);
 create index swaps__protocol_version on public.swaps using btree (protocol_version);

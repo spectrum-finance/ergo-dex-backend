@@ -4,7 +4,7 @@ import cats.data.OptionT
 import cats.effect.Clock
 import cats.syntax.parallel._
 import cats.syntax.traverse._
-import cats.{Monad, Parallel, Traverse}
+import cats.{Functor, Monad, Parallel, Traverse}
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.FullAsset
@@ -23,7 +23,9 @@ import org.ergoplatform.dex.protocol.constants.ErgoAssetId
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.doobie.transactor.Txr
+import tofu.logging.{Logging, Logs}
 import tofu.syntax.monadic._
+import tofu.syntax.logging._
 import tofu.syntax.time.now.millis
 
 import scala.concurrent.duration._
@@ -57,16 +59,17 @@ object AmmStats {
 
   val slippageWindowScale = 2
 
-  def make[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
+  def make[I[_]: Functor, F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
     orders: Orders[D],
     network: ErgoNetwork[F],
     tokens: TokenFetcher[F],
-    fiatSolver: FiatPriceSolver[F]
-  ): AmmStats[F] = new Live[F, D]()
+    fiatSolver: FiatPriceSolver[F],
+    logs: Logs[I, F]
+  ): I[AmmStats[F]] = logs.forService[AmmStats[F]].map(implicit __ => new Live[F, D]())
 
-  final class Live[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
+  final class Live[F[_]: Monad: Clock: Parallel: Logging, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
     orders: Orders[D],
@@ -167,10 +170,15 @@ object AmmStats {
       } yield tvl).value
 
     def getPoolsStats(window: TimeWindow): F[List[PoolStats]] =
-      (pools.snapshots() ||> txr.trans).flatMap { snapshots: List[PoolSnapshot] =>
-        snapshots
-          .parTraverse(pool => getPoolSummaryUsingAllPools(pool, window, snapshots))
-          .map(_.flatten)
+      millis.flatMap { start =>
+        (pools.snapshots() ||> txr.trans).flatMap { snapshots: List[PoolSnapshot] =>
+          millis.flatMap { f =>
+            info"snapshots: ${f - start}" >>
+            snapshots
+              .parTraverse(pool => getPoolSummaryUsingAllPools(pool, window, snapshots))
+              .map(_.flatten)
+          }
+        }
       }
 
     def getPoolsStatsV2(window: TimeWindow): F[List[PoolStats]] =
@@ -238,13 +246,26 @@ object AmmStats {
         } yield (info, feesSnap, vol)).value
 
       (for {
+        start                 <- OptionT.liftF(millis)
         (info, feesSnap, vol) <- OptionT(poolData ||> txr.trans)
+        pData                 <- OptionT.liftF(millis)
+        _                     <- OptionT.liftF(info"Pool data: ${pData - start}")
         lockedX               <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, everyKnownPool))
+        lX                    <- OptionT.liftF(millis)
+        _                     <- OptionT.liftF(info"lX: ${lX - start}")
         lockedY               <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, everyKnownPool))
+        lY                    <- OptionT.liftF(millis)
+        _                     <- OptionT.liftF(info"lY: ${lY - start}")
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
         volume            <- processPoolVolume(vol, window, everyKnownPool)
+        vO                <- OptionT.liftF(millis)
+        _                 <- OptionT.liftF(info"vO: ${vO - start}")
         fees              <- processPoolFee(feesSnap, window, everyKnownPool)
+        fE                <- OptionT.liftF(millis)
+        _                 <- OptionT.liftF(info"fE: ${fE - start}")
         yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
+        yF                <- OptionT.liftF(millis)
+        _                 <- OptionT.liftF(info"yF: ${yF - start}")
       } yield PoolStats(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
     }
 
