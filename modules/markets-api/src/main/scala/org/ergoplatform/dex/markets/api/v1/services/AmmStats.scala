@@ -4,7 +4,7 @@ import cats.data.OptionT
 import cats.effect.Clock
 import cats.syntax.parallel._
 import cats.syntax.traverse._
-import cats.{Monad, Parallel}
+import cats.{Monad, Parallel, Traverse}
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.FullAsset
@@ -25,6 +25,7 @@ import org.ergoplatform.ergo.modules.ErgoNetwork
 import tofu.doobie.transactor.Txr
 import tofu.syntax.monadic._
 import tofu.syntax.time.now.millis
+
 import scala.concurrent.duration._
 
 trait AmmStats[F[_]] {
@@ -36,6 +37,8 @@ trait AmmStats[F[_]] {
   def getPoolStats(poolId: PoolId, window: TimeWindow): F[Option[PoolStats]]
 
   def getPoolsStats(window: TimeWindow): F[List[PoolStats]]
+
+  def getPoolsStatsV2(window: TimeWindow): F[List[PoolStats]]
 
   def getPoolsSummary: F[List[PoolSummary]]
 
@@ -86,13 +89,13 @@ object AmmStats {
       } yield FiatEquiv(equiv.value, UsdUnits)).value
 
     def getPlatformSummary(window: TimeWindow): F[PlatformSummary] = {
-      val queryPlatformStats =
-        for {
+      def queryPlatformStats: F[(List[PoolSnapshot], List[PoolVolumeSnapshot])] =
+        (for {
           poolSnapshots <- pools.snapshots()
           volumes       <- pools.volumes(window)
-        } yield (poolSnapshots, volumes)
+        } yield (poolSnapshots, volumes)) ||> txr.trans
       for {
-        (poolSnapshots, volumes) <- queryPlatformStats ||> txr.trans
+        (poolSnapshots, volumes) <- queryPlatformStats
         validTokens              <- tokens.fetchTokens
         filteredSnaps =
           poolSnapshots.filter(ps => validTokens.contains(ps.lockedX.id) && validTokens.contains(ps.lockedY.id))
@@ -169,6 +172,56 @@ object AmmStats {
           .parTraverse(pool => getPoolSummaryUsingAllPools(pool, window, snapshots))
           .map(_.flatten)
       }
+
+    def getPoolsStatsV2(window: TimeWindow): F[List[PoolStats]] =
+      getPoolDataBatch(window).flatMap { case (pools, data) =>
+        data
+          .map { case (pool, info, feesSnap, vol) =>
+            getPoolSummaryUsingAllPoolsV2(pool, window, pools, info, feesSnap, vol)
+          }
+          .sequence
+          .map(_.flatten)
+      }
+
+    private def getPoolDataBatch(window: TimeWindow): F[
+      (List[PoolSnapshot], List[(PoolSnapshot, amm.PoolInfo, Option[PoolFeesSnapshot], Option[PoolVolumeSnapshot])])
+    ] = {
+      def poolData(poolId: PoolId, window: TimeWindow) =
+        for {
+          info     <- OptionT(pools.info(poolId))
+          feesSnap <- OptionT.liftF(pools.fees(poolId, window))
+          vol      <- OptionT.liftF(pools.volume(poolId, window))
+        } yield (info, feesSnap, vol)
+
+      pools.snapshots().flatMap { pools =>
+        pools
+          .map { pool =>
+            poolData(pool.id, window).map { case (info, feesSnap, vol) => (pool, info, feesSnap, vol) }.value
+          }
+          .sequence
+          .map(_.flatten)
+          .map(r => pools -> r)
+      } ||> txr.trans
+    }
+
+    private def getPoolSummaryUsingAllPoolsV2(
+      pool: PoolSnapshot,
+      window: TimeWindow,
+      everyKnownPool: List[PoolSnapshot],
+      info: amm.PoolInfo,
+      feesSnap: Option[PoolFeesSnapshot],
+      vol: Option[PoolVolumeSnapshot]
+    ): F[Option[PoolStats]] = {
+      val poolId = pool.id
+      (for {
+        lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, everyKnownPool))
+        lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, everyKnownPool))
+        tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
+        volume            <- processPoolVolume(vol, window, everyKnownPool)
+        fees              <- processPoolFee(feesSnap, window, everyKnownPool)
+        yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
+      } yield PoolStats(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
+    }
 
     private def getPoolSummaryUsingAllPools(
       pool: PoolSnapshot,
