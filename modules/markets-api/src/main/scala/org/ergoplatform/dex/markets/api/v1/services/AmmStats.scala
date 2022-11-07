@@ -256,23 +256,21 @@ object AmmStats {
         feesSnap = feesAndVolumeSnap.map(s => PoolFeesSnapshot(s.poolId, s.volumeByXFee, s.volumeByYFee))
         vol      = feesAndVolumeSnap.map(s => PoolVolumeSnapshot(s.poolId, s.volumeByXVolume, s.volumeByYVolume))
         pData   <- OptionT.liftF(millis[F])
-        _       <- OptionT.liftF(info"Pool data: ${pData - start}, pD: ${v1 - start1}, ${v3 - start1}")
         lockedX <- OptionT(fiatSolver.convert(pool.lockedX, UsdUnits, everyKnownPool))
         lX      <- OptionT.liftF(millis[F])
-        _       <- OptionT.liftF(info"lX: ${lX - start}")
         lockedY <- OptionT(fiatSolver.convert(pool.lockedY, UsdUnits, everyKnownPool))
         lY      <- OptionT.liftF(millis[F])
-        _       <- OptionT.liftF(info"lY: ${lY - start}")
         tvl = TotalValueLocked(lockedX.value + lockedY.value, UsdUnits)
         volume            <- processPoolVolume(vol, window, everyKnownPool)
         vO                <- OptionT.liftF(millis[F])
-        _                 <- OptionT.liftF(info"vO: ${vO - start}")
         fees              <- processPoolFee(feesSnap, window, everyKnownPool)
         fE                <- OptionT.liftF(millis[F])
-        _                 <- OptionT.liftF(info"fE: ${fE - start}")
         yearlyFeesPercent <- OptionT.liftF(ammMath.feePercentProjection(tvl, fees, info, MillisInYear))
         yF                <- OptionT.liftF(millis[F])
-        _                 <- OptionT.liftF(info"yF: ${yF - start}")
+        _ <-
+          OptionT.liftF(
+            info"Pool data: ${pData - start}, pD: ${v1 - start1}, ${v3 - start1}, lX: ${lX - start}, lY: ${lY - start}, vO: ${vO - start}, fE: ${fE - start} yF: ${yF - start}"
+          )
       } yield PoolStats(poolId, pool.lockedX, pool.lockedY, tvl, volume, fees, yearlyFeesPercent)).value
     }
 
