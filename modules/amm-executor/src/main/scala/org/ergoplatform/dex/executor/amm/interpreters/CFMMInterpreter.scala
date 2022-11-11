@@ -3,7 +3,8 @@ package org.ergoplatform.dex.executor.amm.interpreters
 import cats.FlatMap
 import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.ergo.state.{Predicted, Traced}
-import org.ergoplatform.dex.domain.amm.{CFMMPool, Deposit, Redeem, Swap}
+import org.ergoplatform.dex.domain.amm.CFMMPool
+import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.dex.protocol.instances._
 import tofu.higherKind.{Mid, RepresentableK}
@@ -19,7 +20,7 @@ trait CFMMInterpreter[CT <: CFMMType, F[_]] {
 
   def redeem(in: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
 
-  def swap(in: Swap, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
+  def swap(in: SwapAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
 }
 
 object CFMMInterpreter {
@@ -46,7 +47,7 @@ object CFMMInterpreter {
       if (pool.isNative) n2t.redeem(in, pool)
       else t2t.redeem(in, pool)
 
-    def swap(in: Swap, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
+    def swap(in: SwapAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
       if (pool.isNative) n2t.swap(in, pool)
       else t2t.swap(in, pool)
   }
@@ -59,7 +60,7 @@ object CFMMInterpreter {
     def redeem(in: Redeem, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
       _ >>= (r => trace"redeem(in=$in, pool=$pool) = (${r._1}, ${r._2})" as r)
 
-    def swap(in: Swap, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
+    def swap(in: SwapAny, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
       _ >>= (r => trace"swap(in=$in, pool=$pool) = (${r._1}, ${r._2})" as r)
   }
 }

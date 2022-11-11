@@ -15,7 +15,7 @@ import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, N2TCFMMI
 import org.ergoplatform.dex.executor.amm.processes.Executor
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.executor.amm.services.Execution
-import org.ergoplatform.dex.executor.amm.streaming.{CFMMCircuit, CFMMConsumerIn, CFMMConsumerRetries, CFMMProducerRetries}
+import org.ergoplatform.dex.executor.amm.streaming._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.ergo.services.explorer.{ErgoExplorer, ErgoExplorerStreaming}
@@ -23,7 +23,6 @@ import org.ergoplatform.ergo.services.node.ErgoNode
 import org.ergoplatform.ergo.state.{Confirmed, Unconfirmed}
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3.SttpBackend
-import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import sttp.client3.asynchttpclient.fs2.AsyncHttpClientFs2Backend
 import tofu.WithRun
 import tofu.fs2Instances._
@@ -48,16 +47,16 @@ object App extends EnvApp[AppContext] {
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(ctx)
       implicit0(e: ErgoAddressEncoder)      = ErgoAddressEncoder(configs.protocol.networkType.prefix)
       implicit0(confirmedOrders: CFMMConsumerIn[StreamF, RunF, Confirmed]) =
-        makeConsumer[OrderId, Confirmed[CFMMOrder]](configs.consumers.confirmedOrders)
+        makeConsumer[OrderId, Confirmed[CFMMOrder.Any]](configs.consumers.confirmedOrders)
       implicit0(unconfirmedOrders: CFMMConsumerIn[StreamF, RunF, Unconfirmed]) =
-        makeConsumer[OrderId, Unconfirmed[CFMMOrder]](configs.consumers.unconfirmedOrders)
+        makeConsumer[OrderId, Unconfirmed[CFMMOrder.Any]](configs.consumers.unconfirmedOrders)
       implicit0(consumerRetries: CFMMConsumerRetries[StreamF, RunF]) =
-        makeConsumer[OrderId, Delayed[CFMMOrder]](configs.consumers.ordersRetry)
+        makeConsumer[OrderId, Delayed[CFMMOrder.Any]](configs.consumers.ordersRetry)
       implicit0(orders: CFMMConsumerIn[StreamF, RunF, Id]) =
         Consumer.combine2(confirmedOrders, unconfirmedOrders)(_.entity, _.entity)
       implicit0(producerRetries: CFMMProducerRetries[StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, Delayed[CFMMOrder]](configs.producers.ordersRetry)
-      implicit0(consumer: CFMMCircuit[StreamF, RunF]) = StreamingCircuit.make[StreamF, RunF, OrderId, CFMMOrder]
+        Producer.make[InitF, StreamF, RunF, OrderId, Delayed[CFMMOrder.Any]](configs.producers.ordersRetry)
+      implicit0(consumer: CFMMCircuit[StreamF, RunF]) = StreamingCircuit.make[StreamF, RunF, OrderId, CFMMOrder.Any]
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
       implicit0(explorer: ErgoExplorer[RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])

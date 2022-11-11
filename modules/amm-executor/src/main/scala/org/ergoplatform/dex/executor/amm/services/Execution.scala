@@ -2,14 +2,15 @@ package org.ergoplatform.dex.executor.amm.services
 
 import cats.syntax.option._
 import cats.{Functor, Monad}
-import org.ergoplatform.dex.domain.amm.{CFMMOrder, Deposit, Redeem, Swap}
+import org.ergoplatform.dex.domain.amm.CFMMOrder
+import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.errors.TxFailed
-import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
+import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectMultiAddressSwapTree}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.protocol.amm.AMMType.CFMMType
 import org.ergoplatform.ergo.modules.ErgoNetwork
-import org.ergoplatform.ergo.services.explorer.{ErgoExplorer, TxSubmissionErrorParser}
+import org.ergoplatform.ergo.services.explorer.TxSubmissionErrorParser
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.handle._
 import tofu.syntax.logging._
@@ -20,7 +21,7 @@ trait Execution[F[_]] {
   /** Try to execute a given order if possible.
     * @return `None` in case the order is executed, `Some(order)` otherwise.
     */
-  def executeAttempt(op: CFMMOrder): F[Option[CFMMOrder]]
+  def executeAttempt(op: CFMMOrder.Any): F[Option[CFMMOrder.Any]]
 }
 
 object Execution {
@@ -40,20 +41,20 @@ object Execution {
     errParser: TxSubmissionErrorParser
   ) extends Execution[F] {
 
-    def executeAttempt(order: CFMMOrder): F[Option[CFMMOrder]] =
+    def executeAttempt(order: CFMMOrder.Any): F[Option[CFMMOrder.Any]] =
       pools.get(order.poolId) >>= {
         case Some(pool) =>
           val interpretF =
             order match {
               case deposit: Deposit => interpreter.deposit(deposit, pool)
               case redeem: Redeem   => interpreter.redeem(redeem, pool)
-              case swap: Swap       => interpreter.swap(swap, pool)
+              case swap: SwapAny    => interpreter.swap(swap, pool)
             }
           val executeF =
             for {
               (transaction, nextPool) <- interpretF
               finalizeF = network.submitTransaction(transaction) >> pools.put(nextPool)
-              res <- (finalizeF as none[CFMMOrder])
+              res <- (finalizeF as none[CFMMOrder.Any])
                        .handleWith[TxFailed] { e =>
                          network.checkTransaction(transaction).flatMap {
                            case Some(errText) =>
@@ -75,7 +76,10 @@ object Execution {
                        }
             } yield res
 
-          executeF.handleWith[ExecutionFailed](e => warnCause"Order execution failed" (e) as Option(order))
+          executeF.handleWith[ExecutionFailed] {
+            case e: IncorrectMultiAddressSwapTree => warnCause"Order execution failed" (e) as none
+            case e                   => warnCause"Order execution failed" (e) as Some(order)
+          }
         case None =>
           warn"Order{id=${order.id}} references an unknown Pool{id=${order.poolId}}" as Some(order)
       }

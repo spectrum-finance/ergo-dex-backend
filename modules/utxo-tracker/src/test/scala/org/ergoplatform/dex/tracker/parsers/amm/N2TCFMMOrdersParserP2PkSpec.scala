@@ -3,15 +3,13 @@ package org.ergoplatform.dex.tracker.parsers.amm
 import cats.effect.IO
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.CatsPlatform
-import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.dex.domain.amm.{PoolId, Swap, SwapParams}
+import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo._
-import org.ergoplatform.ergo.domain.{BoxAsset, Output}
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-class N2TCFMMOrdersParserSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks with CatsPlatform {
+class N2TCFMMOrdersParserP2PkSpec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks with CatsPlatform {
 
   property("N2T Deposit order parsing") {
     val res = parser.deposit(boxSample).unsafeRunSync()
@@ -19,7 +17,7 @@ class N2TCFMMOrdersParserSpec extends AnyPropSpec with should.Matchers with Scal
   }
 
   implicit val e: ErgoAddressEncoder = new ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
-  def parser                         = N2TCFMMOrdersParser.make[IO]
+  def parser                         = N2TCFMMOrdersParserP2Pk.make[IO]
 
   def boxSample =
     io.circe.parser

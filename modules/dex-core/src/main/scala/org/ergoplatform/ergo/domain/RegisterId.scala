@@ -1,5 +1,6 @@
 package org.ergoplatform.ergo.domain
 
+import cats.Show
 import cats.syntax.either._
 import doobie.util.{Get, Put}
 import enumeratum.{CirceEnum, Enum, EnumEntry}
@@ -24,6 +25,7 @@ object RegisterId extends Enum[RegisterId] with CirceEnum[RegisterId] {
   val values = findValues
 
   implicit val loggable: Loggable[RegisterId] = Loggable.stringValue.contramap(_.entryName)
+  implicit val show: Show[RegisterId] = _.entryName
 
   implicit val keyDecoder: KeyDecoder[RegisterId] = withNameOption
   implicit val keyEncoder: KeyEncoder[RegisterId] = _.entryName

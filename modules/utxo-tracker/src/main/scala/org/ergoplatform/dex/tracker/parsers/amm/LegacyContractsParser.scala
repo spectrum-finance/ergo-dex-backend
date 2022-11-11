@@ -8,7 +8,7 @@ import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.ergo.domain.Output
 import tofu.higherKind.Embed
 
-trait V0Parser[+CT <: CFMMType, F[_]] {
+trait LegacyContractsParser[+CT <: CFMMType, F[_]] {
 
   def depositV1(box: Output): F[Option[DepositV1]]
 
@@ -19,16 +19,16 @@ trait V0Parser[+CT <: CFMMType, F[_]] {
   def swapV0(box: Output): F[Option[SwapV0]]
 }
 
-object V0Parser {
+object LegacyContractsParser {
 
-  implicit def embed[CT <: CFMMType]: Embed[V0Parser[CT, *[_]]] = {
-    type Rep[F[_]] = V0Parser[CT, F]
+  implicit def embed[CT <: CFMMType]: Embed[LegacyContractsParser[CT, *[_]]] = {
+    type Rep[F[_]] = LegacyContractsParser[CT, F]
     tofu.higherKind.derived.genEmbed[Rep]
   }
 
-  implicit def t2tCFMMV0Parser[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): V0Parser[T2T_CFMM, F] =
-    T2TCFMMOrdersV0Parser.make[F]
+  implicit def t2tCFMMV0Parser[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): LegacyContractsParser[T2T_CFMM, F] =
+    T2TCFMMOrdersLegacyContractsParser.make[F]
 
-  implicit def n2tCFMMV0Parser[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): V0Parser[N2T_CFMM, F] =
-    N2TCFMMOrdersV0Parser.make[F]
+  implicit def n2tCFMMV0Parser[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): LegacyContractsParser[N2T_CFMM, F] =
+    N2TCFMMOrdersLegacyContractsParser.make[F]
 }

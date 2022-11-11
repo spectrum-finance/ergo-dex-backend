@@ -4,12 +4,13 @@ import cats.effect.{Clock, ExitCode, IO, IOApp}
 import io.circe.syntax.EncoderOps
 import org.ergoplatform.{UnsignedErgoLikeTransaction, UnsignedInput}
 import org.ergoplatform.dex.configs.MonetaryConfig
+import org.ergoplatform.dex.domain.amm.CFMMOrder.Swap
 import org.ergoplatform.dex.domain.{AssetAmount, NetworkContext}
-import org.ergoplatform.dex.domain.amm.{Swap, SwapParams}
+import org.ergoplatform.dex.domain.amm.SwapParams
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.interpreters.N2TCFMMInterpreter
 import org.ergoplatform.dex.tracker.parsers.amm.N2TCFMMPoolsParser
-import org.ergoplatform.ergo.{Address, TokenId}
+import org.ergoplatform.ergo.{Address, PubKey, TokenId}
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import org.ergoplatform.dex.protocol.codecs._
 
@@ -36,7 +37,7 @@ object ExecSwap extends IOApp with SigmaPlatform {
       ts <- Clock[IO].realTime(TimeUnit.MILLISECONDS)
 
       pool = N2TCFMMPoolsParser.pool(poolIn).get
-      swap = SwapParams(
+      swap = SwapParams[PubKey](
                input               = AssetAmount.native(userIn.value - monetaryConfig.minerFee - monetaryConfig.minBoxValue),
                minOutput           = AssetAmount(SigUSD, 0L),
                dexFeePerTokenNum   = 0L,

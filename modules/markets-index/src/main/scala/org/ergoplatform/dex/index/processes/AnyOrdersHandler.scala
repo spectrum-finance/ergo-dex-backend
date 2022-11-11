@@ -40,13 +40,17 @@ object AnyOrdersHandler {
 
     def handle(anyOrders: List[EvaluatedCFMMOrder.Any]): F[Int] =
       NonEmptyList.fromList(anyOrders.collect {
-        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV1, Some(ev: SwapEvaluation), p, r) =>
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapMultiAddress, Some(ev: SwapEvaluation), p, r) =>
+          EvaluatedCFMMOrder(o: AnySwap, Some(ev), p, r).extract[DBSwap]
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapP2Pk, Some(ev: SwapEvaluation), p, r) =>
           EvaluatedCFMMOrder(o: AnySwap, Some(ev), p, r).extract[DBSwap]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV0, Some(ev: SwapEvaluation), p, r) =>
           EvaluatedCFMMOrder(o: AnySwap, Some(ev), p, r).extract[DBSwap]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV0, _, p, r) =>
           EvaluatedCFMMOrder(o: AnySwap, none[SwapEvaluation], p, r).extract[DBSwap]
-        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV1, _, p, r) =>
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapP2Pk, _, p, r) =>
+          EvaluatedCFMMOrder(o: AnySwap, none[SwapEvaluation], p, r).extract[DBSwap]
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapMultiAddress, _, p, r) =>
           EvaluatedCFMMOrder(o: AnySwap, none[SwapEvaluation], p, r).extract[DBSwap]
       }) match {
         case Some(nel) => repo.insert(nel)

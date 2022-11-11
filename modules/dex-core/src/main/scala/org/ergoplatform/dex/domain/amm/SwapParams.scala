@@ -1,16 +1,16 @@
 package org.ergoplatform.dex.domain.amm
 
+import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.ergo.{Address, PubKey}
 import tofu.logging.derivation.loggable
 
-@derive(encoder, decoder, loggable)
-final case class SwapParams(
+@derive(show, encoder, decoder, loggable)
+final case class SwapParams[T](
   input: AssetAmount,
   minOutput: AssetAmount,
   dexFeePerTokenNum: Long,
   dexFeePerTokenDenom: Long,
-  redeemer: PubKey
+  redeemer: T
 )

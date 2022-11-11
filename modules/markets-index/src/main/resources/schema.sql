@@ -41,9 +41,10 @@ create table if not exists public.swaps (
     output_amount bigint,
     dex_fee_per_token_num bigint not null,
     dex_fee_per_token_denom bigint not null,
-    redeemer public.pubkey not null,
+    redeemer public.pubkey,
     protocol_version integer not null,
-    contract_version integer not null
+    contract_version integer not null,
+    redeemer_ergo_tree text
 );
 
 alter table public.swaps owner to ergo_admin;

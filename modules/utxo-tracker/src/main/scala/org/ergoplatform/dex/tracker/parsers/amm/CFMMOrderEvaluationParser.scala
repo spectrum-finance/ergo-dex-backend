@@ -5,6 +5,7 @@ import cats.syntax.option._
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.{CFMMPool, CFMMVersionedOrder}
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
+import org.ergoplatform.ergo.PubKey
 import org.ergoplatform.ergo.domain.Output
 import tofu.syntax.monadic._
 
@@ -29,14 +30,16 @@ object CFMMOrderEvaluationParser {
   final class UniversalParser[F[_]: Applicative] extends CFMMOrderEvaluationParser[F] {
 
     def parseSwapEval(output: Output, order: CFMMVersionedOrder.AnySwap): F[Option[SwapEvaluation]] = {
-      val config = order match {
-        case swap: CFMMVersionedOrder.SwapV1 => swap.params
-        case swap: CFMMVersionedOrder.SwapV0 => swap.params
+      val (redeemer, minOutput) = order match {
+        case swap: CFMMVersionedOrder.SwapP2Pk => (swap.params.redeemer.ergoTree, swap.params.minOutput)
+        case swap: CFMMVersionedOrder.SwapMultiAddress =>
+          (swap.params.redeemer, swap.params.minOutput)
+        case swap: CFMMVersionedOrder.SwapV0 => (swap.params.redeemer.ergoTree, swap.params.minOutput)
       }
-      if (output.ergoTree == config.redeemer.ergoTree) {
+      if (output.ergoTree == redeemer) {
         val outputAmount =
-          if (config.minOutput.isNative) Some(AssetAmount.native(output.value))
-          else output.assets.find(_.tokenId == config.minOutput.id).map(AssetAmount.fromBoxAsset)
+          if (minOutput.isNative) Some(AssetAmount.native(output.value))
+          else output.assets.find(_.tokenId == minOutput.id).map(AssetAmount.fromBoxAsset)
         outputAmount.map(out => SwapEvaluation(out)).pure
       } else none[SwapEvaluation].pure
     }

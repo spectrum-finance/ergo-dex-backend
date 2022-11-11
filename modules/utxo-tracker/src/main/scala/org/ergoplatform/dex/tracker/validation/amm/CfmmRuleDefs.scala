@@ -2,7 +2,8 @@ package org.ergoplatform.dex.tracker.validation.amm
 
 import cats.Applicative
 import org.ergoplatform.dex.configs.MonetaryConfig
-import org.ergoplatform.dex.domain.amm.{CFMMOrder, Deposit, Redeem, Swap}
+import org.ergoplatform.dex.domain.amm.CFMMOrder
+import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import tofu.syntax.embed._
 import tofu.syntax.monadic._
 
@@ -10,7 +11,7 @@ import scala.{PartialFunction => ?=>}
 
 final class CfmmRuleDefs[F[_]: Applicative](conf: MonetaryConfig) {
 
-  type CFMMRule = CFMMOrder ?=> Option[RuleViolation]
+  type CFMMRule = CFMMOrder.Any ?=> Option[RuleViolation]
 
   def rules: CFMMRules[F] = op => allRules.lift(op).flatten.pure
 

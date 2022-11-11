@@ -34,7 +34,7 @@ object CFMMHistoryParser {
     orders: CFMMParser[T2T_CFMM, F],
     pools: CFMMPoolsParser[T2T_CFMM],
     evals: CFMMOrderEvaluationParser[F],
-                                           orderExecutorFee: OrderExecutorFeeParser
+    orderExecutorFee: OrderExecutorFeeParser
   ): CFMMHistoryParser[T2T_CFMM, F] =
     new UniversalParser[T2T_CFMM, F]
 
@@ -42,7 +42,7 @@ object CFMMHistoryParser {
     orders: CFMMParser[N2T_CFMM, F],
     pools: CFMMPoolsParser[N2T_CFMM],
     evals: CFMMOrderEvaluationParser[F],
-                                           orderExecutorFee: OrderExecutorFeeParser
+    orderExecutorFee: OrderExecutorFeeParser
   ): CFMMHistoryParser[N2T_CFMM, F] =
     new UniversalParser[N2T_CFMM, F]
 
@@ -50,7 +50,7 @@ object CFMMHistoryParser {
     orders: CFMMParser[CT, F],
     pools: CFMMPoolsParser[CT],
     evals: CFMMOrderEvaluationParser[F],
-                                                            orderExecutorFee: OrderExecutorFeeParser
+    orderExecutorFee: OrderExecutorFeeParser
   ) extends CFMMHistoryParser[CT, F] {
 
     def swap(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnySwap, SwapEvaluation]]] =
@@ -58,7 +58,9 @@ object CFMMHistoryParser {
         .mapIn {
           case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV0, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
-          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV1, _, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapP2Pk, _, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
+          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapMultiAddress, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
         }
 
@@ -67,11 +69,11 @@ object CFMMHistoryParser {
     ): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyDeposit, DepositEvaluation]]] =
       parseSomeOrder(tx)(orders.deposit, evals.parseDepositEval)
         .mapIn {
-          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV0, _, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV0, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
-          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV1, _, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV1, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
-          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV2, _, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV2, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
         }
 

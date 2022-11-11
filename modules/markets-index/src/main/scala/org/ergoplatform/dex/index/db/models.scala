@@ -91,18 +91,21 @@ object models {
     outputAmount: Option[Long],
     dexFeePerTokenNum: Long,
     dexFeePerTokenDenom: Long,
-    redeemer: PubKey,
+    redeemer: Option[PubKey],
     protocolVersion: ProtocolVersion,
-    contractVersion: CFMMOrderVersion
+    contractVersion: CFMMOrderVersion,
+    redeemerErgoTree: Option[SErgoTree]
   )
 
   implicit val swapQs: QuerySet[DBSwap] = SwapOrdersSql
 
   implicit val swapView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnySwap, SwapEvaluation], DBSwap] = {
     case EvaluatedCFMMOrder(swap: AnySwap, ev, pool, _) =>
-      val (minerFee, params) = swap match {
-        case swap: SwapV0 => (None, swap.params)
-        case swap: SwapV1 => (swap.maxMinerFee.some, swap.params)
+      val (minerFee, params, redeemer, ergoTree) = swap match {
+        case swap: SwapV0   => (None, swap.params, swap.params.redeemer.some, none)
+        case swap: SwapP2Pk => (swap.maxMinerFee.some, swap.params, swap.params.redeemer.some, none)
+        case swap: SwapMultiAddress =>
+          (swap.maxMinerFee.some, swap.params, none, swap.params.redeemer.some)
       }
       DBSwap(
         OrderId.fromBoxId(swap.box.boxId),
@@ -117,9 +120,10 @@ object models {
         ev.map(_.output.value),
         params.dexFeePerTokenNum,
         params.dexFeePerTokenDenom,
-        params.redeemer,
+        redeemer,
         ProtocolVersion.Initial,
-        swap.version
+        swap.version,
+        ergoTree
       )
   }
 

@@ -30,27 +30,32 @@ object OrderExecutorFeeParser {
       ts: Long,
       pool: CFMMPool
     ): Option[OrderExecutorFee] = {
-      val rewardPubKey = o match {
-        case swap: CFMMVersionedOrder.SwapV0       => swap.params.redeemer
-        case swap: CFMMVersionedOrder.SwapV1       => swap.params.redeemer
-        case deposit: CFMMVersionedOrder.DepositV0 => deposit.params.redeemer
-        case deposit: CFMMVersionedOrder.DepositV1 => deposit.params.redeemer
-        case deposit: CFMMVersionedOrder.DepositV2 => deposit.params.redeemer
-        case redeem: CFMMVersionedOrder.RedeemV0   => redeem.params.redeemer
-        case redeem: CFMMVersionedOrder.RedeemV1   => redeem.params.redeemer
+      val (rewardPubKey, redeemerTree) = o match {
+        case swap: CFMMVersionedOrder.SwapV0           => (swap.params.redeemer.some    -> none)
+        case swap: CFMMVersionedOrder.SwapP2Pk         => (swap.params.redeemer.some    -> none)
+        case swap: CFMMVersionedOrder.SwapMultiAddress => (none                         -> swap.params.redeemer.some)
+        case deposit: CFMMVersionedOrder.DepositV0     => (deposit.params.redeemer.some -> none)
+        case deposit: CFMMVersionedOrder.DepositV1     => (deposit.params.redeemer.some -> none)
+        case deposit: CFMMVersionedOrder.DepositV2     => (deposit.params.redeemer.some -> none)
+        case redeem: CFMMVersionedOrder.RedeemV0       => (redeem.params.redeemer.some  -> none)
+        case redeem: CFMMVersionedOrder.RedeemV1       => (redeem.params.redeemer.some  -> none)
       }
 
       val tree     = ErgoTreeSerializer.default.deserialize(output.ergoTree)
       val template = ErgoTreeTemplate.fromBytes(tree.template)
       val address  = e.fromProposition(tree).toOption
 
-      val treePubKey    = ErgoTreeSerializer.default.deserialize(rewardPubKey.ergoTree)
-      val rewardAddress = e.fromProposition(treePubKey).toOption.map(e.toString)
+      val rewardAddress = rewardPubKey.flatMap { key =>
+        val treePubKey = ErgoTreeSerializer.default.deserialize(key.ergoTree)
+        e.fromProposition(treePubKey).toOption.map(e.toString)
+      }
 
       def isP2PK = address.exists {
         case _: P2PKAddress => true
         case _              => false
       }
+
+      def isTheSameErgTree = redeemerTree.contains(output.ergoTree)
 
       def matchAddresses =
         (for {
@@ -58,7 +63,7 @@ object OrderExecutorFeeParser {
           aOrd <- rewardAddress
         } yield aOut == aOrd).getOrElse(false)
 
-      if (reservedErgoTrees.contains(template) || output.assets.nonEmpty || matchAddresses || !isP2PK)
+      if (reservedErgoTrees.contains(template) || output.assets.nonEmpty || matchAddresses || !isP2PK || isTheSameErgTree)
         none
       else
         address.map(e.toString).map(a => OrderExecutorFee(pool.poolId, o.id, output.boxId, a, output.value, ts))

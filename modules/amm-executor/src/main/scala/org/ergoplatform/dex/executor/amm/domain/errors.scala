@@ -3,6 +3,7 @@ package org.ergoplatform.dex.executor.amm.domain
 import cats.syntax.show._
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.PoolId
+import org.ergoplatform.ergo.{BoxId, SErgoTree}
 import tofu.Errors
 
 object errors {
@@ -19,5 +20,10 @@ object errors {
   final case class PriceTooLow(poolId: PoolId, maxDexFee: Long, actualDexFee: Long)
     extends ExecutionFailed(
       s"Price slipped down too much for Pool{id=$poolId}. {maxDexFee=${maxDexFee.show}, actualDexFee=${actualDexFee.show}}"
+    )
+
+  final case class IncorrectMultiAddressSwapTree(poolId: PoolId, orderId: BoxId, tree: SErgoTree, err: String)
+    extends ExecutionFailed(
+      s"Incorrect multi address tree for pool $poolId and order $orderId: $tree. Err is: $err"
     )
 }

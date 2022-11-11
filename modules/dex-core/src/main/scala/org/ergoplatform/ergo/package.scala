@@ -64,6 +64,7 @@ package object ergo {
     // circe instances
     implicit val encoder: Encoder[TxId] = deriving
     implicit val decoder: Decoder[TxId] = deriving
+    implicit val show: Show[TxId]       = deriving
 
     implicit val get: Get[TxId] = deriving
     implicit val put: Put[TxId] = deriving
