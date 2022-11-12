@@ -200,4 +200,4 @@ lazy val dexTools = utils
 lazy val graphite = utils
   .mkModule("graphite", "Graphite")
   .settings(commonSettings)
-  .settings(libraryDependencies ++= Tofu ++ Cats ++ Derevo)
+  .settings(libraryDependencies ++= Tofu ++ Cats ++ Derevo ++ TapirHttp4s)

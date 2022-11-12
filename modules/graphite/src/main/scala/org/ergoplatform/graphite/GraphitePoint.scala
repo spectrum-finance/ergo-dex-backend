@@ -1,25 +1,35 @@
 package org.ergoplatform.graphite
 
-import java.time.{LocalDateTime, ZoneOffset}
-
 import cats.Show
 
-final case class GraphitePoint(
-  path: String,
-  value: Double,
-  ts: Long
-)
+sealed trait GraphitePoint {
+  def format: String
+
+  def transformation(prefix: String): GraphitePoint
+}
 
 object GraphitePoint {
 
-  implicit val show: Show[GraphitePoint] = format(_)
+  final case class GraphitePointTs(
+    path: String,
+    value: Double
+  ) extends GraphitePoint {
+    def format: String = s"$path:${value.round}|ms\n"
 
-  def apply(path: String, value: Double, dt: LocalDateTime): GraphitePoint =
-    GraphitePoint(path, value, dt.toInstant(ZoneOffset.UTC).getEpochSecond)
+    def transformation(prefix: String): GraphitePoint =
+      this.copy(path = s"$prefix.$path")
+  }
 
-  def format(point: Seq[GraphitePoint]): String =
-    point.map(format).mkString
+  final case class GraphitePointCount(
+    path: String,
+    value: Double
+  ) extends GraphitePoint {
+    def format: String = s"$path:${value.round}|c\n"
 
-  def format(point: GraphitePoint): String =
-    s"${point.path}:${point.value.round}|ms\n"
+    def transformation(prefix: String): GraphitePoint =
+      this.copy(path = s"$prefix.$path")
+  }
+
+  implicit val show: Show[GraphitePoint] = _.format
+
 }

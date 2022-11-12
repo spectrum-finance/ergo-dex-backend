@@ -41,7 +41,8 @@ import zio.{ExitCode, URIO, ZEnv}
 import cats.syntax.option._
 import org.ergoplatform.dex.markets
 import org.ergoplatform.dex.markets.processes.RatesProcess
-import org.ergoplatform.graphite.{GraphiteClient, Metrics, PointTransformation}
+import org.ergoplatform.graphite.MetricsMiddleware.MetricsMiddleware
+import org.ergoplatform.graphite.{GraphiteClient, Metrics, MetricsMiddleware}
 
 object App extends EnvApp[AppContext] {
 
@@ -68,7 +69,7 @@ object App extends EnvApp[AppContext] {
         Resource.eval(doobieLogging.makeEmbeddableHandler[InitF, RunF, xa.DB]("matcher-db-logging"))
       implicit0(graphite: GraphiteClient[RunF]) <-
         GraphiteClient
-          .make[InitF, RunF](configs.graphite, PointTransformation.PathPrefix(configs.graphitePathPrefix))
+          .make[InitF, RunF](configs.graphite, configs.graphitePathPrefix)
       implicit0(metrics: Metrics[RunF]) <- Resource.eval(Metrics.create[InitF, RunF])
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
@@ -80,7 +81,8 @@ object App extends EnvApp[AppContext] {
       implicit0(redis: Redis.Plain[RunF])                 <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: Cache[RunF])                       <- Resource.eval(Cache.make[InitF, RunF])
       implicit0(httpRespCache: HttpResponseCaching[RunF]) <- Resource.eval(HttpResponseCaching.make[InitF, RunF])
-      implicit0(httpCache: CachingMiddleware[RunF]) = CacheMiddleware.make[RunF]
+      implicit0(httpCache: CachingMiddleware[RunF])         = CacheMiddleware.make[RunF]
+      implicit0(metricsMiddleware: MetricsMiddleware[RunF]) = MetricsMiddleware.make[RunF]
       implicit0(markets: Markets[RunF])                <- Resource.eval(Markets.make[InitF, RunF, xa.DB])
       implicit0(cache: Ref[RunF, Option[BigDecimal]])  <- Resource.eval(Ref.in[InitF, RunF, Option[BigDecimal]](none))
       implicit0(rates: FiatRates[RunF])                <- Resource.eval(FiatRates.make[InitF, RunF])
