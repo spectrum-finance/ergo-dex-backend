@@ -39,7 +39,9 @@ import tofu.syntax.unlift._
 import zio.interop.catz._
 import zio.{ExitCode, URIO, ZEnv}
 import cats.syntax.option._
+import org.ergoplatform.dex.markets
 import org.ergoplatform.dex.markets.processes.RatesProcess
+import org.ergoplatform.graphite.{GraphiteClient, Metrics, PointTransformation}
 
 object App extends EnvApp[AppContext] {
 
@@ -59,10 +61,15 @@ object App extends EnvApp[AppContext] {
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       ctx = AppContext.init(configs)
       trans <- PostgresTransactor.make("markets-api-pool", configs.db)
+      implicit0(iso: IsoK[RunF, InitF])               = IsoK.byFunK(wr.runContextK(ctx))(wr.liftF)
       implicit0(ul: Unlift[RunF, InitF])              = Unlift.byIso(IsoK.byFunK(wr.runContextK(ctx))(wr.liftF))
       implicit0(xa: Txr.Contextual[RunF, AppContext]) = Txr.contextual[RunF](trans)
       implicit0(elh: EmbeddableLogHandler[xa.DB]) <-
         Resource.eval(doobieLogging.makeEmbeddableHandler[InitF, RunF, xa.DB]("matcher-db-logging"))
+      implicit0(graphite: GraphiteClient[RunF]) <-
+        GraphiteClient
+          .make[InitF, RunF](configs.graphite, PointTransformation.PathPrefix(configs.graphitePathPrefix))
+      implicit0(metrics: Metrics[RunF]) <- Resource.eval(Metrics.create[InitF, RunF])
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
       implicit0(client: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]

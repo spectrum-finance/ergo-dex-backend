@@ -8,6 +8,7 @@ import org.ergoplatform.common.http.syntax._
 import org.ergoplatform.dex.markets.api.v1.endpoints.AmmStatsEndpoints
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
 import org.ergoplatform.dex.markets.configs.RequestConfig
+import org.ergoplatform.graphite.Metrics
 import org.http4s.HttpRoutes
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 

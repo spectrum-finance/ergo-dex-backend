@@ -5,6 +5,7 @@ import cats.effect.Clock
 import cats.syntax.parallel._
 import cats.syntax.traverse._
 import cats.{Monad, Parallel}
+import derevo.derive
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.FullAsset
@@ -22,11 +23,17 @@ import org.ergoplatform.dex.markets.services.TokenFetcher
 import org.ergoplatform.dex.protocol.constants.ErgoAssetId
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
+import org.ergoplatform.graphite.Metrics
 import tofu.doobie.transactor.Txr
+import tofu.higherKind.Mid
+import tofu.higherKind.derived.representableK
 import tofu.syntax.monadic._
 import tofu.syntax.time.now.millis
+
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 
+@derive(representableK)
 trait AmmStats[F[_]] {
 
   def convertToFiat(id: TokenId, amount: Long): F[Option[FiatEquiv]]
@@ -60,8 +67,9 @@ object AmmStats {
     orders: Orders[D],
     network: ErgoNetwork[F],
     tokens: TokenFetcher[F],
-    fiatSolver: FiatPriceSolver[F]
-  ): AmmStats[F] = new Live[F, D]()
+    fiatSolver: FiatPriceSolver[F],
+    metrics: Metrics[F]
+  ): AmmStats[F] = new AmmMetrics[F] attach new Live[F, D]()
 
   final class Live[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
@@ -353,5 +361,86 @@ object AmmStats {
                    })
       } yield TransactionsInfo(numTxs, volumes.sum / numTxs, volumes.max, UsdUnits).roundAvgValue)
         .getOrElse(TransactionsInfo.empty)
+  }
+
+  final private class AmmMetrics[F[_]: Monad: Clock](implicit metrics: Metrics[F]) extends AmmStats[Mid[F, *]] {
+
+    def convertToFiat(id: TokenId, amount: Long): Mid[F, Option[FiatEquiv]] =
+      for {
+        start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        r      <- _
+        finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        _      <- metrics.send("convertToFiat", finish - start)
+      } yield r
+
+    def getPlatformSummary(window: TimeWindow): Mid[F, PlatformSummary] =
+      for {
+        start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        r      <- _
+        finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        _      <- metrics.send("getPlatformSummary", finish - start)
+        _      <- metrics.send("getPlatformSummary.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+      } yield r
+
+    def getPoolStats(poolId: PoolId, window: TimeWindow): Mid[F, Option[PoolStats]] =
+      for {
+        start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        r      <- _
+        finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        _      <- metrics.send("getPoolStats", finish - start)
+        _      <- metrics.send("getPoolStats.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+      } yield r
+
+    def getPoolsStats(window: TimeWindow): Mid[F, List[PoolStats]] =
+      for {
+        start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        r      <- _
+        finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        _      <- metrics.send("getPoolsStats", finish - start)
+        _      <- metrics.send("getPoolsStats.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+      } yield r
+
+    def getPoolsSummary: Mid[F, List[PoolSummary]] =
+      for {
+        start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        r      <- _
+        finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        _      <- metrics.send("getPoolsSummary", finish - start)
+      } yield r
+
+    def getAvgPoolSlippage(poolId: PoolId, depth: Int): Mid[F, Option[PoolSlippage]] =
+      for {
+        start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        r      <- _
+        finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        _      <- metrics.send("getAvgPoolSlippage", finish - start)
+      } yield r
+
+    def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): Mid[F, List[PricePoint]] =
+      for {
+        start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        r      <- _
+        finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        _      <- metrics.send("getPoolPriceChart", finish - start)
+        _      <- metrics.send("getPoolPriceChart.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+      } yield r
+
+    def getSwapTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
+      for {
+        start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        r      <- _
+        finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        _      <- metrics.send("getSwapTransactions", finish - start)
+        _      <- metrics.send("getSwapTransactions.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+      } yield r
+
+    def getDepositTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
+      for {
+        start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        r      <- _
+        finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
+        _      <- metrics.send("getDepositTransactions", finish - start)
+        _      <- metrics.send("getDepositTransactions.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+      } yield r
   }
 }
