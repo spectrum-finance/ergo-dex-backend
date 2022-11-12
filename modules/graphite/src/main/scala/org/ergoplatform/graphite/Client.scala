@@ -2,7 +2,7 @@ package org.ergoplatform.graphite
 
 import cats.effect.{Blocker, Concurrent, ContextShift, Resource, Sync}
 import fs2.Chunk
-import fs2.io.udp.{Packet, SocketGroup}
+import fs2.io.udp.{Packet, Socket, SocketGroup}
 import tofu.higherKind.RepresentableK
 
 import java.net.InetSocketAddress
@@ -23,16 +23,15 @@ object Client {
     for {
       blocker <- Blocker[F]
       remote  <- Resource.eval(Sync[F].delay(new InetSocketAddress(settings.host, settings.port)))
-    } yield new UdpClient[F](remote, blocker)
+      socket  <- SocketGroup[F](blocker).flatMap(_.open())
+    } yield new UdpClient[F](remote, socket)
 
   final class UdpClient[F[_]: Concurrent: ContextShift](
     remote: InetSocketAddress,
-    blocker: Blocker
+    socket: Socket[F]
   ) extends Client[F] {
 
     def send(message: Array[Byte]): F[Unit] =
-      SocketGroup[F](blocker)
-        .flatMap(_.open())
-        .use(socket => socket.write(Packet(remote, Chunk.array(message))))
+      socket.write(Packet(remote, Chunk.array(message)))
   }
 }
