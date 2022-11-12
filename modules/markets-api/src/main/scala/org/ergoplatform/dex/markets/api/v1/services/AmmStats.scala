@@ -367,7 +367,7 @@ object AmmStats {
 
     val firstTxTs = 1628766987000L
 
-    def func[B](window: TimeWindow, name: String, f: F[B]): F[B] =
+    def sendMetrics[B](window: TimeWindow, name: String, f: F[B]): F[B] =
       for {
         r     <- f
         finis <- millis
@@ -378,13 +378,13 @@ object AmmStats {
       _ <* unit
 
     def getPlatformSummary(window: TimeWindow): Mid[F, PlatformSummary] =
-      func(window, "window.getPlatformSummary", _)
+      sendMetrics(window, "window.getPlatformSummary", _)
 
     def getPoolStats(poolId: PoolId, window: TimeWindow): Mid[F, Option[PoolStats]] =
-      func(window, "window.getPoolStats", _)
+      sendMetrics(window, "window.getPoolStats", _)
 
     def getPoolsStats(window: TimeWindow): Mid[F, List[PoolStats]] =
-      func(window, "window.getPoolsStats", _)
+      sendMetrics(window, "window.getPoolsStats", _)
 
     def getPoolsSummary: Mid[F, List[PoolSummary]] =
       _ <* unit
@@ -393,12 +393,12 @@ object AmmStats {
       _ <* unit
 
     def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): Mid[F, List[PricePoint]] =
-      func(window, "window.getPoolPriceChart", _)
+      sendMetrics(window, "window.getPoolPriceChart", _)
 
     def getSwapTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
-      func(window, "window.getSwapTransactions", _)
+      sendMetrics(window, "window.getSwapTransactions", _)
 
     def getDepositTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
-      func(window, "window.getDepositTransactions", _)
+      sendMetrics(window, "window.getDepositTransactions", _)
   }
 }
