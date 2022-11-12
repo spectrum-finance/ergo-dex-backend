@@ -17,12 +17,13 @@ object MetricsMiddleware {
   final class MetricsMiddleware[F[_]: Monad: Clock](metrics: Metrics[F]) {
 
     def middleware(routes: HttpRoutes[F]): HttpRoutes[F] = Kleisli { req =>
-      val key = req.pathInfo.renderString.replaceAll("/", ".")
+      val key = req.pathInfo.renderString.replaceAll("/", ".").drop(1)
       for {
         start  <- OptionT.liftF(Clock[F].realTime(TimeUnit.MILLISECONDS))
         resp   <- routes(req)
         finish <- OptionT.liftF(Clock[F].realTime(TimeUnit.MILLISECONDS))
         _      <- OptionT.liftF(metrics.sendTs(key, (finish - start).toDouble))
+        _      <- OptionT.liftF(metrics.sendCount(key, 1.toDouble))
       } yield resp
     }
   }
