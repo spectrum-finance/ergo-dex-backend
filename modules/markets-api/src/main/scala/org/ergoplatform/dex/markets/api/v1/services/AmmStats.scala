@@ -370,7 +370,7 @@ object AmmStats {
         start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
         r      <- _
         finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
-        _      <- metrics.send("convertToFiat", finish - start)
+        _      <- metrics.send("convertToFiat", (finish - start).toDouble)
       } yield r
 
     def getPlatformSummary(window: TimeWindow): Mid[F, PlatformSummary] =
@@ -378,8 +378,11 @@ object AmmStats {
         start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
         r      <- _
         finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
-        _      <- metrics.send("getPlatformSummary", finish - start)
-        _      <- metrics.send("getPlatformSummary.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+        _      <- metrics.send("getPlatformSummary", (finish - start).toDouble)
+        _ <- metrics.send(
+               "getPlatformSummary.window",
+               (window.to.getOrElse(finish) - window.from.getOrElse(start)).toDouble
+             )
       } yield r
 
     def getPoolStats(poolId: PoolId, window: TimeWindow): Mid[F, Option[PoolStats]] =
@@ -387,8 +390,8 @@ object AmmStats {
         start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
         r      <- _
         finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
-        _      <- metrics.send("getPoolStats", finish - start)
-        _      <- metrics.send("getPoolStats.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+        _      <- metrics.send("getPoolStats", (finish - start).toDouble)
+        _      <- metrics.send("getPoolStats.window", (window.to.getOrElse(finish) - window.from.getOrElse(start)).toDouble)
       } yield r
 
     def getPoolsStats(window: TimeWindow): Mid[F, List[PoolStats]] =
@@ -396,8 +399,8 @@ object AmmStats {
         start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
         r      <- _
         finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
-        _      <- metrics.send("getPoolsStats", finish - start)
-        _      <- metrics.send("getPoolsStats.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+        _      <- metrics.send("getPoolsStats", (finish - start).toDouble)
+        _      <- metrics.send("getPoolsStats.window", (window.to.getOrElse(finish) - window.from.getOrElse(start)).toDouble)
       } yield r
 
     def getPoolsSummary: Mid[F, List[PoolSummary]] =
@@ -405,7 +408,7 @@ object AmmStats {
         start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
         r      <- _
         finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
-        _      <- metrics.send("getPoolsSummary", finish - start)
+        _      <- metrics.send("getPoolsSummary", (finish - start).toDouble)
       } yield r
 
     def getAvgPoolSlippage(poolId: PoolId, depth: Int): Mid[F, Option[PoolSlippage]] =
@@ -413,7 +416,7 @@ object AmmStats {
         start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
         r      <- _
         finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
-        _      <- metrics.send("getAvgPoolSlippage", finish - start)
+        _      <- metrics.send("getAvgPoolSlippage", (finish - start).toDouble)
       } yield r
 
     def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): Mid[F, List[PricePoint]] =
@@ -421,8 +424,11 @@ object AmmStats {
         start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
         r      <- _
         finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
-        _      <- metrics.send("getPoolPriceChart", finish - start)
-        _      <- metrics.send("getPoolPriceChart.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+        _      <- metrics.send("getPoolPriceChart", (finish - start).toDouble)
+        _ <- metrics.send(
+               "getPoolPriceChart.window",
+               (window.to.getOrElse(finish) - window.from.getOrElse(start)).toDouble
+             )
       } yield r
 
     def getSwapTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
@@ -430,8 +436,11 @@ object AmmStats {
         start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
         r      <- _
         finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
-        _      <- metrics.send("getSwapTransactions", finish - start)
-        _      <- metrics.send("getSwapTransactions.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+        _      <- metrics.send("getSwapTransactions", (finish - start).toDouble)
+        _ <- metrics.send(
+               "getSwapTransactions.window",
+               (window.to.getOrElse(finish) - window.from.getOrElse(start)).toDouble
+             )
       } yield r
 
     def getDepositTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
@@ -439,8 +448,11 @@ object AmmStats {
         start  <- Clock[F].realTime(TimeUnit.MILLISECONDS)
         r      <- _
         finish <- Clock[F].realTime(TimeUnit.MILLISECONDS)
-        _      <- metrics.send("getDepositTransactions", finish - start)
-        _      <- metrics.send("getDepositTransactions.window", window.to.getOrElse(finish) - window.from.getOrElse(start))
+        _      <- metrics.send("getDepositTransactions", (finish - start).toDouble)
+        _ <- metrics.send(
+               "getDepositTransactions.window",
+               (window.to.getOrElse(finish) - window.from.getOrElse(start)).toDouble
+             )
       } yield r
   }
 }

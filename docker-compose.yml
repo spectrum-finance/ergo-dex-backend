@@ -91,3 +91,5 @@ services:
     container_name: graphite
     ports:
       - 8125:8125/udp
+      - 8080:8080
+      - 2003:2003
