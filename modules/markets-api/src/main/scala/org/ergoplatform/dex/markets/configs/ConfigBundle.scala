@@ -6,9 +6,10 @@ import org.ergoplatform.common.cache.RedisConfig
 import org.ergoplatform.common.db.PgConfig
 import org.ergoplatform.common.http.config.HttpConfig
 import org.ergoplatform.dex.configs.{ConfigBundleCompanion, KafkaConfig, NetworkConfig}
+import org.ergoplatform.graphite.GraphiteSettings
 import tofu.Context
 import tofu.logging.Loggable
-import tofu.optics.macros.{promote, ClassyOptics}
+import tofu.optics.macros.{ClassyOptics, promote}
 
 @derive(pureconfigReader)
 @ClassyOptics
@@ -20,7 +21,9 @@ final case class ConfigBundle(
   redis: RedisConfig,
   tokens: TokenFetcherConfig,
   request: RequestConfig,
-  consumers: Consumers
+  consumers: Consumers,
+  graphite: GraphiteSettings,
+  graphitePathPrefix: String
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {

@@ -79,3 +79,17 @@ services:
     depends_on:
       - kafka1
       - redis
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    links:
+      - graphite
+  graphite:
+    image: graphiteapp/graphite-statsd
+    container_name: graphite
+    ports:
+      - 8125:8125/udp
+      - 8080:8080
+      - 2003:2003

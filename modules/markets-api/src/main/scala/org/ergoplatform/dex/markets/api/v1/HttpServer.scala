@@ -9,6 +9,7 @@ import org.ergoplatform.common.http.routes.unliftRoutes
 import org.ergoplatform.dex.markets.api.v1.routes.{AmmStatsRoutes, DocsRoutes}
 import org.ergoplatform.dex.markets.api.v1.services.{AmmStats, LqLocks}
 import org.ergoplatform.dex.markets.configs.RequestConfig
+import org.ergoplatform.graphite.MetricsMiddleware.MetricsMiddleware
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import org.http4s.server.middleware.CORS
@@ -26,11 +27,12 @@ object HttpServer {
     stats: AmmStats[F],
     locks: LqLocks[F],
     opts: Http4sServerOptions[F, F],
-    cache: CachingMiddleware[F]
+    cache: CachingMiddleware[F],
+    metrics: MetricsMiddleware[F]
   ): fs2.Stream[I, ExitCode] = {
     val ammStatsR  = AmmStatsRoutes.make[F](requestConf)
     val docsR      = DocsRoutes.make[F](requestConf)
-    val routes     = unliftRoutes[F, I](cache.middleware(ammStatsR <+> docsR))
+    val routes     = unliftRoutes[F, I](metrics.middleware(cache.middleware(ammStatsR <+> docsR)))
     val corsRoutes = CORS.policy.withAllowOriginAll(routes)
     val api        = Router("/" -> corsRoutes).orNotFound
     BlazeServerBuilder[I](ec).bindHttp(conf.port, conf.host).withHttpApp(api).serve

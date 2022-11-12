@@ -5,6 +5,7 @@ import cats.effect.Clock
 import cats.syntax.parallel._
 import cats.syntax.traverse._
 import cats.{Monad, Parallel}
+import derevo.derive
 import mouse.anyf._
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.FullAsset
@@ -22,11 +23,17 @@ import org.ergoplatform.dex.markets.services.TokenFetcher
 import org.ergoplatform.dex.protocol.constants.ErgoAssetId
 import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.modules.ErgoNetwork
+import org.ergoplatform.graphite.Metrics
 import tofu.doobie.transactor.Txr
+import tofu.higherKind.Mid
+import tofu.higherKind.derived.representableK
 import tofu.syntax.monadic._
 import tofu.syntax.time.now.millis
+
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 
+@derive(representableK)
 trait AmmStats[F[_]] {
 
   def convertToFiat(id: TokenId, amount: Long): F[Option[FiatEquiv]]
@@ -60,8 +67,9 @@ object AmmStats {
     orders: Orders[D],
     network: ErgoNetwork[F],
     tokens: TokenFetcher[F],
-    fiatSolver: FiatPriceSolver[F]
-  ): AmmStats[F] = new Live[F, D]()
+    fiatSolver: FiatPriceSolver[F],
+    metrics: Metrics[F]
+  ): AmmStats[F] = new AmmMetrics[F] attach new Live[F, D]()
 
   final class Live[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
@@ -353,5 +361,55 @@ object AmmStats {
                    })
       } yield TransactionsInfo(numTxs, volumes.sum / numTxs, volumes.max, UsdUnits).roundAvgValue)
         .getOrElse(TransactionsInfo.empty)
+  }
+
+  final private class AmmMetrics[F[_]: Monad: Clock](implicit metrics: Metrics[F]) extends AmmStats[Mid[F, *]] {
+
+    val firstTxTs = 1628766987000L
+
+    def convertToFiat(id: TokenId, amount: Long): Mid[F, Option[FiatEquiv]] =
+      _ <* unit
+
+    def getPlatformSummary(window: TimeWindow): Mid[F, PlatformSummary] =
+      _ <* metrics.sendTs(
+        "getPlatformSummary.window",
+        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
+      )
+
+    def getPoolStats(poolId: PoolId, window: TimeWindow): Mid[F, Option[PoolStats]] =
+      _ <* metrics.sendTs(
+        "getPoolStats.window",
+        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
+      )
+
+    def getPoolsStats(window: TimeWindow): Mid[F, List[PoolStats]] =
+      _ <* metrics.sendTs(
+        "getPoolsStats.window",
+        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
+      )
+
+    def getPoolsSummary: Mid[F, List[PoolSummary]] =
+      _ <* unit
+
+    def getAvgPoolSlippage(poolId: PoolId, depth: Int): Mid[F, Option[PoolSlippage]] =
+      _ <* unit
+
+    def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): Mid[F, List[PricePoint]] =
+      _ <* metrics.sendTs(
+        "getPoolPriceChart.window",
+        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
+      )
+
+    def getSwapTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
+      _ <* metrics.sendTs(
+        "getSwapTransactions.window",
+        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
+      )
+
+    def getDepositTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
+      _ <* metrics.sendTs(
+        "getDepositTransactions.window",
+        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
+      )
   }
 }
