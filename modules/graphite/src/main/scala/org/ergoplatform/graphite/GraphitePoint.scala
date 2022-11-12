@@ -21,5 +21,5 @@ object GraphitePoint {
     point.map(format).mkString
 
   def format(point: GraphitePoint): String =
-    s"${point.path} ${point.value.round} ${point.ts}\n"
+    s"${point.path}:${point.value.round}|ms\n"
 }
