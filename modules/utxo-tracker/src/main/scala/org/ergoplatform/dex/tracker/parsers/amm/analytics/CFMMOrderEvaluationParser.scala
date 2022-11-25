@@ -1,11 +1,10 @@
-package org.ergoplatform.dex.tracker.parsers.amm
+package org.ergoplatform.dex.tracker.parsers.amm.analytics
 
 import cats.Applicative
 import cats.syntax.option._
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.dex.domain.amm.{CFMMPool, CFMMVersionedOrder}
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
-import org.ergoplatform.ergo.PubKey
+import org.ergoplatform.dex.domain.amm.{CFMMPool, CFMMVersionedOrder}
 import org.ergoplatform.ergo.domain.Output
 import tofu.syntax.monadic._
 
@@ -31,10 +30,10 @@ object CFMMOrderEvaluationParser {
 
     def parseSwapEval(output: Output, order: CFMMVersionedOrder.AnySwap): F[Option[SwapEvaluation]] = {
       val (redeemer, minOutput) = order match {
-        case swap: CFMMVersionedOrder.SwapP2Pk => (swap.params.redeemer.ergoTree, swap.params.minOutput)
+        case swap: CFMMVersionedOrder.SwapP2Pk => (swap.params.redeemer.ergoTree, swap.params.minQuoteAmount)
         case swap: CFMMVersionedOrder.SwapMultiAddress =>
-          (swap.params.redeemer, swap.params.minOutput)
-        case swap: CFMMVersionedOrder.SwapV0 => (swap.params.redeemer.ergoTree, swap.params.minOutput)
+          (swap.params.redeemer, swap.params.minQuoteAmount)
+        case swap: CFMMVersionedOrder.SwapV0 => (swap.params.redeemer.ergoTree, swap.params.minQuoteAmount)
       }
       if (output.ergoTree == redeemer) {
         val outputAmount =

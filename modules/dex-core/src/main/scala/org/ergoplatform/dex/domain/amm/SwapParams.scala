@@ -8,8 +8,8 @@ import tofu.logging.derivation.loggable
 
 @derive(show, encoder, decoder, loggable)
 final case class SwapParams[T](
-  input: AssetAmount,
-  minOutput: AssetAmount,
+  baseAmount: AssetAmount,
+  minQuoteAmount: AssetAmount,
   dexFeePerTokenNum: Long,
   dexFeePerTokenDenom: Long,
   redeemer: T

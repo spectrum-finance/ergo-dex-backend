@@ -61,7 +61,7 @@ object Executor {
         .evalMap { rec =>
           service
             .executeAttempt(rec.message)
-            .handleWith[Throwable](e => warnCause"Order execution failed fatally" (e) as none[CFMMOrder.Any])
+            .handleWith[Throwable](e => warnCause"Order execution failed fatally" (e) as none[CFMMOrder.AnyOrder])
             .local(_ => TraceId.fromString(rec.message.id.value))
             .tupleLeft(rec)
         }
@@ -70,10 +70,10 @@ object Executor {
           case (_, Some(order)) =>
             eval(now.millis) >>= {
               case ts if ts - order.timestamp < conf.orderLifetime.toMillis =>
-                eval(warn"Failed to execute $order. Going to retry.") >>
+                eval(info"Failed to execute $order. Going to retry. Order ts: ${order.timestamp}, $ts, ${conf.orderLifetime.toMillis}") >>
                   orders.retry((order.id -> order).pure[F])
               case _ =>
-                eval(warn"Failed to execute $order. Order expired.")
+                eval(info"Failed to execute $order. Order expired.")
             }
         }
         .evalMap { case (rec, _) => rec.commit }

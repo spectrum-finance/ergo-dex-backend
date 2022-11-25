@@ -8,4 +8,4 @@ import org.ergoplatform.ergo.PubKey
 import tofu.logging.derivation.loggable
 
 @derive(show, encoder, decoder, loggable)
-final case class RedeemParams(lp: AssetAmount, dexFee: Long, redeemer: PubKey)
+final case class RedeemParams[T](lp: AssetAmount, dexFee: Long, redeemer: T)

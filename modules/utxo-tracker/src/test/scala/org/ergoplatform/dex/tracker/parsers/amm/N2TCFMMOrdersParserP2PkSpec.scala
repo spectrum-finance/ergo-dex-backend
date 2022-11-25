@@ -3,6 +3,7 @@ package org.ergoplatform.dex.tracker.parsers.amm
 import cats.effect.IO
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.CatsPlatform
+import org.ergoplatform.dex.tracker.parsers.amm.v1.N2TOrdersV1Parser
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo._
 import org.scalatest.matchers.should
@@ -13,11 +14,10 @@ class N2TCFMMOrdersParserP2PkSpec extends AnyPropSpec with should.Matchers with 
 
   property("N2T Deposit order parsing") {
     val res = parser.deposit(boxSample).unsafeRunSync()
-    println(res)
   }
 
   implicit val e: ErgoAddressEncoder = new ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
-  def parser                         = N2TCFMMOrdersParserP2Pk.make[IO]
+  def parser                         = N2TOrdersV1Parser.make[IO]
 
   def boxSample =
     io.circe.parser

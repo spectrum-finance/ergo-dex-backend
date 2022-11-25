@@ -6,11 +6,12 @@ import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.services.node.ErgoNode
 import org.ergoplatform.ergo.services.node.models.Transaction
 import tofu.higherKind.derived.representableK
+import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
 import tofu.syntax.monadic._
+import tofu.syntax.logging._
 import tofu.syntax.streams.all._
 
-@derive(representableK)
 trait MempoolStreaming[F[_]] {
 
   def streamUnspentOutputs: F[Output]
@@ -20,10 +21,15 @@ object MempoolStreaming {
 
   val Limit = 100
 
-  def make[F[_]: Functor: Evals[*[_], G], G[_]: Monad](implicit node: ErgoNode[G]): MempoolStreaming[F] =
-    new Live(node)
+  def make[I[_]: Functor, F[_]: Functor: Evals[*[_], G], G[_]: Monad](implicit
+    node: ErgoNode[G],
+    logs: Logs[I, G]
+  ): I[MempoolStreaming[F]] =
+    logs.forService[MempoolStreaming[F]].map { implicit __ =>
+      new Live(node)
+    }
 
-  final class Live[F[_]: Functor: Evals[*[_], G], G[_]: Monad](node: ErgoNode[G]) extends MempoolStreaming[F] {
+  final class Live[F[_]: Functor: Evals[*[_], G], G[_]: Monad: Logging](node: ErgoNode[G]) extends MempoolStreaming[F] {
 
     def streamUnspentOutputs: F[Output] = {
       def fetchMempool(offset: Int, acc: Vector[Transaction]): G[Vector[Transaction]] =
@@ -32,7 +38,7 @@ object MempoolStreaming {
       evals(fetchMempool(0, Vector.empty).map(extractUtxos))
     }
 
-    private def extractUtxos(txs: Vector[Transaction]): Vector[Output] = {
+    def extractUtxos(txs: Vector[Transaction]): Vector[Output] = {
       val spent   = txs.flatMap(_.inputs.map(_.boxId)).toSet
       val unspent = txs.flatMap(_.outputs).filterNot(o => spent.contains(o.boxId))
       unspent.map(Output.fromNode)

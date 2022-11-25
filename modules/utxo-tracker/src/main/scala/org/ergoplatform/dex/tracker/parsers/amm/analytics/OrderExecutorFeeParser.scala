@@ -1,12 +1,12 @@
-package org.ergoplatform.dex.tracker.parsers.amm
+package org.ergoplatform.dex.tracker.parsers.amm.analytics
 
 import cats.syntax.option._
-import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, CFMMVersionedOrder, OrderExecutorFee}
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.constants._
-import org.ergoplatform.ergo.{ErgoTreeTemplate, PubKey}
+import org.ergoplatform.ergo.ErgoTreeTemplate
 import org.ergoplatform.ergo.domain.Output
+import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
 
 trait OrderExecutorFeeParser {
 

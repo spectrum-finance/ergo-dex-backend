@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.tracker.parsers.amm
+package org.ergoplatform.dex.tracker.parsers.amm.analytics
 
 import cats.Monad
 import cats.instances.list._
@@ -7,6 +7,7 @@ import cats.syntax.traverse._
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
+import org.ergoplatform.dex.tracker.parsers.amm.pools.CFMMPoolsParser
 import org.ergoplatform.ergo.domain.{Output, SettledTransaction}
 import tofu.higherKind.Embed
 import tofu.syntax.foption._
@@ -60,7 +61,7 @@ object CFMMHistoryParser {
             x.copy(order = o.copy(timestamp = tx.timestamp))
           case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapP2Pk, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
-          case x@EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapMultiAddress, _, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapMultiAddress, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
         }
 

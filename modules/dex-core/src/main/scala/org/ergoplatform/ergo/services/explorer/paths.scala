@@ -1,7 +1,7 @@
 package org.ergoplatform.ergo.services.explorer
 
 import org.ergoplatform.common.HexString
-import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.{Address, TokenId}
 import sttp.model.Uri.Segment
 
 object paths {
@@ -23,4 +23,7 @@ object paths {
 
   def tokenInfoPathSeg(tokenId: TokenId): Segment =
     Segment(s"api/v1/tokens/$tokenId", identity)
+
+  def unspentByAddress(address: Address): Segment =
+    Segment(s"api/v1/boxes/unspent/byAddress/$address", identity)
 }

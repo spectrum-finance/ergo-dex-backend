@@ -9,6 +9,7 @@ import cats.{Applicative, Show}
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
+import derevo.pureconfig.pureconfigReader
 import doobie._
 import scodec.codecs._
 import eu.timepit.refined.api.Refined
@@ -25,7 +26,7 @@ import org.ergoplatform.common.errors.RefinementFailed
 import org.ergoplatform.ergo.CurrencyId
 import org.ergoplatform.ergo.syntax.PubKeyOps
 import pureconfig.ConfigReader
-import pureconfig.error.CannotConvert
+import pureconfig.error.{CannotConvert, FailureReason}
 import scodec.bits.ByteVector
 import scorex.crypto.hash.Sha256
 import scorex.util.encode.Base16
@@ -123,6 +124,10 @@ package object ergo {
   }
 
   object TokenId {
+
+    implicit val configReader: ConfigReader[TokenId] = ConfigReader.fromString { str =>
+      TokenId.fromString[Try](str).toEither.leftMap(err => CannotConvert(str, "token id", err.getMessage))
+    }
 
     implicit val get: Get[TokenId] =
       Get[HexString].map(TokenId(_))

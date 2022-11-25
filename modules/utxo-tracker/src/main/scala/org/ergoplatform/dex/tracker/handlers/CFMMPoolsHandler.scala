@@ -6,7 +6,7 @@ import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.ergo.state.{Confirmed, LedgerStatus}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.dex.tracker.parsers.amm.CFMMPoolsParser
+import org.ergoplatform.dex.tracker.parsers.amm.pools.CFMMPoolsParser
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
 import tofu.syntax.logging._

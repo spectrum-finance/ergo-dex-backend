@@ -70,7 +70,12 @@ object ErgoNode {
         }
 
     def unconfirmedTransactions(offset: Int, limit: Int): F[Vector[Transaction]] =
-      basicRequest.get(config.nodeUri withPathSegment paths.unconfirmedTransactionsPathSeg)
+      basicRequest
+        .get(
+          config.nodeUri
+            .withPathSegment(paths.unconfirmedTransactionsPathSeg)
+            .addParams("offset" -> s"$offset", "limit" -> s"$limit")
+        )
         .response(asJson[Vector[Transaction]])
         .send(backend)
         .absorbError

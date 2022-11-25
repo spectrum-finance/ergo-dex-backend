@@ -5,7 +5,7 @@ import mouse.any._
 import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.dex.tracker.parsers.amm.CFMMPoolsParser
+import org.ergoplatform.dex.tracker.parsers.amm.pools.CFMMPoolsParser
 import org.ergoplatform.ergo.domain.LedgerMetadata
 import org.ergoplatform.ergo.state.ConfirmedIndexed
 import tofu.logging.{Logging, Logs}
