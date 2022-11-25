@@ -2,7 +2,7 @@ package org.ergoplatform.dex.executor.amm.services
 
 import cats.syntax.option._
 import cats.{Functor, Monad}
-import org.ergoplatform.dex.domain.amm.CFMMOrder
+import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMOrderType}
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.errors.TxFailed
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectMultiAddressSwapTree}
@@ -44,12 +44,14 @@ object Execution {
     def executeAttempt(order: CFMMOrder.Any): F[Option[CFMMOrder.Any]] =
       pools.get(order.poolId) >>= {
         case Some(pool) =>
-          val interpretF =
-            order match {
-              case deposit: Deposit => interpreter.deposit(deposit, pool)
-              case redeem: Redeem   => interpreter.redeem(redeem, pool)
-              case swap: SwapAny    => interpreter.swap(swap, pool)
+          val interpretF = {
+            (order, order.orderType) match {
+              case (swap: SwapAny, _: CFMMOrderType.SwapType)          => interpreter.swap(swap, pool)
+              case (redeem: RedeemErgFee, _: CFMMOrderType.RedeemType)       => interpreter.redeem(redeem, pool)
+              case (deposit: DepositAny, _: CFMMOrderType.DepositType) => interpreter.deposit(deposit, pool)
+              case _ => ???
             }
+          }
           val executeF =
             for {
               (transaction, nextPool) <- interpretF
@@ -78,7 +80,7 @@ object Execution {
 
           executeF.handleWith[ExecutionFailed] {
             case e: IncorrectMultiAddressSwapTree => warnCause"Order execution failed" (e) as none
-            case e                   => warnCause"Order execution failed" (e) as Some(order)
+            case e                                => warnCause"Order execution failed" (e) as Some(order)
           }
         case None =>
           warn"Order{id=${order.id}} references an unknown Pool{id=${order.poolId}}" as Some(order)

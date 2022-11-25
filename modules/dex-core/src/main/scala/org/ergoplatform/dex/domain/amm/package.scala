@@ -18,6 +18,21 @@ import tofu.logging.derivation.loggable
 package object amm {
 
   @derive(show, loggable, encoder, decoder)
+  sealed trait DepositFee
+
+  object DepositFee {
+
+    @derive(show, loggable, encoder, decoder)
+    case object FeeFromY extends DepositFee
+
+    @derive(show, loggable, encoder, decoder)
+    case object FeeFromX extends DepositFee
+
+    @derive(show, loggable, encoder, decoder)
+    case object FeeFromInput extends DepositFee
+  }
+
+  @derive(show, loggable, encoder, decoder)
   @newtype final case class PoolStateId(value: BoxId) {
     def unwrapped: String = value.value
   }

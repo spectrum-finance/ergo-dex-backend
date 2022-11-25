@@ -6,6 +6,6 @@ import tofu.Context
 import tofu.logging.derivation.loggable
 
 @derive(pureconfigReader, loggable)
-final case class MonetaryConfig(minerFee: Long, minDexFee: Long, minBoxValue: Long)
+final case class MonetaryConfig(minerFee: Long, minDexFee: Long, minBoxValue: Long, minDexTokenFee: Long)
 
 object MonetaryConfig extends Context.Companion[MonetaryConfig]

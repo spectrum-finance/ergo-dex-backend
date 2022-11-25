@@ -20,10 +20,10 @@ final class N2TCFMMOrdersParserP2Pk[F[_]: Applicative](ts: Long)(implicit
   e: ErgoAddressEncoder
 ) extends CFMMOrdersParser[N2T_CFMM, ParserType.Default, F] {
 
-  def deposit(box: Output): F[Option[CFMMOrder.Deposit]] = {
+  def deposit(box: Output): F[Option[CFMMOrder.DepositErgFee]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    val parsed: Option[CFMMOrder.Deposit] =
+    val parsed: Option[CFMMOrder.DepositErgFee] =
       if (template == templates.depositLatest) {
         for {
           poolId      <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
@@ -33,15 +33,15 @@ final class N2TCFMMOrdersParserP2Pk[F[_]: Applicative](ts: Long)(implicit
           dexFee      <- tree.constants.parseLong(15)
           redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = DepositParams(inX, inY, dexFee, redeemer)
-        } yield CFMMOrder.Deposit(poolId, maxMinerFee, ts, params, box)
+        } yield CFMMOrder.DepositErgFee(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }
 
-  def redeem(box: Output): F[Option[CFMMOrder.Redeem]] = {
+  def redeem(box: Output): F[Option[CFMMOrder.RedeemErgFee]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    val parsed: Option[CFMMOrder.Redeem] =
+    val parsed: Option[CFMMOrder.RedeemErgFee] =
       if (template == templates.redeemLatest) {
         for {
           poolId      <- tree.constants.parseBytea(11).map(PoolId.fromBytes)
@@ -50,7 +50,7 @@ final class N2TCFMMOrdersParserP2Pk[F[_]: Applicative](ts: Long)(implicit
           dexFee      <- tree.constants.parseLong(12)
           redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = RedeemParams(inLP, dexFee, redeemer)
-        } yield CFMMOrder.Redeem(poolId, maxMinerFee, ts, params, box)
+        } yield CFMMOrder.RedeemErgFee(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }
@@ -65,7 +65,7 @@ final class N2TCFMMOrdersParserP2Pk[F[_]: Applicative](ts: Long)(implicit
     parsed.pure
   }
 
-  private def swapSell(box: Output, tree: ErgoTree): Option[CFMMOrder.Swap] =
+  private def swapSell(box: Output, tree: ErgoTree): Option[CFMMOrder.SwapP2Pk] =
     for {
       poolId       <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
       maxMinerFee  <- tree.constants.parseLong(22)
@@ -77,9 +77,9 @@ final class N2TCFMMOrdersParserP2Pk[F[_]: Applicative](ts: Long)(implicit
       dexFeePerTokenDenom <- tree.constants.parseLong(12)
       redeemer            <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
       params = SwapParams(baseAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
-    } yield CFMMOrder.Swap(poolId, maxMinerFee, ts, params, box)
+    } yield CFMMOrder.SwapP2Pk(poolId, maxMinerFee, ts, params, box)
 
-  private def swapBuy(box: Output, tree: ErgoTree): Option[CFMMOrder.Swap] =
+  private def swapBuy(box: Output, tree: ErgoTree): Option[CFMMOrder.SwapP2Pk] =
     for {
       poolId       <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
       maxMinerFee  <- tree.constants.parseLong(19)
@@ -91,7 +91,7 @@ final class N2TCFMMOrdersParserP2Pk[F[_]: Applicative](ts: Long)(implicit
       dexFeePerTokenNum = dexFeePerTokenDenom - dexFeePerTokenNumDiff
       redeemer <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
       params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
-    } yield CFMMOrder.Swap(poolId, maxMinerFee, ts, params, box)
+    } yield CFMMOrder.SwapP2Pk(poolId, maxMinerFee, ts, params, box)
 }
 
 object N2TCFMMOrdersParserP2Pk {

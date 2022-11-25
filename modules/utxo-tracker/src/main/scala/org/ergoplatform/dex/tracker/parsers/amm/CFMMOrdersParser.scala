@@ -11,9 +11,9 @@ import tofu.higherKind.Embed
 
 trait CFMMOrdersParser[+CT <: CFMMType, +T <: ParserType, F[_]] {
 
-  def deposit(box: Output): F[Option[CFMMOrder.Deposit]]
+  def deposit(box: Output): F[Option[CFMMOrder.DepositErgFee]]
 
-  def redeem(box: Output): F[Option[CFMMOrder.Redeem]]
+  def redeem(box: Output): F[Option[CFMMOrder.RedeemErgFee]]
 
   def swap(box: Output): F[Option[CFMMOrder.SwapAny]]
 }

@@ -14,7 +14,8 @@ import tofu.logging.derivation.loggable
 final case class Traced[T](state: T, predecessorBoxId: BoxId)
 
 object Traced {
-  implicit def schema[T: Schema]: Schema[Traced[T]]          = Schema.derived[Traced[T]]
+  implicit def schema[T: Schema]: Schema[Traced[T]] = Schema.derived[Traced[T]]
+
   implicit def validator[T: Validator]: Validator[Traced[T]] = Validator.pass
 
   implicit def codec[T: Codec]: Codec[Traced[T]] = (implicitly[Codec[T]] :: implicitly[Codec[BoxId]]).as[Traced[T]]

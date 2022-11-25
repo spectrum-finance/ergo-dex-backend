@@ -18,13 +18,13 @@ final class CfmmRuleDefs[F[_]: Applicative](conf: MonetaryConfig) {
   private val allRules = sufficientValueDepositRedeem orElse sufficientValueSwap
 
   private def sufficientValueDepositRedeem: CFMMRule = {
-    case Deposit(_, _, _, params, _) => checkFee(params.dexFee)
-    case Redeem(_, _, _, params, _)  => checkFee(params.dexFee)
+    case DepositErgFee(_, _, _, params, _) => checkFee(params.dexFee)
+    case RedeemErgFee(_, _, _, params, _)  => checkFee(params.dexFee)
   }
 
-  private def sufficientValueSwap: CFMMRule = { case Swap(_, maxMinerFee, _, params, box) =>
-    val minDexFee   = BigInt(params.dexFeePerTokenNum) * params.minOutput.value / params.dexFeePerTokenDenom
-    val nativeInput = if (params.input.isNative) params.input.value else 0L
+  private def sufficientValueSwap: CFMMRule = { case SwapP2Pk(_, maxMinerFee, _, params, box) =>
+    val minDexFee   = BigInt(params.dexFeePerTokenNum) * params.minQuoteAmount.value / params.dexFeePerTokenDenom
+    val nativeInput = if (params.baseAmount.isNative) params.baseAmount.value else 0L
     val minerFee    = conf.minerFee min maxMinerFee
     val maxDexFee   = box.value - conf.minBoxValue - nativeInput
     val insufficientValue =

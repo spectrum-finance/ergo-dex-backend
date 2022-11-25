@@ -1,74 +1,75 @@
 package org.ergoplatform.dex.domain.amm
 
-import cats.Show
-import io.circe.{Codec, Decoder, Encoder}
-import tofu.logging.Loggable
+import cats.syntax.either._
+import derevo.circe.{decoder, encoder}
+import derevo.derive
+import io.circe.{Decoder, Encoder}
 
 sealed trait CFMMOrderType
 
 object CFMMOrderType {
 
-  sealed trait Swap extends CFMMOrderType
+  sealed trait SwapType extends CFMMOrderType
 
-  sealed trait MultiAddress extends Swap
+  object SwapType {
 
-  object MultiAddress {
+    trait SwapMultiAddress extends SwapType
 
-    implicit val show: Show[MultiAddress] = _ => "SwapMultiAddress"
+    object SwapMultiAddress {
 
-    implicit val loggable: Loggable[MultiAddress] = Loggable.show
+      implicit val encoderSwapMultiAddress: Encoder[SwapMultiAddress] =
+        Encoder[String].contramap(_ => "swapMultiAddress")
 
-    implicit val codecMultiAddressSwapType: Codec[MultiAddress] = Codec
-      .from(Decoder[String], Encoder[String])
-      .iemap(str =>
-        Either.cond(str == "swapMultiAddress", swapMultiAddress, s"incorrect swap multi address type: $str")
-      )(_ => "swapMultiAddress")
+      implicit val decoderSwapMultiAddress: Decoder[SwapMultiAddress] = Decoder[String].emap {
+        case "swapMultiAddress" => swapMultiAddress.asRight
+        case nonsense           => s"Invalid type in SwapMultiAddress: $nonsense".asLeft
+      }
+    }
+
+    trait SwapP2Pk extends SwapType
+
+    object SwapP2Pk {
+      implicit val encoderSwapP2Pk: Encoder[SwapP2Pk] = Encoder[String].contramap(_ => "swapP2Pk")
+
+      implicit val decoderSwapP2Pk: Decoder[SwapP2Pk] = Decoder[String].emap {
+        case "swapP2Pk" => swapP2Pk.asRight
+        case nonsense   => s"Invalid type in SwapP2Pk: $nonsense".asLeft
+      }
+    }
+
+
+    trait SwapTokenFee extends SwapType
+
+    def swapMultiAddress: SwapMultiAddress = new SwapMultiAddress {}
+
+    def swapP2Pk: SwapP2Pk = new SwapP2Pk {}
+
+    def swapTokenFee: SwapTokenFee = new SwapTokenFee {}
   }
 
-  sealed trait P2Pk extends Swap
+  sealed abstract class DepositType extends CFMMOrderType
 
-  object P2Pk {
+  object DepositType {
 
-    implicit val show: Show[P2Pk] = _ => "SwapP2Pk"
+    sealed abstract class DepositErgFee extends DepositType
 
-    implicit val loggable: Loggable[P2Pk] = Loggable.show
+    sealed abstract class DepositTokenFee extends DepositType
 
-    implicit val codecP2PkSwapType: Codec[P2Pk] = Codec
-      .from(Decoder[String], Encoder[String])
-      .iemap(str => Either.cond(str == "swapP2Pk", swapP2Pk, s"incorrect swap p2pk type: $str"))(_ => "swapP2Pk")
+    def depositTokenFee: DepositTokenFee = new DepositTokenFee {}
+
+    def depositErgFee: DepositErgFee     = new DepositErgFee {}
   }
 
-  sealed abstract class Redeem extends CFMMOrderType
+  sealed abstract class RedeemType extends CFMMOrderType
 
-  object Redeem {
+  object RedeemType {
 
-    implicit val show: Show[Redeem] = _ => "Redeem"
+    sealed abstract class RedeemErgFee extends RedeemType
 
-    implicit val loggable: Loggable[Redeem] = Loggable.show
+    sealed abstract class RedeemTokenFee extends RedeemType
 
-    implicit val codecRedeemType: Codec[Redeem] = Codec
-      .from(Decoder[String], Encoder[String])
-      .iemap(str => Either.cond(str == "redeem", redeem, s"incorrect redeem type: $str"))(_ => "redeem")
+    def redeemTokenFee: RedeemTokenFee = new RedeemTokenFee {}
+
+    def redeemErgFee: RedeemErgFee = new RedeemErgFee {}
   }
-
-  sealed abstract class Deposit extends CFMMOrderType
-
-  object Deposit {
-
-    implicit val show: Show[Deposit] = _ => "Deposit"
-
-    implicit val loggable: Loggable[Deposit] = Loggable.show
-
-    implicit val codecDepositType: Codec[Deposit] = Codec
-      .from(Decoder[String], Encoder[String])
-      .iemap(str => Either.cond(str == "deposit", deposit, s"incorrect deposit type: $str"))(_ => "deposit")
-  }
-
-  type Any = CFMMOrderType
-
-  def deposit: Deposit               = new Deposit {}
-  def redeem: Redeem                 = new Redeem {}
-  def swap: Swap                     = new Swap {}
-  def swapMultiAddress: MultiAddress = new MultiAddress {}
-  def swapP2Pk: P2Pk                 = new P2Pk {}
 }
