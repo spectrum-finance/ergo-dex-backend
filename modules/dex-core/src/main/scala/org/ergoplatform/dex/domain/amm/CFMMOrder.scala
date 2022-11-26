@@ -71,13 +71,13 @@ object CFMMOrder {
 
   implicit val loggableSwapAny: Loggable[SwapAny] = Loggable.show
 
-  @derive(show, loggable, encoder, decoder, codec)
+  @derive(show, loggable, encoder, decoder)
   final case class DepositErgFee(poolId: PoolId, maxMinerFee: Long, timestamp: Long, params: DepositParams, box: Output)
     extends CFMMOrder[DepositType.DepositErgFee] {
     val orderType: DepositType.DepositErgFee = DepositType.depositErgFee
   }
 
-  @derive(show, loggable, encoder, decoder, codec)
+  @derive(show, loggable, encoder, decoder)
   final case class DepositTokenFee(
     poolId: PoolId,
     maxMinerFee: Long,
@@ -89,22 +89,42 @@ object CFMMOrder {
     val orderType: DepositType.DepositTokenFee = DepositType.depositTokenFee
   }
 
-  @derive(show, loggable, encoder, decoder, codec)
+  @derive(show, loggable)
   final case class RedeemErgFee(poolId: PoolId, maxMinerFee: Long, timestamp: Long, params: RedeemParams, box: Output)
     extends CFMMOrder[RedeemType.RedeemErgFee] {
     val orderType: RedeemType.RedeemErgFee = RedeemType.redeemErgFee
   }
 
-  @derive(show, loggable, encoder, decoder, codec)
-  final case class RedeemTokenFee(
-    poolId: PoolId,
-    maxMinerFee: Long,
-    timestamp: Long,
-    params: RedeemParams,
-    box: Output,
-    spectrumTokenFee: Long
-  ) extends CFMMOrder[RedeemType.RedeemTokenFee] {
+  object RedeemErgFee {
+
+    implicit def encoderRedeemErgFee: Encoder[RedeemErgFee] =
+      deriveEncoder.mapJsonObject(_.add("orderType", RedeemType.redeemErgFee.asJson))
+
+    implicit def decoderRedeemErgFee: Decoder[RedeemErgFee] =
+      deriveDecoder
+        .validate(
+          _.downField("orderType").as[RedeemType.RedeemErgFee].toOption.nonEmpty,
+          "Incorrect redeem erg fee order. There is no proper order type."
+        )
+  }
+
+  @derive(show, loggable)
+  final case class RedeemTokenFee(poolId: PoolId, maxMinerFee: Long, timestamp: Long, params: RedeemParams, box: Output)
+    extends CFMMOrder[RedeemType.RedeemTokenFee] {
     val orderType: RedeemType.RedeemTokenFee = RedeemType.redeemTokenFee
+  }
+
+  object RedeemTokenFee {
+
+    implicit def encoderRedeemTokenFee: Encoder[RedeemTokenFee] =
+      deriveEncoder.mapJsonObject(_.add("orderType", RedeemType.redeemTokenFee.asJson))
+
+    implicit def decoderRedeemTokenFee: Decoder[RedeemTokenFee] =
+      deriveDecoder
+        .validate(
+          _.downField("orderType").as[RedeemType.RedeemTokenFee].toOption.nonEmpty,
+          "Incorrect redeem token fee order. There is no proper order type."
+        )
   }
 
   @derive(show, loggable)
@@ -120,10 +140,7 @@ object CFMMOrder {
 
   object SwapP2Pk {
 
-    implicit def codecSwapP2Pk: Codec.AsObject[SwapP2Pk] =
-      Codec.AsObject.from(decoderSwapP2Pk, encoderSwapP2Pk)
-
-    implicit def encoderSwapP2Pk: Encoder.AsObject[SwapP2Pk] =
+    implicit def encoderSwapP2Pk: Encoder[SwapP2Pk] =
       deriveEncoder.mapJsonObject(_.add("orderType", SwapType.swapP2Pk.asJson))
 
     implicit def decoderSwapP2Pk: Decoder[SwapP2Pk] =
@@ -147,10 +164,7 @@ object CFMMOrder {
 
   object SwapMultiAddress {
 
-    implicit def codecSwapMultiAddress: Codec.AsObject[SwapMultiAddress] =
-      Codec.AsObject.from(decoderSwapMultiAddress, encoderSwapMultiAddress)
-
-    implicit def encoderSwapMultiAddress: Encoder.AsObject[SwapMultiAddress] =
+    implicit def encoderSwapMultiAddress: Encoder[SwapMultiAddress] =
       deriveEncoder.mapJsonObject(_.add("orderType", SwapType.swapMultiAddress.asJson))
 
     implicit def decoderSwapMultiAddress: Decoder[SwapMultiAddress] =
@@ -161,15 +175,14 @@ object CFMMOrder {
         )
   }
 
-  @derive(show, loggable, encoder, decoder, codec)
+  @derive(show, loggable, encoder, decoder)
   final case class SwapTokenFee(
     poolId: PoolId,
     maxMinerFee: Long,
     timestamp: Long,
     params: SwapParams[SErgoTree],
     box: Output,
-    feeTokenId: TokenId,
-    reservedExFee: Long //todo validate base + reserve == actual
+    reservedExFee: Long
   ) extends CFMMOrder[SwapType.SwapTokenFee] {
     val orderType: SwapType.SwapTokenFee = SwapType.swapTokenFee
   }

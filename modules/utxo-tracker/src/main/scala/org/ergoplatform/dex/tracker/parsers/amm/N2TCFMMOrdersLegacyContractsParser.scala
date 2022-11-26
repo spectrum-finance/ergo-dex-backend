@@ -25,7 +25,7 @@ final class N2TCFMMOrdersLegacyContractsParser[F[_]: Applicative](ts: Long)(impl
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.depositV1) {
+      if (template == templates.depositLegacyV1) {
         for {
           poolId   <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
           inX      <- tree.constants.parseLong(16).map(AssetAmount.native)
@@ -42,7 +42,7 @@ final class N2TCFMMOrdersLegacyContractsParser[F[_]: Applicative](ts: Long)(impl
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.depositV0) {
+      if (template == templates.depositLegacyV0) {
         for {
           poolId   <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
           inX      <- tree.constants.parseLong(11).map(AssetAmount.native)
@@ -59,7 +59,7 @@ final class N2TCFMMOrdersLegacyContractsParser[F[_]: Applicative](ts: Long)(impl
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.redeemV0) {
+      if (template == templates.redeemLegacyV0) {
         for {
           poolId   <- tree.constants.parseBytea(11).map(PoolId.fromBytes)
           inLP     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
@@ -75,8 +75,8 @@ final class N2TCFMMOrdersLegacyContractsParser[F[_]: Applicative](ts: Long)(impl
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.swapSellV0) swapSellV0(box, tree)
-      else if (template == templates.swapBuyV0) swapBuyV0(box, tree)
+      if (template == templates.swapSellLegacyV0) swapSellV0(box, tree)
+      else if (template == templates.swapBuyLegacyV0) swapBuyV0(box, tree)
       else None
     parsed.pure
   }

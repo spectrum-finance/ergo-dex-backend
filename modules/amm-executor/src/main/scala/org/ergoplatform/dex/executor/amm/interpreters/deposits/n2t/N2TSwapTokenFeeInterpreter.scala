@@ -29,7 +29,6 @@ class N2TSwapTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   ref: Ref[F, NetworkContext],
   helpers: CFMMInterpreterHelpers
 )(implicit contracts: AMMContracts[N2T_CFMM]) {
-
   import helpers._
 
   def swap(

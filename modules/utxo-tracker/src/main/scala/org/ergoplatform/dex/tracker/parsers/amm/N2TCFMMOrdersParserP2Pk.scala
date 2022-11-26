@@ -24,7 +24,7 @@ final class N2TCFMMOrdersParserP2Pk[F[_]: Applicative](ts: Long)(implicit
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed: Option[CFMMOrder.DepositErgFee] =
-      if (template == templates.depositLatest) {
+      if (template == templates.depositV1) {
         for {
           poolId      <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
           maxMinerFee <- tree.constants.parseLong(22)
@@ -42,7 +42,7 @@ final class N2TCFMMOrdersParserP2Pk[F[_]: Applicative](ts: Long)(implicit
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed: Option[CFMMOrder.RedeemErgFee] =
-      if (template == templates.redeemLatest) {
+      if (template == templates.redeemV1) {
         for {
           poolId      <- tree.constants.parseBytea(11).map(PoolId.fromBytes)
           maxMinerFee <- tree.constants.parseLong(16)
@@ -59,8 +59,8 @@ final class N2TCFMMOrdersParserP2Pk[F[_]: Applicative](ts: Long)(implicit
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed: Option[CFMMOrder.SwapAny] =
-      if (template == templates.swapSellLatest) swapSell(box, tree)
-      else if (template == templates.swapBuyLatest) swapBuy(box, tree)
+      if (template == templates.swapSellV1) swapSell(box, tree)
+      else if (template == templates.swapBuyV1) swapBuy(box, tree)
       else None
     parsed.pure
   }

@@ -29,8 +29,8 @@ final class N2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed: Option[CFMMOrder.SwapAny] =
-      if (template == templates.swapSellMultiAddress) swapSell(box, tree)
-      else if (template == templates.swapBuyMultiAddress) swapBuy(box, tree)
+      if (template == templates.swapSellMultiAddressV2) swapSell(box, tree)
+      else if (template == templates.swapBuyMultiAddressV2) swapBuy(box, tree)
       else None
     parsed.pure
   }

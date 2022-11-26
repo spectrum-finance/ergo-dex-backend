@@ -37,7 +37,6 @@ object CFMMOrderType {
       }
     }
 
-
     trait SwapTokenFee extends SwapType
 
     def swapMultiAddress: SwapMultiAddress = new SwapMultiAddress {}
@@ -57,7 +56,7 @@ object CFMMOrderType {
 
     def depositTokenFee: DepositTokenFee = new DepositTokenFee {}
 
-    def depositErgFee: DepositErgFee     = new DepositErgFee {}
+    def depositErgFee: DepositErgFee = new DepositErgFee {}
   }
 
   sealed abstract class RedeemType extends CFMMOrderType
@@ -66,7 +65,25 @@ object CFMMOrderType {
 
     sealed abstract class RedeemErgFee extends RedeemType
 
+    object RedeemErgFee {
+      implicit val encoderRedeemErgFee: Encoder[RedeemErgFee] = Encoder[String].contramap(_ => "redeemErgFee")
+
+      implicit val decoderRedeemErgFee: Decoder[RedeemErgFee] = Decoder[String].emap {
+        case "redeemErgFee" => redeemErgFee.asRight
+        case nonsense       => s"Invalid type in RedeemErgFee: $nonsense".asLeft
+      }
+    }
+
     sealed abstract class RedeemTokenFee extends RedeemType
+
+    object RedeemTokenFee {
+      implicit val encoderRedeemTokenFee: Encoder[RedeemTokenFee] = Encoder[String].contramap(_ => "redeemTokenFee")
+
+      implicit val decoderRedeemTokenFee: Decoder[RedeemTokenFee] = Decoder[String].emap {
+        case "redeemTokenFee" => redeemTokenFee.asRight
+        case nonsense         => s"Invalid type in RedeemTokenFee: $nonsense".asLeft
+      }
+    }
 
     def redeemTokenFee: RedeemTokenFee = new RedeemTokenFee {}
 

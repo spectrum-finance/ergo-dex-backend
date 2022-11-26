@@ -43,7 +43,7 @@ class N2TMultiAddressSwapParserSpec
 
     val template = ErgoTreeTemplate.fromBytes(tree.template)
 
-    N2TCFMMTemplates.swapBuyMultiAddress shouldEqual template
+    N2TCFMMTemplates.swapBuyMultiAddressV2 shouldEqual template
 
     val order = parser.swap(boxSampleSwapBuy).unsafeRunSync().get
 
@@ -74,7 +74,7 @@ class N2TMultiAddressSwapParserSpec
     val tree     = ErgoTreeSerializer.default.deserialize(sErgoTreeSwapSell)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
 
-    N2TCFMMTemplates.swapSellMultiAddress shouldEqual template
+    N2TCFMMTemplates.swapSellMultiAddressV2 shouldEqual template
 
     val order = parser.swap(boxSampleSwapSell).unsafeRunSync().get
 

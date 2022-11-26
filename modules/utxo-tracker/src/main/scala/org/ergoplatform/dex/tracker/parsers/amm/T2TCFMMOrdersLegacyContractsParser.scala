@@ -24,7 +24,7 @@ final class T2TCFMMOrdersLegacyContractsParser[F[_]: Applicative: Clock](ts: Lon
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.depositV1) {
+      if (template == templates.depositLegacyV1) {
         for {
           poolId   <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
           inX      <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
@@ -41,7 +41,7 @@ final class T2TCFMMOrdersLegacyContractsParser[F[_]: Applicative: Clock](ts: Lon
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.depositV0) {
+      if (template == templates.depositLegacyV0) {
         for {
           poolId   <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
           inX      <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
@@ -58,7 +58,7 @@ final class T2TCFMMOrdersLegacyContractsParser[F[_]: Applicative: Clock](ts: Lon
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed =
-      if (template == templates.redeemV0) {
+      if (template == templates.redeemLegacyV0) {
         for {
           poolId   <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
           inLP     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))

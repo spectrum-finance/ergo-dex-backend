@@ -23,7 +23,7 @@ final class T2TCFMMOrdersParserP2Pk[F[_]: Applicative: Clock](ts: Long)(implicit
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed: Option[CFMMOrder.DepositErgFee] =
-      if (template == templates.depositLatest) {
+      if (template == templates.depositV1) {
         for {
           poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
           maxMinerFee <- tree.constants.parseLong(25)
@@ -41,7 +41,7 @@ final class T2TCFMMOrdersParserP2Pk[F[_]: Applicative: Clock](ts: Long)(implicit
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed: Option[CFMMOrder.RedeemErgFee] =
-      if (template == templates.redeemLatest) {
+      if (template == templates.redeemV1) {
         for {
           poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
           maxMinerFee <- tree.constants.parseLong(19)
