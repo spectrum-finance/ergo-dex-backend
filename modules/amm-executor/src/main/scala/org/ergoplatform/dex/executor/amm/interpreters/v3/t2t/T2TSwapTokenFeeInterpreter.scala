@@ -1,14 +1,15 @@
 package org.ergoplatform.dex.executor.amm.interpreters.v3.t2t
 
-import cats.Functor
+import cats.{Functor, Monad}
 import cats.effect.concurrent.Ref
 import cats.syntax.either._
+import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.amm.CFMMPool
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.dex.executor.amm.domain.errors.IncorrectMultiAddressTree
+import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectMultiAddressTree}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreterHelpers
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMContracts
@@ -19,16 +20,19 @@ import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import org.ergoplatform.{ErgoBoxCandidate, ErgoLikeTransaction, Input, UnsignedErgoLikeTransaction}
+import scorex.util.encode.Base16
+import sigmastate.basics.DLogProtocol.DLogProverInput
 import sigmastate.interpreter.ProverResult
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
 
-class T2TSwapTokenFeeInterpreter[F[_]: Functor](
+class T2TSwapTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   exchange: ExchangeConfig,
   monetary: MonetaryConfig,
   ref: Ref[F, NetworkContext],
   helpers: CFMMInterpreterHelpers
 )(implicit contracts: AMMContracts[N2T_CFMM]) {
+  val sk: DLogProverInput = DLogProverInput(BigIntegers.fromUnsignedByteArray(Base16.decode(exchange.skHex).get))
 
   import helpers._
 
@@ -36,7 +40,7 @@ class T2TSwapTokenFeeInterpreter[F[_]: Functor](
     swap: SwapTokenFee,
     pool: CFMMPool,
     dexFeeOutput: Output
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = ref.get.map { ctx =>
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = ref.get.flatMap { ctx =>
     swapParamsTokenFee(swap, pool).toRaise.flatMap { case (baseAmount, quoteAmount, dexFee) =>
       Either
         .catchNonFatal(ErgoTreeSerializer.default.deserialize(swap.params.redeemer))
@@ -92,7 +96,7 @@ class T2TSwapTokenFeeInterpreter[F[_]: Functor](
           val dexInput =
             Vector(
               ErgoUnsafeProver
-                .prove(UnsignedErgoLikeTransaction(IndexedSeq(dexFeeIn), IndexedSeq.empty), exchange.sk)
+                .prove(UnsignedErgoLikeTransaction(IndexedSeq(dexFeeIn), IndexedSeq.empty), sk)
                 .inputs
                 .headOption
             ).flatten

@@ -46,9 +46,9 @@ object Execution {
         case Some(pool) =>
           val interpretF = {
             (order, order.orderType) match {
-              case (swap: SwapAny, _: CFMMOrderType.SwapType)          => interpreter.swap(swap, pool)
-              case (redeem: Redeem, _: CFMMOrderType.RedeemType)       => interpreter.redeem(redeem, pool)
-              case (deposit: DepositAny, _: CFMMOrderType.FeeType) => interpreter.deposit(deposit, pool)
+              case (swap: SwapErgAny, _: CFMMOrderType.SwapType)          => interpreter.swap(swap, pool)
+//              case (redeem: Redeem, _: CFMMOrderType.RedeemType)       => interpreter.redeem(redeem, pool)
+//              case (deposit: DepositAny, _: CFMMOrderType.FeeType) => interpreter.deposit(deposit, pool)
               case _ => ???
             }
           }

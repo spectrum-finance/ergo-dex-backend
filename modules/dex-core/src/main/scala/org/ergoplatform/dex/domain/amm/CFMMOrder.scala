@@ -11,7 +11,7 @@ import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType.{ErgFee, TokenFee}
 import org.ergoplatform.dex.domain.amm.CFMMOrderType.SwapType._
-import org.ergoplatform.dex.domain.amm.CFMMOrderType.{FeeType, SwapType}
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.{DepositType, FeeType, RedeemType, SwapType}
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.{PubKey, SErgoTree}
 import tofu.logging.Loggable
@@ -30,8 +30,9 @@ sealed trait CFMMOrder[+O <: CFMMOrderType] {
 object CFMMOrder {
 
   type Any        = CFMMOrder[CFMMOrderType]
-  type SwapAny    = CFMMOrder[CFMMOrderType.SwapType]
-  type DepositAny = CFMMOrder[CFMMOrderType.FeeType]
+  type SwapErgAny = CFMMOrder[CFMMOrderType.SwapType.SwapErgFee]
+  type DepositAny = CFMMOrder[CFMMOrderType.DepositType]
+  type RedeemAny  = CFMMOrder[CFMMOrderType.RedeemType]
 
   implicit def decoderAny: Decoder[Any] = x =>
     x.as[Deposit[ErgFee, PubKey]]
@@ -62,15 +63,14 @@ object CFMMOrder {
     case s: Swap[SwapMultiAddress, SErgoTree] => s.show
   }
 
-  implicit val showSwapAny: Show[SwapAny] = {
+  implicit val showSwapAny: Show[SwapErgAny] = {
     case s: Swap[SwapP2Pk, PubKey]            => s.show
     case s: Swap[SwapMultiAddress, SErgoTree] => s.show
-    case s: SwapTokenFee                      => s.show
   }
 
   implicit val loggableCFMMOrder: Loggable[CFMMOrder.Any] = Loggable.show
 
-  implicit val loggableSwapAny: Loggable[SwapAny] = Loggable.show
+  implicit val loggableSwapAny: Loggable[SwapErgAny] = Loggable.show
 
   /** @param params If orderType is DepositTokenFee and inY or inX are spectrum
     *               tokens, then inY or inX are already without dex fee. Otherwise
@@ -83,8 +83,10 @@ object CFMMOrder {
     timestamp: Long,
     params: DepositParams[T],
     box: Output,
-    orderType: O
-  ) extends CFMMOrder[O]
+    feeType: O
+  ) extends CFMMOrder[DepositType] {
+    val orderType: DepositType = DepositType.depositType
+  }
 
   object Deposit {
 
@@ -103,8 +105,10 @@ object CFMMOrder {
     timestamp: Long,
     params: RedeemParams[T],
     box: Output,
-    orderType: O
-  ) extends CFMMOrder[O]
+    feeType: O
+  ) extends CFMMOrder[RedeemType] {
+    val orderType: RedeemType = RedeemType.redeemType
+  }
 
   object Redeem {
 
@@ -137,9 +141,7 @@ object CFMMOrder {
     implicit def decoderSwap[O <: SwapType: Decoder, T: Decoder]: Decoder[Swap[O, T]] = deriveDecoder
   }
 
-  /**
-    *
-    * @param params baseAmount is already without max dex fee if needed
+  /** @param params baseAmount is already without max dex fee if needed
     */
   @derive(show, loggable, encoder, decoder)
   final case class SwapTokenFee(

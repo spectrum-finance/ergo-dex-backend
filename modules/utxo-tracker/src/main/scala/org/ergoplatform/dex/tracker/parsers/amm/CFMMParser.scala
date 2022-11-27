@@ -2,10 +2,12 @@ package org.ergoplatform.dex.tracker.parsers.amm
 
 import cats.Monad
 import cats.data.OptionT
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.SwapType
 import org.ergoplatform.dex.domain.amm.CFMMVersionedOrder._
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.dex.protocol.amm.ParserType
+import org.ergoplatform.ergo.{PubKey, SErgoTree}
 import org.ergoplatform.ergo.domain.Output
 import tofu.syntax.monadic._
 
@@ -55,9 +57,9 @@ object CFMMParser {
         OptionT(default.swap(box))
           .orElseF(multiAddress.swap(box))
           .map {
-            case s: CFMMOrder.SwapMultiAddress =>
+            case s: CFMMOrder.Swap[SwapType.SwapMultiAddress, SErgoTree] =>
               SwapMultiAddress(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnySwap
-            case s: CFMMOrder.Swap =>
+            case s: CFMMOrder.Swap[SwapType.SwapP2Pk, PubKey] =>
               SwapP2Pk(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnySwap
           }
           .orElseF(v0.swapV0(box).map(r => r: Option[CFMMVersionedOrder.AnySwap]))

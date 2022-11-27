@@ -3,10 +3,13 @@ package org.ergoplatform.dex.executor.amm.interpreters
 import cats.FlatMap
 import org.ergoplatform.ErgoLikeTransaction
 import org.ergoplatform.ergo.state.{Predicted, Traced}
-import org.ergoplatform.dex.domain.amm.CFMMPool
+import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool}
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType.ErgFee
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.{DepositType, FeeType, RedeemType, SwapType}
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.dex.protocol.instances._
+import org.ergoplatform.ergo.PubKey
 import tofu.higherKind.{Mid, RepresentableK}
 import tofu.logging.Logging
 import tofu.syntax.logging._
@@ -16,11 +19,11 @@ import tofu.syntax.monadic._
   */
 trait CFMMInterpreter[CT <: CFMMType, F[_]] {
 
-  def deposit(in: DepositAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
+  def deposit(in: Deposit[ErgFee, PubKey], pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
 
-  def redeem(in: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
+  def redeem(in: Redeem[ErgFee, PubKey], pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
 
-  def swap(in: SwapAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
+  def swap(in: CFMMOrder.SwapErgAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
 }
 
 object CFMMInterpreter {
@@ -39,33 +42,32 @@ object CFMMInterpreter {
   final class Proxy[F[_]](implicit n2t: CFMMInterpreter[N2T_CFMM, F], t2t: CFMMInterpreter[T2T_CFMM, F])
     extends CFMMInterpreter[CFMMType, F] {
 
-    def deposit(in: DepositAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = {
-      in match {
-        case native: DepositErgFee                =>
-          if (pool.isNative) n2t.deposit(in, pool)
-          else t2t.deposit(in, pool)
-        case token: DepositTokenFee => ???
-      }
-    }
+    def deposit(in: CFMMOrder[DepositType], pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = ???
+//      in match {
+//        case native: DepositErgFee =>
+//          if (pool.isNative) n2t.deposit(in, pool)
+//          else t2t.deposit(in, pool)
+//        case token: DepositTokenFee => ???
+//      }
 
-    def redeem(in: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
+    def redeem(in: CFMMOrder[RedeemType], pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
       if (pool.isNative) n2t.redeem(in, pool)
       else t2t.redeem(in, pool)
 
-    def swap(in: SwapAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
+    def swap(in: CFMMOrder[SwapType], pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
       if (pool.isNative) n2t.swap(in, pool)
       else t2t.swap(in, pool)
   }
 
   final class CFMMInterpreterTracing[CT <: CFMMType, F[_]: FlatMap: Logging] extends CFMMInterpreter[CT, Mid[F, *]] {
 
-    def deposit(in: DepositAny, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
-      _ >>= (r => trace"deposit(in=$in, pool=$pool) = (${r._1}, ${r._2})" as r)
+    def deposit(in: DepositAny, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = ???
+//      _ >>= (r => trace"deposit(in=$in, pool=$pool) = (${r._1}, ${r._2})" as r)
 
-    def redeem(in: Redeem, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
-      _ >>= (r => trace"redeem(in=$in, pool=$pool) = (${r._1}, ${r._2})" as r)
+    def redeem(in: CFMMOrder[RedeemType], pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = ???
+//      _ >>= (r => trace"redeem(in=$in, pool=$pool) = (${r._1}, ${r._2})" as r)
 
-    def swap(in: SwapAny, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
-      _ >>= (r => trace"swap(in=$in, pool=$pool) = (${r._1}, ${r._2})" as r)
+    def swap(in: CFMMOrder[SwapType], pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = ???
+//      _ >>= (r => trace"swap(in=$in, pool=$pool) = (${r._1}, ${r._2})" as r)
   }
 }

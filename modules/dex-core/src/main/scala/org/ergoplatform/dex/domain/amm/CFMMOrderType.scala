@@ -11,7 +11,9 @@ object CFMMOrderType {
 
   object SwapType {
 
-    trait SwapMultiAddress extends SwapType
+    sealed trait SwapErgFee extends SwapType
+
+    trait SwapMultiAddress extends SwapErgFee
 
     object SwapMultiAddress {
 
@@ -24,7 +26,7 @@ object CFMMOrderType {
       }
     }
 
-    trait SwapP2Pk extends SwapType
+    trait SwapP2Pk extends SwapErgFee
 
     object SwapP2Pk {
       implicit val encoderSwapP2Pk: Encoder[SwapP2Pk] = Encoder[String].contramap(_ => "swapP2Pk")
@@ -44,7 +46,7 @@ object CFMMOrderType {
     def swapTokenFee: SwapTokenFee = new SwapTokenFee {}
   }
 
-  sealed abstract class FeeType extends CFMMOrderType
+  sealed abstract class FeeType
 
   object FeeType {
 
@@ -76,4 +78,14 @@ object CFMMOrderType {
   }
 
   sealed trait RedeemType extends CFMMOrderType
+
+  object RedeemType {
+    def redeemType: RedeemType = new RedeemType {}
+  }
+
+  sealed trait DepositType extends CFMMOrderType
+
+  object DepositType {
+    def depositType: DepositType = new DepositType {}
+  }
 }

@@ -3,7 +3,7 @@ package org.ergoplatform.dex.executor.amm.interpreters
 import cats.{Functor, Monad}
 import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
-import org.ergoplatform.dex.domain.amm.CFMMOrder.{DepositAny, DepositErgFee, DepositTokenFee, Redeem}
+import org.ergoplatform.dex.domain.amm.CFMMOrder.{Deposit, DepositAny, Redeem, Swap}
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
@@ -12,7 +12,7 @@ import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterp
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMContracts
 import org.ergoplatform.dex.protocol.amm.AMMType.N2T_CFMM
-import org.ergoplatform.ergo.BoxId
+import org.ergoplatform.ergo.{BoxId, PubKey, SErgoTree}
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.ergo.syntax._
@@ -22,6 +22,8 @@ import tofu.syntax.embed._
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
 import cats.syntax.either._
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType.ErgFee
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.SwapType
 import org.ergoplatform.ergo.domain.Output
 
 final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
@@ -37,7 +39,10 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
   import helpers._
 
-  def deposit(deposit: DepositErgFee, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = {
+  def deposit(
+    deposit: Deposit[ErgFee, PubKey],
+    pool: CFMMPool
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = {
     val poolBox0           = pool.box
     val depositBox         = deposit.box
     val depositIn          = new Input(depositBox.boxId.toErgo, ProverResult.empty)
@@ -79,7 +84,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     (tx, nextPool).pure
   }
 
-  def redeem(redeem: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = {
+  def redeem(redeem: Redeem[ErgFee, PubKey], pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = {
     val poolBox0         = pool.box
     val redeemBox        = redeem.box
     val redeemIn         = new Input(redeemBox.boxId.toErgo, ProverResult.empty)
@@ -116,17 +121,17 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     (tx, nextPool).pure
   }
 
-  def swap(swap: CFMMOrder.SwapAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
+  def swap(swap: CFMMOrder.SwapErgAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
     swapParamsErgFee(swap, pool).toRaise.flatMap { case (input, output, dexFee) =>
       (swap match {
-        case CFMMOrder.Swap(_, maxMinerFee, _, params, _) =>
-          (maxMinerFee, params.baseAmount, params.redeemer.toErgoTree, params.minQuoteAmount).pure[F]
-        case CFMMOrder.SwapMultiAddress(_, maxMinerFee, _, params, box) =>
+        case s: Swap[SwapType.SwapP2Pk, PubKey] =>
+          (s.maxMinerFee, s.params.baseAmount, s.params.redeemer.toErgoTree, s.params.minQuoteAmount).pure[F]
+        case s: Swap[SwapType.SwapMultiAddress, SErgoTree] =>
           Either
-            .catchNonFatal(ErgoTreeSerializer.default.deserialize(params.redeemer))
-            .leftMap(s => IncorrectMultiAddressTree(pool.poolId, box.boxId, params.redeemer, s.getMessage))
+            .catchNonFatal(ErgoTreeSerializer.default.deserialize(s.params.redeemer))
+            .leftMap(err => IncorrectMultiAddressTree(pool.poolId, s.box.boxId, s.params.redeemer, err.getMessage))
             .toRaise
-            .map(tree => (maxMinerFee, params.baseAmount, tree, params.minQuoteAmount))
+            .map(tree => (s.maxMinerFee, s.params.baseAmount, tree, s.params.minQuoteAmount))
       }).map { case (maxMinerFee, inputSwap, redeemer, minOutput) =>
         val poolBox0 = pool.box
         val swapBox  = swap.box

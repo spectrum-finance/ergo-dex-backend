@@ -4,13 +4,16 @@ import cats.effect.Clock
 import cats.{Applicative, Monad}
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.AssetAmount
+import org.ergoplatform.dex.domain.amm.CFMMOrder.{Deposit, Redeem, SwapErgAny}
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType.ErgFee
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.SwapType
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.dex.protocol.amm.{ParserType, T2TCFMMTemplates => templates}
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.ergo.{ErgoTreeTemplate, SErgoTree, TokenId}
+import org.ergoplatform.ergo.{ErgoTreeTemplate, PubKey, SErgoTree, TokenId}
 import tofu.syntax.embed._
 import tofu.syntax.foption.noneF
 import tofu.syntax.monadic._
@@ -20,14 +23,14 @@ final class T2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(
   e: ErgoAddressEncoder
 ) extends CFMMOrdersParser[T2T_CFMM, ParserType.MultiAddress, F] {
 
-  def deposit(box: Output): F[Option[CFMMOrder.DepositErgFee]] = noneF
+  def deposit(box: Output): F[Option[Deposit[ErgFee, PubKey]]] = noneF
 
-  def redeem(box: Output): F[Option[CFMMOrder.Redeem]] = noneF
+  def redeem(box: Output): F[Option[Redeem[ErgFee, PubKey]]] = noneF
 
-  def swap(box: Output): F[Option[CFMMOrder.SwapAny]] = {
+  def swap(box: Output): F[Option[SwapErgAny]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    val parsed: Option[CFMMOrder.SwapAny] =
+    val parsed: Option[SwapErgAny] =
       if (template == templates.swapV2) {
         for {
           poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
@@ -46,7 +49,7 @@ final class T2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(
                      dexFeePerTokenDenom,
                      redeemer
                    )
-        } yield CFMMOrder.SwapMultiAddress(poolId, maxMinerFee, ts, params, box)
+        } yield CFMMOrder.Swap(poolId, maxMinerFee, ts, params, box, SwapType.swapMultiAddress)
       } else None
     parsed.pure
   }

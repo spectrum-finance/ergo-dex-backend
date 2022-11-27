@@ -4,13 +4,16 @@ import cats.effect.Clock
 import cats.{Applicative, Monad}
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.AssetAmount
+import org.ergoplatform.dex.domain.amm.CFMMOrder.{Deposit, Redeem, Swap, SwapErgAny}
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType.ErgFee
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.{DepositType, RedeemType, SwapType}
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMType.N2T_CFMM
 import org.ergoplatform.dex.protocol.amm.{ParserType, N2TCFMMTemplates => templates}
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.ergo.{ErgoTreeTemplate, SErgoTree, TokenId}
+import org.ergoplatform.ergo.{ErgoTreeTemplate, PubKey, SErgoTree, TokenId}
 import sigmastate.Values.ErgoTree
 import tofu.syntax.embed._
 import tofu.syntax.foption.noneF
@@ -21,21 +24,21 @@ final class N2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(
   e: ErgoAddressEncoder
 ) extends CFMMOrdersParser[N2T_CFMM, ParserType.MultiAddress, F] {
 
-  def deposit(box: Output): F[Option[CFMMOrder.DepositErgFee]] = noneF
+  def deposit(box: Output): F[Option[Deposit[ErgFee, PubKey]]] = noneF
 
-  def redeem(box: Output): F[Option[CFMMOrder.Redeem]] = noneF
+  def redeem(box: Output): F[Option[Redeem[ErgFee, PubKey]]] = noneF
 
-  def swap(box: Output): F[Option[CFMMOrder.SwapAny]] = {
+  def swap(box: Output): F[Option[SwapErgAny]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    val parsed: Option[CFMMOrder.SwapAny] =
+    val parsed: Option[SwapErgAny] =
       if (template == templates.swapSellMultiAddressV2) swapSell(box, tree)
       else if (template == templates.swapBuyMultiAddressV2) swapBuy(box, tree)
       else None
     parsed.pure
   }
 
-  private def swapSell(box: Output, tree: ErgoTree): Option[CFMMOrder.SwapMultiAddress] =
+  private def swapSell(box: Output, tree: ErgoTree): Option[Swap[SwapType.SwapMultiAddress, SErgoTree]] =
     for {
       poolId       <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
       maxMinerFee  <- tree.constants.parseLong(23)
@@ -47,9 +50,9 @@ final class N2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(
       dexFeePerTokenDenom <- tree.constants.parseLong(13)
       redeemer            <- tree.constants.parseBytea(9).map(SErgoTree.fromBytes)
       params = SwapParams(baseAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
-    } yield CFMMOrder.SwapMultiAddress(poolId, maxMinerFee, ts, params, box)
+    } yield CFMMOrder.Swap(poolId, maxMinerFee, ts, params, box, SwapType.swapMultiAddress)
 
-  private def swapBuy(box: Output, tree: ErgoTree): Option[CFMMOrder.SwapMultiAddress] =
+  private def swapBuy(box: Output, tree: ErgoTree): Option[Swap[SwapType.SwapMultiAddress, SErgoTree]] =
     for {
       poolId       <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
       maxMinerFee  <- tree.constants.parseLong(20)
@@ -61,7 +64,7 @@ final class N2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(
       dexFeePerTokenNum = dexFeePerTokenDenom - dexFeePerTokenNumDiff
       redeemer <- tree.constants.parseBytea(10).map(SErgoTree.fromBytes)
       params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
-    } yield CFMMOrder.SwapMultiAddress(poolId, maxMinerFee, ts, params, box)
+    } yield CFMMOrder.Swap(poolId, maxMinerFee, ts, params, box, SwapType.swapMultiAddress)
 }
 
 object N2TCFMMOrdersParserMultiAddress {

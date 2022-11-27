@@ -49,7 +49,7 @@ object CFMMVersionedOrder {
 
   type AnyRedeem = CFMMVersionedOrder[CFMMOrderVersion, CFMMOrderType.RedeemType]
 
-  type AnyDeposit = CFMMVersionedOrder[CFMMOrderVersion, CFMMOrderType.FeeType]
+  type AnyDeposit = CFMMVersionedOrder[CFMMOrderVersion, CFMMOrderType.DepositType]
 
   @derive(loggable)
   final case class SwapP2Pk(poolId: PoolId, maxMinerFee: Long, timestamp: Long, params: SwapParams[PubKey], box: Output)
@@ -116,19 +116,19 @@ object CFMMVersionedOrder {
 
   @derive(encoder, decoder, loggable)
   final case class DepositV2(poolId: PoolId, maxMinerFee: Long, timestamp: Long, params: DepositParams[PubKey], box: Output)
-    extends CFMMVersionedOrder[CFMMOrderVersion.V2, CFMMOrderType.FeeType] {
+    extends CFMMVersionedOrder[CFMMOrderVersion.V2, CFMMOrderType.DepositType] {
     val version: CFMMOrderVersion.V2 = CFMMOrderVersion.v2
   }
 
   @derive(encoder, decoder, loggable)
   final case class DepositV1(poolId: PoolId, timestamp: Long, params: DepositParams[PubKey], box: Output)
-    extends CFMMVersionedOrder[CFMMOrderVersion.V1, CFMMOrderType.FeeType] {
+    extends CFMMVersionedOrder[CFMMOrderVersion.V1, CFMMOrderType.DepositType] {
     val version: CFMMOrderVersion.V1 = CFMMOrderVersion.v1
   }
 
   @derive(loggable)
   final case class DepositV0(poolId: PoolId, timestamp: Long, params: DepositParams[PubKey], box: Output)
-    extends CFMMVersionedOrder[CFMMOrderVersion.V0, CFMMOrderType.FeeType] {
+    extends CFMMVersionedOrder[CFMMOrderVersion.V0, CFMMOrderType.DepositType] {
     val version: CFMMOrderVersion.V0 = CFMMOrderVersion.v0
   }
 

@@ -3,19 +3,21 @@ package org.ergoplatform.dex.tracker.parsers.amm
 import cats.Monad
 import cats.effect.Clock
 import org.ergoplatform.ErgoAddressEncoder
-import org.ergoplatform.dex.domain.amm._
+import org.ergoplatform.dex.domain.amm.CFMMOrder._
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType.ErgFee
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
 import org.ergoplatform.dex.protocol.amm.ParserType
+import org.ergoplatform.ergo.PubKey
 import org.ergoplatform.ergo.domain.Output
 import tofu.higherKind.Embed
 
 trait CFMMOrdersParser[+CT <: CFMMType, +T <: ParserType, F[_]] {
 
-  def deposit(box: Output): F[Option[CFMMOrder.DepositErgFee]]
+  def deposit(box: Output): F[Option[Deposit[ErgFee, PubKey]]]
 
-  def redeem(box: Output): F[Option[CFMMOrder.Redeem]]
+  def redeem(box: Output): F[Option[Redeem[ErgFee, PubKey]]]
 
-  def swap(box: Output): F[Option[CFMMOrder.SwapAny]]
+  def swap(box: Output): F[Option[SwapErgAny]]
 }
 
 object CFMMOrdersParser {

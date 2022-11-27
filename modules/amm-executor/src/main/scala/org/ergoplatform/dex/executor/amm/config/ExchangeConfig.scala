@@ -8,6 +8,6 @@ import tofu.Context
 import tofu.logging.derivation.loggable
 
 @derive(pureconfigReader, loggable)
-final case class ExchangeConfig(rewardAddress: Address, spectrumToken: TokenId, sk: DLogProverInput)
+final case class ExchangeConfig(rewardAddress: Address, spectrumToken: TokenId, skHex: String)
 
 object ExchangeConfig extends Context.Companion[ExchangeConfig]

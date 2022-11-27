@@ -3,7 +3,7 @@ package org.ergoplatform.dex.tracker.parsers.amm.v3
 import cats.Functor
 import cats.effect.Clock
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.dex.domain.amm.CFMMOrder.{Deposit, Redeem}
+import org.ergoplatform.dex.domain.amm.CFMMOrder.{Deposit, Redeem, SwapTokenFee}
 import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType
 import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType._
 import org.ergoplatform.dex.domain.amm._
@@ -50,7 +50,7 @@ class N2TOrderV3Parser[F[_]: Functor: Clock] {
     } else None
   }
 
-  def swap(box: Output): F[Option[CFMMOrder.SwapAny]] = millis.map { ts =>
+  def swap(box: Output): F[Option[SwapTokenFee]] = millis.map { ts =>
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     if (template == N2TCFMMTemplates.swapSellV3) swapSell(box, tree, ts)

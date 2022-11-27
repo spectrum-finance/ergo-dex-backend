@@ -25,7 +25,7 @@ final class CFMMOpsHandler[
   G[_]: Monad: Logging,
   Status[_]: LedgerStatus
 ](parsers: List[CFMMOrdersParser[CFMMType, ParserType.Any, G]])(implicit
-  producer: Producer[OrderId, Status[CFMMOrder[CFMMOrderType.Any]], F],
+  producer: Producer[OrderId, Status[CFMMOrder[CFMMOrderType]], F],
   rules: CFMMRules[G]
 ) {
 
@@ -37,7 +37,7 @@ final class CFMMOpsHandler[
             deposit <- parser.deposit(out)
             redeem  <- parser.redeem(out)
             swap    <- parser.swap(out)
-          } yield deposit orElse redeem orElse swap orElse none[CFMMOrder[CFMMOrderType.Any]]
+          } yield deposit orElse redeem orElse swap orElse none[CFMMOrder[CFMMOrderType]]
         }
         .map(_.reduce(_ orElse _))
     }.unNone
@@ -46,7 +46,7 @@ final class CFMMOpsHandler[
         eval(rules(op)) >>=
           (_.fold(op.pure[F])(e => eval(debug"Rule violation: $e") >> Evals[F, G].monoidK.empty))
       }
-      .map(op => Record[OrderId, Status[CFMMOrder[CFMMOrderType.Any]]](op.id, LedgerStatus.lift(op)))
+      .map(op => Record[OrderId, Status[CFMMOrder[CFMMOrderType]]](op.id, LedgerStatus.lift(op)))
       .thrush(producer.produce)
 }
 

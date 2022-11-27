@@ -3,6 +3,7 @@ package org.ergoplatform.dex.executor.amm.interpreters.v3.t2t
 import cats.Monad
 import cats.effect.concurrent.Ref
 import cats.syntax.either._
+import org.bouncycastle.util.BigIntegers
 import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
@@ -20,6 +21,8 @@ import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{BoxId, SErgoTree}
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
+import scorex.util.encode.Base16
+import sigmastate.basics.DLogProtocol.DLogProverInput
 import sigmastate.interpreter.ProverResult
 import tofu.syntax.monadic._
 import tofu.syntax.raise._
@@ -30,6 +33,7 @@ final class T2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   ref: Ref[F, NetworkContext],
   helpers: CFMMInterpreterHelpers
 )(implicit contracts: AMMContracts[N2T_CFMM]) {
+  val sk: DLogProverInput = DLogProverInput(BigIntegers.fromUnsignedByteArray(Base16.decode(exchange.skHex).get))
 
   import helpers._
 
@@ -84,7 +88,7 @@ final class T2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         val dexInput =
           Vector(
             ErgoUnsafeProver
-              .prove(UnsignedErgoLikeTransaction(IndexedSeq(dexFeeIn), IndexedSeq.empty), exchange.sk)
+              .prove(UnsignedErgoLikeTransaction(IndexedSeq(dexFeeIn), IndexedSeq.empty), sk)
               .inputs
               .headOption
           ).flatten
