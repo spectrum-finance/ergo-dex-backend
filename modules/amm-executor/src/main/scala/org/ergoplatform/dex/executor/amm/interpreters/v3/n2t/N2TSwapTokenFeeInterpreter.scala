@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.executor.amm.interpreters.deposits.n2t
+package org.ergoplatform.dex.executor.amm.interpreters.v3.n2t
 
 import cats.Monad
 import cats.effect.concurrent.Ref
@@ -8,7 +8,7 @@ import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.amm.CFMMPool
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectMultiAddressSwapTree}
+import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectMultiAddressTree}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreterHelpers
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMContracts
@@ -40,7 +40,7 @@ class N2TSwapTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       .flatMap { case (baseAmount, quoteAmount, dexFee) =>
         Either
           .catchNonFatal(ErgoTreeSerializer.default.deserialize(swap.params.redeemer))
-          .leftMap(s => IncorrectMultiAddressSwapTree(pool.poolId, swap.box.boxId, swap.params.redeemer, s.getMessage))
+          .leftMap(s => IncorrectMultiAddressTree(pool.poolId, swap.box.boxId, swap.params.redeemer, s.getMessage))
           .toRaise
           .map { redeemer =>
             val poolBox = pool.box

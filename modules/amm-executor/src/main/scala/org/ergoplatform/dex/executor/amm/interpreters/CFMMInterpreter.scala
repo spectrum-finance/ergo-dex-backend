@@ -18,7 +18,7 @@ trait CFMMInterpreter[CT <: CFMMType, F[_]] {
 
   def deposit(in: DepositAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
 
-  def redeem(in: RedeemErgFee, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
+  def redeem(in: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
 
   def swap(in: SwapAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])]
 }
@@ -48,7 +48,7 @@ object CFMMInterpreter {
       }
     }
 
-    def redeem(in: RedeemErgFee, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
+    def redeem(in: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
       if (pool.isNative) n2t.redeem(in, pool)
       else t2t.redeem(in, pool)
 
@@ -62,7 +62,7 @@ object CFMMInterpreter {
     def deposit(in: DepositAny, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
       _ >>= (r => trace"deposit(in=$in, pool=$pool) = (${r._1}, ${r._2})" as r)
 
-    def redeem(in: RedeemErgFee, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
+    def redeem(in: Redeem, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
       _ >>= (r => trace"redeem(in=$in, pool=$pool) = (${r._1}, ${r._2})" as r)
 
     def swap(in: SwapAny, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =

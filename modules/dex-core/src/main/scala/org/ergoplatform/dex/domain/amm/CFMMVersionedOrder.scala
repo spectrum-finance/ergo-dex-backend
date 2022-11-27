@@ -49,7 +49,7 @@ object CFMMVersionedOrder {
 
   type AnyRedeem = CFMMVersionedOrder[CFMMOrderVersion, CFMMOrderType.RedeemType]
 
-  type AnyDeposit = CFMMVersionedOrder[CFMMOrderVersion, CFMMOrderType.DepositType]
+  type AnyDeposit = CFMMVersionedOrder[CFMMOrderVersion, CFMMOrderType.FeeType]
 
   @derive(loggable)
   final case class SwapP2Pk(poolId: PoolId, maxMinerFee: Long, timestamp: Long, params: SwapParams[PubKey], box: Output)
@@ -115,20 +115,20 @@ object CFMMVersionedOrder {
   }
 
   @derive(encoder, decoder, loggable)
-  final case class DepositV2(poolId: PoolId, maxMinerFee: Long, timestamp: Long, params: DepositParams, box: Output)
-    extends CFMMVersionedOrder[CFMMOrderVersion.V2, CFMMOrderType.DepositType] {
+  final case class DepositV2(poolId: PoolId, maxMinerFee: Long, timestamp: Long, params: DepositParams[PubKey], box: Output)
+    extends CFMMVersionedOrder[CFMMOrderVersion.V2, CFMMOrderType.FeeType] {
     val version: CFMMOrderVersion.V2 = CFMMOrderVersion.v2
   }
 
   @derive(encoder, decoder, loggable)
-  final case class DepositV1(poolId: PoolId, timestamp: Long, params: DepositParams, box: Output)
-    extends CFMMVersionedOrder[CFMMOrderVersion.V1, CFMMOrderType.DepositType] {
+  final case class DepositV1(poolId: PoolId, timestamp: Long, params: DepositParams[PubKey], box: Output)
+    extends CFMMVersionedOrder[CFMMOrderVersion.V1, CFMMOrderType.FeeType] {
     val version: CFMMOrderVersion.V1 = CFMMOrderVersion.v1
   }
 
   @derive(loggable)
-  final case class DepositV0(poolId: PoolId, timestamp: Long, params: DepositParams, box: Output)
-    extends CFMMVersionedOrder[CFMMOrderVersion.V0, CFMMOrderType.DepositType] {
+  final case class DepositV0(poolId: PoolId, timestamp: Long, params: DepositParams[PubKey], box: Output)
+    extends CFMMVersionedOrder[CFMMOrderVersion.V0, CFMMOrderType.FeeType] {
     val version: CFMMOrderVersion.V0 = CFMMOrderVersion.v0
   }
 
@@ -153,13 +153,13 @@ object CFMMVersionedOrder {
   }
 
   @derive(encoder, decoder, loggable)
-  final case class RedeemV1(poolId: PoolId, maxMinerFee: Long, timestamp: Long, params: RedeemParams, box: Output)
+  final case class RedeemV1(poolId: PoolId, maxMinerFee: Long, timestamp: Long, params: RedeemParams[PubKey], box: Output)
     extends CFMMVersionedOrder[CFMMOrderVersion.V1, CFMMOrderType.RedeemType] {
     val version: CFMMOrderVersion.V1 = CFMMOrderVersion.v1
   }
 
   @derive(encoder, decoder, loggable)
-  final case class RedeemV0(poolId: PoolId, timestamp: Long, params: RedeemParams, box: Output)
+  final case class RedeemV0(poolId: PoolId, timestamp: Long, params: RedeemParams[PubKey], box: Output)
     extends CFMMVersionedOrder[CFMMOrderVersion.V0, CFMMOrderType.RedeemType] {
     val version: CFMMOrderVersion.V0 = CFMMOrderVersion.v0
   }

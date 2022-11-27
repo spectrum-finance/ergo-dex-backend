@@ -13,7 +13,7 @@ trait CFMMOrdersParser[+CT <: CFMMType, +T <: ParserType, F[_]] {
 
   def deposit(box: Output): F[Option[CFMMOrder.DepositErgFee]]
 
-  def redeem(box: Output): F[Option[CFMMOrder.RedeemErgFee]]
+  def redeem(box: Output): F[Option[CFMMOrder.Redeem]]
 
   def swap(box: Output): F[Option[CFMMOrder.SwapAny]]
 }

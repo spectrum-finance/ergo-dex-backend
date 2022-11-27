@@ -37,10 +37,10 @@ final class T2TCFMMOrdersParserP2Pk[F[_]: Applicative: Clock](ts: Long)(implicit
     parsed.pure
   }
 
-  def redeem(box: Output): F[Option[CFMMOrder.RedeemErgFee]] = {
+  def redeem(box: Output): F[Option[CFMMOrder.Redeem]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    val parsed: Option[CFMMOrder.RedeemErgFee] =
+    val parsed: Option[CFMMOrder.Redeem] =
       if (template == templates.redeemV1) {
         for {
           poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
@@ -49,7 +49,7 @@ final class T2TCFMMOrdersParserP2Pk[F[_]: Applicative: Clock](ts: Long)(implicit
           dexFee      <- tree.constants.parseLong(15)
           redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = RedeemParams(inLP, dexFee, redeemer)
-        } yield CFMMOrder.RedeemErgFee(poolId, maxMinerFee, ts, params, box)
+        } yield CFMMOrder.Redeem(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }
@@ -58,7 +58,7 @@ final class T2TCFMMOrdersParserP2Pk[F[_]: Applicative: Clock](ts: Long)(implicit
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     val parsed: Option[CFMMOrder.SwapAny] =
-      if (template == templates.swapLatest) {
+      if (template == templates.swapV1) {
         for {
           poolId       <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
           maxMinerFee  <- tree.constants.parseLong(21)
@@ -70,7 +70,7 @@ final class T2TCFMMOrdersParserP2Pk[F[_]: Applicative: Clock](ts: Long)(implicit
           dexFeePerTokenDenom <- tree.constants.parseLong(17)
           redeemer            <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
           params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
-        } yield CFMMOrder.SwapP2Pk(poolId, maxMinerFee, ts, params, box)
+        } yield CFMMOrder.Swap(poolId, maxMinerFee, ts, params, box)
       } else None
     parsed.pure
   }

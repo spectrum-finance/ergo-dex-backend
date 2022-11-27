@@ -3,36 +3,39 @@ package org.ergoplatform.dex.tracker.parsers.amm.v3
 import cats.Functor
 import cats.effect.Clock
 import org.ergoplatform.dex.domain.AssetAmount
+import org.ergoplatform.dex.domain.amm.CFMMOrder.{Deposit, Redeem}
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType._
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.N2TCFMMTemplates
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.ergo.{ErgoTreeTemplate, PubKey, SErgoTree, TokenId}
+import org.ergoplatform.ergo.{ErgoTreeTemplate, SErgoTree, TokenId}
 import sigmastate.Values.ErgoTree
 import tofu.syntax.monadic._
 import tofu.syntax.time.now.millis
 
 class N2TOrderV3Parser[F[_]: Functor: Clock] {
 
-  def deposit(box: Output): F[Option[CFMMOrder.DepositTokenFee]] = millis.map { ts =>
+  def deposit(box: Output): F[Option[Deposit[TokenFee, SErgoTree]]] = millis.map { ts =>
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     if (template == N2TCFMMTemplates.depositV3) {
       for {
         poolId      <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
         maxMinerFee <- tree.constants.parseLong(22)
-        depositFee  <- tree.constants.parseBoolean(10).map(if (_) DepositFee.FeeFromY else DepositFee.FeeFromInput)
+        dexFeeFromY <- tree.constants.parseBoolean(10)
         inX         <- tree.constants.parseLong(2).map(AssetAmount.native)
         inY         <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
         dexFee      <- tree.constants.parseLong(11)
-        redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
-        params = DepositParams(inX, inY, dexFee, redeemer)
-      } yield CFMMOrder.DepositTokenFee(poolId, maxMinerFee, ts, params, box, depositFee)
+        redeemer    <- tree.constants.parseBytea(0).map(SErgoTree.fromBytes)
+        params = DepositParams(inX, if (dexFeeFromY) inY - dexFee else inY, dexFee, redeemer)
+      } yield Deposit[TokenFee, SErgoTree](poolId, maxMinerFee, ts, params, box, FeeType.tokenFee)
     } else None
   }
 
-  def redeem(box: Output): F[Option[CFMMOrder.RedeemTokenFee]] = millis.map { ts =>
+  def redeem(box: Output): F[Option[Redeem[TokenFee, SErgoTree]]] = millis.map { ts =>
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     if (template == N2TCFMMTemplates.redeemV3) {
@@ -40,10 +43,10 @@ class N2TOrderV3Parser[F[_]: Functor: Clock] {
         poolId      <- tree.constants.parseBytea(11).map(PoolId.fromBytes)
         maxMinerFee <- tree.constants.parseLong(15)
         inLP        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
-        dexFee      <- tree.constants.parseLong(12)
-        redeemer    <- tree.constants.parsePk(0).map(pk => PubKey.fromBytes(pk.pkBytes))
-        params = RedeemParams(inLP, dexFee, redeemer)
-      } yield CFMMOrder.RedeemTokenFee(poolId, maxMinerFee, ts, params, box)
+        dexFee      <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount))
+        redeemer    <- tree.constants.parseBytea(0).map(SErgoTree.fromBytes)
+        params = RedeemParams(inLP, dexFee.value, redeemer)
+      } yield Redeem(poolId, maxMinerFee, ts, params, box, FeeType.tokenFee)
     } else None
   }
 

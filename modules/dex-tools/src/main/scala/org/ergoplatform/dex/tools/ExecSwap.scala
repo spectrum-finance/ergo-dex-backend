@@ -4,7 +4,7 @@ import cats.effect.{Clock, ExitCode, IO, IOApp}
 import io.circe.syntax.EncoderOps
 import org.ergoplatform.{UnsignedErgoLikeTransaction, UnsignedInput}
 import org.ergoplatform.dex.configs.MonetaryConfig
-import org.ergoplatform.dex.domain.amm.CFMMOrder.SwapP2Pk
+import org.ergoplatform.dex.domain.amm.CFMMOrder.Swap
 import org.ergoplatform.dex.domain.{AssetAmount, NetworkContext}
 import org.ergoplatform.dex.domain.amm.SwapParams
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
@@ -44,7 +44,7 @@ object ExecSwap extends IOApp with SigmaPlatform {
                dexFeePerTokenDenom = 1L,
                redeemer            = ???
              )
-      order = SwapP2Pk(pool.poolId, monetaryConfig.minerFee, ts, swap, userIn)
+      order = Swap(pool.poolId, monetaryConfig.minerFee, ts, swap, userIn)
 
       interpreter = new N2TCFMMInterpreter[IO](
                       ExchangeConfig(RecvAddr),

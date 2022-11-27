@@ -1,8 +1,6 @@
 package org.ergoplatform.dex.domain.amm
 
 import cats.syntax.either._
-import derevo.circe.{decoder, encoder}
-import derevo.derive
 import io.circe.{Decoder, Encoder}
 
 sealed trait CFMMOrderType
@@ -46,47 +44,36 @@ object CFMMOrderType {
     def swapTokenFee: SwapTokenFee = new SwapTokenFee {}
   }
 
-  sealed abstract class DepositType extends CFMMOrderType
+  sealed abstract class FeeType extends CFMMOrderType
 
-  object DepositType {
+  object FeeType {
 
-    sealed abstract class DepositErgFee extends DepositType
+    sealed abstract class ErgFee extends FeeType
 
-    sealed abstract class DepositTokenFee extends DepositType
+    object ErgFee {
+      implicit val encoderErgFee: Encoder[ErgFee] = Encoder[String].contramap(_ => "ergFee")
 
-    def depositTokenFee: DepositTokenFee = new DepositTokenFee {}
-
-    def depositErgFee: DepositErgFee = new DepositErgFee {}
-  }
-
-  sealed abstract class RedeemType extends CFMMOrderType
-
-  object RedeemType {
-
-    sealed abstract class RedeemErgFee extends RedeemType
-
-    object RedeemErgFee {
-      implicit val encoderRedeemErgFee: Encoder[RedeemErgFee] = Encoder[String].contramap(_ => "redeemErgFee")
-
-      implicit val decoderRedeemErgFee: Decoder[RedeemErgFee] = Decoder[String].emap {
-        case "redeemErgFee" => redeemErgFee.asRight
-        case nonsense       => s"Invalid type in RedeemErgFee: $nonsense".asLeft
+      implicit val decoderErgFee: Decoder[ErgFee] = Decoder[String].emap {
+        case "ergFee" => ergFee.asRight
+        case nonsense => s"Invalid type in ErgFee: $nonsense".asLeft
       }
     }
 
-    sealed abstract class RedeemTokenFee extends RedeemType
+    sealed abstract class TokenFee extends FeeType
 
-    object RedeemTokenFee {
-      implicit val encoderRedeemTokenFee: Encoder[RedeemTokenFee] = Encoder[String].contramap(_ => "redeemTokenFee")
+    object TokenFee {
+      implicit val encoderTokenFee: Encoder[TokenFee] = Encoder[String].contramap(_ => "tokenFee")
 
-      implicit val decoderRedeemTokenFee: Decoder[RedeemTokenFee] = Decoder[String].emap {
-        case "redeemTokenFee" => redeemTokenFee.asRight
-        case nonsense         => s"Invalid type in RedeemTokenFee: $nonsense".asLeft
+      implicit val decoderTokenFee: Decoder[TokenFee] = Decoder[String].emap {
+        case "tokenFee" => tokenFee.asRight
+        case nonsense   => s"Invalid type in TokenFee: $nonsense".asLeft
       }
     }
 
-    def redeemTokenFee: RedeemTokenFee = new RedeemTokenFee {}
+    def tokenFee: TokenFee = new TokenFee {}
 
-    def redeemErgFee: RedeemErgFee = new RedeemErgFee {}
+    def ergFee: ErgFee = new ErgFee {}
   }
+
+  sealed trait RedeemType extends CFMMOrderType
 }

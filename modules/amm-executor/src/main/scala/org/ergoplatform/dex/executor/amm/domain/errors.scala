@@ -22,7 +22,7 @@ object errors {
       s"Price slipped down too much for Pool{id=$poolId}. {maxDexFee=${maxDexFee.show}, actualDexFee=${actualDexFee.show}}"
     )
 
-  final case class IncorrectMultiAddressSwapTree(poolId: PoolId, orderId: BoxId, tree: SErgoTree, err: String)
+  final case class IncorrectMultiAddressTree(poolId: PoolId, orderId: BoxId, tree: SErgoTree, err: String)
     extends ExecutionFailed(
       s"Incorrect multi address tree for pool $poolId and order $orderId: $tree. Err is: $err"
     )

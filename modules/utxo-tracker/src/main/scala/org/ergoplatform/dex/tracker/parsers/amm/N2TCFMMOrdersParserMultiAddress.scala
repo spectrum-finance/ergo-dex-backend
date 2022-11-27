@@ -23,7 +23,7 @@ final class N2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(
 
   def deposit(box: Output): F[Option[CFMMOrder.DepositErgFee]] = noneF
 
-  def redeem(box: Output): F[Option[CFMMOrder.RedeemErgFee]] = noneF
+  def redeem(box: Output): F[Option[CFMMOrder.Redeem]] = noneF
 
   def swap(box: Output): F[Option[CFMMOrder.SwapAny]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)

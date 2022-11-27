@@ -3,11 +3,11 @@ package org.ergoplatform.dex.executor.amm.interpreters
 import cats.{Functor, Monad}
 import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
-import org.ergoplatform.dex.domain.amm.CFMMOrder.{DepositAny, DepositErgFee, DepositTokenFee, RedeemErgFee}
+import org.ergoplatform.dex.domain.amm.CFMMOrder.{DepositAny, DepositErgFee, DepositTokenFee, Redeem}
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectMultiAddressSwapTree}
+import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectMultiAddressTree}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterpreterTracing
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMContracts
@@ -79,7 +79,7 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     (tx, nextPool).pure
   }
 
-  def redeem(redeem: RedeemErgFee, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = {
+  def redeem(redeem: Redeem, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = {
     val poolBox0         = pool.box
     val redeemBox        = redeem.box
     val redeemIn         = new Input(redeemBox.boxId.toErgo, ProverResult.empty)
@@ -119,12 +119,12 @@ final class N2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   def swap(swap: CFMMOrder.SwapAny, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
     swapParamsErgFee(swap, pool).toRaise.flatMap { case (input, output, dexFee) =>
       (swap match {
-        case CFMMOrder.SwapP2Pk(_, maxMinerFee, _, params, _) =>
+        case CFMMOrder.Swap(_, maxMinerFee, _, params, _) =>
           (maxMinerFee, params.baseAmount, params.redeemer.toErgoTree, params.minQuoteAmount).pure[F]
         case CFMMOrder.SwapMultiAddress(_, maxMinerFee, _, params, box) =>
           Either
             .catchNonFatal(ErgoTreeSerializer.default.deserialize(params.redeemer))
-            .leftMap(s => IncorrectMultiAddressSwapTree(pool.poolId, box.boxId, params.redeemer, s.getMessage))
+            .leftMap(s => IncorrectMultiAddressTree(pool.poolId, box.boxId, params.redeemer, s.getMessage))
             .toRaise
             .map(tree => (maxMinerFee, params.baseAmount, tree, params.minQuoteAmount))
       }).map { case (maxMinerFee, inputSwap, redeemer, minOutput) =>

@@ -5,7 +5,7 @@ import cats.{Functor, Monad}
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMOrderType}
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.errors.TxFailed
-import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectMultiAddressSwapTree}
+import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectMultiAddressTree}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.protocol.amm.AMMType.CFMMType
@@ -47,8 +47,8 @@ object Execution {
           val interpretF = {
             (order, order.orderType) match {
               case (swap: SwapAny, _: CFMMOrderType.SwapType)          => interpreter.swap(swap, pool)
-              case (redeem: RedeemErgFee, _: CFMMOrderType.RedeemType)       => interpreter.redeem(redeem, pool)
-              case (deposit: DepositAny, _: CFMMOrderType.DepositType) => interpreter.deposit(deposit, pool)
+              case (redeem: Redeem, _: CFMMOrderType.RedeemType)       => interpreter.redeem(redeem, pool)
+              case (deposit: DepositAny, _: CFMMOrderType.FeeType) => interpreter.deposit(deposit, pool)
               case _ => ???
             }
           }
@@ -79,7 +79,7 @@ object Execution {
             } yield res
 
           executeF.handleWith[ExecutionFailed] {
-            case e: IncorrectMultiAddressSwapTree => warnCause"Order execution failed" (e) as none
+            case e: IncorrectMultiAddressTree => warnCause"Order execution failed" (e) as none
             case e                                => warnCause"Order execution failed" (e) as Some(order)
           }
         case None =>

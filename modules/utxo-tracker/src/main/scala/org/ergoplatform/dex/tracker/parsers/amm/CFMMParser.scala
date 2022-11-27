@@ -57,7 +57,7 @@ object CFMMParser {
           .map {
             case s: CFMMOrder.SwapMultiAddress =>
               SwapMultiAddress(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnySwap
-            case s: CFMMOrder.SwapP2Pk =>
+            case s: CFMMOrder.Swap =>
               SwapP2Pk(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnySwap
           }
           .orElseF(v0.swapV0(box).map(r => r: Option[CFMMVersionedOrder.AnySwap]))

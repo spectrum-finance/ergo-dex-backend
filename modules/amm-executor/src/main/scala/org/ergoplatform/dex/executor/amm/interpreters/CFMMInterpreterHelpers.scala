@@ -3,7 +3,7 @@ package org.ergoplatform.dex.executor.amm.interpreters
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.dex.domain.amm.CFMMOrder.{SwapMultiAddress, SwapP2Pk, SwapTokenFee}
+import org.ergoplatform.dex.domain.amm.CFMMOrder.{SwapMultiAddress, Swap, SwapTokenFee}
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, PriceTooHigh, PriceTooLow}
@@ -28,7 +28,7 @@ final class CFMMInterpreterHelpers(
     pool: CFMMPool
   ): Either[ExecutionFailed, (AssetAmount, AssetAmount, Long)] = {
     val params = swap match {
-      case s: SwapP2Pk         => s.params
+      case s: Swap         => s.params
       case s: SwapMultiAddress => s.params
       case s: SwapTokenFee     => s.params //todo remove
     }
