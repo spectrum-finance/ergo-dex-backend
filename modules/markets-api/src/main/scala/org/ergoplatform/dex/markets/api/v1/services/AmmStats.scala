@@ -367,26 +367,24 @@ object AmmStats {
 
     val firstTxTs = 1628766987000L
 
+    def sendMetrics[B](window: TimeWindow, name: String, f: F[B]): F[B] =
+      for {
+        r     <- f
+        finis <- millis
+        _     <- metrics.sendTs(name, Math.abs(window.to.getOrElse(finis) - window.from.getOrElse(firstTxTs)).toDouble)
+      } yield r
+
     def convertToFiat(id: TokenId, amount: Long): Mid[F, Option[FiatEquiv]] =
       _ <* unit
 
     def getPlatformSummary(window: TimeWindow): Mid[F, PlatformSummary] =
-      _ <* metrics.sendTs(
-        "getPlatformSummary.window",
-        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
-      )
+      sendMetrics(window, "window.getPlatformSummary", _)
 
     def getPoolStats(poolId: PoolId, window: TimeWindow): Mid[F, Option[PoolStats]] =
-      _ <* metrics.sendTs(
-        "getPoolStats.window",
-        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
-      )
+      sendMetrics(window, "window.getPoolStats", _)
 
     def getPoolsStats(window: TimeWindow): Mid[F, List[PoolStats]] =
-      _ <* metrics.sendTs(
-        "getPoolsStats.window",
-        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
-      )
+      sendMetrics(window, "window.getPoolsStats", _)
 
     def getPoolsSummary: Mid[F, List[PoolSummary]] =
       _ <* unit
@@ -395,21 +393,12 @@ object AmmStats {
       _ <* unit
 
     def getPoolPriceChart(poolId: PoolId, window: TimeWindow, resolution: Int): Mid[F, List[PricePoint]] =
-      _ <* metrics.sendTs(
-        "getPoolPriceChart.window",
-        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
-      )
+      sendMetrics(window, "window.getPoolPriceChart", _)
 
     def getSwapTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
-      _ <* metrics.sendTs(
-        "getSwapTransactions.window",
-        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
-      )
+      sendMetrics(window, "window.getSwapTransactions", _)
 
     def getDepositTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
-      _ <* metrics.sendTs(
-        "getDepositTransactions.window",
-        Math.abs(window.to.getOrElse(0L) - window.from.getOrElse(firstTxTs)).toDouble
-      )
+      sendMetrics(window, "window.getDepositTransactions", _)
   }
 }
