@@ -19,3 +19,7 @@ final case class EpochParams(
 ) {
   val safeMinValue: Long = (minValuePerByte * 1500).toLong
 }
+
+object EpochParams {
+  def empty: EpochParams = EpochParams(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+}
