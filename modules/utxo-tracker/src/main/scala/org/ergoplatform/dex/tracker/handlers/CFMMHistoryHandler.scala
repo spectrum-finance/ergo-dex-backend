@@ -9,8 +9,8 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.dex.tracker.parsers.amm.CFMMHistoryParser
-import org.ergoplatform.dex.tracker.parsers.amm.CFMMHistoryParser._
+import org.ergoplatform.dex.tracker.parsers.amm.analytics.CFMMHistoryParser._
+import org.ergoplatform.dex.tracker.parsers.amm.analytics.CFMMHistoryParser
 import tofu.logging.{Logging, Logs}
 import tofu.streams.Evals
 import tofu.syntax.foption._

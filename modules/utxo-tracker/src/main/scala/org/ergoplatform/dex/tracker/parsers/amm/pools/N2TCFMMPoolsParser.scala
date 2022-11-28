@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.tracker.parsers.amm
+package org.ergoplatform.dex.tracker.parsers.amm.pools
 
 import org.ergoplatform.dex.domain.amm.{CFMMPool, PoolId}
 import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo}

@@ -9,6 +9,7 @@ import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, Incorre
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.protocol.amm.AMMType.CFMMType
+import org.ergoplatform.dex.protocol.amm.InterpreterVersion
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.ergo.services.explorer.TxSubmissionErrorParser
 import tofu.logging.{Logging, Logs}
@@ -21,14 +22,14 @@ trait Execution[F[_]] {
   /** Try to execute a given order if possible.
     * @return `None` in case the order is executed, `Some(order)` otherwise.
     */
-  def executeAttempt(op: CFMMOrder.Any): F[Option[CFMMOrder.Any]]
+  def executeAttempt(op: CFMMOrder.AnyOrder): F[Option[CFMMOrder.AnyOrder]]
 }
 
 object Execution {
 
   def make[I[_]: Functor, F[_]: Monad: TxFailed.Handle: ExecutionFailed.Handle](implicit
     pools: CFMMPools[F],
-    interpreter: CFMMInterpreter[CFMMType, F],
+    interpreter: CFMMInterpreter[CFMMType, InterpreterVersion.Any, F],
     network: ErgoNetwork[F],
     logs: Logs[I, F]
   ): I[Execution[F]] =
@@ -36,27 +37,26 @@ object Execution {
 
   final class Live[F[_]: Monad: TxFailed.Handle: ExecutionFailed.Handle: Logging](implicit
     pools: CFMMPools[F],
-    interpreter: CFMMInterpreter[CFMMType, F],
+    interpreter: CFMMInterpreter[CFMMType, InterpreterVersion.Any, F],
     network: ErgoNetwork[F],
     errParser: TxSubmissionErrorParser
   ) extends Execution[F] {
 
-    def executeAttempt(order: CFMMOrder.Any): F[Option[CFMMOrder.Any]] =
+    def executeAttempt(order: CFMMOrder.AnyOrder): F[Option[CFMMOrder.AnyOrder]] =
       pools.get(order.poolId) >>= {
         case Some(pool) =>
           val interpretF = {
             (order, order.orderType) match {
-              case (swap: SwapErgAny, _: CFMMOrderType.SwapType)          => interpreter.swap(swap, pool)
-//              case (redeem: Redeem, _: CFMMOrderType.RedeemType)       => interpreter.redeem(redeem, pool)
-//              case (deposit: DepositAny, _: CFMMOrderType.FeeType) => interpreter.deposit(deposit, pool)
-              case _ => ???
+              case (swap: CFMMOrder.AnySwap, _: CFMMOrderType.SwapType)          => interpreter.swap(swap, pool)
+              case (redeem: CFMMOrder.AnyRedeem, _: CFMMOrderType.RedeemType)    => interpreter.redeem(redeem, pool)
+              case (deposit: CFMMOrder.AnyDeposit, _: CFMMOrderType.DepositType) => interpreter.deposit(deposit, pool)
             }
           }
           val executeF =
             for {
               (transaction, nextPool) <- interpretF
               finalizeF = network.submitTransaction(transaction) >> pools.put(nextPool)
-              res <- (finalizeF as none[CFMMOrder.Any])
+              res <- (finalizeF as none[CFMMOrder.AnyOrder])
                        .handleWith[TxFailed] { e =>
                          network.checkTransaction(transaction).flatMap {
                            case Some(errText) =>
@@ -80,7 +80,7 @@ object Execution {
 
           executeF.handleWith[ExecutionFailed] {
             case e: IncorrectMultiAddressTree => warnCause"Order execution failed" (e) as none
-            case e                                => warnCause"Order execution failed" (e) as Some(order)
+            case e                            => warnCause"Order execution failed" (e) as Some(order)
           }
         case None =>
           warn"Order{id=${order.id}} references an unknown Pool{id=${order.poolId}}" as Some(order)

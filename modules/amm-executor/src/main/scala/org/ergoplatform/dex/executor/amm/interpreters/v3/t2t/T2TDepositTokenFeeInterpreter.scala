@@ -7,7 +7,6 @@ import org.bouncycastle.util.BigIntegers
 import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
-import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType.TokenFee
 import org.ergoplatform.dex.domain.amm.CFMMPool
 import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
@@ -38,9 +37,9 @@ class T2TDepositTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   import helpers._
 
   def deposit(
-    deposit: Deposit[TokenFee, SErgoTree],
-    pool: CFMMPool,
-    dexFeeOutput: Output
+               deposit: DepositTokenFee,
+               pool: CFMMPool,
+               dexFeeOutput: Output
   ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
     ref.get.flatMap { ctx =>
       Either

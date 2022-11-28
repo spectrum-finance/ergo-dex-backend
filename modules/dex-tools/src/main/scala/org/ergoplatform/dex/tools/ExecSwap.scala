@@ -4,15 +4,15 @@ import cats.effect.{Clock, ExitCode, IO, IOApp}
 import io.circe.syntax.EncoderOps
 import org.ergoplatform.{UnsignedErgoLikeTransaction, UnsignedInput}
 import org.ergoplatform.dex.configs.MonetaryConfig
-import org.ergoplatform.dex.domain.amm.CFMMOrder.Swap
+import org.ergoplatform.dex.domain.amm.CFMMOrder.SwapP2Pk
 import org.ergoplatform.dex.domain.{AssetAmount, NetworkContext}
 import org.ergoplatform.dex.domain.amm.SwapParams
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.interpreters.N2TCFMMInterpreter
-import org.ergoplatform.dex.tracker.parsers.amm.N2TCFMMPoolsParser
 import org.ergoplatform.ergo.{Address, PubKey, TokenId}
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import org.ergoplatform.dex.protocol.codecs._
+import org.ergoplatform.dex.tracker.parsers.amm.pools.N2TCFMMPoolsParser
 
 import java.util.concurrent.TimeUnit
 
@@ -26,7 +26,7 @@ object ExecSwap extends IOApp with SigmaPlatform {
   val RecvAddr: Address = Address.fromStringUnsafe("9hqBvFiHGCimMpwG5t1KbGhHXKkx5c41RNvFtjotSZ4Lh7pXLGM")
   val SigUSD: TokenId   = TokenId.fromStringUnsafe("03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04")
 
-  val monetaryConfig: MonetaryConfig = MonetaryConfig(1000000L, 0L, 60000L)
+  val monetaryConfig: MonetaryConfig = MonetaryConfig(1000000L, 0L, 60000L, 1)
 
   def run(args: List[String]): IO[ExitCode] =
     for {
@@ -44,10 +44,10 @@ object ExecSwap extends IOApp with SigmaPlatform {
                dexFeePerTokenDenom = 1L,
                redeemer            = ???
              )
-      order = Swap(pool.poolId, monetaryConfig.minerFee, ts, swap, userIn)
+      order = SwapP2Pk(pool.poolId, monetaryConfig.minerFee, ts, swap, userIn)
 
       interpreter = new N2TCFMMInterpreter[IO](
-                      ExchangeConfig(RecvAddr),
+                      ExchangeConfig(RecvAddr, TokenId.fromStringUnsafe(""), ""),
                       monetaryConfig,
                       NetworkContext(curHeight, null)
                     )

@@ -1,44 +1,43 @@
-package org.ergoplatform.dex.tracker.parsers.amm
+package org.ergoplatform.dex.tracker.parsers.amm.v2
 
 import cats.effect.Clock
 import cats.{Applicative, Monad}
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.dex.domain.amm.CFMMOrder.{Deposit, Redeem, Swap, SwapErgAny}
-import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType.ErgFee
-import org.ergoplatform.dex.domain.amm.CFMMOrderType.{DepositType, RedeemType, SwapType}
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.SwapType
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMType.N2T_CFMM
-import org.ergoplatform.dex.protocol.amm.{ParserType, N2TCFMMTemplates => templates}
+import org.ergoplatform.dex.protocol.amm.{ParserVersion, N2TCFMMTemplates => templates}
+import org.ergoplatform.dex.tracker.parsers.amm.CFMMOrdersParser
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.ergo.{ErgoTreeTemplate, PubKey, SErgoTree, TokenId}
+import org.ergoplatform.ergo.{ErgoTreeTemplate, SErgoTree, TokenId}
 import sigmastate.Values.ErgoTree
 import tofu.syntax.embed._
 import tofu.syntax.foption.noneF
 import tofu.syntax.monadic._
 import tofu.syntax.time.now
 
-final class N2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(implicit
+final class N2TOrdersV2Parser[F[_]: Applicative: Clock](ts: Long)(implicit
   e: ErgoAddressEncoder
-) extends CFMMOrdersParser[N2T_CFMM, ParserType.MultiAddress, F] {
+) extends CFMMOrdersParser[N2T_CFMM, ParserVersion.V2, F] {
 
-  def deposit(box: Output): F[Option[Deposit[ErgFee, PubKey]]] = noneF
+  def deposit(box: Output): F[Option[CFMMOrder.AnyDeposit]] = noneF
 
-  def redeem(box: Output): F[Option[Redeem[ErgFee, PubKey]]] = noneF
+  def redeem(box: Output): F[Option[CFMMOrder.AnyRedeem]] = noneF
 
-  def swap(box: Output): F[Option[SwapErgAny]] = {
+  def swap(box: Output): F[Option[CFMMOrder.AnySwap]] = {
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
-    val parsed: Option[SwapErgAny] =
+    val parsed: Option[CFMMOrder.AnySwap] =
       if (template == templates.swapSellMultiAddressV2) swapSell(box, tree)
       else if (template == templates.swapBuyMultiAddressV2) swapBuy(box, tree)
       else None
     parsed.pure
   }
 
-  private def swapSell(box: Output, tree: ErgoTree): Option[Swap[SwapType.SwapMultiAddress, SErgoTree]] =
+  private def swapSell(box: Output, tree: ErgoTree): Option[CFMMOrder.AnySwap] =
     for {
       poolId       <- tree.constants.parseBytea(8).map(PoolId.fromBytes)
       maxMinerFee  <- tree.constants.parseLong(23)
@@ -50,9 +49,9 @@ final class N2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(
       dexFeePerTokenDenom <- tree.constants.parseLong(13)
       redeemer            <- tree.constants.parseBytea(9).map(SErgoTree.fromBytes)
       params = SwapParams(baseAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
-    } yield CFMMOrder.Swap(poolId, maxMinerFee, ts, params, box, SwapType.swapMultiAddress)
+    } yield CFMMOrder.SwapMultiAddress(poolId, maxMinerFee, ts, params, box)
 
-  private def swapBuy(box: Output, tree: ErgoTree): Option[Swap[SwapType.SwapMultiAddress, SErgoTree]] =
+  private def swapBuy(box: Output, tree: ErgoTree): Option[CFMMOrder.AnySwap] =
     for {
       poolId       <- tree.constants.parseBytea(9).map(PoolId.fromBytes)
       maxMinerFee  <- tree.constants.parseLong(20)
@@ -64,13 +63,13 @@ final class N2TCFMMOrdersParserMultiAddress[F[_]: Applicative: Clock](ts: Long)(
       dexFeePerTokenNum = dexFeePerTokenDenom - dexFeePerTokenNumDiff
       redeemer <- tree.constants.parseBytea(10).map(SErgoTree.fromBytes)
       params = SwapParams(inAmount, outAmount, dexFeePerTokenNum, dexFeePerTokenDenom, redeemer)
-    } yield CFMMOrder.Swap(poolId, maxMinerFee, ts, params, box, SwapType.swapMultiAddress)
+    } yield CFMMOrder.SwapMultiAddress(poolId, maxMinerFee, ts, params, box)
 }
 
-object N2TCFMMOrdersParserMultiAddress {
+object N2TOrdersV2Parser {
 
-  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): CFMMOrdersParser[N2T_CFMM, ParserType.MultiAddress, F] =
+  def make[F[_]: Monad: Clock](implicit e: ErgoAddressEncoder): CFMMOrdersParser[N2T_CFMM, ParserVersion.V2, F] =
     now.millis
-      .map(ts => new N2TCFMMOrdersParserMultiAddress(ts): CFMMOrdersParser[N2T_CFMM, ParserType.MultiAddress, F])
+      .map(ts => new N2TOrdersV2Parser(ts): CFMMOrdersParser[N2T_CFMM, ParserVersion.V2, F])
       .embed
 }

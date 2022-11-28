@@ -46,12 +46,12 @@ object App extends EnvApp[ConfigBundle] {
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
-      implicit0(producer1: Producer[OrderId, Confirmed[CFMMOrder.Any], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, Confirmed[CFMMOrder.Any]](configs.producers.confirmedAmmOrders)
+      implicit0(producer1: Producer[OrderId, Confirmed[CFMMOrder.AnyOrder], StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, OrderId, Confirmed[CFMMOrder.AnyOrder]](configs.producers.confirmedAmmOrders)
       implicit0(producer2: Producer[PoolId, ConfirmedIndexed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]](configs.producers.confirmedAmmPools)
-      implicit0(producer3: Producer[OrderId, Unconfirmed[CFMMOrder.Any], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, Unconfirmed[CFMMOrder.Any]](configs.producers.unconfirmedAmmOrders)
+      implicit0(producer3: Producer[OrderId, Unconfirmed[CFMMOrder.AnyOrder], StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, OrderId, Unconfirmed[CFMMOrder.AnyOrder]](configs.producers.unconfirmedAmmOrders)
       implicit0(producer4: Producer[PoolId, Unconfirmed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, Unconfirmed[CFMMPool]](configs.producers.unconfirmedAmmPools)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)

@@ -4,8 +4,9 @@ import cats.effect.IO
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.CatsPlatform
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.dex.domain.amm.CFMMOrder.Swap
+import org.ergoplatform.dex.domain.amm.CFMMOrder.SwapP2Pk
 import org.ergoplatform.dex.domain.amm.{PoolId, SwapParams}
+import org.ergoplatform.dex.tracker.parsers.amm.v1.T2TOrdersV1Parser
 import org.ergoplatform.ergo.domain.{BoxAsset, Output}
 import org.ergoplatform.ergo._
 import org.scalatest.matchers.should
@@ -17,7 +18,7 @@ class T2TCFMMOrdersParserP2PkSpec extends AnyPropSpec with should.Matchers with 
   property("Swap order parsing") {
     val res = parser.swap(boxSample).unsafeRunSync()
     res shouldBe Some(
-      Swap(
+      SwapP2Pk(
         PoolId.fromStringUnsafe("f1fb942ebd039dc782fd9109acdb60aabea4dc7e75e9c813b6528c62692fc781"),
         0L,
         FixedTs,
@@ -57,7 +58,7 @@ class T2TCFMMOrdersParserP2PkSpec extends AnyPropSpec with should.Matchers with 
   }
 
   implicit val e: ErgoAddressEncoder = new ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
-  def parser                         = T2TCFMMOrdersParserP2Pk.make[IO]
+  def parser                         = T2TOrdersV1Parser.make[IO]
 
   def boxSample =
     io.circe.parser

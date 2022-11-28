@@ -1,17 +1,13 @@
 package org.ergoplatform.dex.domain.amm
 
 import cats.Show
-import cats.syntax.either._
-import cats.syntax.show._
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import io.circe.derivation.{deriveDecoder, deriveEncoder}
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
-import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType.{ErgFee, TokenFee}
-import org.ergoplatform.dex.domain.amm.CFMMOrderType.SwapType._
-import org.ergoplatform.dex.domain.amm.CFMMOrderType.{DepositType, FeeType, RedeemType, SwapType}
+import org.ergoplatform.dex.domain.amm.CFMMOrderType.{DepositType, RedeemType, SwapType}
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.{PubKey, SErgoTree}
 import tofu.logging.Loggable
@@ -29,116 +25,161 @@ sealed trait CFMMOrder[+O <: CFMMOrderType] {
 
 object CFMMOrder {
 
-  type Any        = CFMMOrder[CFMMOrderType]
-  type SwapErgAny = CFMMOrder[CFMMOrderType.SwapType.SwapErgFee]
-  type DepositAny = CFMMOrder[CFMMOrderType.DepositType]
-  type RedeemAny  = CFMMOrder[CFMMOrderType.RedeemType]
+  type AnyOrder   = CFMMOrder[CFMMOrderType]
+  type AnySwap    = CFMMOrder[SwapType]
+  type AnyDeposit = CFMMOrder[DepositType]
+  type AnyRedeem  = CFMMOrder[RedeemType]
 
-  implicit def decoderAny: Decoder[Any] = x =>
-    x.as[Deposit[ErgFee, PubKey]]
-      .leftFlatMap(_ => x.as[Deposit[TokenFee, SErgoTree]])
-      .leftFlatMap(_ => x.as[Redeem[TokenFee, SErgoTree]])
-      .leftFlatMap(_ => x.as[Redeem[ErgFee, PubKey]])
-      .leftFlatMap(_ => x.as[SwapTokenFee])
-      .leftFlatMap(_ => x.as[Swap[SwapP2Pk, PubKey]])
-      .leftFlatMap(_ => x.as[Swap[SwapMultiAddress, SErgoTree]])
+  implicit def decoderOrder: Decoder[CFMMOrder[CFMMOrderType]] = deriveDecoder
+  implicit def encoderOrder: Encoder[CFMMOrder[CFMMOrderType]] = deriveEncoder
 
-  implicit def encoderAny: Encoder[Any] = Encoder.instance {
-    case value: Deposit[FeeType.ErgFee, PubKey]      => value.asJson
-    case value: Deposit[FeeType.TokenFee, SErgoTree] => value.asJson
-    case value: Redeem[ErgFee, PubKey]               => value.asJson
-    case value: Redeem[TokenFee, SErgoTree]          => value.asJson
-    case value: SwapTokenFee                         => value.asJson
-    case value: Swap[SwapP2Pk, PubKey]               => value.asJson
-    case value: Swap[SwapMultiAddress, SErgoTree]    => value.asJson
+  @derive(loggable)
+  final case class DepositErgFee(
+    poolId: PoolId,
+    maxMinerFee: Long,
+    timestamp: Long,
+    params: DepositParams[PubKey],
+    box: Output
+  ) extends CFMMOrder[DepositType] {
+    val orderType: DepositType = DepositType.depositErgFee
   }
 
-  implicit val showAny: Show[Any] = {
-    case d: Deposit[ErgFee, PubKey]           => d.show
-    case d: Deposit[TokenFee, SErgoTree]      => d.show
-    case r: Redeem[TokenFee, SErgoTree]       => r.show
-    case r: Redeem[ErgFee, PubKey]            => r.show
-    case s: SwapTokenFee                      => s.show
-    case s: Swap[SwapP2Pk, PubKey]            => s.show
-    case s: Swap[SwapMultiAddress, SErgoTree] => s.show
+  object DepositErgFee {
+
+    implicit val encoder: Encoder.AsObject[DepositErgFee] =
+      deriveEncoder.mapJsonObject(_.add("orderType", DepositType.depositErgFee.asJson))
+
+    implicit val decoder: Decoder[DepositErgFee] =
+      deriveDecoder
+        .validate(
+          _.downField("orderType").as[DepositType.DepositErgFee].toOption.nonEmpty,
+          "Incorrect DepositErgFee order. There is no order type in json."
+        )
   }
-
-  implicit val showSwapAny: Show[SwapErgAny] = {
-    case s: Swap[SwapP2Pk, PubKey]            => s.show
-    case s: Swap[SwapMultiAddress, SErgoTree] => s.show
-  }
-
-  implicit val loggableCFMMOrder: Loggable[CFMMOrder.Any] = Loggable.show
-
-  implicit val loggableSwapAny: Loggable[SwapErgAny] = Loggable.show
 
   /** @param params If orderType is DepositTokenFee and inY or inX are spectrum
     *               tokens, then inY or inX are already without dex fee. Otherwise
     *               they keep original value.
     *               If orderType is DepositErgFee, inX original value preserved.
     */
-  final case class Deposit[+O <: FeeType, T](
+  @derive(loggable)
+  final case class DepositTokenFee(
     poolId: PoolId,
     maxMinerFee: Long,
     timestamp: Long,
-    params: DepositParams[T],
-    box: Output,
-    feeType: O
+    params: DepositParams[SErgoTree],
+    box: Output
   ) extends CFMMOrder[DepositType] {
-    val orderType: DepositType = DepositType.depositType
+    val orderType: DepositType = DepositType.depositTokenFee
   }
 
-  object Deposit {
+  object DepositTokenFee {
 
-    implicit def showDeposit[O <: FeeType, T]: Show[Deposit[O, T]] = _.toString
+    implicit val encoder: Encoder.AsObject[DepositTokenFee] =
+      deriveEncoder.mapJsonObject(_.add("orderType", DepositType.depositTokenFee.asJson))
 
-    implicit def loggableDeposit[O <: FeeType, T]: Loggable[Deposit[O, T]] = Loggable.show
-
-    implicit def encoderDeposit[O <: FeeType: Encoder, T: Encoder]: Encoder[Deposit[O, T]] = deriveEncoder
-
-    implicit def decoderDeposit[O <: FeeType: Decoder, T: Decoder]: Decoder[Deposit[O, T]] = deriveDecoder
+    implicit val decoder: Decoder[DepositTokenFee] =
+      deriveDecoder
+        .validate(
+          _.downField("orderType").as[DepositType.DepositTokenFee].toOption.nonEmpty,
+          "Incorrect DepositTokenFee order. There is no order type in json."
+        )
   }
 
-  final case class Redeem[+O <: FeeType, T](
+  @derive(loggable)
+  final case class RedeemErgFee(
     poolId: PoolId,
     maxMinerFee: Long,
     timestamp: Long,
-    params: RedeemParams[T],
-    box: Output,
-    feeType: O
+    params: RedeemParams[PubKey],
+    box: Output
   ) extends CFMMOrder[RedeemType] {
-    val orderType: RedeemType = RedeemType.redeemType
+    val orderType: RedeemType = RedeemType.redeemErgFee
   }
 
-  object Redeem {
+  object RedeemErgFee {
 
-    implicit def showRedeem[O <: FeeType, T]: Show[Redeem[O, T]] = _.toString
+    implicit val encoder: Encoder.AsObject[RedeemErgFee] =
+      deriveEncoder.mapJsonObject(_.add("orderType", RedeemType.redeemErgFee.asJson))
 
-    implicit def loggableRedeem[O <: FeeType, T]: Loggable[Redeem[O, T]] = Loggable.show
-
-    implicit def encoderRedeem[O <: FeeType: Encoder, T: Encoder]: Encoder[Redeem[O, T]] = deriveEncoder
-
-    implicit def decoderRedeem[O <: FeeType: Decoder, T: Decoder]: Decoder[Redeem[O, T]] = deriveDecoder
+    implicit val decoder: Decoder[RedeemErgFee] =
+      deriveDecoder
+        .validate(
+          _.downField("orderType").as[RedeemType.RedeemErgFee].toOption.nonEmpty,
+          "Incorrect RedeemErgFee order. There is no order type in json."
+        )
   }
 
-  final case class Swap[+O <: SwapType, T](
+  @derive(loggable)
+  final case class RedeemTokenFee(
     poolId: PoolId,
     maxMinerFee: Long,
     timestamp: Long,
-    params: SwapParams[T],
-    box: Output,
-    orderType: O
-  ) extends CFMMOrder[O]
+    params: RedeemParams[SErgoTree],
+    box: Output
+  ) extends CFMMOrder[RedeemType] {
+    val orderType: RedeemType = RedeemType.redeemTokenFee
+  }
 
-  object Swap {
+  object RedeemTokenFee {
 
-    implicit def showSwap[O <: SwapType, T]: Show[Swap[O, T]] = _.toString
+    implicit val encoder: Encoder.AsObject[RedeemTokenFee] =
+      deriveEncoder.mapJsonObject(_.add("orderType", RedeemType.redeemTokenFee.asJson))
 
-    implicit def loggableSwap[O <: SwapType, T]: Loggable[Swap[O, T]] = Loggable.show
+    implicit val decoder: Decoder[RedeemTokenFee] =
+      deriveDecoder
+        .validate(
+          _.downField("orderType").as[RedeemType.RedeemTokenFee].toOption.nonEmpty,
+          "Incorrect RedeemTokenFee order. There is no order type in json."
+        )
+  }
 
-    implicit def encoderSwap[O <: SwapType: Encoder, T: Encoder]: Encoder[Swap[O, T]] = deriveEncoder
+  @derive(loggable)
+  final case class SwapP2Pk(
+    poolId: PoolId,
+    maxMinerFee: Long,
+    timestamp: Long,
+    params: SwapParams[PubKey],
+    box: Output
+  ) extends CFMMOrder[SwapType] {
+    val orderType: SwapType = SwapType.swapP2Pk
+  }
 
-    implicit def decoderSwap[O <: SwapType: Decoder, T: Decoder]: Decoder[Swap[O, T]] = deriveDecoder
+  object SwapP2Pk {
+
+    implicit val encoder: Encoder.AsObject[SwapP2Pk] =
+      deriveEncoder.mapJsonObject(_.add("orderType", SwapType.swapP2Pk.asJson))
+
+    implicit val decoder: Decoder[SwapP2Pk] =
+      deriveDecoder
+        .validate(
+          _.downField("orderType").as[SwapType.SwapP2Pk].toOption.nonEmpty,
+          "Incorrect SwapP2Pk order. There is no order type in json."
+        )
+  }
+
+  @derive(loggable)
+  final case class SwapMultiAddress(
+    poolId: PoolId,
+    maxMinerFee: Long,
+    timestamp: Long,
+    params: SwapParams[SErgoTree],
+    box: Output
+  ) extends CFMMOrder[SwapType] {
+    val orderType: SwapType = SwapType.swapMultiAddress
+  }
+
+  object SwapMultiAddress {
+
+    implicit val encoder: Encoder.AsObject[SwapMultiAddress] =
+      deriveEncoder.mapJsonObject(_.add("orderType", SwapType.swapMultiAddress.asJson))
+
+    implicit val decoder: Decoder[SwapMultiAddress] =
+      deriveDecoder
+        .validate(
+          _.downField("orderType").as[SwapType.SwapMultiAddress].toOption.nonEmpty,
+          "Incorrect SwapMultiAddress order. There is no order type in json."
+        )
   }
 
   /** @param params baseAmount is already without max dex fee if needed
@@ -154,4 +195,20 @@ object CFMMOrder {
   ) extends CFMMOrder[SwapType.SwapTokenFee] {
     val orderType: SwapType.SwapTokenFee = SwapType.swapTokenFee
   }
+
+  implicit def showAny: Show[AnyOrder] = _.toString
+
+  implicit def loggableAny: Loggable[CFMMOrder.AnyOrder] = Loggable.show
+
+  implicit def showAnySwap: Show[AnySwap] = _.toString
+
+  implicit def loggableAnySwap: Loggable[CFMMOrder.AnySwap] = Loggable.show
+
+  implicit def showAnyDeposit: Show[AnyDeposit] = _.toString
+
+  implicit def loggableAnyDeposit: Loggable[CFMMOrder.AnyDeposit] = Loggable.show
+
+  implicit def showAnyRedeem: Show[AnyRedeem] = _.toString
+
+  implicit def loggableAnyRedeem: Loggable[CFMMOrder.AnyRedeem] = Loggable.show
 }

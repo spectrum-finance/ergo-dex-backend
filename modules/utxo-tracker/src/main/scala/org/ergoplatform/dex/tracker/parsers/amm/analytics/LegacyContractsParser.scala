@@ -1,4 +1,4 @@
-package org.ergoplatform.dex.tracker.parsers.amm
+package org.ergoplatform.dex.tracker.parsers.amm.analytics
 
 import cats.Monad
 import cats.effect.Clock

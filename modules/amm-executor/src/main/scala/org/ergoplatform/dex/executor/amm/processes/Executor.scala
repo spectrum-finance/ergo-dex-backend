@@ -61,7 +61,7 @@ object Executor {
         .evalMap { rec =>
           service
             .executeAttempt(rec.message)
-            .handleWith[Throwable](e => warnCause"Order execution failed fatally" (e) as none[CFMMOrder.Any])
+            .handleWith[Throwable](e => warnCause"Order execution failed fatally" (e) as none[CFMMOrder.AnyOrder])
             .local(_ => TraceId.fromString(rec.message.id.value))
             .tupleLeft(rec)
         }

@@ -3,21 +3,21 @@ package org.ergoplatform.dex.tracker.parsers.amm.v3
 import cats.Functor
 import cats.effect.Clock
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.dex.domain.amm.CFMMOrder.{Deposit, Redeem, SwapTokenFee}
-import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType
-import org.ergoplatform.dex.domain.amm.CFMMOrderType.FeeType._
+import org.ergoplatform.dex.domain.amm.CFMMOrder.{DepositTokenFee, RedeemTokenFee, SwapTokenFee}
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
-import org.ergoplatform.dex.protocol.amm.T2TCFMMTemplates
+import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
+import org.ergoplatform.dex.protocol.amm.{ParserVersion, T2TCFMMTemplates}
+import org.ergoplatform.dex.tracker.parsers.amm.CFMMOrdersParser
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.ergo.{ErgoTreeTemplate, SErgoTree, TokenId}
 import tofu.syntax.monadic._
 import tofu.syntax.time.now.millis
 
-class T2TOrderV3Parser[F[_]: Functor: Clock] {
+class T2TOrdersV3Parser[F[_]: Functor: Clock] extends CFMMOrdersParser[T2T_CFMM, ParserVersion.V3, F] {
 
-  def deposit(box: Output): F[Option[Deposit[TokenFee, SErgoTree]]] = millis.map { ts =>
+  def deposit(box: Output): F[Option[CFMMOrder.AnyDeposit]] = millis.map { ts =>
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     if (template == T2TCFMMTemplates.depositV3) {
@@ -36,11 +36,11 @@ class T2TOrderV3Parser[F[_]: Functor: Clock] {
                    dexFee,
                    redeemer
                  )
-      } yield Deposit[TokenFee, SErgoTree](poolId, maxMinerFee, ts, params, box, FeeType.tokenFee)
+      } yield DepositTokenFee(poolId, maxMinerFee, ts, params, box)
     } else None
   }
 
-  def redeem(box: Output): F[Option[Redeem[TokenFee, SErgoTree]]] = millis.map { ts =>
+  def redeem(box: Output): F[Option[CFMMOrder.AnyRedeem]] = millis.map { ts =>
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     if (template == T2TCFMMTemplates.redeemV3) {
@@ -51,11 +51,11 @@ class T2TOrderV3Parser[F[_]: Functor: Clock] {
         dexFee      <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount))
         redeemer    <- tree.constants.parseBytea(0).map(SErgoTree.fromBytes)
         params = RedeemParams(inLP, dexFee.value, redeemer)
-      } yield Redeem(poolId, maxMinerFee, ts, params, box, FeeType.tokenFee)
+      } yield RedeemTokenFee(poolId, maxMinerFee, ts, params, box)
     } else None
   }
 
-  def swap(box: Output): F[Option[SwapTokenFee]] = millis.map { ts =>
+  def swap(box: Output): F[Option[CFMMOrder.AnySwap]] = millis.map { ts =>
     val tree     = ErgoTreeSerializer.default.deserialize(box.ergoTree)
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     if (template == T2TCFMMTemplates.swapV3) {
@@ -82,4 +82,10 @@ class T2TOrderV3Parser[F[_]: Functor: Clock] {
     } else None
   }
 
+}
+
+object T2TOrdersV3Parser {
+
+  def make[F[_]: Functor: Clock]: CFMMOrdersParser[T2T_CFMM, ParserVersion.V3, F] =
+    new T2TOrdersV3Parser
 }

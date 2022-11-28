@@ -1,11 +1,10 @@
-package org.ergoplatform.dex.tracker.parsers.amm
+package org.ergoplatform.dex.tracker.parsers.amm.analytics
 
 import cats.Applicative
 import cats.syntax.option._
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.dex.domain.amm.{CFMMPool, CFMMVersionedOrder}
 import org.ergoplatform.dex.domain.amm.OrderEvaluation.{DepositEvaluation, RedeemEvaluation, SwapEvaluation}
-import org.ergoplatform.ergo.PubKey
+import org.ergoplatform.dex.domain.amm.{CFMMPool, CFMMVersionedOrder}
 import org.ergoplatform.ergo.domain.Output
 import tofu.syntax.monadic._
 

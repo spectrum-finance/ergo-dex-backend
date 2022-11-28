@@ -7,7 +7,8 @@ import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.CFMMOrder.SwapMultiAddress
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, PoolId, SwapParams}
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
-import org.ergoplatform.dex.protocol.amm.{AMMType, N2TCFMMTemplates, ParserType}
+import org.ergoplatform.dex.protocol.amm.{AMMType, N2TCFMMTemplates, ParserVersion}
+import org.ergoplatform.dex.tracker.parsers.amm.v2.N2TOrdersV2Parser
 import org.ergoplatform.ergo._
 import org.ergoplatform.ergo.domain.Output
 import org.scalatest.matchers.should
@@ -103,8 +104,8 @@ class N2TMultiAddressSwapParserSpec
 
   implicit val e: ErgoAddressEncoder = new ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
 
-  def parser: CFMMOrdersParser[AMMType.N2T_CFMM, ParserType.MultiAddress, SyncIO] =
-    N2TCFMMOrdersParserMultiAddress.make[SyncIO]
+  def parser: CFMMOrdersParser[AMMType.N2T_CFMM, ParserVersion.V2, SyncIO] =
+    N2TOrdersV2Parser.make[SyncIO]
 
   def sErgoTreeSwapBuy =
     SErgoTree.unsafeFromString(

@@ -3,6 +3,7 @@ package org.ergoplatform.dex.tracker.parsers.amm
 import cats.effect.IO
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.CatsPlatform
+import org.ergoplatform.dex.tracker.parsers.amm.analytics.CFMMHistoryParser
 import org.ergoplatform.ergo.domain.SettledTransaction
 import org.ergoplatform.ergo.services.explorer.models.{Transaction => ExplorerTX}
 import org.scalatest.matchers.should

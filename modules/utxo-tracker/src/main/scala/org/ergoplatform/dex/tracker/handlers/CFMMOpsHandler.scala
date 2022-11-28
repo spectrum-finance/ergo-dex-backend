@@ -10,7 +10,7 @@ import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.streaming.{Producer, Record}
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.dex.protocol.amm.ParserType
+import org.ergoplatform.dex.protocol.amm.ParserVersion
 import org.ergoplatform.dex.tracker.parsers.amm.CFMMOrdersParser
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
 import org.ergoplatform.ergo.state.LedgerStatus
@@ -24,7 +24,7 @@ final class CFMMOpsHandler[
   F[_]: Monad: Evals[*[_], G]: FunctorFilter,
   G[_]: Monad: Logging,
   Status[_]: LedgerStatus
-](parsers: List[CFMMOrdersParser[CFMMType, ParserType.Any, G]])(implicit
+](parsers: List[CFMMOrdersParser[CFMMType, ParserVersion.Any, G]])(implicit
   producer: Producer[OrderId, Status[CFMMOrder[CFMMOrderType]], F],
   rules: CFMMRules[G]
 ) {
@@ -58,17 +58,19 @@ object CFMMOpsHandler {
     G[_]: Monad: Clock,
     Status[_]: LedgerStatus
   ](implicit
-    producer: Producer[OrderId, Status[CFMMOrder.Any], F],
+    producer: Producer[OrderId, Status[CFMMOrder.AnyOrder], F],
     rules: CFMMRules[G],
     logs: Logs[I, G],
     encoder: ErgoAddressEncoder
   ): I[BoxHandler[F]] =
     logs.forService[CFMMOpsHandler[F, G, Status]].map { implicit log =>
       val parsers =
-        CFMMOrdersParser[T2T_CFMM, G, ParserType.Default] ::
-        CFMMOrdersParser[N2T_CFMM, G, ParserType.Default] ::
-        CFMMOrdersParser[T2T_CFMM, G, ParserType.MultiAddress] ::
-        CFMMOrdersParser[N2T_CFMM, G, ParserType.MultiAddress] ::
+        CFMMOrdersParser[T2T_CFMM, G, ParserVersion.V1] ::
+        CFMMOrdersParser[N2T_CFMM, G, ParserVersion.V1] ::
+        CFMMOrdersParser[T2T_CFMM, G, ParserVersion.V2] ::
+        CFMMOrdersParser[N2T_CFMM, G, ParserVersion.V2] ::
+        CFMMOrdersParser[T2T_CFMM, G, ParserVersion.V3] ::
+        CFMMOrdersParser[N2T_CFMM, G, ParserVersion.V3] ::
         Nil
       new CFMMOpsHandler[F, G, Status](parsers).handler
     }

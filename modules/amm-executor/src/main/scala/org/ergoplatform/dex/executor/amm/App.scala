@@ -11,12 +11,15 @@ import org.ergoplatform.dex.configs.ConsumerConfig
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, OrderId}
 import org.ergoplatform.dex.executor.amm.config.ConfigBundle
 import org.ergoplatform.dex.executor.amm.context.AppContext
+import org.ergoplatform.dex.executor.amm.interpreters.v3.n2t.N2TV3
+import org.ergoplatform.dex.executor.amm.interpreters.v3.t2t.T2TV3
 import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, N2TCFMMInterpreter, T2TCFMMInterpreter}
 import org.ergoplatform.dex.executor.amm.processes.Executor
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.executor.amm.services.Execution
 import org.ergoplatform.dex.executor.amm.streaming._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
+import org.ergoplatform.dex.protocol.amm.InterpreterVersion
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.ergo.services.explorer.{ErgoExplorer, ErgoExplorerStreaming}
 import org.ergoplatform.ergo.services.node.ErgoNode
@@ -47,24 +50,26 @@ object App extends EnvApp[AppContext] {
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(ctx)
       implicit0(e: ErgoAddressEncoder)      = ErgoAddressEncoder(configs.protocol.networkType.prefix)
       implicit0(confirmedOrders: CFMMConsumerIn[StreamF, RunF, Confirmed]) =
-        makeConsumer[OrderId, Confirmed[CFMMOrder.Any]](configs.consumers.confirmedOrders)
+        makeConsumer[OrderId, Confirmed[CFMMOrder.AnyOrder]](configs.consumers.confirmedOrders)
       implicit0(unconfirmedOrders: CFMMConsumerIn[StreamF, RunF, Unconfirmed]) =
-        makeConsumer[OrderId, Unconfirmed[CFMMOrder.Any]](configs.consumers.unconfirmedOrders)
+        makeConsumer[OrderId, Unconfirmed[CFMMOrder.AnyOrder]](configs.consumers.unconfirmedOrders)
       implicit0(consumerRetries: CFMMConsumerRetries[StreamF, RunF]) =
-        makeConsumer[OrderId, Delayed[CFMMOrder.Any]](configs.consumers.ordersRetry)
+        makeConsumer[OrderId, Delayed[CFMMOrder.AnyOrder]](configs.consumers.ordersRetry)
       implicit0(orders: CFMMConsumerIn[StreamF, RunF, Id]) =
         Consumer.combine2(confirmedOrders, unconfirmedOrders)(_.entity, _.entity)
       implicit0(producerRetries: CFMMProducerRetries[StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, Delayed[CFMMOrder.Any]](configs.producers.ordersRetry)
-      implicit0(consumer: CFMMCircuit[StreamF, RunF]) = StreamingCircuit.make[StreamF, RunF, OrderId, CFMMOrder.Any]
+        Producer.make[InitF, StreamF, RunF, OrderId, Delayed[CFMMOrder.AnyOrder]](configs.producers.ordersRetry)
+      implicit0(consumer: CFMMCircuit[StreamF, RunF]) = StreamingCircuit.make[StreamF, RunF, OrderId, CFMMOrder.AnyOrder]
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
       implicit0(explorer: ErgoExplorer[RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
       implicit0(network: ErgoNetwork[RunF]) = ErgoNetwork.make[RunF]
       implicit0(pools: CFMMPools[RunF])                  <- Resource.eval(CFMMPools.make[InitF, RunF])
-      implicit0(t2tInt: CFMMInterpreter[T2T_CFMM, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
-      implicit0(n2tInt: CFMMInterpreter[N2T_CFMM, RunF]) <- Resource.eval(N2TCFMMInterpreter.make[InitF, RunF])
-      implicit0(interpreter: CFMMInterpreter[CFMMType, RunF]) = CFMMInterpreter.make[RunF]
+      implicit0(t2tInt: CFMMInterpreter[T2T_CFMM, InterpreterVersion.V1, RunF]) <- Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
+      implicit0(n2tInt: CFMMInterpreter[N2T_CFMM, InterpreterVersion.V1, RunF]) <- Resource.eval(N2TCFMMInterpreter.make[InitF, RunF])
+      implicit0(n2tInt: CFMMInterpreter[N2T_CFMM, InterpreterVersion.V3, RunF]) <- Resource.eval(N2TV3.make[InitF, RunF](configs.exchange, configs.monetary, ???))
+      implicit0(n2tInt: CFMMInterpreter[T2T_CFMM, InterpreterVersion.V3, RunF]) <- Resource.eval(T2TV3.make[InitF, RunF](configs.exchange, configs.monetary, ???))
+      implicit0(interpreter: CFMMInterpreter[CFMMType, InterpreterVersion.Any, RunF]) = CFMMInterpreter.make[RunF]
       implicit0(execution: Execution[RunF]) <- Resource.eval(Execution.make[InitF, RunF])
       executor                              <- Resource.eval(Executor.make[InitF, StreamF, RunF])
     } yield executor -> ctx
