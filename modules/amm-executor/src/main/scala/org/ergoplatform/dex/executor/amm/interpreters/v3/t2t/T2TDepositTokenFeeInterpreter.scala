@@ -15,10 +15,10 @@ import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreterHelpers
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.amm.AMMContracts
 import org.ergoplatform.dex.protocol.amm.AMMType.N2T_CFMM
+import org.ergoplatform.ergo.BoxId
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.ergo.{BoxId, SErgoTree}
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import scorex.util.encode.Base16
 import sigmastate.basics.DLogProtocol.DLogProverInput
@@ -37,9 +37,9 @@ class T2TDepositTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   import helpers._
 
   def deposit(
-               deposit: DepositTokenFee,
-               pool: CFMMPool,
-               dexFeeOutput: Output
+    deposit: DepositTokenFee,
+    pool: CFMMPool,
+    dexFeeOutput: Output
   ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
     ref.get.flatMap { ctx =>
       Either

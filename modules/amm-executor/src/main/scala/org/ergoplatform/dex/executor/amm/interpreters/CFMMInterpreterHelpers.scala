@@ -3,7 +3,7 @@ package org.ergoplatform.dex.executor.amm.interpreters
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.AssetAmount
-import org.ergoplatform.dex.domain.amm.CFMMOrder.{SwapP2Pk, SwapTokenFee}
+import org.ergoplatform.dex.domain.amm.CFMMOrder.{SwapErg, SwapMultiAddress, SwapP2Pk, SwapTokenFee}
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, PriceTooHigh, PriceTooLow}
@@ -23,13 +23,10 @@ final class CFMMInterpreterHelpers(
   val minerFeeProp: Values.ErgoTree = Pay2SAddress(ErgoScriptPredef.feeProposition()).script
   val dexFeeProp: Values.ErgoTree   = exchange.rewardAddress.toErgoTree
 
-  def swapParamsErgFee(
-    swap: CFMMOrder.AnySwap,
-    pool: CFMMPool
-  ): Either[ExecutionFailed, (AssetAmount, AssetAmount, Long)] = {
+  def swapParamsErgFee(swap: SwapErg, pool: CFMMPool): Either[ExecutionFailed, (AssetAmount, AssetAmount, Long)] = {
     val params = swap match {
-      case s: SwapP2Pk                   => s.params
-      case s: CFMMOrder.SwapMultiAddress => s.params
+      case s: SwapP2Pk         => s.params
+      case s: SwapMultiAddress => s.params
     }
     val baseAmount  = params.baseAmount
     val quoteAmount = pool.outputAmount(baseAmount)

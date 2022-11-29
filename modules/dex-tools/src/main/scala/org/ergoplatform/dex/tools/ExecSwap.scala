@@ -8,7 +8,7 @@ import org.ergoplatform.dex.domain.amm.CFMMOrder.SwapP2Pk
 import org.ergoplatform.dex.domain.{AssetAmount, NetworkContext}
 import org.ergoplatform.dex.domain.amm.SwapParams
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.dex.executor.amm.interpreters.N2TCFMMInterpreter
+import org.ergoplatform.dex.executor.amm.interpreters.v1.N2TCFMMInterpreter
 import org.ergoplatform.ergo.{Address, PubKey, TokenId}
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
 import org.ergoplatform.dex.protocol.codecs._

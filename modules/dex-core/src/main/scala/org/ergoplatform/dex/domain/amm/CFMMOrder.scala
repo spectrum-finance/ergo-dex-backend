@@ -4,7 +4,7 @@ import cats.Show
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
-import io.circe.derivation.{deriveDecoder, deriveEncoder}
+import io.circe.derivation.{deriveCodec, deriveDecoder, deriveEncoder}
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 import org.ergoplatform.dex.domain.amm.CFMMOrderType.{DepositType, RedeemType, SwapType}
@@ -134,6 +134,9 @@ object CFMMOrder {
         )
   }
 
+  @derive(loggable, encoder, decoder)
+  sealed trait SwapErg extends CFMMOrder[SwapType]
+
   @derive(loggable)
   final case class SwapP2Pk(
     poolId: PoolId,
@@ -141,7 +144,7 @@ object CFMMOrder {
     timestamp: Long,
     params: SwapParams[PubKey],
     box: Output
-  ) extends CFMMOrder[SwapType] {
+  ) extends SwapErg {
     val orderType: SwapType = SwapType.swapP2Pk
   }
 
@@ -165,7 +168,7 @@ object CFMMOrder {
     timestamp: Long,
     params: SwapParams[SErgoTree],
     box: Output
-  ) extends CFMMOrder[SwapType] {
+  ) extends SwapErg {
     val orderType: SwapType = SwapType.swapMultiAddress
   }
 

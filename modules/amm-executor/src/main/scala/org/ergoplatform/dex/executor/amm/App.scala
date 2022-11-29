@@ -11,15 +11,16 @@ import org.ergoplatform.dex.configs.ConsumerConfig
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, OrderId}
 import org.ergoplatform.dex.executor.amm.config.ConfigBundle
 import org.ergoplatform.dex.executor.amm.context.AppContext
+import org.ergoplatform.dex.executor.amm.interpreters.v1.{InterpreterV1, N2TCFMMInterpreter, T2TCFMMInterpreter}
+import org.ergoplatform.dex.executor.amm.interpreters.v3.InterpreterV3
 import org.ergoplatform.dex.executor.amm.interpreters.v3.n2t.N2TV3
 import org.ergoplatform.dex.executor.amm.interpreters.v3.t2t.T2TV3
-import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, N2TCFMMInterpreter, T2TCFMMInterpreter}
+import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
 import org.ergoplatform.dex.executor.amm.processes.{Executor, NetworkContextUpdater}
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.executor.amm.services.Execution
 import org.ergoplatform.dex.executor.amm.streaming._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.dex.protocol.amm.InterpreterVersion
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.ergo.services.explorer.{ErgoExplorer, ErgoExplorerStreaming}
 import org.ergoplatform.ergo.services.node.ErgoNode
@@ -67,15 +68,15 @@ object App extends EnvApp[AppContext] {
       implicit0(network: ErgoNetwork[RunF]) = ErgoNetwork.make[RunF]
       implicit0(pools: CFMMPools[RunF]) <- Resource.eval(CFMMPools.make[InitF, RunF])
       (networkContextUpdater, context)  <- Resource.eval(NetworkContextUpdater.make[InitF, StreamF, RunF])
-      implicit0(t2tInt: CFMMInterpreter[T2T_CFMM, InterpreterVersion.V1, RunF]) <-
+      implicit0(t2tInt: InterpreterV1[T2T_CFMM, RunF]) <-
         Resource.eval(T2TCFMMInterpreter.make[InitF, RunF])
-      implicit0(n2tInt: CFMMInterpreter[N2T_CFMM, InterpreterVersion.V1, RunF]) <-
+      implicit0(n2tInt: InterpreterV1[N2T_CFMM, RunF]) <-
         Resource.eval(N2TCFMMInterpreter.make[InitF, RunF])
-      implicit0(n2tInt: CFMMInterpreter[N2T_CFMM, InterpreterVersion.V3, RunF]) <-
+      implicit0(n2tInt: InterpreterV3[N2T_CFMM, RunF]) <-
         Resource.eval(N2TV3.make[InitF, RunF](configs.exchange, configs.monetary, context))
-      implicit0(n2tInt: CFMMInterpreter[T2T_CFMM, InterpreterVersion.V3, RunF]) <-
+      implicit0(n2tInt: InterpreterV3[T2T_CFMM, RunF]) <-
         Resource.eval(T2TV3.make[InitF, RunF](configs.exchange, configs.monetary, context))
-      implicit0(interpreter: CFMMInterpreter[CFMMType, InterpreterVersion.Any, RunF]) = CFMMInterpreter.make[RunF]
+      implicit0(interpreter: CFMMInterpreter[CFMMType, RunF]) = CFMMInterpreter.make[RunF]
       implicit0(execution: Execution[RunF]) <- Resource.eval(Execution.make[InitF, RunF])
       executor                              <- Resource.eval(Executor.make[InitF, StreamF, RunF])
     } yield List(executor.run, networkContextUpdater.run) -> ctx

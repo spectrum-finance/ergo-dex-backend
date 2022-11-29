@@ -1,17 +1,17 @@
 package org.ergoplatform.dex.executor.amm.interpreters.v3.t2t
 
-import cats.{Functor, Monad}
 import cats.effect.concurrent.Ref
+import cats.{Functor, Monad}
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.NetworkContext
-import org.ergoplatform.dex.domain.amm.CFMMOrder.{AnyDeposit, AnyRedeem, AnySwap}
-import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool}
+import org.ergoplatform.dex.domain.amm.CFMMOrder._
+import org.ergoplatform.dex.domain.amm.CFMMPool
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
-import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter.CFMMInterpreterTracing
-import org.ergoplatform.dex.executor.amm.interpreters.{CFMMInterpreter, CFMMInterpreterHelpers}
-import org.ergoplatform.dex.protocol.amm.AMMType.{N2T_CFMM, T2T_CFMM}
-import org.ergoplatform.dex.protocol.amm.{AMMContracts, InterpreterVersion}
+import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreterHelpers
+import org.ergoplatform.dex.executor.amm.interpreters.v3.InterpreterV3
+import org.ergoplatform.dex.protocol.amm.AMMContracts
+import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.{ErgoAddressEncoder, ErgoLikeTransaction}
 import tofu.logging.Logs
@@ -27,33 +27,22 @@ object T2TV3 {
     contracts: AMMContracts[T2T_CFMM],
     encoder: ErgoAddressEncoder,
     logs: Logs[I, F]
-  ): I[CFMMInterpreter[T2T_CFMM, InterpreterVersion.V3, F]] =
-    logs.forService[CFMMInterpreter[T2T_CFMM, InterpreterVersion.V3, F]].map { implicit l =>
-      val helpers = new CFMMInterpreterHelpers(exchange, monetary)
-      val depositI =
-        new T2TDepositTokenFeeInterpreter[F](exchange: ExchangeConfig, monetary: MonetaryConfig, ref, helpers)
-      val redeemI =
-        new T2TRedeemTokenFeeInterpreter[F](exchange: ExchangeConfig, monetary: MonetaryConfig, ref, helpers)
-      val swapI = new T2TSwapTokenFeeInterpreter[F](exchange: ExchangeConfig, monetary: MonetaryConfig, ref, helpers)
-      new CFMMInterpreterTracing[T2T_CFMM, InterpreterVersion.V3, F] attach new CFMMInterpreter[
-        T2T_CFMM,
-        InterpreterVersion.V3,
-        F
-      ] {
-        def deposit(in: AnyDeposit, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
-          in match {
-            case d: CFMMOrder.DepositTokenFee => depositI.deposit(d, pool, ???)
-          }
+  ): I[InterpreterV3[T2T_CFMM, F]] =
+    logs.forService[InterpreterV3[T2T_CFMM, F]].map { implicit l =>
+      val helpers  = new CFMMInterpreterHelpers(exchange, monetary)
+      val depositI = new T2TDepositTokenFeeInterpreter[F](exchange, monetary, ref, helpers)
+      val redeemI  = new T2TRedeemTokenFeeInterpreter[F](exchange, monetary, ref, helpers)
+      val swapI    = new T2TSwapTokenFeeInterpreter[F](exchange, monetary, ref, helpers)
 
-        def redeem(in: AnyRedeem, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
-          in match {
-            case d: CFMMOrder.RedeemTokenFee => redeemI.redeem(d, pool, ???)
-          }
+      new InterpreterV3[T2T_CFMM, F] {
+        def deposit(deposit: DepositTokenFee, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
+          depositI.deposit(deposit, pool, ???)
 
-        def swap(in: AnySwap, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
-          in match {
-            case d: CFMMOrder.SwapTokenFee => swapI.swap(d, pool, ???)
-          }
+        def redeem(redeem: RedeemTokenFee, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
+          redeemI.redeem(redeem, pool, ???)
+
+        def swap(swap: SwapTokenFee, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
+          swapI.swap(swap, pool, ???)
       }
     }
 

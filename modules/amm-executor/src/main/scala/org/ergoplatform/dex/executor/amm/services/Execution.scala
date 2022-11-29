@@ -9,7 +9,6 @@ import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, Incorre
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreter
 import org.ergoplatform.dex.executor.amm.repositories.CFMMPools
 import org.ergoplatform.dex.protocol.amm.AMMType.CFMMType
-import org.ergoplatform.dex.protocol.amm.InterpreterVersion
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.ergo.services.explorer.TxSubmissionErrorParser
 import tofu.logging.{Logging, Logs}
@@ -29,7 +28,7 @@ object Execution {
 
   def make[I[_]: Functor, F[_]: Monad: TxFailed.Handle: ExecutionFailed.Handle](implicit
     pools: CFMMPools[F],
-    interpreter: CFMMInterpreter[CFMMType, InterpreterVersion.Any, F],
+    interpreter: CFMMInterpreter[CFMMType, F],
     network: ErgoNetwork[F],
     logs: Logs[I, F]
   ): I[Execution[F]] =
@@ -37,7 +36,7 @@ object Execution {
 
   final class Live[F[_]: Monad: TxFailed.Handle: ExecutionFailed.Handle: Logging](implicit
     pools: CFMMPools[F],
-    interpreter: CFMMInterpreter[CFMMType, InterpreterVersion.Any, F],
+    interpreter: CFMMInterpreter[CFMMType, F],
     network: ErgoNetwork[F],
     errParser: TxSubmissionErrorParser
   ) extends Execution[F] {
