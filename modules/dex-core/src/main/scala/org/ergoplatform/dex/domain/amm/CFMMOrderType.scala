@@ -54,7 +54,7 @@ object CFMMOrderType {
     object RedeemErgFee {
 
       implicit val encoder: Encoder[RedeemErgFee] =
-        Encoder[String].contramap(_ => "depositErgFee")
+        Encoder[String].contramap(_ => "redeemErgFee")
 
       implicit val decoder: Decoder[RedeemErgFee] = Decoder[String].emap {
         case "redeemErgFee" => redeemErgFee.asRight
@@ -67,7 +67,7 @@ object CFMMOrderType {
     object RedeemTokenFee {
 
       implicit val encoder: Encoder[RedeemTokenFee] =
-        Encoder[String].contramap(_ => "depositTokenFee")
+        Encoder[String].contramap(_ => "redeemTokenFee")
 
       implicit val decoder: Decoder[RedeemTokenFee] = Decoder[String].emap {
         case "redeemTokenFee" => redeemTokenFee.asRight
