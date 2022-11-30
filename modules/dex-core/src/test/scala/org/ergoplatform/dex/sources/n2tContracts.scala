@@ -56,14 +56,14 @@ object n2tContracts {
        |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
        |
        |            validPoolIn &&
-       |            rewardOut.propositionBytes == Pk.propBytes &&
+       |            rewardOut.propositionBytes == RedeemerPropBytes &&
        |            validChange &&
        |            rewardLP._1 == poolLP._1 &&
        |            rewardLP._2 >= minimalReward &&
        |            validMinerFee
        |        } else false
        |
-       |    sigmaProp(Pk || validDeposit)
+       |    sigmaProp(RefundProp || validDeposit)
        |}
        |""".stripMargin
 
@@ -99,16 +99,141 @@ object n2tContracts {
        |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
        |
        |            validPoolIn &&
-       |            returnOut.propositionBytes == Pk.propBytes &&
+       |            returnOut.propositionBytes == RedeemerPropBytes &&
        |            returnY._1 == reservesY._1 && // token id matches
        |            returnXAmount >= minReturnX &&
        |            returnY._2 >= minReturnY &&
        |            validMinerFee
        |        } else false
        |
-       |    sigmaProp(Pk || validRedeem)
+       |    sigmaProp(RefundProp || validRedeem)
        |}
        |""".stripMargin
+
+  val swapBuyV3: String =
+    s"""
+       |{   // Token -> ERG
+       |    val FeeDenom = 1000
+       |    val FeeNum   = 996
+       |
+       |    // Those constants are replaced when instantiating order:
+       |    val ExFeePerTokenNum   = 33L
+       |    val ExFeePerTokenDenom = 42L
+       |    val MinQuoteAmount     = 800L
+       |    val ReservedExFee      = 1400L
+       |    val SpectrumIsQuote    = true // todo: make sure sigma produces same templates regardless of this const.
+       |
+       |    val poolIn = INPUTS(0)
+       |
+       |    val validTrade =
+       |        if (INPUTS.size >= 2 && poolIn.tokens.size == 3) {
+       |            val base       = SELF.tokens(0)
+       |            val baseId     = base._1
+       |            val baseAmount = (if (baseId != SpectrumId) base._2 else base._2 - ReservedExFee).toBigInt
+       |
+       |            val poolNFT = poolIn.tokens(0)._1  // first token id is NFT
+       |
+       |            val poolReservesX = poolIn.value.toBigInt   // nanoErgs is X asset amount
+       |            val poolReservesY = poolIn.tokens(2)._2.toBigInt // third token amount is Y asset amount
+       |
+       |            val validPoolIn = poolNFT == PoolNFT
+       |
+       |            val rewardBox = OUTPUTS(1)
+       |
+       |            val quoteAmount   = rewardBox.value - SELF.value
+       |            val fairExFee     = {
+       |                val exFee     = quoteAmount * ExFeePerTokenNum / ExFeePerTokenDenom
+       |                val remainder = ReservedExFee - exFee
+       |                if (remainder > 0) {
+       |                    val spectrumRem = rewardBox.tokens(0)
+       |                    spectrumRem._1 == SpectrumId && spectrumRem._2 >= remainder
+       |                } else {
+       |                    true
+       |                }
+       |            }
+       |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
+       |            val fairPrice     = poolReservesX * baseAmount * FeeNum <= relaxedOutput * (poolReservesY * FeeDenom + baseAmount * FeeNum)
+       |
+       |            val validMinerFee = OUTPUTS.map { (o: Box) =>
+       |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
+       |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
+       |
+       |            validPoolIn &&
+       |            rewardBox.propositionBytes == RedeemerPropBytes &&
+       |            quoteAmount >= MinQuoteAmount &&
+       |            fairExFee &&
+       |            fairPrice &&
+       |            validMinerFee
+       |        } else false
+       |
+       |    sigmaProp(RefundProp || validTrade)
+       |}
+       |""".stripMargin
+
+  val swapSellV3: String =
+    """
+      |{   // ERG -> Token
+      |    val FeeDenom = 1000
+      |    val FeeNum   = 996
+      |
+      |    // Those constants are replaced when instantiating order:
+      |    val ExFeePerTokenNum   = 32L
+      |    val ExFeePerTokenDenom = 42L
+      |    val MinQuoteAmount     = 800L
+      |    val BaseAmount         = 1200L
+      |    val ReservedExFee      = 1400L
+      |    val SpectrumIsQuote    = true // todo: make sure sigma produces same templates regardless of this const.
+      |
+      |    val poolIn = INPUTS(0)
+      |
+      |    val validTrade =
+      |        if (INPUTS.size >= 2 && poolIn.tokens.size == 3) {
+      |            val poolNFT = poolIn.tokens(0)._1
+      |
+      |            val poolY = poolIn.tokens(2)
+      |
+      |            val poolReservesX = poolIn.value.toBigInt
+      |            val poolReservesY = poolY._2.toBigInt
+      |            val validPoolIn   = poolNFT == PoolNFT
+      |
+      |            val rewardBox = OUTPUTS(1)
+      |
+      |            val quoteAsset  = rewardBox.tokens(0)
+      |            val quoteAmount =
+      |                if (SpectrumIsQuote) FeeDenom * (quoteAsset._2.toBigInt - ReservedExFee) / (FeeDenom - FeeNum)
+      |                else quoteAsset._2.toBigInt
+      |
+      |            val fairExFee =
+      |                if (SpectrumIsQuote) true
+      |                else {
+      |                    val exFee     = quoteAmount * ExFeePerTokenNum / ExFeePerTokenDenom
+      |                    val remainder = ReservedExFee - exFee
+      |                    if (remainder > 0) {
+      |                        val spectrumRem = rewardBox.tokens(1)
+      |                        spectrumRem._1 == SpectrumId && spectrumRem._2 >= remainder
+      |                    } else {
+      |                        true
+      |                    }
+      |                }
+      |
+      |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
+      |            val fairPrice     = poolReservesY * BaseAmount * FeeNum <= relaxedOutput * (poolReservesX * FeeDenom + BaseAmount * FeeNum)
+      |
+      |            val validMinerFee = OUTPUTS.map { (o: Box) =>
+      |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
+      |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
+      |
+      |            validPoolIn &&
+      |            rewardBox.propositionBytes == RedeemerPropBytes &&
+      |            quoteAsset._1 == QuoteId &&
+      |            quoteAmount >= MinQuoteAmount &&
+      |            fairExFee &&
+      |            fairPrice &&
+      |            validMinerFee
+      |        } else false
+      |
+      |    sigmaProp(RefundProp || validTrade)
+      |}""".stripMargin
 
   val deposit: String =
     """
@@ -485,129 +610,4 @@ object n2tContracts {
       |    sigmaProp(RefundProp || validTrade)
       |}
       |""".stripMargin
-
-  val swapBuyV3: String =
-    s"""
-       |{   // Token -> ERG
-       |    val FeeDenom = 1000
-       |    val FeeNum   = 996
-       |
-       |    // Those constants are replaced when instantiating order:
-       |    val ExFeePerTokenNum   = 33L
-       |    val ExFeePerTokenDenom = 42L
-       |    val MinQuoteAmount     = 800L
-       |    val ReservedExFee      = 1400L
-       |    val SpectrumIsQuote    = true // todo: make sure sigma produces same templates regardless of this const.
-       |
-       |    val poolIn = INPUTS(0)
-       |
-       |    val validTrade =
-       |        if (INPUTS.size >= 2 && poolIn.tokens.size == 3) {
-       |            val base       = SELF.tokens(0)
-       |            val baseId     = base._1
-       |            val baseAmount = (if (baseId != SpectrumId) base._2 else base._2 - ReservedExFee).toBigInt
-       |
-       |            val poolNFT = poolIn.tokens(0)._1  // first token id is NFT
-       |
-       |            val poolReservesX = poolIn.value.toBigInt   // nanoErgs is X asset amount
-       |            val poolReservesY = poolIn.tokens(2)._2.toBigInt // third token amount is Y asset amount
-       |
-       |            val validPoolIn = poolNFT == PoolNFT
-       |
-       |            val rewardBox = OUTPUTS(1)
-       |
-       |            val quoteAmount   = rewardBox.value - SELF.value
-       |            val fairExFee     = {
-       |                val exFee     = quoteAmount * ExFeePerTokenNum / ExFeePerTokenDenom
-       |                val remainder = ReservedExFee - exFee
-       |                if (remainder > 0) {
-       |                    val spectrumRem = rewardBox.tokens(0)
-       |                    spectrumRem._1 == SpectrumId && spectrumRem._2 >= remainder
-       |                } else {
-       |                    true
-       |                }
-       |            }
-       |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
-       |            val fairPrice     = poolReservesX * baseAmount * FeeNum <= relaxedOutput * (poolReservesY * FeeDenom + baseAmount * FeeNum)
-       |
-       |            val validMinerFee = OUTPUTS.map { (o: Box) =>
-       |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
-       |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
-       |
-       |            validPoolIn &&
-       |            rewardBox.propositionBytes == RedeemerPropBytes &&
-       |            quoteAmount >= MinQuoteAmount &&
-       |            fairExFee &&
-       |            fairPrice &&
-       |            validMinerFee
-       |        } else false
-       |
-       |    sigmaProp(RefundProp || validTrade)
-       |}
-       |""".stripMargin
-
-  val swapSellV3: String =
-    """
-      |{   // ERG -> Token
-      |    val FeeDenom = 1000
-      |    val FeeNum   = 996
-      |
-      |    // Those constants are replaced when instantiating order:
-      |    val ExFeePerTokenNum   = 32L
-      |    val ExFeePerTokenDenom = 42L
-      |    val MinQuoteAmount     = 800L
-      |    val BaseAmount         = 1200L
-      |    val ReservedExFee      = 1400L
-      |    val SpectrumIsQuote    = true // todo: make sure sigma produces same templates regardless of this const.
-      |
-      |    val poolIn = INPUTS(0)
-      |
-      |    val validTrade =
-      |        if (INPUTS.size >= 2 && poolIn.tokens.size == 3) {
-      |            val poolNFT = poolIn.tokens(0)._1
-      |
-      |            val poolY = poolIn.tokens(2)
-      |
-      |            val poolReservesX = poolIn.value.toBigInt
-      |            val poolReservesY = poolY._2.toBigInt
-      |            val validPoolIn   = poolNFT == PoolNFT
-      |
-      |            val rewardBox = OUTPUTS(1)
-      |
-      |            val quoteAsset  = rewardBox.tokens(0)
-      |            val quoteAmount =
-      |                if (SpectrumIsQuote) FeeDenom * (quoteAsset._2.toBigInt - ReservedExFee) / (FeeDenom - FeeNum)
-      |                else quoteAsset._2.toBigInt
-      |
-      |            val fairExFee =
-      |                if (SpectrumIsQuote) true
-      |                else {
-      |                    val exFee     = quoteAmount * ExFeePerTokenNum / ExFeePerTokenDenom
-      |                    val remainder = ReservedExFee - exFee
-      |                    if (remainder > 0) {
-      |                        val spectrumRem = rewardBox.tokens(1)
-      |                        spectrumRem._1 == SpectrumId && spectrumRem._2 >= remainder
-      |                    } else {
-      |                        true
-      |                    }
-      |                }
-      |
-      |            val relaxedOutput = quoteAmount + 1 // handle rounding loss
-      |            val fairPrice     = poolReservesY * BaseAmount * FeeNum <= relaxedOutput * (poolReservesX * FeeDenom + BaseAmount * FeeNum)
-      |
-      |            val validMinerFee = OUTPUTS.map { (o: Box) =>
-      |                if (o.propositionBytes == MinerPropBytes) o.value else 0L
-      |            }.fold(0L, { (a: Long, b: Long) => a + b }) <= MaxMinerFee
-      |
-      |            validPoolIn &&
-      |            rewardBox.propositionBytes == RedeemerPropBytes &&
-      |            quoteAsset._1 == QuoteId &&
-      |            quoteAmount >= MinQuoteAmount &&
-      |            fairExFee &&
-      |            fairPrice &&
-      |            validMinerFee
-      |        } else false
-      |
-      |    sigmaProp(RefundProp || validTrade)
-      |}""".stripMargin
 }

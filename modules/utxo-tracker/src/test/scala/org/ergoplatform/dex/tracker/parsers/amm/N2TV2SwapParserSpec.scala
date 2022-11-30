@@ -15,7 +15,7 @@ import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-class N2TMultiAddressSwapParserSpec
+class N2TV2SwapParserSpec
   extends AnyPropSpec
   with should.Matchers
   with ScalaCheckPropertyChecks

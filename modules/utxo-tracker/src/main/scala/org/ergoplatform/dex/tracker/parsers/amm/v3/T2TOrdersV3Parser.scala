@@ -29,7 +29,7 @@ class T2TOrdersV3Parser[F[_]: Functor: Clock] extends CFMMOrdersParser[T2T_CFMM,
         inX         <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
         inY         <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount))
         dexFee      <- tree.constants.parseLong(10)
-        redeemer    <- tree.constants.parseBytea(0).map(SErgoTree.fromBytes)
+        redeemer    <- tree.constants.parseBytea(17).map(SErgoTree.fromBytes)
         params = DepositParams(
                    if (dexFeeFromX) inX - dexFee else inX,
                    if (dexFeeFromY) inY - dexFee else inY,
@@ -46,10 +46,10 @@ class T2TOrdersV3Parser[F[_]: Functor: Clock] extends CFMMOrdersParser[T2T_CFMM,
     if (template == T2TCFMMTemplates.redeemV3) {
       for {
         poolId      <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
-        maxMinerFee <- tree.constants.parseLong(17)
+        maxMinerFee <- tree.constants.parseLong(18)
         inLP        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
         dexFee      <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount))
-        redeemer    <- tree.constants.parseBytea(0).map(SErgoTree.fromBytes)
+        redeemer    <- tree.constants.parseBytea(14).map(SErgoTree.fromBytes)
         params = RedeemParams(inLP, dexFee.value, redeemer)
       } yield RedeemTokenFee(poolId, maxMinerFee, ts, params, box)
     } else None
@@ -60,9 +60,10 @@ class T2TOrdersV3Parser[F[_]: Functor: Clock] extends CFMMOrdersParser[T2T_CFMM,
     val template = ErgoTreeTemplate.fromBytes(tree.template)
     if (template == T2TCFMMTemplates.swapV3) {
       for {
-        poolId       <- tree.constants.parseBytea(19).map(PoolId.fromBytes)
-        maxMinerFee  <- tree.constants.parseLong(32)
-        spectrumId   <- tree.constants.parseBytea(4).map(TokenId.fromBytes)
+        poolId      <- tree.constants.parseBytea(19).map(PoolId.fromBytes)
+        maxMinerFee <- tree.constants.parseLong(32)
+        spectrumId  <- tree.constants.parseBytea(4).map(TokenId.fromBytes)
+        _ = println(spectrumId)
         maxExFee     <- tree.constants.parseLong(2)
         inAmount     <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
         outId        <- tree.constants.parseBytea(1).map(TokenId.fromBytes)

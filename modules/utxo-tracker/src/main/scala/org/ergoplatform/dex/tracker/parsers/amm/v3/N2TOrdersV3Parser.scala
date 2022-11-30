@@ -24,12 +24,12 @@ class N2TOrdersV3Parser[F[_]: Functor: Clock] extends CFMMOrdersParser[N2T_CFMM,
     if (template == N2TCFMMTemplates.depositV3) {
       for {
         poolId      <- tree.constants.parseBytea(14).map(PoolId.fromBytes)
-        maxMinerFee <- tree.constants.parseLong(22)
+        maxMinerFee <- tree.constants.parseLong(23)
         dexFeeFromY <- tree.constants.parseBoolean(10)
-        inX         <- tree.constants.parseLong(2).map(AssetAmount.native)
+        inX         <- tree.constants.parseLong(1).map(AssetAmount.native)
         inY         <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
         dexFee      <- tree.constants.parseLong(11)
-        redeemer    <- tree.constants.parseBytea(0).map(SErgoTree.fromBytes)
+        redeemer    <- tree.constants.parseBytea(15).map(SErgoTree.fromBytes)
         params = DepositParams(inX, if (dexFeeFromY) inY - dexFee else inY, dexFee, redeemer)
       } yield DepositTokenFee(poolId, maxMinerFee, ts, params, box)
     } else None
@@ -41,10 +41,10 @@ class N2TOrdersV3Parser[F[_]: Functor: Clock] extends CFMMOrdersParser[N2T_CFMM,
     if (template == N2TCFMMTemplates.redeemV3) {
       for {
         poolId      <- tree.constants.parseBytea(11).map(PoolId.fromBytes)
-        maxMinerFee <- tree.constants.parseLong(15)
+        maxMinerFee <- tree.constants.parseLong(16)
         inLP        <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
         dexFee      <- box.assets.lift(1).map(a => AssetAmount(a.tokenId, a.amount))
-        redeemer    <- tree.constants.parseBytea(0).map(SErgoTree.fromBytes)
+        redeemer    <- tree.constants.parseBytea(12).map(SErgoTree.fromBytes)
         params = RedeemParams(inLP, dexFee.value, redeemer)
       } yield RedeemTokenFee(poolId, maxMinerFee, ts, params, box)
     } else None
@@ -75,13 +75,13 @@ class N2TOrdersV3Parser[F[_]: Functor: Clock] extends CFMMOrdersParser[N2T_CFMM,
 
   private def swapBuy(box: Output, tree: ErgoTree, ts: Long): Option[CFMMOrder.AnySwap] =
     for {
-      poolId         <- tree.constants.parseBytea(12).map(PoolId.fromBytes)
-      maxMinerFee    <- tree.constants.parseLong(24)
+      poolId         <- tree.constants.parseBytea(13).map(PoolId.fromBytes)
+      maxMinerFee    <- tree.constants.parseLong(25)
       spectrumId     <- tree.constants.parseBytea(1).map(TokenId.fromBytes)
       inAmount       <- box.assets.lift(0).map(a => AssetAmount(a.tokenId, a.amount))
-      minQuoteAmount <- tree.constants.parseLong(14)
+      minQuoteAmount <- tree.constants.parseLong(15)
       outAmount = AssetAmount.native(minQuoteAmount)
-      dexFeePerTokenDenom   <- tree.constants.parseLong(10) //todo ?
+      dexFeePerTokenDenom   <- tree.constants.parseLong(10)
       dexFeePerTokenNumDiff <- tree.constants.parseLong(9)
       dexFeePerTokenNum = dexFeePerTokenDenom - dexFeePerTokenNumDiff
       reserveExFee <- tree.constants.parseLong(8)
