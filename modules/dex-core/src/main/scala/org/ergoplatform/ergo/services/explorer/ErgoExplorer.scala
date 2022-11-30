@@ -20,7 +20,7 @@ import org.ergoplatform.dex.protocol.instances._
 import org.ergoplatform.ergo.errors.ResponseError
 import org.ergoplatform.ergo.services.explorer.models._
 import org.ergoplatform.ergo.services.explorer.paths._
-import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.{Address, TokenId}
 import org.ergoplatform.ergo.domain.{EpochParams, NetworkInfo}
 import org.typelevel.jawn.Facade
 import sttp.capabilities.fs2.Fs2Streams
@@ -70,6 +70,10 @@ trait ErgoExplorer[F[_]] {
   /** Get token info by token id.
     */
   def getTokenInfo(tokenId: TokenId): F[Option[TokenInfo]]
+
+  /** get unspent output by address
+    */
+  def getUnspentOutputByAddress(address: Address): F[Option[Output]]
 }
 
 object ErgoExplorer {
@@ -119,6 +123,13 @@ final class ErgoExplorerTracing[F[_]: Logging: FlatMap] extends ErgoExplorer[Mid
       _  <- trace"getTokenInfo(tokenId=$tokenId)"
       os <- _
       _  <- trace"getTokenInfo(..) -> $os"
+    } yield os
+
+  def getUnspentOutputByAddress(address: Address): Mid[F, Option[Output]] =
+    for {
+      _  <- trace"getUnspentOutputByAddress(address=$address)"
+      os <- _
+      _  <- trace"getUnspentOutputByAddress(address=$address) -> $os"
     } yield os
 }
 
@@ -198,6 +209,13 @@ class CombinedErgoExplorer[F[_]: MonadThrow](config: NetworkConfig)(implicit bac
       .response(asJson[TokenInfo])
       .send(backend)
       .absorbServerError
+
+  def getUnspentOutputByAddress(address: Address): F[Option[Output]] =
+    basicRequest
+      .get(explorerUri.withPathSegment(unspentByAddress(address)).addParams("limit" -> 1.toString))
+      .response(asJson[Output])
+      .send(backend)
+      .absorbServerError
 }
 
 trait ErgoExplorerStreaming[S[_], F[_]] extends ErgoExplorer[F] {
@@ -224,6 +242,9 @@ object ErgoExplorerStreaming {
   final private class StreamingContainer[S[_]: FlatMap, F[_]: FlatMap](tft: F[ErgoExplorerStreaming[S, F]])(implicit
     evals: Evals[S, F]
   ) extends ErgoExplorerStreaming[S, F] {
+
+    def getUnspentOutputByAddress(address: Address): F[Option[Output]] =
+      tft.flatMap(_.getUnspentOutputByAddress(address))
 
     def checkTransaction(tx: ErgoLikeTransaction): F[Option[String]] =
       tft.flatMap(_.checkTransaction(tx))
@@ -317,7 +338,9 @@ object ErgoExplorerStreaming {
     def streamBlocks(offset: Long, limit: Int): Stream[F, BlockInfo] = {
       val req =
         basicRequest
-          .get(uri.withPathSegment(blocksStreamPathSeg).addParams("minGix" -> offset.toString, "limit" -> limit.toString))
+          .get(
+            uri.withPathSegment(blocksStreamPathSeg).addParams("minGix" -> offset.toString, "limit" -> limit.toString)
+          )
           .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
           .send(backend)
           .map(_.body)

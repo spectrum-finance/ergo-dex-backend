@@ -32,7 +32,7 @@ final class N2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   execution: MonetaryConfig,
   ref: Ref[F, NetworkContext],
   helpers: CFMMInterpreterHelpers
-)(implicit contracts: AMMContracts[N2T_CFMM]) {
+)(implicit contracts: AMMContracts[N2T_CFMM], e: ErgoAddressEncoder) {
   val sk: DLogProverInput = DLogProverInput(BigIntegers.fromUnsignedByteArray(Base16.decode(exchange.skHex).get))
   import helpers._
 
@@ -40,7 +40,7 @@ final class N2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     redeem: RedeemTokenFee,
     pool: CFMMPool,
     dexFeeOutput: Output
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = ref.get.flatMap { ctx =>
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] = ref.get.flatMap { ctx =>
     Either
       .catchNonFatal(ErgoTreeSerializer.default.deserialize(redeem.params.redeemer))
       .leftMap(s => IncorrectMultiAddressTree(pool.poolId, redeem.box.boxId, redeem.params.redeemer, s.getMessage))
@@ -78,7 +78,7 @@ final class N2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
         val dexFeeBox = new ErgoBoxCandidate(
           dexFeeOutput.value,
-          dexFeeProp,
+          P2PKAddress(sk.publicImage).script,
           ctx.currentHeight,
           additionalTokens = mkTokens(dexFeeTokensReturn: _*)
         )
@@ -98,13 +98,14 @@ final class N2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
               .headOption
           ).flatten
 
-        val inputs      = Vector(poolIn, redeemIn) ++ dexInput
-        val outs        = Vector(poolOut, returnBox, dexFeeBox, minerFeeBox)
-        val tx          = ErgoLikeTransaction(inputs, outs)
-        val nextPoolBox = poolOut.toBox(tx.id, 0)
-        val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
-        val nextPool    = pool.redeem(inLP, boxInfo)
-        (tx, nextPool)
+        val inputs             = Vector(poolIn, redeemIn) ++ dexInput
+        val outs               = Vector(poolOut, returnBox, dexFeeBox, minerFeeBox)
+        val tx                 = ErgoLikeTransaction(inputs, outs)
+        val nextPoolBox        = poolOut.toBox(tx.id, 0)
+        val boxInfo            = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
+        val nextPool           = pool.redeem(inLP, boxInfo)
+        val predictedDexOutput = Output.fromErgoBox(tx.outputs(2))
+        (tx, nextPool, predictedDexOutput)
       }
   }
 }

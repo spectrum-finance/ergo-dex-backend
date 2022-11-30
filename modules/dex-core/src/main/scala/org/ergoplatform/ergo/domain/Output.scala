@@ -3,9 +3,13 @@ package org.ergoplatform.ergo.domain
 import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
+import org.ergoplatform.ErgoBox
 import org.ergoplatform.ergo.services.explorer.models.{Output => ExplorerOutput}
 import org.ergoplatform.ergo.services.node.models.{Output => NodeOutput}
-import org.ergoplatform.ergo.{BoxId, SErgoTree, TxId}
+import org.ergoplatform.ergo.{BoxId, SErgoTree, TokenId, TxId}
+import scorex.crypto.authds.ADKey
+import scorex.util.ModifierId
+import scorex.util.encode.Base16
 import tofu.logging.derivation.loggable
 
 @derive(show, encoder, decoder, loggable)
@@ -45,4 +49,18 @@ object Output {
       o.assets.map(BoxAsset.fromNode),
       Map.empty // todo
     )
+
+  def fromErgoBox(b: ErgoBox): Output = {
+    val bId = ADKey !@@ b.id
+    Output(
+      BoxId(Base16.encode(bId)),
+      TxId(ModifierId !@@ b.transactionId),
+      b.value,
+      b.index,
+      b.creationHeight,
+      SErgoTree.fromBytes(b.ergoTree.bytes),
+      b.additionalTokens.toMap.map { case (id, l) => BoxAsset(TokenId.fromBytes(id), l) }.toList,
+      Map.empty
+    )
+  }
 }

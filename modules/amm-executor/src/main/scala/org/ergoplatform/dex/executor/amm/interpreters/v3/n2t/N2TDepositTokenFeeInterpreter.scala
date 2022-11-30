@@ -32,7 +32,7 @@ final class N2TDepositTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   execution: MonetaryConfig,
   ref: Ref[F, NetworkContext],
   helpers: CFMMInterpreterHelpers
-)(implicit contracts: AMMContracts[N2T_CFMM]) {
+)(implicit contracts: AMMContracts[N2T_CFMM], e: ErgoAddressEncoder) {
 
   val sk: DLogProverInput = DLogProverInput(BigIntegers.fromUnsignedByteArray(Base16.decode(exchange.skHex).get))
 
@@ -42,7 +42,7 @@ final class N2TDepositTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     deposit: DepositTokenFee,
     pool: CFMMPool,
     dexFeeOutput: Output
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = ref.get.flatMap { ctx =>
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] = ref.get.flatMap { ctx =>
     Either
       .catchNonFatal(ErgoTreeSerializer.default.deserialize(deposit.params.redeemer))
       .leftMap(s => IncorrectMultiAddressTree(pool.poolId, deposit.box.boxId, deposit.params.redeemer, s.getMessage))
@@ -83,7 +83,7 @@ final class N2TDepositTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
         val dexFeeBox = new ErgoBoxCandidate(
           dexFeeOutput.value,
-          dexFeeProp,
+          P2PKAddress(sk.publicImage).script,
           ctx.currentHeight,
           additionalTokens = mkTokens(dexFeeTokensReturn: _*)
         )
@@ -114,7 +114,9 @@ final class N2TDepositTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
         val nextPool    = pool.deposit(inX, inY, boxInfo)
 
-        (tx, nextPool)
+        val predictedDexOutput = Output.fromErgoBox(tx.outputs(2))
+
+        (tx, nextPool, predictedDexOutput)
       }
   }
 }

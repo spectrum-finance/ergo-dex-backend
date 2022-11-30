@@ -19,7 +19,7 @@ import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
-import org.ergoplatform.{ErgoBoxCandidate, ErgoLikeTransaction, Input, UnsignedErgoLikeTransaction}
+import org.ergoplatform.{ErgoAddressEncoder, ErgoBoxCandidate, ErgoLikeTransaction, Input, P2PKAddress, UnsignedErgoLikeTransaction}
 import scorex.util.encode.Base16
 import sigmastate.basics.DLogProtocol.DLogProverInput
 import sigmastate.interpreter.ProverResult
@@ -31,7 +31,7 @@ class T2TSwapTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   monetary: MonetaryConfig,
   ref: Ref[F, NetworkContext],
   helpers: CFMMInterpreterHelpers
-)(implicit contracts: AMMContracts[N2T_CFMM]) {
+)(implicit contracts: AMMContracts[N2T_CFMM], e: ErgoAddressEncoder) {
   val sk: DLogProverInput = DLogProverInput(BigIntegers.fromUnsignedByteArray(Base16.decode(exchange.skHex).get))
 
   import helpers._
@@ -40,7 +40,7 @@ class T2TSwapTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     swap: SwapTokenFee,
     pool: CFMMPool,
     dexFeeOutput: Output
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = ref.get.flatMap { ctx =>
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] = ref.get.flatMap { ctx =>
     swapParamsTokenFee(swap, pool).toRaise.flatMap { case (baseAmount, quoteAmount, dexFee) =>
       Either
         .catchNonFatal(ErgoTreeSerializer.default.deserialize(swap.params.redeemer))
@@ -72,7 +72,7 @@ class T2TSwapTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
 
           val dexFeeBox = new ErgoBoxCandidate(
             dexFeeOutput.value,
-            dexFeeProp,
+            P2PKAddress(sk.publicImage).script,
             ctx.currentHeight,
             additionalTokens = mkTokens(exchange.spectrumToken -> dexFee)
           )
@@ -107,7 +107,8 @@ class T2TSwapTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
           val nextPoolBox = poolBox1.toBox(tx.id, 0)
           val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
           val nextPool    = pool.swap(baseAmount, boxInfo)
-          tx -> nextPool
+          val predictedDexOutput = Output.fromErgoBox(tx.outputs(2))
+          (tx, nextPool, predictedDexOutput)
         }
     }
   }

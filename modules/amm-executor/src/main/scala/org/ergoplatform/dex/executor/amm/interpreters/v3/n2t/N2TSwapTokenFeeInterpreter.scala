@@ -19,7 +19,14 @@ import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.ergo.syntax._
 import org.ergoplatform.wallet.interpreter.ErgoUnsafeProver
-import org.ergoplatform.{ErgoBoxCandidate, ErgoLikeTransaction, Input, UnsignedErgoLikeTransaction}
+import org.ergoplatform.{
+  ErgoAddressEncoder,
+  ErgoBoxCandidate,
+  ErgoLikeTransaction,
+  Input,
+  P2PKAddress,
+  UnsignedErgoLikeTransaction
+}
 import scorex.util.encode.Base16
 import sigmastate.basics.DLogProtocol.DLogProverInput
 import sigmastate.interpreter.ProverResult
@@ -31,7 +38,7 @@ class N2TSwapTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   execution: MonetaryConfig,
   ref: Ref[F, NetworkContext],
   helpers: CFMMInterpreterHelpers
-)(implicit contracts: AMMContracts[N2T_CFMM]) {
+)(implicit contracts: AMMContracts[N2T_CFMM], e: ErgoAddressEncoder) {
   val sk: DLogProverInput = DLogProverInput(BigIntegers.fromUnsignedByteArray(Base16.decode(exchange.skHex).get))
   import helpers._
 
@@ -39,7 +46,7 @@ class N2TSwapTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     swap: SwapTokenFee,
     pool: CFMMPool,
     dexFeeOutput: Output
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = ref.get.flatMap { ctx =>
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] = ref.get.flatMap { ctx =>
     swapParamsTokenFee(swap, pool).toRaise
       .flatMap { case (baseAmount, quoteAmount, dexFee) =>
         Either
@@ -76,7 +83,7 @@ class N2TSwapTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
             val minerFeeBox = new ErgoBoxCandidate(minerFee, minerFeeProp, ctx.currentHeight)
             val dexFeeBox = new ErgoBoxCandidate(
               dexFeeOutput.value,
-              dexFeeProp,
+              P2PKAddress(sk.publicImage).script,
               ctx.currentHeight,
               additionalTokens = mkTokens(exchange.spectrumToken -> dexFee)
             )
@@ -108,13 +115,14 @@ class N2TSwapTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
                   .headOption
               ).flatten
 
-            val inputs      = Vector(poolIn, swapIn) ++ dexInput
-            val outs        = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
-            val tx          = ErgoLikeTransaction(inputs, outs)
-            val nextPoolBox = poolBox1.toBox(tx.id, 0)
-            val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
-            val nextPool    = pool.swap(baseAmount, boxInfo)
-            tx -> nextPool
+            val inputs             = Vector(poolIn, swapIn) ++ dexInput
+            val outs               = Vector(poolBox1, rewardBox, dexFeeBox, minerFeeBox)
+            val tx                 = ErgoLikeTransaction(inputs, outs)
+            val nextPoolBox        = poolBox1.toBox(tx.id, 0)
+            val boxInfo            = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
+            val nextPool           = pool.swap(baseAmount, boxInfo)
+            val predictedDexOutput = Output.fromErgoBox(tx.outputs(2))
+            (tx, nextPool, predictedDexOutput)
           }
       }
   }

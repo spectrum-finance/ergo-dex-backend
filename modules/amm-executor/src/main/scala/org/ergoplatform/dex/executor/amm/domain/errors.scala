@@ -26,4 +26,9 @@ object errors {
     extends ExecutionFailed(
       s"Incorrect multi address tree for pool $poolId and order $orderId: $tree. Err is: $err"
     )
+
+  final case class EmptyOutputForDexTokenFee(poolId: PoolId, orderId: BoxId)
+    extends ExecutionFailed(
+      s"There is no output for make box with spf fee."
+    )
 }

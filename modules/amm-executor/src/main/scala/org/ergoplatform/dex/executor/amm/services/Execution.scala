@@ -30,6 +30,7 @@ object Execution {
     pools: CFMMPools[F],
     interpreter: CFMMInterpreter[CFMMType, F],
     network: ErgoNetwork[F],
+    resolver: DexOutputResolver[F],
     logs: Logs[I, F]
   ): I[Execution[F]] =
     logs.forService[Execution[F]].map(implicit l => new Live[F])
@@ -38,6 +39,7 @@ object Execution {
     pools: CFMMPools[F],
     interpreter: CFMMInterpreter[CFMMType, F],
     network: ErgoNetwork[F],
+    resolver: DexOutputResolver[F],
     errParser: TxSubmissionErrorParser
   ) extends Execution[F] {
 
@@ -57,22 +59,32 @@ object Execution {
               finalizeF = network.submitTransaction(transaction) >> pools.put(nextPool)
               res <- (finalizeF as none[CFMMOrder.AnyOrder])
                        .handleWith[TxFailed] { e =>
-                         network.checkTransaction(transaction).flatMap {
-                           case Some(errText) =>
-                             val invalidInputs = errParser.missedInputs(errText)
-                             val poolBoxId     = pool.box.boxId
-                             val invalidPool   = invalidInputs.exists { case (boxId, _) => boxId == poolBoxId }
-                             if (invalidPool)
-                               warnCause"PoolState{poolId=${pool.poolId}, boxId=$poolBoxId} is invalidated. Validation result: $errText" (
-                                 e
-                               ) >>
-                               pools.invalidate(pool.poolId, poolBoxId) as Some(order)
-                             else
-                               warnCause"Order{id=${order.id}} is discarded due to TX error. Validation result: $errText" (
-                                 e
-                               ) as none
-                           case _ =>
-                             warnCause"Order{id=${order.id}} is discarded due to TX error." (e) as none
+                         resolver.getLatest.flatMap { output =>
+                           network.checkTransaction(transaction).flatMap {
+                             case Some(errText) =>
+                               val invalidInputs = errParser.missedInputs(errText)
+                               val poolBoxId     = pool.box.boxId
+                               val invalidPool   = invalidInputs.exists { case (boxId, _) => boxId == poolBoxId }
+                               val invalidDexOutput = invalidInputs.exists { case (boxId, _) =>
+                                 output.exists(_.boxId == boxId)
+                               }
+                               if (invalidPool)
+                                 warnCause"PoolState{poolId=${pool.poolId}, boxId=$poolBoxId} is invalidated. Validation result: $errText" (
+                                   e
+                                 ) >>
+                                 pools.invalidate(pool.poolId, poolBoxId) as Some(order)
+                               else if (invalidDexOutput)
+                                 warnCause"Dex output ${output.map(_.boxId)} is invalidated. Validation result: $errText" (
+                                   e
+                                 ) >>
+                                 resolver.invalidateAndUpdate as Some(order)
+                               else
+                                 warnCause"Order{id=${order.id}} is discarded due to TX error. Validation result: $errText" (
+                                   e
+                                 ) as none
+                             case _ =>
+                               warnCause"Order{id=${order.id}} is discarded due to TX error." (e) as none
+                           }
                          }
                        }
             } yield res

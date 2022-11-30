@@ -7,15 +7,17 @@ import org.ergoplatform.dex.domain.NetworkContext
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.amm.CFMMPool
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.dex.executor.amm.domain.errors.ExecutionFailed
+import org.ergoplatform.dex.executor.amm.domain.errors.{EmptyOutputForDexTokenFee, ExecutionFailed}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreterHelpers
 import org.ergoplatform.dex.executor.amm.interpreters.v3.InterpreterV3
+import org.ergoplatform.dex.executor.amm.services.DexOutputResolver
 import org.ergoplatform.dex.protocol.amm.AMMContracts
 import org.ergoplatform.dex.protocol.amm.AMMType.T2T_CFMM
 import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.{ErgoAddressEncoder, ErgoLikeTransaction}
 import tofu.logging.Logs
 import tofu.syntax.monadic._
+import tofu.syntax.raise._
 
 object T2TV3 {
 
@@ -26,6 +28,7 @@ object T2TV3 {
   )(implicit
     contracts: AMMContracts[T2T_CFMM],
     encoder: ErgoAddressEncoder,
+    resolver: DexOutputResolver[F],
     logs: Logs[I, F]
   ): I[InterpreterV3[T2T_CFMM, F]] =
     logs.forService[InterpreterV3[T2T_CFMM, F]].map { implicit l =>
@@ -36,13 +39,22 @@ object T2TV3 {
 
       new InterpreterV3[T2T_CFMM, F] {
         def deposit(deposit: DepositTokenFee, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
-          depositI.deposit(deposit, pool, ???)
+          resolver.getLatest
+            .flatMap(_.orRaise[F](EmptyOutputForDexTokenFee(pool.poolId, deposit.box.boxId)))
+            .flatMap(depositI.deposit(deposit, pool, _))
+            .flatMap { case (transaction, value, output) => resolver.setPredicted(output).as(transaction -> value) }
 
         def redeem(redeem: RedeemTokenFee, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
-          redeemI.redeem(redeem, pool, ???)
+          resolver.getLatest
+            .flatMap(_.orRaise[F](EmptyOutputForDexTokenFee(pool.poolId, redeem.box.boxId)))
+            .flatMap(redeemI.redeem(redeem, pool, _))
+            .flatMap { case (transaction, value, output) => resolver.setPredicted(output).as(transaction -> value) }
 
         def swap(swap: SwapTokenFee, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] =
-          swapI.swap(swap, pool, ???)
+          resolver.getLatest
+            .flatMap(_.orRaise[F](EmptyOutputForDexTokenFee(pool.poolId, swap.box.boxId)))
+            .flatMap(swapI.swap(swap, pool, _))
+            .flatMap { case (transaction, value, output) => resolver.setPredicted(output).as(transaction -> value) }
       }
     }
 

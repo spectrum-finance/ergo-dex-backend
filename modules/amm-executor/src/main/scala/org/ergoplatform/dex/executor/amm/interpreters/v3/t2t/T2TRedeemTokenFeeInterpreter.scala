@@ -31,7 +31,7 @@ final class T2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   monetary: MonetaryConfig,
   ref: Ref[F, NetworkContext],
   helpers: CFMMInterpreterHelpers
-)(implicit contracts: AMMContracts[N2T_CFMM]) {
+)(implicit contracts: AMMContracts[N2T_CFMM], e: ErgoAddressEncoder) {
   val sk: DLogProverInput = DLogProverInput(BigIntegers.fromUnsignedByteArray(Base16.decode(exchange.skHex).get))
 
   import helpers._
@@ -40,7 +40,7 @@ final class T2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     redeem: RedeemTokenFee,
     pool: CFMMPool,
     dexFeeOutput: Output
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]])] = ref.get.flatMap { ctx =>
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] = ref.get.flatMap { ctx =>
     Either
       .catchNonFatal(ErgoTreeSerializer.default.deserialize(redeem.params.redeemer))
       .leftMap(s => IncorrectMultiAddressTree(pool.poolId, redeem.box.boxId, redeem.params.redeemer, s.getMessage))
@@ -70,7 +70,7 @@ final class T2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         val dexFee      = redeem.params.dexFee
         val dexFeeBox = new ErgoBoxCandidate(
           dexFeeOutput.value,
-          dexFeeProp,
+          P2PKAddress(sk.publicImage).script,
           ctx.currentHeight,
           additionalTokens = mkTokens(exchange.spectrumToken -> dexFee)
         )
@@ -98,7 +98,8 @@ final class T2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         val nextPoolBox = poolBox1.toBox(tx.id, 0)
         val boxInfo     = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
         val nextPool    = pool.redeem(inLP, boxInfo)
-        (tx, nextPool)
+        val predictedDexOutput = Output.fromErgoBox(tx.outputs(2))
+        (tx, nextPool, predictedDexOutput)
       }
   }
 
