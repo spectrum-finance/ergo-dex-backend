@@ -1,0 +1,146 @@
+package org.ergodex.dex.executor
+
+import cats.effect.concurrent.Ref
+import cats.effect.{Clock, SyncIO}
+import io.circe.syntax._
+import org.ergoplatform.ErgoAddressEncoder
+import org.ergoplatform.dex.CatsPlatform
+import org.ergoplatform.dex.configs.MonetaryConfig
+import org.ergoplatform.dex.domain.{AssetAmount, BoxInfo, NetworkContext}
+import org.ergoplatform.dex.domain.amm.CFMMOrder._
+import org.ergoplatform.dex.domain.amm._
+import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
+import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreterHelpers
+import org.ergoplatform.dex.executor.amm.interpreters.v3.n2t.N2TDepositTokenFeeInterpreter
+import org.ergoplatform.dex.protocol.amm.{AMMType, ParserVersion}
+import org.ergoplatform.ergo.{Address, BoxId, SErgoTree, TokenId, TxId}
+import org.ergoplatform.ergo.domain.{BoxAsset, EpochParams, Output}
+import org.scalatest.matchers.should
+import org.scalatest.propspec.AnyPropSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+
+class InterpreterN2TV3Spec extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks with CatsPlatform {
+
+  implicit val clock: Clock[SyncIO] = Clock.create
+
+  implicit val e: ErgoAddressEncoder = new ErgoAddressEncoder(ErgoAddressEncoder.MainnetNetworkPrefix)
+
+  val helpers = new CFMMInterpreterHelpers(exchange(""), monetary)
+
+  property("Execute n2t deposit order") {
+    val depositI = new N2TDepositTokenFeeInterpreter[SyncIO](
+      exchange("4000000000000000000000000000000000000000000000000000000000000000"),
+      monetary,
+      ref,
+      helpers
+    )
+
+    val order = CFMMOrder.DepositTokenFee(
+      PoolId.fromStringUnsafe("1000000000000000000000000000000000000000000000000000000000000000"),
+      77,
+      10L,
+      DepositParams(
+        AssetAmount(
+          TokenId.fromStringUnsafe("0000000000000000000000000000000000000000000000000000000000000000"),
+          12345
+        ),
+        AssetAmount(
+          TokenId.fromStringUnsafe("4000000000000000000000000000000000000000000000000000000000000000"),
+          1000 - 123
+        ),
+        dexFee = 123,
+        redeemer = SErgoTree.unsafeFromString(
+          "19b1031208cd033d6ab05cfb8a65938e116cb863cad577e560bb8e110113bf395fbe98649dbb59040004040406040204000404040005feffffffffffffffff01040204000e209916d75132593c8b07fe18bd8d583bda1652eed7565cf41a4738ddd90fc992ec0580b6dc050e691005040004000e36100204a00b08cd0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ea02d192a39a8cc7a701730073011001020402d19683030193a38cc7b2a57300000193c2b2a57301007473027303830108cdeeac93b1a5730405000500058092f4010100d802d6017300d602b2a4730100eb027201d195ed93b1a4730293b1db630872027303d806d603db63087202d604b2a5730400d605b2db63087204730500d606b27203730600d6077e8cb2db6308a77307000206d6087e9973088cb272037309000206ededededed938cb27203730a0001730b93c27204d07201938c7205018c720601927e9a99c17204c1a7730c069d9c72077ec17202067208927e8c720502069d9c72077e8c72060206720890b0ada5d90109639593c27209730dc17209730e730fd90109599a8c7209018c72090273107311"
+        )
+      ),
+      Output(
+        BoxId("cd29cc599a8a53d28504f2752fc075286359d6b7f1e82582b7e6cd45468a6b29"),
+        TxId("52cdef65d1a93e29774904b5457577e7ec351a6fded878f5ee63733020865495"),
+        7260000,
+        0,
+        825489,
+        SErgoTree.unsafeFromString(
+          "19b40419040005f2c0010100040404060402040205feffffffffffffffff0104000404010105f601040004000e2000000000000000000000000000000000000000000000000000000000000000000e2003030303030303030303030303030303030303030303030303030303030303030404040205f2c00101000e691005040004000e36100204a00b08cd0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ea02d192a39a8cc7a701730073011001020402d19683030193a38cc7b2a57300000193c2b2a57301007473027303830108cdeeac93b1a573040500050005e2f85e0100d802d601b2a4730000d6027301d1ec730295ed92b1a4730393b1db630872017304d80cd603db63087201d604b2a5730500d605b27203730600d6067e9973078c72050206d6077ec1720106d6089d9c7e72020672067207d6098cb2db6308a773080002d60ab27203730900d60b7e8c720a0206d60c9d9c7e95730a997209730b7209067206720bd60ddb63087204d60eb2720d730c00ededededed938cb27203730d0001730e93c27204730f95ed8f7208720c93b1720d7310d801d60fb2720d731100eded92c1720499c1a77312938c720f018c720a01927e8c720f02069d9c99720c7208720b720695927208720c927ec1720406997ec1a706997e7202069d9c997208720c720772067313938c720e018c720501927e8c720e0206a17208720c90b0ada5d9010f639593c2720f7314c1720f73157316d9010f599a8c720f018c720f0273177318"
+        ),
+        List(
+          BoxAsset(
+            TokenId.fromStringUnsafe("4000000000000000000000000000000000000000000000000000000000000000"),
+            1000
+          )
+        ),
+        Map()
+      )
+    )
+
+    val pool = CFMMPool(
+      PoolId.fromStringUnsafe("1000000000000000000000000000000000000000000000000000000000000000"),
+      AssetAmount(
+        TokenId.fromStringUnsafe("2000000000000000000000000000000000000000000000000000000000000000"),
+        100000000
+      ),
+      AssetAmount(TokenId.fromStringUnsafe("0000000000000000000000000000000000000000000000000000000000000000"), 9999),
+      AssetAmount(TokenId.fromStringUnsafe("4000000000000000000000000000000000000000000000000000000000000000"), 9999),
+      996,
+      BoxInfo(
+        BoxId("cd29cc599a8a53d28504f2752fc075286359d6b7f1e82582b7e6cd45468a6b29"),
+        9999
+      )
+    )
+
+    val dexOut = Output(
+      BoxId("cd39cc599a8a53d28504f2752fc075286359d6b7f1e82582b7e6cd45468a6b29"),
+      TxId("52cdef65d1a93e29774904b5457577e7ec351a6fded878f5ee63733020865495"),
+      7260000,
+      0,
+      825489,
+      SErgoTree.unsafeFromString(
+        "19b40419040005f2c0010100040404060402040205feffffffffffffffff0104000404010105f601040004000e2000000000000000000000000000000000000000000000000000000000000000000e2003030303030303030303030303030303030303030303030303030303030303030404040205f2c00101000e691005040004000e36100204a00b08cd0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ea02d192a39a8cc7a701730073011001020402d19683030193a38cc7b2a57300000193c2b2a57301007473027303830108cdeeac93b1a573040500050005e2f85e0100d802d601b2a4730000d6027301d1ec730295ed92b1a4730393b1db630872017304d80cd603db63087201d604b2a5730500d605b27203730600d6067e9973078c72050206d6077ec1720106d6089d9c7e72020672067207d6098cb2db6308a773080002d60ab27203730900d60b7e8c720a0206d60c9d9c7e95730a997209730b7209067206720bd60ddb63087204d60eb2720d730c00ededededed938cb27203730d0001730e93c27204730f95ed8f7208720c93b1720d7310d801d60fb2720d731100eded92c1720499c1a77312938c720f018c720a01927e8c720f02069d9c99720c7208720b720695927208720c927ec1720406997ec1a706997e7202069d9c997208720c720772067313938c720e018c720501927e8c720e0206a17208720c90b0ada5d9010f639593c2720f7314c1720f73157316d9010f599a8c720f018c720f0273177318"
+      ),
+      List(
+        BoxAsset(
+          TokenId.fromStringUnsafe("4000000000000000000000000000000000000000000000000000000000000000"),
+          1000
+        ),
+        BoxAsset(
+          TokenId.fromStringUnsafe("5000000000000000000000000000000000000000000000000000000000000000"),
+          1000
+        )
+      ),
+      Map()
+    )
+
+    val (_, _, nextDexFee) = depositI.deposit(order, pool, dexOut).unsafeRunSync()
+
+    nextDexFee.value shouldEqual dexOut.value
+    nextDexFee.assets shouldEqual List(
+      BoxAsset(
+        TokenId.fromStringUnsafe("4000000000000000000000000000000000000000000000000000000000000000"),
+        1123
+      ),
+      BoxAsset(
+        TokenId.fromStringUnsafe("5000000000000000000000000000000000000000000000000000000000000000"),
+        1000
+      )
+    )
+
+
+  }
+
+  def exchange(spectrum: String) =
+    ExchangeConfig(
+      Address.fromStringUnsafe("9gCigPc9cZNRhKgbgdmTkVxo1ZKgw79G8DvLjCcYWAvEF3XRUKy"),
+      TokenId.fromStringUnsafe(spectrum),
+      "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04"
+    )
+
+  def monetary =
+    MonetaryConfig(
+      100,
+      101,
+      102,
+      103
+    )
+
+  def ref: Ref[SyncIO, NetworkContext] =
+    Ref.of[SyncIO, NetworkContext](NetworkContext(0, EpochParams.empty)).unsafeRunSync()
+}

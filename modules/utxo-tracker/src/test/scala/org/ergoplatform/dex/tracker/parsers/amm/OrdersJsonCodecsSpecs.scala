@@ -1,20 +1,18 @@
 package org.ergoplatform.dex.tracker.parsers.amm
 
 import cats.effect.{Clock, SyncIO}
+import io.circe.syntax._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.CatsPlatform
-import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.{AMMType, ParserVersion}
 import org.ergoplatform.dex.tracker.parsers.amm.v2.{N2TOrdersV2Parser, T2TOrdersV2Parser}
 import org.ergoplatform.dex.tracker.parsers.amm.v3.{N2TOrdersV3Parser, T2TOrdersV3Parser}
-import org.ergoplatform.ergo._
-import org.ergoplatform.ergo.domain.{BoxAsset, Output}
+import org.ergoplatform.ergo.domain.Output
 import org.scalatest.matchers.should
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import io.circe.syntax._
 
 class OrdersJsonCodecsSpecs extends AnyPropSpec with should.Matchers with ScalaCheckPropertyChecks with CatsPlatform {
 
@@ -25,46 +23,36 @@ class OrdersJsonCodecsSpecs extends AnyPropSpec with should.Matchers with ScalaC
   def parser: CFMMOrdersParser[AMMType.T2T_CFMM, ParserVersion.V3, SyncIO] =
     T2TOrdersV3Parser.make[SyncIO]
 
-  def parser2: CFMMOrdersParser[AMMType.N2T_CFMM, ParserVersion.V3, SyncIO] =
+  def parserN2TOrdersV3Parser: CFMMOrdersParser[AMMType.N2T_CFMM, ParserVersion.V3, SyncIO] =
     N2TOrdersV3Parser.make[SyncIO]
 
-  def parser3: CFMMOrdersParser[AMMType.N2T_CFMM, ParserVersion.V2, SyncIO] =
+  def parserN2TOrdersV2Parser: CFMMOrdersParser[AMMType.N2T_CFMM, ParserVersion.V2, SyncIO] =
     N2TOrdersV2Parser.make[SyncIO]
 
-  def parser4: CFMMOrdersParser[AMMType.T2T_CFMM, ParserVersion.V2, SyncIO] =
+  def parserT2TOrdersV2Parser: CFMMOrdersParser[AMMType.T2T_CFMM, ParserVersion.V2, SyncIO] =
     T2TOrdersV2Parser.make[SyncIO]
 
   property("Encode decode correctly") {
-    val depositYIsSpectrum = parser.deposit(boxSampleDepositYIsSpectrum).unsafeRunSync().get match {
-      case d: DepositTokenFee => d
-    }
+    val depositYIsSpectrum = parser.deposit(boxSampleDepositYIsSpectrum).unsafeRunSync().get
 
-    val redeem = parser.redeem(boxSampleRedeem).unsafeRunSync().get match {
-      case d: RedeemTokenFee => d
-    }
+    val redeem = parser.redeem(boxSampleRedeem).unsafeRunSync().get
 
-    val swap = parser.swap(boxSampleSwapXIsSpectrum).unsafeRunSync().get match {
-      case s: SwapTokenFee => s
-    }
+    val swap = parser.swap(boxSampleSwapXIsSpectrum).unsafeRunSync().get
 
-    val resV1 = parser4.swap(boxSample).unsafeRunSync().get
+    val orderV2 = parserT2TOrdersV2Parser.swap(orderV2Box).unsafeRunSync().get
 
-    val swapBuy = parser3.swap(boxSampleSwapBuy).unsafeRunSync().get match {
-      case swap: SwapMultiAddress => swap
-    }
+    val swapBuyErgFeeV2 = parserN2TOrdersV2Parser.swap(swapBuyErgFee).unsafeRunSync().get
 
-    val swap2 = parser2.swap(boxSampleSwapSellNotSpectrum).unsafeRunSync().get match {
-      case s: SwapTokenFee => s
-    }
+    val swapSellTokenV3 = parserN2TOrdersV3Parser.swap(swapSellTokenFee).unsafeRunSync().get
 
-    val resList: List[CFMMOrder.AnyOrder] = List(depositYIsSpectrum, redeem, swap, resV1, swapBuy, swap2)
+    val resList: List[CFMMOrder.AnyOrder] =
+      List(depositYIsSpectrum, redeem, swap, orderV2, swapSellTokenV3, swapBuyErgFeeV2)
 
     val json = resList.map(_.asJson)
 
     val decoded = json.map(_.as[CFMMOrder.AnyOrder])
 
     resList.zip(decoded).foreach { case (order, result) =>
-
       println(order)
       println(result)
       println("-----")
@@ -73,7 +61,7 @@ class OrdersJsonCodecsSpecs extends AnyPropSpec with should.Matchers with ScalaC
 
   }
 
-  def boxSampleSwapSellNotSpectrum =
+  def swapSellTokenFee =
     io.circe.parser
       .decode[Output](
         s"""
@@ -107,7 +95,7 @@ class OrdersJsonCodecsSpecs extends AnyPropSpec with should.Matchers with ScalaC
       .toOption
       .get
 
-  def boxSampleSwapBuy =
+  def swapBuyErgFee =
     io.circe.parser
       .decode[Output](
         s"""
@@ -141,7 +129,7 @@ class OrdersJsonCodecsSpecs extends AnyPropSpec with should.Matchers with ScalaC
       .toOption
       .get
 
-  def boxSample =
+  def orderV2Box =
     io.circe.parser
       .decode[Output](
         """
@@ -174,7 +162,6 @@ class OrdersJsonCodecsSpecs extends AnyPropSpec with should.Matchers with ScalaC
       )
       .toOption
       .get
-
 
   def boxSampleSwapXIsSpectrum =
     io.circe.parser
