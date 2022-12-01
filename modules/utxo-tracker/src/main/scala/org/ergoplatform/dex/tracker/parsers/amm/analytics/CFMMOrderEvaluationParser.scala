@@ -30,8 +30,8 @@ object CFMMOrderEvaluationParser {
 
     def parseSwapEval(output: Output, order: CFMMVersionedOrder.AnySwap): F[Option[SwapEvaluation]] = {
       val (redeemer, minOutput) = order match {
-        case swap: CFMMVersionedOrder.SwapP2Pk => (swap.params.redeemer.ergoTree, swap.params.minQuoteAmount)
-        case swap: CFMMVersionedOrder.SwapMultiAddress =>
+        case swap: CFMMVersionedOrder.SwapV1 => (swap.params.redeemer.ergoTree, swap.params.minQuoteAmount)
+        case swap: CFMMVersionedOrder.SwapV2 =>
           (swap.params.redeemer, swap.params.minQuoteAmount)
         case swap: CFMMVersionedOrder.SwapV0 => (swap.params.redeemer.ergoTree, swap.params.minQuoteAmount)
       }

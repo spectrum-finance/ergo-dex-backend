@@ -19,7 +19,8 @@ object DepositOrdersSql extends QuerySet[DBDeposit] {
     "dex_fee",
     "redeemer",
     "protocol_version",
-    "contract_version"
+    "contract_version",
+    "redeemer_ergo_tree"
   )
 
   val tableName: String = "deposits"

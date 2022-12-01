@@ -66,9 +66,10 @@ create table if not exists public.redeems (
     output_amount_x bigint,
     output_amount_y bigint,
     dex_fee bigint not null,
-    redeemer public.pubkey not null,
+    redeemer public.pubkey,
     protocol_version integer not null,
-    contract_version integer not null
+    contract_version integer not null,
+    redeemer_ergo_tree text
 );
 
 alter table public.redeems owner to ergo_admin;
@@ -90,9 +91,10 @@ create table if not exists public.deposits (
     input_amount_y bigint not null,
     output_amount_lp bigint,
     dex_fee bigint not null,
-    redeemer public.pubkey not null,
+    redeemer public.pubkey,
     protocol_version integer not null,
-    contract_version integer not null
+    contract_version integer not null,
+    redeemer_ergo_tree text
 );
 
 alter table public.deposits owner to ergo_admin;

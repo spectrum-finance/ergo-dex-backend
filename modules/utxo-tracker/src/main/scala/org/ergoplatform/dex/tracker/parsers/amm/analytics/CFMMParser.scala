@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker.parsers.amm.analytics
 
 import cats.Monad
 import cats.data.OptionT
-import org.ergoplatform.dex.domain.amm.CFMMOrder.{DepositErgFee, RedeemErgFee}
+import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.amm.CFMMVersionedOrder._
 import org.ergoplatform.dex.domain.amm._
 import org.ergoplatform.dex.protocol.amm.AMMType.{CFMMType, N2T_CFMM, T2T_CFMM}
@@ -22,53 +22,69 @@ trait CFMMParser[+CT <: CFMMType, F[_]] {
 object CFMMParser {
 
   implicit def makeT2TCFMMVersionedParser[F[_]: Monad](implicit
-    default: CFMMOrdersParser[T2T_CFMM, ParserVersion.V1, F],
-    multiAddress: CFMMOrdersParser[T2T_CFMM, ParserVersion.V2, F],
-    v0: LegacyContractsParser[T2T_CFMM, F]
+    v0: LegacyContractsParser[T2T_CFMM, F],
+    v1: CFMMOrdersParser[T2T_CFMM, ParserVersion.V1, F],
+    v2: CFMMOrdersParser[T2T_CFMM, ParserVersion.V2, F],
+    v3: CFMMOrdersParser[T2T_CFMM, ParserVersion.V3, F]
   ): CFMMParser[T2T_CFMM, F] = make[T2T_CFMM, F]
 
   implicit def makeN2TCFMMVersionedParser[F[_]: Monad](implicit
-    default: CFMMOrdersParser[N2T_CFMM, ParserVersion.V1, F],
-    multiAddress: CFMMOrdersParser[N2T_CFMM, ParserVersion.V2, F],
-    v0: LegacyContractsParser[N2T_CFMM, F]
+    v0: LegacyContractsParser[N2T_CFMM, F],
+    v1: CFMMOrdersParser[N2T_CFMM, ParserVersion.V1, F],
+    v2: CFMMOrdersParser[N2T_CFMM, ParserVersion.V2, F],
+    v3: CFMMOrdersParser[N2T_CFMM, ParserVersion.V3, F]
   ): CFMMParser[N2T_CFMM, F] = make[N2T_CFMM, F]
-
-  //todo support v3
 
   private def make[CT <: CFMMType, F[_]: Monad](implicit
     v0: LegacyContractsParser[CT, F],
     v1: CFMMOrdersParser[CT, ParserVersion.V1, F],
-    v2: CFMMOrdersParser[CT, ParserVersion.V2, F]
+    v2: CFMMOrdersParser[CT, ParserVersion.V2, F],
+    v3: CFMMOrdersParser[CT, ParserVersion.V3, F]
   ): CFMMParser[CT, F] =
     new CFMMParser[CT, F] {
 
       def deposit(box: Output): F[Option[CFMMVersionedOrder.AnyDeposit]] =
-        OptionT(v1.deposit(box))
-          .map { case s: DepositErgFee =>
-            DepositV2(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnyDeposit
+        OptionT(v3.deposit(box))
+          .map { case DepositTokenFee(poolId, maxMinerFee, timestamp, params, box) =>
+            DepositV3(poolId, maxMinerFee, timestamp, params, box): CFMMVersionedOrder.AnyDeposit
           }
+          .orElseF(
+            OptionT(v1.deposit(box)).map { case s: DepositErgFee =>
+              DepositV2(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnyDeposit
+            }.value
+          )
           .orElseF(v0.depositV1(box).map(r => r: Option[CFMMVersionedOrder.AnyDeposit]))
           .orElseF(v0.depositV0(box).map(r => r: Option[CFMMVersionedOrder.AnyDeposit]))
           .value
 
       def redeem(box: Output): F[Option[CFMMVersionedOrder.AnyRedeem]] =
-        OptionT(v1.redeem(box))
-          .map { case r: RedeemErgFee =>
-            RedeemV1(r.poolId, r.maxMinerFee, r.timestamp, r.params, r.box): CFMMVersionedOrder.AnyRedeem
+        OptionT(v3.redeem(box))
+          .map { case RedeemTokenFee(poolId, maxMinerFee, timestamp, params, box) =>
+            RedeemV3(poolId, maxMinerFee, timestamp, params, box): CFMMVersionedOrder.AnyRedeem
           }
+          .orElseF(
+            OptionT(v1.redeem(box)).map { case r: RedeemErgFee =>
+              RedeemV1(r.poolId, r.maxMinerFee, r.timestamp, r.params, r.box): CFMMVersionedOrder.AnyRedeem
+            }.value
+          )
           .orElseF(v0.redeemV0(box).map(r => r: Option[CFMMVersionedOrder.AnyRedeem]))
           .value
 
       def swap(box: Output): F[Option[CFMMVersionedOrder.AnySwap]] =
-        OptionT(v1.swap(box))
-          .orElseF(v2.swap(box))
-          .map {
-            case s: CFMMOrder.SwapP2Pk =>
-              SwapP2Pk(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnySwap
-            case s: CFMMOrder.SwapMultiAddress =>
-              SwapMultiAddress(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnySwap
-            case s: CFMMOrder.SwapTokenFee => ???
+        OptionT(v3.swap(box))
+          .map { case s: SwapTokenFee =>
+            SwapV3(s.poolId, s.maxMinerFee, s.timestamp, s.params, box, s.reservedExFee): CFMMVersionedOrder.AnySwap
           }
+          .orElseF(
+            OptionT(v2.swap(box)).map { case s: CFMMOrder.SwapMultiAddress =>
+              SwapV2(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnySwap
+            }.value
+          )
+          .orElseF(
+            OptionT(v1.swap(box)).map { case s: CFMMOrder.SwapP2Pk =>
+              SwapV1(s.poolId, s.maxMinerFee, s.timestamp, s.params, s.box): CFMMVersionedOrder.AnySwap
+            }.value
+          )
           .orElseF(v0.swapV0(box).map(r => r: Option[CFMMVersionedOrder.AnySwap]))
           .value
     }

@@ -59,9 +59,11 @@ object CFMMHistoryParser {
         .mapIn {
           case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV0, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
-          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapP2Pk, _, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV1, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
-          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapMultiAddress, _, _, _) =>
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV2, _, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV3, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
         }
 
@@ -76,6 +78,8 @@ object CFMMHistoryParser {
             x.copy(order = o.copy(timestamp = tx.timestamp))
           case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV2, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV3, _, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
         }
 
     def redeem(tx: SettledTransaction): F[Option[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyRedeem, RedeemEvaluation]]] =
@@ -84,6 +88,8 @@ object CFMMHistoryParser {
           case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV0, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
           case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV1, _, _, _) =>
+            x.copy(order = o.copy(timestamp = tx.timestamp))
+          case x @ EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV3, _, _, _) =>
             x.copy(order = o.copy(timestamp = tx.timestamp))
         }
 

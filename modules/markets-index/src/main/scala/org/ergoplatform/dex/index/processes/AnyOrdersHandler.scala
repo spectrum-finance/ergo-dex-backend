@@ -40,17 +40,21 @@ object AnyOrdersHandler {
 
     def handle(anyOrders: List[EvaluatedCFMMOrder.Any]): F[Int] =
       NonEmptyList.fromList(anyOrders.collect {
-        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapMultiAddress, Some(ev: SwapEvaluation), p, r) =>
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV3, Some(ev: SwapEvaluation), p, r) =>
           EvaluatedCFMMOrder(o: AnySwap, Some(ev), p, r).extract[DBSwap]
-        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapP2Pk, Some(ev: SwapEvaluation), p, r) =>
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV2, Some(ev: SwapEvaluation), p, r) =>
+          EvaluatedCFMMOrder(o: AnySwap, Some(ev), p, r).extract[DBSwap]
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV1, Some(ev: SwapEvaluation), p, r) =>
           EvaluatedCFMMOrder(o: AnySwap, Some(ev), p, r).extract[DBSwap]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV0, Some(ev: SwapEvaluation), p, r) =>
           EvaluatedCFMMOrder(o: AnySwap, Some(ev), p, r).extract[DBSwap]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV0, _, p, r) =>
           EvaluatedCFMMOrder(o: AnySwap, none[SwapEvaluation], p, r).extract[DBSwap]
-        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapP2Pk, _, p, r) =>
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV1, _, p, r) =>
           EvaluatedCFMMOrder(o: AnySwap, none[SwapEvaluation], p, r).extract[DBSwap]
-        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapMultiAddress, _, p, r) =>
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV2, _, p, r) =>
+          EvaluatedCFMMOrder(o: AnySwap, none[SwapEvaluation], p, r).extract[DBSwap]
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.SwapV3, _, p, r) =>
           EvaluatedCFMMOrder(o: AnySwap, none[SwapEvaluation], p, r).extract[DBSwap]
       }) match {
         case Some(nel) => repo.insert(nel)
@@ -62,10 +66,14 @@ object AnyOrdersHandler {
 
     def handle(anyOrders: List[EvaluatedCFMMOrder.Any]): F[Int] =
       NonEmptyList.fromList(anyOrders.collect {
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV3, Some(ev: RedeemEvaluation), p, r) =>
+          EvaluatedCFMMOrder(o: AnyRedeem, Some(ev), p, r).extract[DBRedeem]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV1, Some(ev: RedeemEvaluation), p, r) =>
           EvaluatedCFMMOrder(o: AnyRedeem, Some(ev), p, r).extract[DBRedeem]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV0, Some(ev: RedeemEvaluation), p, r) =>
           EvaluatedCFMMOrder(o: AnyRedeem, Some(ev), p, r).extract[DBRedeem]
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV3, _, p, r) =>
+          EvaluatedCFMMOrder(o: AnyRedeem, none[RedeemEvaluation], p, r).extract[DBRedeem]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV1, _, p, r) =>
           EvaluatedCFMMOrder(o: AnyRedeem, none[RedeemEvaluation], p, r).extract[DBRedeem]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.RedeemV0, _, p, r) =>
@@ -86,11 +94,15 @@ object AnyOrdersHandler {
           EvaluatedCFMMOrder(o: AnyDeposit, Some(ev), p, r).extract[DBDeposit]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV2, Some(ev: DepositEvaluation), p, r) =>
           EvaluatedCFMMOrder(o: AnyDeposit, Some(ev), p, r).extract[DBDeposit]
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV3, Some(ev: DepositEvaluation), p, r) =>
+          EvaluatedCFMMOrder(o: AnyDeposit, Some(ev), p, r).extract[DBDeposit]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV0, _, p, r) =>
           EvaluatedCFMMOrder(o: AnyDeposit, none[DepositEvaluation], p, r).extract[DBDeposit]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV1, _, p, r) =>
           EvaluatedCFMMOrder(o: AnyDeposit, none[DepositEvaluation], p, r).extract[DBDeposit]
         case EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV2, _, p, r) =>
+          EvaluatedCFMMOrder(o: AnyDeposit, none[DepositEvaluation], p, r).extract[DBDeposit]
+        case EvaluatedCFMMOrder(o: CFMMVersionedOrder.DepositV3, _, p, r) =>
           EvaluatedCFMMOrder(o: AnyDeposit, none[DepositEvaluation], p, r).extract[DBDeposit]
       }) match {
         case Some(nel) => repo.insert(nel)

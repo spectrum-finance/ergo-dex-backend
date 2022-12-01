@@ -102,10 +102,10 @@ object models {
   implicit val swapView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnySwap, SwapEvaluation], DBSwap] = {
     case EvaluatedCFMMOrder(swap: AnySwap, ev, pool, _) =>
       val (minerFee, params, redeemer, ergoTree) = swap match {
-        case swap: SwapV0   => (None, swap.params, swap.params.redeemer.some, none)
-        case swap: SwapP2Pk => (swap.maxMinerFee.some, swap.params, swap.params.redeemer.some, none)
-        case swap: SwapMultiAddress =>
-          (swap.maxMinerFee.some, swap.params, none, swap.params.redeemer.some)
+        case swap: SwapV0 => (None, swap.params, swap.params.redeemer.some, none)
+        case swap: SwapV1 => (swap.maxMinerFee.some, swap.params, swap.params.redeemer.some, none)
+        case swap: SwapV2 => (swap.maxMinerFee.some, swap.params, none, swap.params.redeemer.some)
+        case swap: SwapV3 => (swap.maxMinerFee.some, swap.params, none, swap.params.redeemer.some)
       }
       DBSwap(
         OrderId.fromBoxId(swap.box.boxId),
@@ -138,18 +138,20 @@ object models {
     outputAmountX: Option[Long],
     outputAmountY: Option[Long],
     dexFee: Long,
-    redeemer: PubKey,
+    redeemer: Option[PubKey],
     protocolVersion: ProtocolVersion,
-    contractVersion: CFMMOrderVersion
+    contractVersion: CFMMOrderVersion,
+    redeemerErgoTree: Option[SErgoTree]
   )
 
   implicit val redeemQs: QuerySet[DBRedeem] = RedeemOrdersSql
 
   implicit val redeemView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyRedeem, RedeemEvaluation], DBRedeem] = {
     case EvaluatedCFMMOrder(redeem, ev, pool, _) =>
-      val (minerFee, params) = redeem match {
-        case redeem: RedeemV0 => (None, redeem.params)
-        case redeem: RedeemV1 => (redeem.maxMinerFee.some, redeem.params)
+      val (minerFee, params, redeemer, ergTree) = redeem match {
+        case redeem: RedeemV0 => (None, redeem.params, Some(redeem.params.redeemer), None)
+        case redeem: RedeemV1 => (redeem.maxMinerFee.some, redeem.params, Some(redeem.params.redeemer), None)
+        case redeem: RedeemV3 => (redeem.maxMinerFee.some, redeem.params, None, Some(redeem.params.redeemer))
       }
       DBRedeem(
         OrderId.fromBoxId(redeem.box.boxId),
@@ -162,9 +164,10 @@ object models {
         ev.map(_.outputX.value),
         ev.map(_.outputY.value),
         params.dexFee,
-        params.redeemer,
+        redeemer,
         ProtocolVersion.Initial,
-        redeem.version
+        redeem.version,
+        ergTree
       )
   }
 
@@ -180,19 +183,21 @@ object models {
     inputAmountY: Long,
     outputAmountLP: Option[Long],
     dexFee: Long,
-    redeemer: PubKey,
+    redeemer: Option[PubKey],
     protocolVersion: ProtocolVersion,
-    contractVersion: CFMMOrderVersion
+    contractVersion: CFMMOrderVersion,
+    redeemerErgoTree: Option[SErgoTree]
   )
 
   implicit val depositQs: QuerySet[DBDeposit] = DepositOrdersSql
 
   implicit val depositView: Extract[EvaluatedCFMMOrder[CFMMVersionedOrder.AnyDeposit, DepositEvaluation], DBDeposit] = {
     case EvaluatedCFMMOrder(deposit, ev, pool, _) =>
-      val (minerFee, params) = deposit match {
-        case deposit: DepositV0 => (None, deposit.params)
-        case deposit: DepositV1 => (None, deposit.params)
-        case deposit: DepositV2 => (deposit.maxMinerFee.some, deposit.params)
+      val (minerFee, params, redeemer, ergTree) = deposit match {
+        case deposit: DepositV0 => (None, deposit.params, Some(deposit.params.redeemer), None)
+        case deposit: DepositV1 => (None, deposit.params, Some(deposit.params.redeemer), None)
+        case deposit: DepositV2 => (deposit.maxMinerFee.some, deposit.params, Some(deposit.params.redeemer), None)
+        case deposit: DepositV3 => (deposit.maxMinerFee.some, deposit.params, None, Some(deposit.params.redeemer))
       }
       DBDeposit(
         OrderId.fromBoxId(deposit.box.boxId),
@@ -206,9 +211,10 @@ object models {
         params.inY.value,
         ev.map(_.outputLP.value),
         params.dexFee,
-        params.redeemer,
+        redeemer,
         ProtocolVersion.Initial,
-        deposit.version
+        deposit.version,
+        ergTree
       )
   }
 
