@@ -84,8 +84,6 @@ final case class CFMMPool(
       )
     if (input.id == x.id) out(x, y) else out(y, x)
   }
-
-  // ReserveX * base * feeNum / ReserveY * FeeDenominator + base * feeNum
 }
 
 object CFMMPool {
