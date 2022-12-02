@@ -44,7 +44,10 @@ create table if not exists public.swaps (
     redeemer public.pubkey,
     protocol_version integer not null,
     contract_version integer not null,
-    redeemer_ergo_tree text
+    redeemer_ergo_tree text,
+    register_transaction_id public.hash32type,
+    executed_transaction_id public.hash32type,
+    status varchar
 );
 
 alter table public.swaps owner to ergo_admin;
@@ -68,7 +71,10 @@ create table if not exists public.redeems (
     dex_fee bigint not null,
     redeemer public.pubkey not null,
     protocol_version integer not null,
-    contract_version integer not null
+    contract_version integer not null,
+    register_transaction_id public.hash32type,
+    executed_transaction_id public.hash32type,
+    status varchar
 );
 
 alter table public.redeems owner to ergo_admin;
@@ -92,7 +98,10 @@ create table if not exists public.deposits (
     dex_fee bigint not null,
     redeemer public.pubkey not null,
     protocol_version integer not null,
-    contract_version integer not null
+    contract_version integer not null,
+    register_transaction_id public.hash32type,
+    executed_transaction_id public.hash32type,
+    status varchar
 );
 
 alter table public.deposits owner to ergo_admin;
@@ -118,7 +127,10 @@ create table if not exists public.lq_locks (
     deadline integer not null,
     token_id public.hash32type not null,
     amount bigint not null,
-    redeemer public.address not null
+    redeemer public.address not null,
+    register_transaction_id public.hash32type,
+    executed_transaction_id public.hash32type,
+    status varchar
 );
 
 alter table public.lq_locks owner to ergo_admin;

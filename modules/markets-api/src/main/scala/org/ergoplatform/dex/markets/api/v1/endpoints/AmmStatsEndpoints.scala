@@ -1,7 +1,8 @@
 package org.ergoplatform.dex.markets.api.v1.endpoints
 
+import io.circe.generic.auto._
 import org.ergoplatform.common.http.HttpError
-import org.ergoplatform.common.models.TimeWindow
+import org.ergoplatform.common.models.{Paging, TimeWindow}
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.api.v1.models.amm._
 import org.ergoplatform.dex.markets.api.v1.models.locks.LiquidityLockInfo
@@ -108,4 +109,14 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .tag(Group)
       .name("Crypto/Fiat conversion")
       .description("Convert crypto units to fiat")
+
+  def getUsersOrderHistory: Endpoint[(Paging, OrdersRequest), HttpError, List[Order], Any] =
+    baseEndpoint.post
+      .in(PathPrefix / "orders")
+      .in(paging)
+      .in(jsonBody[OrdersRequest])
+      .out(jsonBody[List[Order]])
+      .tag(Group)
+      .name("Users orders")
+      .description("Get users order history")
 }

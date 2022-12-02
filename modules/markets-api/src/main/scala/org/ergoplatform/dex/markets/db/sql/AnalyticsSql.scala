@@ -253,6 +253,8 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |${timeWindowCond(tw, "and", "s")}
          """.stripMargin.query[DepositInfo]
 
+
+
   private def timeWindowCond(tw: TimeWindow, condKeyword: String, alias: String): Fragment =
     if (tw.from.nonEmpty || tw.to.nonEmpty)
       Fragment.const(

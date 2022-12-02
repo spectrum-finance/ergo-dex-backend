@@ -7,7 +7,7 @@ import cats.syntax.traverse._
 import cats.{Monad, Parallel}
 import derevo.derive
 import mouse.anyf._
-import org.ergoplatform.common.models.TimeWindow
+import org.ergoplatform.common.models.{Paging, TimeWindow}
 import org.ergoplatform.dex.domain.FullAsset
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.api.v1.models.amm._
@@ -29,8 +29,6 @@ import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.syntax.monadic._
 import tofu.syntax.time.now.millis
-
-import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 
 @derive(representableK)
@@ -53,6 +51,8 @@ trait AmmStats[F[_]] {
   def getSwapTransactions(window: TimeWindow): F[TransactionsInfo]
 
   def getDepositTransactions(window: TimeWindow): F[TransactionsInfo]
+
+  def getOrderHistory(paging: Paging, request: OrdersRequest): F[List[Order]]
 }
 
 object AmmStats {
@@ -71,7 +71,7 @@ object AmmStats {
     metrics: Metrics[F]
   ): AmmStats[F] = new AmmMetrics[F] attach new Live[F, D]()
 
-  final class Live[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
+  final class Live[F[_]: Monad: Clock: Parallel, D[+_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
     orders: Orders[D],
@@ -361,6 +361,32 @@ object AmmStats {
                    })
       } yield TransactionsInfo(numTxs, volumes.sum / numTxs, volumes.max, UsdUnits).roundAvgValue)
         .getOrElse(TransactionsInfo.empty)
+
+    def getOrderHistory(paging: Paging, request: OrdersRequest): F[List[Order]] =
+      for {
+        orders <- resolveOrderType(paging, request) ||> txr.trans
+      } yield orders.sortBy(_.timestamp)
+
+    private def resolveOrderType(
+      paging: Paging,
+      request: OrdersRequest
+    ): D[List[Order]] = request.orderType match {
+      case Some(OrderType.Swap)    => orders.getSwaps(paging, request)
+      case Some(OrderType.Deposit) => orders.getDeposits(paging, request)
+      case Some(OrderType.Redeem)  => orders.getRedeems(paging, request)
+      case Some(OrderType.Lock)    => orders.getLocks(paging, request)
+      case None                    => getAllOrders(paging, request)
+      case _                       => List.empty[Order].pure[D]
+    }
+
+    private def getAllOrders(paging: Paging, request: OrdersRequest): D[List[Order]] =
+      for {
+        swaps    <- orders.getSwaps(paging, request)
+        deposits <- orders.getDeposits(paging, request)
+        locks    <- orders.getLocks(paging, request)
+        redeems  <- orders.getRedeems(paging, request)
+      } yield swaps ++ deposits ++ locks ++ redeems
+
   }
 
   final private class AmmMetrics[F[_]: Monad: Clock](implicit metrics: Metrics[F]) extends AmmStats[Mid[F, *]] {
@@ -400,5 +426,8 @@ object AmmStats {
 
     def getDepositTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
       sendMetrics(window, "window.getDepositTransactions", _)
+
+    def getOrdersHistory(request: OrdersRequest): Mid[F, TransactionsInfo] =
+      sendMetrics(TimeWindow.empty, "window.getOrdersHistory", _)
   }
 }

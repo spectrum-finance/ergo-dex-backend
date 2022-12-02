@@ -4,7 +4,9 @@ import cats.tagless.syntax.functorK._
 import cats.{FlatMap, Functor}
 import derevo.derive
 import doobie.ConnectionIO
-import org.ergoplatform.common.models.TimeWindow
+import org.ergoplatform.common.models.{Paging, TimeWindow}
+import org.ergoplatform.dex.markets.api.v1.models.amm.Order._
+import org.ergoplatform.dex.markets.api.v1.models.amm.OrdersRequest
 import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
 import tofu.doobie.LiftConnectionIO
@@ -18,9 +20,19 @@ import tofu.syntax.monadic._
 @derive(representableK)
 trait Orders[F[_]] {
 
-  def getSwapTxs(tw: TimeWindow): F[List[SwapInfo]]
+  def getSwapTxs(tw: TimeWindow): F[List[SwapInfo]] //rename
 
-  def getDepositTxs(tw: TimeWindow): F[List[DepositInfo]]
+  def getDepositTxs(tw: TimeWindow): F[List[DepositInfo]] //rename
+
+  def getSwaps(paging: Paging, request: OrdersRequest): F[List[Swap]]
+
+  def getDeposits(paging: Paging, request: OrdersRequest): F[List[Deposit]]
+
+  def getRedeems(paging: Paging, request: OrdersRequest): F[List[Redeem]]
+
+  def getLocks(paging: Paging, request: OrdersRequest): F[List[Lock]]
+
+  def getAll(paging: Paging, request: OrdersRequest): F[List[AnyOrder]]
 
 }
 
@@ -41,6 +53,15 @@ object Orders {
 
     def getDepositTxs(tw: TimeWindow): ConnectionIO[List[DepositInfo]] =
       sql.getDepositTransactions(tw).to[List]
+
+    def getSwaps(paging: Paging, request: OrdersRequest): ConnectionIO[List[Swap]] =
+
+
+    def getDeposits(paging: Paging, request: OrdersRequest): ConnectionIO[List[Deposit]]
+
+    def getRedeems(paging: Paging, request: OrdersRequest): ConnectionIO[List[Redeem]]
+
+    def getLocks(paging: Paging, request: OrdersRequest): ConnectionIO[List[Lock]]
 
   }
 

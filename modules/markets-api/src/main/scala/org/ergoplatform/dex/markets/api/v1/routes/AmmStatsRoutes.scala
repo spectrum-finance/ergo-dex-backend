@@ -65,6 +65,10 @@ final class AmmStatsRoutes[
   def convertToFiatR: HttpRoutes[F] = interpreter.toRoutes(convertToFiat) { req =>
     stats.convertToFiat(req.tokenId, req.amount).adaptThrowable.orNotFound(s"Token{id=${req.tokenId}}").value
   }
+
+  def getUsersOrderHistoryR: HttpRoutes[F] = interpreter.toRoutes(getUsersOrderHistory) { case (paging, req) =>
+    stats.getOrderHistory(req.tokenId, req.amount).adaptThrowable.orNotFound(s"Token{id=${req.tokenId}}").value
+  }
 }
 
 object AmmStatsRoutes {

@@ -1,22 +1,11 @@
 package org.ergoplatform.dex.markets.api.v1
 
+import cats.implicits.catsSyntaxOptionId
 import org.ergoplatform.common.http.HttpError
-import org.ergoplatform.common.models.{HeightWindow, TimeWindow}
+import org.ergoplatform.common.models.{HeightWindow, Paging, TimeWindow}
 import sttp.model.StatusCode
 import sttp.tapir.json.circe.jsonBody
-import sttp.tapir.{
-  emptyOutputAs,
-  endpoint,
-  oneOf,
-  oneOfDefaultMapping,
-  oneOfMapping,
-  query,
-  Endpoint,
-  EndpointInput,
-  Schema,
-  ValidationError,
-  Validator
-}
+import sttp.tapir.{Endpoint, EndpointInput, Schema, ValidationError, Validator, emptyOutputAs, endpoint, oneOf, oneOfDefaultMapping, oneOfMapping, query}
 import sttp.tapir.generic.auto._
 import scala.concurrent.duration.FiniteDuration
 
@@ -36,6 +25,15 @@ package object endpoints {
           oneOfDefaultMapping(jsonBody[HttpError.Unknown].description("unknown"))
         )
       )
+
+  def paging: EndpointInput[Paging] =
+    (query[Option[Int]]("offset").validateOption(Validator.min(0)) and
+      query[Option[Int]]("limit")
+        .validateOption(Validator.min(1))
+        .validateOption(Validator.max(Int.MaxValue)))
+      .map { input =>
+        Paging(input._1.getOrElse(0), input._2.getOrElse(20))
+      } { case Paging(offset, limit) => offset.some -> limit.some }
 
   def timeWindow: EndpointInput[TimeWindow] =
     (query[Option[Long]]("from")
