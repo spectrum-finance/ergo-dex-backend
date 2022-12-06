@@ -24,15 +24,15 @@ trait Orders[F[_]] {
 
   def getDepositTxs(tw: TimeWindow): F[List[DepositInfo]] //rename
 
-  def getSwaps(paging: Paging, request: OrdersRequest): F[List[Swap]]
+  def getAllOrders(paging: Paging, tw: TimeWindow, request: OrdersRequest): F[List[AnyOrder]]
 
-  def getDeposits(paging: Paging, request: OrdersRequest): F[List[Deposit]]
+  def getSwaps(paging: Paging, tw: TimeWindow, request: OrdersRequest): F[List[Swap]]
 
-  def getRedeems(paging: Paging, request: OrdersRequest): F[List[Redeem]]
+  def getDeposits(paging: Paging, tw: TimeWindow, request: OrdersRequest): F[List[Deposit]]
 
-  def getLocks(paging: Paging, request: OrdersRequest): F[List[Lock]]
+  def getRedeems(paging: Paging, tw: TimeWindow, request: OrdersRequest): F[List[Redeem]]
 
-  def getAll(paging: Paging, request: OrdersRequest): F[List[AnyOrder]]
+  def getLocks(paging: Paging, tw: TimeWindow, request: OrdersRequest): F[List[Lock]]
 
 }
 
@@ -54,15 +54,70 @@ object Orders {
     def getDepositTxs(tw: TimeWindow): ConnectionIO[List[DepositInfo]] =
       sql.getDepositTransactions(tw).to[List]
 
-    def getSwaps(paging: Paging, request: OrdersRequest): ConnectionIO[List[Swap]] =
+    def getAllOrders(paging: Paging, tw: TimeWindow, request: OrdersRequest): ConnectionIO[List[AnyOrder]] =
+      sql
+        .getAllOrders(
+          request.addresses,
+          paging.offset,
+          paging.limit,
+          tw,
+          request.orderStatus,
+          request.assetId,
+          request.txId
+        )
+        .to[List]
 
+    def getSwaps(paging: Paging, tw: TimeWindow, request: OrdersRequest): ConnectionIO[List[Swap]] =
+      sql
+        .getSwaps(
+          request.addresses,
+          paging.offset,
+          paging.limit,
+          tw,
+          request.orderStatus,
+          request.assetId,
+          request.txId
+        )
+        .to[List]
 
-    def getDeposits(paging: Paging, request: OrdersRequest): ConnectionIO[List[Deposit]]
+    def getDeposits(paging: Paging, tw: TimeWindow, request: OrdersRequest): ConnectionIO[List[Deposit]] =
+      sql
+        .getDeposits(
+          request.addresses,
+          paging.offset,
+          paging.limit,
+          tw,
+          request.orderStatus,
+          request.assetId,
+          request.txId
+        )
+        .to[List]
 
-    def getRedeems(paging: Paging, request: OrdersRequest): ConnectionIO[List[Redeem]]
+    def getRedeems(paging: Paging, tw: TimeWindow, request: OrdersRequest): ConnectionIO[List[Redeem]] =
+      sql
+        .getRedeems(
+          request.addresses,
+          paging.offset,
+          paging.limit,
+          tw,
+          request.orderStatus,
+          request.assetId,
+          request.txId
+        )
+        .to[List]
 
-    def getLocks(paging: Paging, request: OrdersRequest): ConnectionIO[List[Lock]]
-
+    def getLocks(paging: Paging, tw: TimeWindow, request: OrdersRequest): ConnectionIO[List[Lock]] =
+      sql
+        .getLocks(
+          request.addresses,
+          paging.offset,
+          paging.limit,
+          tw,
+          request.orderStatus,
+          request.assetId,
+          request.txId
+        )
+        .to[List]
   }
 
   final class OrdersTracing[F[_]: FlatMap: Logging] extends Orders[Mid[F, *]] {
@@ -79,6 +134,41 @@ object Orders {
         _ <- trace"deposits(window=$tw)"
         r <- _
         _ <- trace"deposits(window=$tw) -> ${r.size} deposit entities selected"
+      } yield r
+
+    def getAllOrders(paging: Paging, tw: TimeWindow, request: OrdersRequest): Mid[F, List[AnyOrder]] =
+      for {
+        _ <- trace"allOrders(window=$tw, paging=$paging, request=$request)"
+        r <- _
+        _ <- trace"allOrders(window=$tw, paging=$paging, request=$request) -> ${r.size} orders entities selected"
+      } yield r
+
+    def getSwaps(paging: Paging, tw: TimeWindow, request: OrdersRequest): Mid[F, List[Swap]] =
+      for {
+        _ <- trace"swaps(window=$tw, paging=$paging, request=$request)"
+        r <- _
+        _ <- trace"swaps(window=$tw, paging=$paging, request=$request) -> ${r.size} swap entities selected"
+      } yield r
+
+    def getDeposits(paging: Paging, tw: TimeWindow, request: OrdersRequest): Mid[F, List[Deposit]] =
+      for {
+        _ <- trace"deposits(window=$tw, paging=$paging, request=$request)"
+        r <- _
+        _ <- trace"deposits(window=$tw, paging=$paging, request=$request) -> ${r.size} deposit entities selected"
+      } yield r
+
+    def getRedeems(paging: Paging, tw: TimeWindow, request: OrdersRequest): Mid[F, List[Redeem]] =
+      for {
+        _ <- trace"redeems(window=$tw, paging=$paging, request=$request)"
+        r <- _
+        _ <- trace"redeems(window=$tw, paging=$paging, request=$request) -> ${r.size} redeem entities selected"
+      } yield r
+
+    def getLocks(paging: Paging, tw: TimeWindow, request: OrdersRequest): Mid[F, List[Lock]] =
+      for {
+        _ <- trace"locks(window=$tw, paging=$paging, request=$request)"
+        r <- _
+        _ <- trace"locks(window=$tw, paging=$paging, request=$request) -> ${r.size} lock entities selected"
       } yield r
   }
 }

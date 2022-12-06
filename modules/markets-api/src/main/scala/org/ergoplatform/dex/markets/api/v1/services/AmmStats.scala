@@ -52,7 +52,7 @@ trait AmmStats[F[_]] {
 
   def getDepositTransactions(window: TimeWindow): F[TransactionsInfo]
 
-  def getOrderHistory(paging: Paging, request: OrdersRequest): F[List[Order]]
+  def getOrderHistory(paging: Paging, tw: TimeWindow, request: OrdersRequest): F[List[Order]]
 }
 
 object AmmStats {
@@ -71,7 +71,7 @@ object AmmStats {
     metrics: Metrics[F]
   ): AmmStats[F] = new AmmMetrics[F] attach new Live[F, D]()
 
-  final class Live[F[_]: Monad: Clock: Parallel, D[+_]: Monad](implicit
+  final class Live[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
     txr: Txr.Aux[F, D],
     pools: Pools[D],
     orders: Orders[D],
@@ -362,31 +362,23 @@ object AmmStats {
       } yield TransactionsInfo(numTxs, volumes.sum / numTxs, volumes.max, UsdUnits).roundAvgValue)
         .getOrElse(TransactionsInfo.empty)
 
-    def getOrderHistory(paging: Paging, request: OrdersRequest): F[List[Order]] =
+    def getOrderHistory(paging: Paging, tw: TimeWindow, request: OrdersRequest): F[List[Order]] =
       for {
-        orders <- resolveOrderType(paging, request) ||> txr.trans
-      } yield orders.sortBy(_.timestamp)
+        orders <- resolveOrderType(paging, tw, request) ||> txr.trans
+      } yield orders.sortBy(_.timestamp).reverse
 
     private def resolveOrderType(
       paging: Paging,
+      tw: TimeWindow,
       request: OrdersRequest
     ): D[List[Order]] = request.orderType match {
-      case Some(OrderType.Swap)    => orders.getSwaps(paging, request)
-      case Some(OrderType.Deposit) => orders.getDeposits(paging, request)
-      case Some(OrderType.Redeem)  => orders.getRedeems(paging, request)
-      case Some(OrderType.Lock)    => orders.getLocks(paging, request)
-      case None                    => getAllOrders(paging, request)
+      case Some(OrderType.Swap)    => orders.getSwaps(paging, tw, request).map { xs: List[Order] => xs }
+      case Some(OrderType.Deposit) => orders.getDeposits(paging, tw, request).map { xs: List[Order] => xs }
+      case Some(OrderType.Redeem)  => orders.getRedeems(paging, tw, request).map { xs: List[Order] => xs }
+      case Some(OrderType.Lock)    => orders.getLocks(paging, tw, request).map { xs: List[Order] => xs }
+      case None                    => orders.getAllOrders(paging, tw, request).map { xs: List[Order] => xs }
       case _                       => List.empty[Order].pure[D]
     }
-
-    private def getAllOrders(paging: Paging, request: OrdersRequest): D[List[Order]] =
-      for {
-        swaps    <- orders.getSwaps(paging, request)
-        deposits <- orders.getDeposits(paging, request)
-        locks    <- orders.getLocks(paging, request)
-        redeems  <- orders.getRedeems(paging, request)
-      } yield swaps ++ deposits ++ locks ++ redeems
-
   }
 
   final private class AmmMetrics[F[_]: Monad: Clock](implicit metrics: Metrics[F]) extends AmmStats[Mid[F, *]] {

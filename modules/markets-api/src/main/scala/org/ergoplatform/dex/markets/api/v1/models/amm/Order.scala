@@ -11,9 +11,10 @@ import tofu.logging.derivation.loggable
 
 @derive(show, encoder, loggable)
 sealed trait Order {
-  val timestamp: Long
-  val registerTransactionId: TxId
-  val status: OrderStatus
+  val timestamp: Option[Long]
+  val registerTransactionId: Option[TxId]
+  val fee: Option[Long]
+  val status: Option[OrderStatus]
 }
 
 object Order {
@@ -21,59 +22,64 @@ object Order {
   @derive(show, encoder, loggable)
   case class Swap(
     baseAmount: AssetAmount,
-    timestamp: Long,
-    registerTransactionId: TxId,
+    timestamp: Option[Long],
+    registerTransactionId: Option[TxId],
     poolId: PoolId,
-    fee: AssetAmount,
+    fee: Option[Long],
     quoteAmount: Option[AssetAmount],
     executedTransactionId: Option[TxId],
-    status: OrderStatus
+    status: Option[OrderStatus]
   ) extends Order
 
   @derive(show, encoder, loggable)
   case class Deposit(
     x: AssetAmount,
     y: AssetAmount,
-    timestamp: Long,
-    registerTransactionId: TxId,
+    timestamp: Option[Long],
+    registerTransactionId: Option[TxId],
     poolId: PoolId,
-    fee: AssetAmount,
+    fee: Option[Long],
     executedTransactionId: Option[TxId],
     lpReward: Option[AssetAmount],
-    status: OrderStatus
+    status: Option[OrderStatus]
   ) extends Order
 
   @derive(show, encoder, loggable)
   case class Redeem(
     lp: AssetAmount,
-    timestamp: Long,
-    registerTransactionId: TxId,
+    timestamp: Option[Long],
+    registerTransactionId: Option[TxId],
     poolId: PoolId,
-    fee: AssetAmount,
+    fee: Option[Long],
     executedTransactionId: Option[TxId],
     x: Option[AssetAmount],
     y: Option[AssetAmount],
-    status: OrderStatus
+    status: Option[OrderStatus]
   ) extends Order
 
   @derive(show, encoder, loggable)
   case class Lock(
     lockedAmount: AssetAmount,
-    timestamp: Long,
-    registerTransactionId: TxId,
+    timestamp: Option[Long],
+    registerTransactionId: Option[TxId],
     deadline: Long,
-    fee: AssetAmount,
-    status: OrderStatus
+    fee: Option[Long],
+    status: Option[OrderStatus]
   ) extends Order
 
   @derive(show, encoder, loggable)
   case class AnyOrder(
-    lockedAmount: AssetAmount,
-    timestamp: Long,
-    registerTransactionId: TxId,
-    deadline: Long,
-    fee: AssetAmount,
-    status: OrderStatus
+    x: Option[AssetAmount],
+    y: Option[AssetAmount],
+    lp: Option[AssetAmount],
+    lockedAmount: Option[AssetAmount],
+    deadline: Option[Long],
+    timestamp: Option[Long],
+    registerTransactionId: Option[TxId],
+    poolId: Option[PoolId],
+    fee: Option[Long],
+    executedTransactionId: Option[TxId],
+    status: Option[OrderStatus]
   ) extends Order
 
   implicit val schema: Schema[Order] = Schema.derived

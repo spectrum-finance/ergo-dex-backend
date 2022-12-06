@@ -26,7 +26,7 @@ final class AmmStatsRoutes[
   def routes: HttpRoutes[F] =
     getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+>
     getPoolStatsR <+> getPoolsStatsR <+> getPoolsSummaryR <+> getAvgPoolSlippageR <+>
-    getPoolPriceChartR <+> convertToFiatR
+    getPoolPriceChartR <+> convertToFiatR <+> getUsersOrderHistoryR
 
   def getSwapTxsR: HttpRoutes[F] =
     interpreter.toRoutes(getSwapTxs)(tw => stats.getSwapTransactions(tw).adaptThrowable.value)
@@ -66,8 +66,8 @@ final class AmmStatsRoutes[
     stats.convertToFiat(req.tokenId, req.amount).adaptThrowable.orNotFound(s"Token{id=${req.tokenId}}").value
   }
 
-  def getUsersOrderHistoryR: HttpRoutes[F] = interpreter.toRoutes(getUsersOrderHistory) { case (paging, req) =>
-    stats.getOrderHistory(req.tokenId, req.amount).adaptThrowable.orNotFound(s"Token{id=${req.tokenId}}").value
+  def getUsersOrderHistoryR: HttpRoutes[F] = interpreter.toRoutes(getUsersOrderHistory) { case (paging, tw, req) =>
+    stats.getOrderHistory(paging, tw, req).adaptThrowable.value
   }
 }
 

@@ -1,8 +1,10 @@
 package org.ergoplatform.dex.markets.api.v1.models.amm
 
 import cats.Show
+import cats.implicits.toBifunctorOps
 import derevo.circe.{decoder, encoder}
 import derevo.derive
+import doobie.util.{Get, Put}
 import enumeratum.{CirceEnum, Enum, EnumEntry}
 import sttp.tapir.{Schema, Validator}
 import tofu.logging.Loggable
@@ -27,4 +29,10 @@ object OrderStatus extends Enum[OrderStatus] with CirceEnum[OrderStatus] {
 
   implicit val schema: Schema[OrderStatus] =
     Schema.string.validate(Validator.enumeration(OrderStatus.values.toList, v => Option(v)))
+
+  implicit val get: Get[OrderStatus] =
+    Get[String].temap(s => withNameEither(s).leftMap(_ => s"No such OrderStatus [$s]"))
+
+  implicit val put: Put[OrderStatus] =
+    Put[String].contramap[OrderStatus](_.entryName)
 }

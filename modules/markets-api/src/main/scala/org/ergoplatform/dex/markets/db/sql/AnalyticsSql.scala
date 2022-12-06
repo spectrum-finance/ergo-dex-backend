@@ -2,11 +2,16 @@ package org.ergoplatform.dex.markets.db.sql
 
 import doobie.implicits._
 import doobie.util.query.Query0
-import doobie.{Fragment, LogHandler}
+import doobie.{Fragment, Fragments, LogHandler}
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
+import org.ergoplatform.dex.markets.api.v1.models.amm.Order.{AnyOrder, Deposit, Lock, Redeem, Swap}
+import org.ergoplatform.dex.markets.api.v1.models.amm.{Order, OrderStatus}
 import org.ergoplatform.dex.markets.db.models.amm._
-import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.{Address, TokenId, TxId}
+import cats.syntax.list._
+import cats.syntax.traverse._
+import cats.instances.option._
 
 final class AnalyticsSql(implicit lg: LogHandler) {
 
@@ -253,7 +258,113 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |${timeWindowCond(tw, "and", "s")}
          """.stripMargin.query[DepositInfo]
 
+  def getAllOrders(
+    addresses: List[Address],
+    offset: Int,
+    limit: Int,
+    tw: TimeWindow,
+    status: Option[OrderStatus],
+    assetId: Option[TokenId],
+    txId: Option[TxId]
+  ): Query0[AnyOrder] =
+    sql"""
+         |select s.input_id, s.input_value, s.min_output_id, s.output_amount, null, null, null, null, null, s.timestamp,
+         |s.register_transaction_id, s.pool_id, s.output_amount * (dex_fee_per_token_num / dex_fee_per_token_denom),
+         |s.executed_transaction_id, s.status from swaps s
+         |${orderCond(addresses, status, txId, assetId.map(tokenId => fr"s.input_id = $tokenId"), optTimeWindowCond(tw, "s"))}
+         |union
+         |select s.input_id_x, s.input_amount_x, s.input_id_y, s.input_amount_y, output_id_lp, output_amount_lp, null, null, null, s.timestamp, s.register_transaction_id,
+         |s.pool_id, dex_fee, s.executed_transaction_id, s.status from deposits s
+         |${orderCond(addresses, status, txId, assetId.map(tokenId => fr"s.input_id_x = $tokenId OR s.input_id_y = $tokenId"), optTimeWindowCond(tw, "s"))}
+         |union
+         |select s.output_id_x, s.output_amount_x, s.output_id_y, s.output_amount_y, s.lp_id, s.lp_amount, null, null, null, s.timestamp, s.register_transaction_id, s.pool_id,
+         |dex_fee, s.executed_transaction_id, s.status from redeems s
+         |${orderCond(addresses, status, txId, assetId.map(tokenId => fr"s.lp_id = $tokenId"), optTimeWindowCond(tw, "s"))}
+         |union
+         |select null, null, null, null, null, null, s.token_id, s.amount::text, s.deadline::text, null, s.register_transaction_id,
+         |null, null s.status from lq_locks s
+         |${orderCond(addresses, status, txId, assetId.map(tokenId => fr"s.token_id = $tokenId"), optTimeWindowCond(tw, "s"))}
+         |offset $offset limit $limit
+         """.stripMargin.query[AnyOrder]
 
+  def getSwaps(
+    addresses: List[Address],
+    offset: Int,
+    limit: Int,
+    tw: TimeWindow,
+    status: Option[OrderStatus],
+    assetId: Option[TokenId],
+    txId: Option[TxId]
+  ): Query0[Swap] =
+    sql"""
+         |select s.input_id, s.input_value, s.timestamp, s.register_transaction_id, s.pool_id,
+         |s.output_amount * (dex_fee_per_token_num / dex_fee_per_token_denom),
+         |s.min_output_id, s.output_amount, s.executed_transaction_id, s.status from swaps s
+         |${orderCond(addresses, status, txId, assetId.map(tokenId => fr"s.input_id = $tokenId"), optTimeWindowCond(tw, "s"))}
+         |offset $offset limit $limit
+         """.stripMargin.query[Swap]
+
+  def getDeposits(
+    addresses: List[Address],
+    offset: Int,
+    limit: Int,
+    tw: TimeWindow,
+    status: Option[OrderStatus],
+    assetId: Option[TokenId],
+    txId: Option[TxId]
+  ): Query0[Deposit] =
+    sql"""
+       |select s.input_id_x, s.input_amount_x, s.input_id_y, s.input_amount_y, s.timestamp, s.register_transaction_id,
+       |s.pool_id, dex_fee, output_id_lp, output_amount_lp, s.executed_transaction_id, s.status from deposits s
+       |${orderCond(addresses, status, txId, assetId.map(tokenId => fr"s.input_id_x = $tokenId OR s.input_id_y = $tokenId"), optTimeWindowCond(tw, "s"))}
+       |offset $offset limit $limit
+       """.stripMargin.query[Deposit]
+
+  def getRedeems(
+    addresses: List[Address],
+    offset: Int,
+    limit: Int,
+    tw: TimeWindow,
+    status: Option[OrderStatus],
+    assetId: Option[TokenId],
+    txId: Option[TxId]
+  ): Query0[Redeem] =
+    sql"""
+       |select s.lp_id, s.lp_amount, s.timestamp, s.register_transaction_id, s.pool_id,
+       |dex_fee, s.output_id_x, s.output_amount_x, s.output_id_y, s.output_amount_y, s.executed_transaction_id, s.status from redeems s
+       |${orderCond(addresses, status, txId, assetId.map(tokenId => fr"s.lp_id = $tokenId"), optTimeWindowCond(tw, "s"))}
+       |offset $offset limit $limit
+       """.stripMargin.query[Redeem]
+
+  def getLocks(
+    addresses: List[Address],
+    offset: Int,
+    limit: Int,
+    tw: TimeWindow,
+    status: Option[OrderStatus],
+    assetId: Option[TokenId],
+    txId: Option[TxId]
+  ): Query0[Lock] =
+    sql"""
+       |select s.token_id, s.amount, null, s.register_transaction_id, s.deadline, null, s.status from lq_locks s
+       |${orderCond(addresses, status, txId, assetId.map(tokenId => fr"s.token_id = $tokenId"), optTimeWindowCond(tw, "s"))}
+       |offset $offset limit $limit
+       """.stripMargin.query[Lock]
+
+  private def orderCond(
+    addresses: List[Address],
+    status: Option[OrderStatus],
+    txId: Option[TxId],
+    assetId: Option[Fragment],
+    tw: Option[Fragment]
+  ) =
+    Fragments.whereAndOpt(
+      addresses.toNel.map(Fragments.in(fr"s.redeemer", _)),
+      status.map(st => fr"s.status = $st"),
+      txId.map(id => fr"s.register_transaction_id = $id"),
+      assetId,
+      tw
+    )
 
   private def timeWindowCond(tw: TimeWindow, condKeyword: String, alias: String): Fragment =
     if (tw.from.nonEmpty || tw.to.nonEmpty)
@@ -262,6 +373,16 @@ final class AnalyticsSql(implicit lg: LogHandler) {
         else ""} ${tw.to.map(ts => s"$alias.timestamp <= $ts").getOrElse("")}"
       )
     else Fragment.empty
+
+  private def optTimeWindowCond(tw: TimeWindow, alias: String): Option[Fragment] =
+    if (tw.from.nonEmpty || tw.to.nonEmpty)
+      Some(
+        Fragment.const(
+          s"${tw.from.map(ts => s"$alias.timestamp >= $ts").getOrElse("")} ${if (tw.from.isDefined && tw.to.isDefined) "and"
+          else ""} ${tw.to.map(ts => s"$alias.timestamp <= $ts").getOrElse("")}"
+        )
+      )
+    else None
 
   private def blockTimeWindowMapping(tw: TimeWindow): Fragment =
     if (tw.from.nonEmpty || tw.to.nonEmpty)

@@ -110,10 +110,11 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .name("Crypto/Fiat conversion")
       .description("Convert crypto units to fiat")
 
-  def getUsersOrderHistory: Endpoint[(Paging, OrdersRequest), HttpError, List[Order], Any] =
+  def getUsersOrderHistory: Endpoint[(Paging, TimeWindow, OrdersRequest), HttpError, List[Order], Any] =
     baseEndpoint.post
       .in(PathPrefix / "orders")
       .in(paging)
+      .in(timeWindow)
       .in(jsonBody[OrdersRequest])
       .out(jsonBody[List[Order]])
       .tag(Group)
