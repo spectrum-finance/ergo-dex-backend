@@ -281,7 +281,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |dex_fee, s.executed_transaction_id, s.status from redeems s
          |${orderCond(addresses, status, txId, assetId.map(tokenId => fr"s.lp_id = $tokenId"), optTimeWindowCond(tw, "s"))}
          |union
-         |select null, null, null, null, null, null, s.token_id, s.amount::text, s.deadline::text, null, s.register_transaction_id,
+         |select null, null, null, null, null, null, s.token_id, s.amount::text, s.deadline::text, s.timestamp, s.register_transaction_id,
          |null, null s.status from lq_locks s
          |${orderCond(addresses, status, txId, assetId.map(tokenId => fr"s.token_id = $tokenId"), optTimeWindowCond(tw, "s"))}
          |offset $offset limit $limit
@@ -346,7 +346,7 @@ final class AnalyticsSql(implicit lg: LogHandler) {
     txId: Option[TxId]
   ): Query0[Lock] =
     sql"""
-       |select s.token_id, s.amount, null, s.register_transaction_id, s.deadline, null, s.status from lq_locks s
+       |select s.token_id, s.amount, s.timestamp, s.register_transaction_id, s.deadline, null, s.status from lq_locks s
        |${orderCond(addresses, status, txId, assetId.map(tokenId => fr"s.token_id = $tokenId"), optTimeWindowCond(tw, "s"))}
        |offset $offset limit $limit
        """.stripMargin.query[Lock]

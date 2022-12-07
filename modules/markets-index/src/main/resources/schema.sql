@@ -130,6 +130,7 @@ create table if not exists public.lq_locks (
     deadline integer not null,
     token_id public.hash32type not null,
     amount bigint not null,
+    timestamp bigint,
     redeemer public.address not null,
     register_transaction_id public.hash32type,
     executed_transaction_id public.hash32type,
