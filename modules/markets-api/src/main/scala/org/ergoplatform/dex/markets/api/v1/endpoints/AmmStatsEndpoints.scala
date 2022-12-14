@@ -17,7 +17,7 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
   def endpoints: List[Endpoint[_, _, _, _]] =
     getSwapTxs :: getDepositTxs :: getPoolLocks :: getPlatformStats ::
     getPoolStats :: getAvgPoolSlippage :: getPoolPriceChart ::
-    convertToFiat :: getPoolsSummary :: Nil
+    convertToFiat :: getPoolsSummary :: getAmmMarkets :: Nil
 
   def getSwapTxs: Endpoint[TimeWindow, HttpError, TransactionsInfo, Any] =
     baseEndpoint.get
@@ -108,4 +108,13 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .tag(Group)
       .name("Crypto/Fiat conversion")
       .description("Convert crypto units to fiat")
+
+  def getAmmMarkets: Endpoint[TimeWindow, HttpError, List[AmmMarketSummary], Any] =
+    baseEndpoint.get
+      .in(PathPrefix / "markets")
+      .in(timeWindow)
+      .out(jsonBody[List[AmmMarketSummary]])
+      .tag(Group)
+      .name("All pools stats")
+      .description("Get statistics on all pools")
 }
