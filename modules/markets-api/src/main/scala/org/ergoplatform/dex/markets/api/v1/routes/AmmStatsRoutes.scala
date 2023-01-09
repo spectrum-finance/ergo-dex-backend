@@ -26,7 +26,7 @@ final class AmmStatsRoutes[
   def routes: HttpRoutes[F] =
     getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+>
     getPoolStatsR <+> getPoolsStatsR <+> getPoolsSummaryR <+> getAvgPoolSlippageR <+>
-    getPoolPriceChartR <+> convertToFiatR
+    getPoolPriceChartR <+> convertToFiatR <+> getAmmMarketsR
 
   def getSwapTxsR: HttpRoutes[F] =
     interpreter.toRoutes(getSwapTxs)(tw => stats.getSwapTransactions(tw).adaptThrowable.value)
@@ -64,6 +64,10 @@ final class AmmStatsRoutes[
 
   def convertToFiatR: HttpRoutes[F] = interpreter.toRoutes(convertToFiat) { req =>
     stats.convertToFiat(req.tokenId, req.amount).adaptThrowable.orNotFound(s"Token{id=${req.tokenId}}").value
+  }
+
+  def getAmmMarketsR: HttpRoutes[F] = interpreter.toRoutes(getAmmMarkets) { tw =>
+    stats.getMarkets(tw).adaptThrowable.value
   }
 }
 
