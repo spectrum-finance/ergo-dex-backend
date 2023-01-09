@@ -443,5 +443,8 @@ object AmmStats {
 
     def getDepositTransactions(window: TimeWindow): Mid[F, TransactionsInfo] =
       sendMetrics(window, "window.getDepositTransactions", _)
+
+    def getMarkets(window: TimeWindow): Mid[F, List[AmmMarketSummary]] =
+      sendMetrics(window, "window.getMarkets", _)
   }
 }
