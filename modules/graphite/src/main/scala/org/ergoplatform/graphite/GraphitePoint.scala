@@ -10,12 +10,21 @@ sealed trait GraphitePoint {
 
 object GraphitePoint {
 
-  final case class GraphitePointUdp(
+  final case class GraphitePointTs(
     path: String,
-    value: Double,
-    ts: Long
+    value: Double
   ) extends GraphitePoint {
-    def format: String = s"$path ${value.round} $ts\n"
+    def format: String = s"$path:${value.round}|ms\n"
+
+    def transformation(prefix: String): GraphitePoint =
+      this.copy(path = s"$prefix.$path")
+  }
+
+  final case class GraphitePointCount(
+    path: String,
+    value: Double
+  ) extends GraphitePoint {
+    def format: String = s"$path:${value.round}|c\n"
 
     def transformation(prefix: String): GraphitePoint =
       this.copy(path = s"$prefix.$path")

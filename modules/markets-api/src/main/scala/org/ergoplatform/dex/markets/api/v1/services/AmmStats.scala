@@ -414,7 +414,7 @@ object AmmStats {
       for {
         r     <- f
         finis <- millis
-        _     <- metrics.send(name, Math.abs(window.to.getOrElse(finis) - window.from.getOrElse(firstTxTs)).toDouble)
+        _     <- metrics.sendTs(name, Math.abs(window.to.getOrElse(finis) - window.from.getOrElse(firstTxTs)).toDouble)
       } yield r
 
     def convertToFiat(id: TokenId, amount: Long): Mid[F, Option[FiatEquiv]] =

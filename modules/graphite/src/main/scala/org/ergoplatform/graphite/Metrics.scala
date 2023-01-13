@@ -1,29 +1,31 @@
 package org.ergoplatform.graphite
 
 import cats.Functor
-import cats.effect.{Clock, Sync}
+import cats.effect.Sync
 import cats.syntax.applicativeError._
-import org.ergoplatform.graphite.GraphitePoint.GraphitePointUdp
+import cats.syntax.functor._
 import tofu.logging.Logs
 import tofu.syntax.logging._
-import tofu.syntax.monadic._
-
-import java.util.concurrent.TimeUnit
 
 trait Metrics[F[_]] {
-  def send(key: String, value: Double): F[Unit]
+  def sendTs(key: String, value: Double): F[Unit]
+  def sendCount(key: String, value: Double): F[Unit]
 }
 
 object Metrics {
 
-  def create[I[_]: Functor, F[_]: Sync: Clock](implicit client: GraphiteClient[F], logs: Logs[I, F]): I[Metrics[F]] =
+  def create[I[_]: Functor, F[_]: Sync](implicit client: GraphiteClient[F], logs: Logs[I, F]): I[Metrics[F]] =
     logs.forService[Metrics[F]].map { implicit log =>
-      (key: String, value: Double) => Clock[F]
-        .realTime(TimeUnit.SECONDS)
-        .flatMap { ts =>
+      new Metrics[F] {
+        def sendTs(key: String, value: Double): F[Unit] =
           client
-            .send(GraphitePointUdp(key, value, ts))
+            .send(GraphitePoint.GraphitePointTs(key, value))
+            .handleErrorWith(err => error"While sending ts metrics error ${err.getMessage} has occurred.")
+
+        def sendCount(key: String, value: Double): F[Unit] =
+          client
+            .send(GraphitePoint.GraphitePointCount(key, value))
             .handleErrorWith(err => error"While sending count metrics error ${err.getMessage} has occurred.")
-        }
+      }
     }
 }
