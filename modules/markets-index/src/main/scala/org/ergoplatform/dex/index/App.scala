@@ -115,7 +115,7 @@ object App extends EnvApp[ConfigBundle] {
       txTracker <-
         Resource.eval(
           TxTracker.make[InitF, StreamF, RunF](
-            List(cfmmHistoryHandler)
+            List(cfmmHistoryHandler, stateIndexing)
           )
         )
       //stateIndexing, cfmmPoolsHandler, lqLocksHandler
@@ -123,14 +123,11 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(handlers: List[AnyOrdersHandler[xa.DB]]) = AnyOrdersHandler.makeOrdersHandlers[xa.DB]
       historyIndexer <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
 
-      poolsIndexer   <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      locksIndexer   <- Resource.eval(LocksIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
-      blocksIndexer  <- Resource.eval(BlockIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       statesResolver <- Resource.eval(StatesResolver.make[InitF, RunF])
       swapsResolver  <- Resource.eval(SwapsStateRunner.make[InitF, RunF])
-      _              <- Resource.eval(swapsResolver.run).mapK(isoKRun.tof)
+//      _              <- Resource.eval(swapsResolver.run).mapK(isoKRun.tof)
 //      _              <- Resource.eval(statesResolver.resolve).mapK(isoKRun.tof)
-      processes = blockTracker.run :: blocksIndexer.run :: Nil
+      processes = txTracker.run :: historyIndexer.run :: Nil
       // ::  :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: Nil :: txTracker.run :: historyIndexer.run
     } yield (processes, configs)
   // format:on

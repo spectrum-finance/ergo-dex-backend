@@ -24,8 +24,8 @@ object StatesResolver {
 
   final class Live[F[_]: Monad: Logging](repo: LiquidityProvidersRepo[F]) extends StatesResolver[F] {
 
-    val fixedTimestamp: Long         = 1666396799000L
-    val fixedTimestampToInsert: Long = 1666396799001L
+    val fixedTimestamp: Long         = 1673827200000L
+    val fixedTimestampToInsert: Long = 1673827200001L
 
     def resolve: F[Unit] = {
       info"Start resolving" >>
