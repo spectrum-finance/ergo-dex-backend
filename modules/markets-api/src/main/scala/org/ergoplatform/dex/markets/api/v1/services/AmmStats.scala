@@ -76,7 +76,7 @@ object AmmStats {
     tokens: TokenFetcher[F],
     fiatSolver: FiatPriceSolver[F],
     metrics: Metrics[F],
-                                                      e: ErgoAddressEncoder
+    e: ErgoAddressEncoder
   ): AmmStats[F] = new AmmMetrics[F] attach new Live[F, D]()
 
   final class Live[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
@@ -87,7 +87,7 @@ object AmmStats {
     network: ErgoNetwork[F],
     fiatSolver: FiatPriceSolver[F],
     ammMath: AmmStatsMath[F],
-                                                              e: ErgoAddressEncoder
+    e: ErgoAddressEncoder
   ) extends AmmStats[F] {
 
     def checkIfCommunityAddress(address: List[Address]): F[List[Address]] = {
@@ -98,17 +98,15 @@ object AmmStats {
           .map(PubKey.fromBytes)
           .toOption
 
-      txr.trans(orders.checkCommunityAddress(address.flatMap(mkPubKey)))
+      txr
+        .trans(orders.checkCommunityAddress(address.flatMap(mkPubKey)))
         .map { keys: List[PubKey] =>
           keys.flatMap { k =>
-            e.fromProposition(ErgoTreeSerializer.default.deserialize(k.ergoTree)).collect {
-              case address: P2PKAddress => address.pubkeyBytes
-            case address: Pay2SHAddress => ???
-            case address: Pay2SAddress => ???
-            }
+            e.fromProposition(ErgoTreeSerializer.default.deserialize(k.ergoTree))
+              .toOption
+              .collect { case address: P2PKAddress => Address.fromStringUnsafe(address.encoder.toString(address)) }
           }
         }
-
 
     }
 
@@ -475,5 +473,8 @@ object AmmStats {
 
     def getMarkets(window: TimeWindow): Mid[F, List[AmmMarketSummary]] =
       sendMetrics(window, "window.getMarkets", _)
+
+    def checkIfCommunityAddress(address: List[Address]): Mid[F, List[Address]] =
+      _ <* unit
   }
 }
