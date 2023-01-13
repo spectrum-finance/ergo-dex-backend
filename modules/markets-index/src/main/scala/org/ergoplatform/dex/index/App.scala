@@ -115,19 +115,20 @@ object App extends EnvApp[ConfigBundle] {
       txTracker <-
         Resource.eval(
           TxTracker.make[InitF, StreamF, RunF](
-            List(cfmmHistoryHandler, stateIndexing)
+            List(cfmmHistoryHandler, cfmmPoolsHandler)
           )
         )
       //stateIndexing, cfmmPoolsHandler, lqLocksHandler
       implicit0(repos: RepoBundle[xa.DB]) <- Resource.eval(RepoBundle.make[InitF, xa.DB])
       implicit0(handlers: List[AnyOrdersHandler[xa.DB]]) = AnyOrdersHandler.makeOrdersHandlers[xa.DB]
+      poolsIndexer <- Resource.eval(PoolsIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
       historyIndexer <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
 
       statesResolver <- Resource.eval(StatesResolver.make[InitF, RunF])
       swapsResolver  <- Resource.eval(SwapsStateRunner.make[InitF, RunF])
 //      _              <- Resource.eval(swapsResolver.run).mapK(isoKRun.tof)
 //      _              <- Resource.eval(statesResolver.resolve).mapK(isoKRun.tof)
-      processes = txTracker.run :: historyIndexer.run :: Nil
+      processes = txTracker.run :: historyIndexer.run :: poolsIndexer.run :: Nil
       // ::  :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: Nil :: txTracker.run :: historyIndexer.run
     } yield (processes, configs)
   // format:on
