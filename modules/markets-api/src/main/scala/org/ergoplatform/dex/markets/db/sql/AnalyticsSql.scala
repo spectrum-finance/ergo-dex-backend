@@ -237,11 +237,11 @@ final class AnalyticsSql(implicit lg: LogHandler) {
   def checkCommunityAddress(list: List[PubKey]): Query0[PubKey] = {
     def search = Fragment.const(list.map(s => s"'$s'").mkString(", "))
     sql"""
-         |select redeemer from swaps where redeemer in ($search)
+         |select redeemer from swaps where redeemer in ($search) and timestamp < 1673827200000
          |	union
-         |select redeemer from deposits where redeemer in ($search)
+         |select redeemer from deposits where redeemer in ($search) and timestamp < 1673827200000
          |	union
-         |select redeemer from redeems where redeemer in ($search);
+         |select redeemer from redeems where redeemer in ($search) and timestamp < 1673827200000;
        """.stripMargin.query
   }
 
