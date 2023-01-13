@@ -6,6 +6,7 @@ import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.api.v1.models.amm._
 import org.ergoplatform.dex.markets.api.v1.models.locks.LiquidityLockInfo
 import org.ergoplatform.dex.markets.configs.RequestConfig
+import org.ergoplatform.ergo.Address
 import sttp.tapir.json.circe.jsonBody
 import sttp.tapir._
 
@@ -117,4 +118,10 @@ final class AmmStatsEndpoints(conf: RequestConfig) {
       .tag(Group)
       .name("All pools stats")
       .description("Get statistics on all pools")
+
+  def checkCommunityAddressE: Endpoint[List[Address], HttpError, List[Address], Any] =
+    baseEndpoint.post
+      .in("check" / "community")
+      .in(jsonBody[List[Address]])
+      .out(jsonBody[List[Address]])
 }

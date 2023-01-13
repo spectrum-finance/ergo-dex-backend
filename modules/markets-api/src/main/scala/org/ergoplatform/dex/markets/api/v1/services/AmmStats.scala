@@ -7,6 +7,7 @@ import cats.syntax.traverse._
 import cats.{Monad, Parallel}
 import derevo.derive
 import mouse.anyf._
+import org.ergoplatform.{ErgoAddress, ErgoAddressEncoder, P2PKAddress, Pay2SAddress, Pay2SHAddress}
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.{AssetClass, CryptoUnits, FullAsset, MarketId}
 import org.ergoplatform.dex.domain.amm.PoolId
@@ -20,10 +21,12 @@ import org.ergoplatform.dex.markets.modules.AmmStatsMath
 import org.ergoplatform.dex.markets.modules.PriceSolver.FiatPriceSolver
 import org.ergoplatform.dex.markets.repositories.{Orders, Pools}
 import org.ergoplatform.dex.markets.services.TokenFetcher
+import org.ergoplatform.dex.protocol.ErgoTreeSerializer
 import org.ergoplatform.dex.protocol.constants.ErgoAssetId
-import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.{Address, PubKey, TokenId}
 import org.ergoplatform.ergo.modules.ErgoNetwork
 import org.ergoplatform.graphite.Metrics
+import sigmastate.Values.ErgoTree
 import tofu.doobie.transactor.Txr
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
@@ -55,6 +58,8 @@ trait AmmStats[F[_]] {
   def getDepositTransactions(window: TimeWindow): F[TransactionsInfo]
 
   def getMarkets(window: TimeWindow): F[List[AmmMarketSummary]]
+
+  def checkIfCommunityAddress(address: List[Address]): F[List[Address]]
 }
 
 object AmmStats {
@@ -70,7 +75,8 @@ object AmmStats {
     network: ErgoNetwork[F],
     tokens: TokenFetcher[F],
     fiatSolver: FiatPriceSolver[F],
-    metrics: Metrics[F]
+    metrics: Metrics[F],
+                                                      e: ErgoAddressEncoder
   ): AmmStats[F] = new AmmMetrics[F] attach new Live[F, D]()
 
   final class Live[F[_]: Monad: Clock: Parallel, D[_]: Monad](implicit
@@ -80,8 +86,31 @@ object AmmStats {
     tokens: TokenFetcher[F],
     network: ErgoNetwork[F],
     fiatSolver: FiatPriceSolver[F],
-    ammMath: AmmStatsMath[F]
+    ammMath: AmmStatsMath[F],
+                                                              e: ErgoAddressEncoder
   ) extends AmmStats[F] {
+
+    def checkIfCommunityAddress(address: List[Address]): F[List[Address]] = {
+      def mkPubKey(address: Address): Option[PubKey] =
+        e
+          .fromString(address.unwrapped)
+          .collect { case address: P2PKAddress => address.pubkeyBytes }
+          .map(PubKey.fromBytes)
+          .toOption
+
+      txr.trans(orders.checkCommunityAddress(address.flatMap(mkPubKey)))
+        .map { keys: List[PubKey] =>
+          keys.flatMap { k =>
+            e.fromProposition(ErgoTreeSerializer.default.deserialize(k.ergoTree)).collect {
+              case address: P2PKAddress => address.pubkeyBytes
+            case address: Pay2SHAddress => ???
+            case address: Pay2SAddress => ???
+            }
+          }
+        }
+
+
+    }
 
     def convertToFiat(id: TokenId, amount: Long): F[Option[FiatEquiv]] =
       (for {

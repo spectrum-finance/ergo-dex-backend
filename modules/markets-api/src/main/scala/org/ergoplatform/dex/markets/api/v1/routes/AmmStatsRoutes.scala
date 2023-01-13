@@ -69,6 +69,11 @@ final class AmmStatsRoutes[
   def getAmmMarketsR: HttpRoutes[F] = interpreter.toRoutes(getAmmMarkets) { tw =>
     stats.getMarkets(tw).adaptThrowable.value
   }
+
+  def checkCommunityAddressR: HttpRoutes[F] =
+    interpreter.toRoutes(checkCommunityAddressE) { addresses =>
+      stats.checkIfCommunityAddress(addresses).adaptThrowable.value
+    }
 }
 
 object AmmStatsRoutes {
