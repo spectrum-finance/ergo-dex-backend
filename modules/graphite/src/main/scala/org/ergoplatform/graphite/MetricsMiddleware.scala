@@ -22,7 +22,8 @@ object MetricsMiddleware {
         start  <- OptionT.liftF(Clock[F].realTime(TimeUnit.MILLISECONDS))
         resp   <- routes(req)
         finish <- OptionT.liftF(Clock[F].realTime(TimeUnit.MILLISECONDS))
-        _      <- OptionT.liftF(metrics.send(key, (finish - start).toDouble))
+        _      <- OptionT.liftF(metrics.send(s"$key.ts", (finish - start).toDouble))
+        _      <- OptionT.liftF(metrics.send(s"$key.counter", 1))
       } yield resp
     }
   }
