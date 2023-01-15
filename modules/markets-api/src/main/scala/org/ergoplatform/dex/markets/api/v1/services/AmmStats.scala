@@ -105,7 +105,7 @@ object AmmStats {
             e.fromProposition(ErgoTreeSerializer.default.deserialize(k.ergoTree))
               .toOption
               .collect { case address: P2PKAddress => Address.fromStringUnsafe(address.encoder.toString(address)) }
-          }
+          }.sorted
         }
 
     }
