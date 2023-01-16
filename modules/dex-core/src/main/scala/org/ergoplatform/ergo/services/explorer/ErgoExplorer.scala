@@ -217,6 +217,10 @@ trait ErgoExplorerStreaming[S[_], F[_]] extends ErgoExplorer[F] {
   /** Get a stream of blocks at the given offset(height).
     */
   def streamBlocks(gOffset: Long, limit: Int): S[BlockInfo]
+
+  /** Get a stream of full blocks at the given offset(height).
+    */
+  def streamFullBlocks(gOffset: Long, limit: Int): S[FullBlock]
 }
 
 object ErgoExplorerStreaming {
@@ -257,6 +261,9 @@ object ErgoExplorerStreaming {
 
     def streamBlocks(gOffset: Long, limit: Int): S[BlockInfo] =
       evals.eval(tft.map(_.streamBlocks(gOffset, limit))).flatten
+
+    def streamFullBlocks(gOffset: Long, limit: Int): S[FullBlock] =
+      evals.eval(tft.map(_.streamFullBlocks(gOffset, limit))).flatten
   }
 
   implicit def functorK[F[_]]: FunctorK[ErgoExplorerStreaming[*[_], F]] = {
@@ -317,7 +324,9 @@ object ErgoExplorerStreaming {
     def streamBlocks(offset: Long, limit: Int): Stream[F, BlockInfo] = {
       val req =
         basicRequest
-          .get(uri.withPathSegment(blocksStreamPathSeg).addParams("minGix" -> offset.toString, "limit" -> limit.toString))
+          .get(
+            uri.withPathSegment(blocksStreamPathSeg).addParams("minGix" -> offset.toString, "limit" -> limit.toString)
+          )
           .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
           .send(backend)
           .map(_.body)
@@ -326,6 +335,25 @@ object ErgoExplorerStreaming {
         .chunks
         .parseJsonStream
         .map(_.as[BlockInfo].toOption)
+        .unNone
+    }
+
+    def streamFullBlocks(offset: Long, limit: Int): Stream[F, FullBlock] = {
+      val req =
+        basicRequest
+          .get(
+            uri
+              .withPathSegment(blockSummariesStreamPathSeg)
+              .addParams("offset" -> offset.toString, "limit" -> limit.toString)
+          )
+          .response(asStreamAlwaysUnsafe(Fs2Streams[F]))
+          .send(backend)
+          .map(_.body)
+      Stream
+        .force(req)
+        .chunks
+        .parseJsonStream
+        .map(_.as[FullBlock].toOption)
         .unNone
     }
 
