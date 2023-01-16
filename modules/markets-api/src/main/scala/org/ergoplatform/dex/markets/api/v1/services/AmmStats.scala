@@ -359,10 +359,12 @@ object AmmStats {
 
     def getSwapTransactions(window: TimeWindow): F[TransactionsInfo] =
       (for {
-        swaps  <- OptionT.liftF(txr.trans(orders.getSwapTxs(window)))
-        numTxs <- OptionT.fromOption[F](swaps.headOption.map(_.numTxs))
+        swaps       <- OptionT.liftF(txr.trans(orders.getSwapTxs(window)))
+        validTokens <- OptionT.liftF(tokens.fetchTokens)
+        filteredSwaps = swaps.filter(sw => validTokens.contains(sw.asset.id))
+        numTxs <- OptionT.fromOption[F](filteredSwaps.headOption.map(_.numTxs))
         volumes <- OptionT.liftF(
-                     swaps.flatTraverse(swap =>
+                     filteredSwaps.flatTraverse(swap =>
                        fiatSolver
                          .convert(swap.asset, UsdUnits, List.empty)
                          .map(_.toList.map(_.value))
@@ -373,9 +375,12 @@ object AmmStats {
 
     def getDepositTransactions(window: TimeWindow): F[TransactionsInfo] =
       (for {
-        deposits <- OptionT.liftF(orders.getDepositTxs(window) ||> txr.trans)
-        numTxs   <- OptionT.fromOption[F](deposits.headOption.map(_.numTxs))
-        volumes <- OptionT.liftF(deposits.flatTraverse { deposit =>
+        deposits    <- OptionT.liftF(orders.getDepositTxs(window) ||> txr.trans)
+        validTokens <- OptionT.liftF(tokens.fetchTokens)
+        filteredDeposits =
+          deposits.filter(dep => validTokens.contains(dep.assetX.id) && validTokens.contains(dep.assetY.id))
+        numTxs <- OptionT.fromOption[F](filteredDeposits.headOption.map(_.numTxs))
+        volumes <- OptionT.liftF(filteredDeposits.flatTraverse { deposit =>
                      fiatSolver
                        .convert(deposit.assetX, UsdUnits, List.empty)
                        .flatMap { optX =>
