@@ -7,6 +7,7 @@ import doobie.ConnectionIO
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
+import org.ergoplatform.ergo.PubKey
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.higherKind.Mid
@@ -22,6 +23,8 @@ trait Orders[F[_]] {
 
   def getDepositTxs(tw: TimeWindow): F[List[DepositInfo]]
 
+  def checkCommunityAddress(list: List[PubKey]): F[List[PubKey]]
+
 }
 
 object Orders {
@@ -36,6 +39,9 @@ object Orders {
 
   final class Live(sql: AnalyticsSql) extends Orders[ConnectionIO] {
 
+    def checkCommunityAddress(list: List[PubKey]): ConnectionIO[List[PubKey]] =
+      sql.checkCommunityAddress(list).to[List]
+
     def getSwapTxs(tw: TimeWindow): ConnectionIO[List[SwapInfo]] =
       sql.getSwapTransactions(tw).to[List]
 
@@ -45,6 +51,13 @@ object Orders {
   }
 
   final class OrdersTracing[F[_]: FlatMap: Logging] extends Orders[Mid[F, *]] {
+
+    def checkCommunityAddress(list: List[PubKey]) =
+      for {
+        _ <- trace"checkCommunityAddress(list=$list)"
+        r <- _
+        _ <- trace"checkCommunityAddress(list=$list) -> ${r.size}"
+      } yield r
 
     def getSwapTxs(tw: TimeWindow): Mid[F, List[SwapInfo]] =
       for {

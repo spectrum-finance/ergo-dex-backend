@@ -182,6 +182,8 @@ package object ergo {
 
   object Address {
 
+    implicit val ordering: Ordering[Address] = (x: Address, y: Address) => x.unwrapped.compareTo(y.unwrapped)
+
     implicit val get: Get[Address] =
       Get[String]
         .temap(s => refineV[Base58Spec](s))

@@ -39,8 +39,10 @@ import tofu.syntax.unlift._
 import zio.interop.catz._
 import zio.{ExitCode, URIO, ZEnv}
 import cats.syntax.option._
+import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.markets
 import org.ergoplatform.dex.markets.processes.RatesProcess
+import org.ergoplatform.dex.protocol.Network.MainNet
 import org.ergoplatform.graphite.MetricsMiddleware.MetricsMiddleware
 import org.ergoplatform.graphite.{GraphiteClient, Metrics, MetricsMiddleware}
 
@@ -97,6 +99,7 @@ object App extends EnvApp[AppContext] {
       implicit0(tokenFetcher: TokenFetcher[RunF])      <- Resource.eval(TokenFetcher.make[InitF, RunF])
       implicit0(node: ErgoNode[RunF])                  <- Resource.eval(ErgoNode.make[InitF, RunF])
       implicit0(network: ErgoNetwork[RunF]) = ErgoNetwork.make[RunF]
+      implicit0(e: ErgoAddressEncoder) = ErgoAddressEncoder(MainNet.prefix)
       implicit0(stats: AmmStats[RunF])      = AmmStats.make[RunF, xa.DB]
       implicit0(locks: LqLocks[RunF])       = LqLocks.make[RunF, xa.DB]
 

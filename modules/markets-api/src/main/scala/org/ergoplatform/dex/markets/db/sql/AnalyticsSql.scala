@@ -6,7 +6,7 @@ import doobie.{Fragment, LogHandler}
 import org.ergoplatform.common.models.TimeWindow
 import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.amm._
-import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.{PubKey, TokenId}
 
 final class AnalyticsSql(implicit lg: LogHandler) {
 
@@ -233,6 +233,17 @@ final class AnalyticsSql(implicit lg: LogHandler) {
          |select id, ticker, decimals from assets
          |where id = $id
          """.stripMargin.query[AssetInfo]
+
+  def checkCommunityAddress(list: List[PubKey]): Query0[PubKey] = {
+    def search = Fragment.const(list.map(s => s"'$s'").mkString(", "))
+    sql"""
+         |select redeemer from swaps where redeemer in ($search) and timestamp < 1673827200000
+         |	union
+         |select redeemer from deposits where redeemer in ($search) and timestamp < 1673827200000
+         |	union
+         |select redeemer from redeems where redeemer in ($search) and timestamp < 1673827200000;
+       """.stripMargin.query
+  }
 
   def getSwapTransactions(tw: TimeWindow): Query0[SwapInfo] =
     sql"""

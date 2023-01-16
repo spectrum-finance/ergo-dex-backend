@@ -26,7 +26,7 @@ final class AmmStatsRoutes[
   def routes: HttpRoutes[F] =
     getSwapTxsR <+> getDepositTxsR <+> getPoolLocksR <+> getPlatformStatsR <+>
     getPoolStatsR <+> getPoolsStatsR <+> getPoolsSummaryR <+> getAvgPoolSlippageR <+>
-    getPoolPriceChartR <+> convertToFiatR <+> getAmmMarketsR
+    getPoolPriceChartR <+> convertToFiatR <+> getAmmMarketsR <+> checkCommunityAddressR
 
   def getSwapTxsR: HttpRoutes[F] =
     interpreter.toRoutes(getSwapTxs)(tw => stats.getSwapTransactions(tw).adaptThrowable.value)
@@ -69,6 +69,11 @@ final class AmmStatsRoutes[
   def getAmmMarketsR: HttpRoutes[F] = interpreter.toRoutes(getAmmMarkets) { tw =>
     stats.getMarkets(tw).adaptThrowable.value
   }
+
+  def checkCommunityAddressR: HttpRoutes[F] =
+    interpreter.toRoutes(checkCommunityAddressE) { addresses =>
+      stats.checkIfCommunityAddress(addresses).adaptThrowable.value
+    }
 }
 
 object AmmStatsRoutes {
