@@ -7,6 +7,7 @@ import org.ergoplatform.common.db.PgConfig
 import org.ergoplatform.common.streaming.CommitPolicy
 import org.ergoplatform.dex.configs._
 import org.ergoplatform.dex.tracker.configs.{BlockTrackerConfig, LedgerTrackingConfig, TxTrackerConfig}
+import org.ergoplatform.graphite.GraphiteSettings
 import tofu.Context
 import tofu.logging.Loggable
 import tofu.optics.macros.{promote, ClassyOptics}
@@ -25,7 +26,9 @@ final case class ConfigBundle(
   @promote txTracker: TxTrackerConfig,
   @promote blockTracker: BlockTrackerConfig,
   redis: RedisConfig,
-  poolsIndexing: PoolsIndexingConfig
+  poolsIndexing: PoolsIndexingConfig,
+  graphite: GraphiteSettings,
+  graphitePathPrefix: String
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {

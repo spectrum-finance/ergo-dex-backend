@@ -1,13 +1,13 @@
 package org.ergoplatform.dex.markets
 
 import cats.effect.concurrent.Ref
-import cats.effect.{Blocker, Resource}
+import cats.effect.{Blocker, Clock, Resource}
 import cats.tagless.syntax.functorK._
 import fs2.kafka.serde._
 import fs2.kafka.RecordDeserializer
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{Cache, MakeRedisTransaction, Redis}
-import org.ergoplatform.common.db.{doobieLogging, PostgresTransactor}
+import org.ergoplatform.common.db.{PostgresTransactor, doobieLogging}
 import org.ergoplatform.common.http.cache.{CacheMiddleware, HttpCacheInvalidator, HttpResponseCaching}
 import org.ergoplatform.common.http.cache.CacheMiddleware.CachingMiddleware
 import org.ergoplatform.common.streaming.{Consumer, MakeKafkaConsumer}
@@ -65,13 +65,18 @@ object App extends EnvApp[AppContext] {
       implicit0(iso: IsoK[RunF, InitF])               = IsoK.byFunK(wr.runContextK(ctx))(wr.liftF)
       implicit0(ul: Unlift[RunF, InitF])              = Unlift.byIso(IsoK.byFunK(wr.runContextK(ctx))(wr.liftF))
       implicit0(xa: Txr.Contextual[RunF, AppContext]) = Txr.contextual[RunF](trans)
+      implicit0(clock: Clock[xa.DB]) = Clock.create[xa.DB]
       implicit0(elh: EmbeddableLogHandler[xa.DB]) <-
         Resource.eval(doobieLogging.makeEmbeddableHandler[InitF, RunF, xa.DB]("matcher-db-logging"))
       implicit0(graphite: GraphiteClient[RunF]) <-
         GraphiteClient
           .make[InitF, RunF](configs.graphite, configs.graphitePathPrefix)
-      implicit0(metrics: Metrics[RunF]) <- Resource.eval(Metrics.create[InitF, RunF])
       implicit0(logsDb: Logs[InitF, xa.DB]) = Logs.sync[InitF, xa.DB]
+      implicit0(graphite2: GraphiteClient[xa.DB]) <-
+        GraphiteClient
+          .make[InitF, xa.DB](configs.graphite, configs.graphitePathPrefix)
+      implicit0(metrics: Metrics[RunF]) <- Resource.eval(Metrics.create[InitF, RunF])
+      implicit0(metrics2: Metrics[xa.DB]) <- Resource.eval(Metrics.create[InitF, xa.DB])
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(ctx, blocker)
       implicit0(client: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(blocksCons: BlocksConsumer[StreamF, RunF])    = makeConsumer[BlockId, Block](configs.consumers.blocks)

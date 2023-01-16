@@ -1,7 +1,8 @@
 package org.ergoplatform.dex.markets.repositories
 
+import cats.effect.Clock
 import cats.tagless.syntax.functorK._
-import cats.{FlatMap, Functor}
+import cats.{FlatMap, Functor, Monad}
 import derevo.derive
 import doobie.ConnectionIO
 import org.ergoplatform.common.models.TimeWindow
@@ -9,6 +10,7 @@ import org.ergoplatform.dex.domain.amm.PoolId
 import org.ergoplatform.dex.markets.db.models.amm._
 import org.ergoplatform.dex.markets.db.sql.AnalyticsSql
 import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.graphite.Metrics
 import tofu.doobie.LiftConnectionIO
 import tofu.doobie.log.EmbeddableLogHandler
 import tofu.higherKind.Mid
@@ -16,6 +18,7 @@ import tofu.higherKind.derived.representableK
 import tofu.logging.{Logging, Logs}
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
+import tofu.syntax.time.now.millis
 
 @derive(representableK)
 trait Pools[F[_]] {
@@ -65,18 +68,22 @@ trait Pools[F[_]] {
   def avgAmounts(id: PoolId, window: TimeWindow, resolution: Int): F[List[AvgAssetAmounts]]
 
   /** Get full asset info by id.
-   */
+    */
   def assetById(id: TokenId): F[Option[AssetInfo]]
 }
 
 object Pools {
 
-  def make[I[_]: Functor, D[_]: FlatMap: LiftConnectionIO](implicit
+  def make[I[_]: Functor, D[_]: Monad: LiftConnectionIO: Clock](implicit
     elh: EmbeddableLogHandler[D],
+    metrics: Metrics[D],
     logs: Logs[I, D]
   ): I[Pools[D]] =
     logs.forService[Pools[D]].map { implicit l =>
-      elh.embed(implicit lh => new PoolsTracing[D] attach new Live(new AnalyticsSql()).mapK(LiftConnectionIO[D].liftF))
+      elh.embed { implicit lh =>
+        new PoolsTracing[D] attach (new PoolsMetrics[D] attach new Live(new AnalyticsSql())
+          .mapK(LiftConnectionIO[D].liftF))
+      }
     }
 
   final class Live(sql: AnalyticsSql) extends Pools[ConnectionIO] {
@@ -116,6 +123,54 @@ object Pools {
 
     def assetById(id: TokenId): ConnectionIO[Option[AssetInfo]] =
       sql.getAssetById(id).option
+  }
+
+  final class PoolsMetrics[F[_]: Monad: Clock](implicit metrics: Metrics[F]) extends Pools[Mid[F, *]] {
+
+    private def processMetric[A](f: F[A], key: String): F[A] =
+      for {
+        start  <- millis
+        r      <- f
+        finish <- millis
+        _      <- metrics.sendTs(key, finish - start)
+        _      <- metrics.sendCount(key, 1)
+      } yield r
+
+    def info(id: PoolId): Mid[F, Option[PoolInfo]] =
+      processMetric(_, s"db.pools.info.$id")
+
+    def snapshots(hasTicker: Boolean): Mid[F, List[PoolSnapshot]] =
+      processMetric(_, s"db.pools.snapshots.$hasTicker")
+
+    def snapshotsByAsset(asset: TokenId): Mid[F, List[PoolSnapshot]] =
+      processMetric(_, s"db.pools.snapshotsByAsset.$asset")
+
+    def snapshot(id: PoolId): Mid[F, Option[PoolSnapshot]] =
+      processMetric(_, s"db.pools.snapshot.$id")
+
+    def volumes(window: TimeWindow): Mid[F, List[PoolVolumeSnapshot]] =
+      processMetric(_, s"db.pools.volumes")
+
+    def volume(id: PoolId, window: TimeWindow): Mid[F, Option[PoolVolumeSnapshot]] =
+      processMetric(_, s"db.pools.volume.$id")
+
+    def fees(window: TimeWindow): Mid[F, List[PoolFeesSnapshot]] =
+      processMetric(_, s"db.pools.fees")
+
+    def fees(id: PoolId, window: TimeWindow): Mid[F, Option[PoolFeesSnapshot]] =
+      processMetric(_, s"db.pools.fees.$id")
+
+    def trace(id: PoolId, depth: Int, currHeight: Int): Mid[F, List[PoolTrace]] =
+      processMetric(_, s"db.pools.trace.$id.$depth.$currHeight")
+
+    def prevTrace(id: PoolId, depth: Int, currHeight: Int): Mid[F, Option[PoolTrace]] =
+      processMetric(_, s"db.pools.prevTrace.$id.$depth.$currHeight")
+
+    def avgAmounts(id: PoolId, window: TimeWindow, resolution: Int): Mid[F, List[AvgAssetAmounts]] =
+      processMetric(_, s"db.pools.avgAmounts.$id")
+
+    def assetById(id: TokenId): Mid[F, Option[AssetInfo]] =
+      processMetric(_, s"db.pools.assetById.$id")
   }
 
   final class PoolsTracing[F[_]: FlatMap: Logging] extends Pools[Mid[F, *]] {

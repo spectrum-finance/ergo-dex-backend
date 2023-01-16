@@ -16,8 +16,9 @@ import org.ergoplatform.ergo.TokenId
 import org.ergoplatform.ergo.errors.ResponseError
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
 import org.ergoplatform.ergo.services.explorer.models.TokenInfo.ErgoTokenInfo
+import org.ergoplatform.graphite.Metrics
 import retry.RetryPolicies._
-import retry.{RetryDetails, Sleep, retryingOnSomeErrors}
+import retry.{retryingOnSomeErrors, RetryDetails, Sleep}
 import tofu.MonadThrow
 import tofu.doobie.transactor.Txr
 import tofu.higherKind.derived.representableK
@@ -46,6 +47,7 @@ object PoolsIndexing {
     pools: CFMMPoolsConsumer[S, F],
     explorer: ErgoExplorer[F],
     repoBundle: RepoBundle[D],
+    metrics: Metrics[D],
     txr: Txr.Aux[F, D],
     logs: Logs[I, F]
   ): I[PoolsIndexing[S]] =
@@ -62,6 +64,7 @@ object PoolsIndexing {
     pools: CFMMPoolsConsumer[S, F],
     explorer: ErgoExplorer[F],
     repos: RepoBundle[D],
+    metrics: Metrics[D],
     txr: Txr.Aux[F, D]
   ) extends PoolsIndexing[S] {
 
@@ -88,8 +91,7 @@ object PoolsIndexing {
                               retryingOnSomeErrors(
                                 retryPolicy,
                                 isResponseError,
-                                (_: Throwable, _: RetryDetails) =>
-                                  info"Failed to find token $tknId. Retrying..."
+                                (_: Throwable, _: RetryDetails) => info"Failed to find token $tknId. Retrying..."
                               )(explorer.getTokenInfo(tknId)).map(_.toList)
                             )
             nativeAsset = if (unknownAssets.contains(ErgoAssetId)) List(ErgoTokenInfo) else Nil
@@ -102,7 +104,10 @@ object PoolsIndexing {
           newAssets <- resolveNewAssets
           insert =
             for {
-              pn <- insertNel(poolSnapshots)(xs => repos.pools.insert(xs.map(_.extract[DBPoolSnapshot])))
+              pn <- insertNel(poolSnapshots) { xs =>
+                      metrics.sendCount("pools", xs.length) >>
+                      repos.pools.insert(xs.map(_.extract[DBPoolSnapshot]))
+                    }
               an <- insertNel(newAssets)(xs => repos.assets.insert(xs.map(_.extract[DBAssetInfo])))
             } yield (pn, an)
           (pn, an) <- txr.trans(insert)
