@@ -90,6 +90,12 @@ object AmmStats {
     e: ErgoAddressEncoder
   ) extends AmmStats[F] {
 
+    val addresses: List[Address] = List(
+      Address.fromStringUnsafe("9hXEKYkYjaiuoRJhFBY1Fi658oKE4PrKWT8jQmxHByYkFE3iT6D"),
+      Address.fromStringUnsafe("9iM4Du59AX4coRybjPuvhvJV1i8CaSEY8WwoNydthcfoPpDiAPJ"),
+      Address.fromStringUnsafe("9i8Cmu8pWsNdrpN2kjwmNaJZpBEiwPzv88GnfAmMHfcDHfUxRoj")
+    )
+
     def checkIfCommunityAddress(address: List[Address]): F[List[Address]] = {
       def mkPubKey(address: Address): Option[PubKey] =
         e
@@ -101,11 +107,12 @@ object AmmStats {
       txr
         .trans(orders.checkCommunityAddress(address.flatMap(mkPubKey)))
         .map { keys: List[PubKey] =>
-          keys.flatMap { k =>
+          val hardcoded = address.intersect(addresses)
+          (hardcoded ::: keys.flatMap { k =>
             e.fromProposition(ErgoTreeSerializer.default.deserialize(k.ergoTree))
               .toOption
               .collect { case address: P2PKAddress => Address.fromStringUnsafe(address.encoder.toString(address)) }
-          }.sorted
+          }).distinct.sorted
         }
 
     }
