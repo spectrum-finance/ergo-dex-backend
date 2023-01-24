@@ -125,8 +125,8 @@ object App extends EnvApp[ConfigBundle] {
       historyIndexer <- Resource.eval(HistoryIndexing.make[InitF, StreamF, RunF, xa.DB, Chunk])
 
       statesResolver <- Resource.eval(StatesResolver.make[InitF, RunF])
-      swapsResolver  <- Resource.eval(SwapsStateRunner.make[InitF, RunF])
-      _              <- Resource.eval(swapsResolver.run).mapK(isoKRun.tof)
+//      swapsResolver  <- Resource.eval(SwapsStateRunner.make[InitF, RunF])
+//      _              <- Resource.eval(swapsResolver.run).mapK(isoKRun.tof)
       _              <- Resource.eval(statesResolver.resolve).mapK(isoKRun.tof)
       processes = txTracker.run :: Nil  //:: historyIndexer.run :: poolsIndexer.run :: Nil
       // ::  :: poolsIndexer.run :: historyIndexer.run :: locksIndexer.run :: Nil :: txTracker.run :: historyIndexer.run
