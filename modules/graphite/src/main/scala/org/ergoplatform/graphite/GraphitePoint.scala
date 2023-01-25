@@ -24,7 +24,7 @@ object GraphitePoint {
     path: String,
     value: Double
   ) extends GraphitePoint {
-    def format: String = s"$path:${value.round}|c\n"
+    def format: String = s"$path.count:${value.round}|c\n"
 
     def transformation(prefix: String): GraphitePoint =
       this.copy(path = s"$prefix.$path")
