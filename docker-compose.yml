@@ -1,81 +1,100 @@
 version: '3'
 services:
-  zoo1:
-    image: zookeeper:3.4.9
-    hostname: zoo1
-    environment:
-      ZOO_MY_ID: 1
-      ZOO_PORT: 2181
-      ZOO_SERVERS: server.1=zoo1:2888:3888
-    volumes:
-      - "../zk-kafka/zoo1/data:/data:rw"
-      - "../zk-kafka/zoo1/datalog:/datalog:rw"
-  kafka1:
-    image: confluentinc/cp-kafka:5.3.0
-    hostname: kafka1
-    container_name: kafka1
-    links:
-      - zoo1
-    environment:
-      HOSTNAME_COMMAND: "docker info | grep ^Name: | cut -d' ' -f 2"
-      KAFKA_BROKER_ID: 1
-      KAFKA_REPLICATION_FACTOR: 1
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092,CONNECTIONS_FROM_HOST://localhost:19091
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-    volumes:
-      - "../zk-kafka/kafka1/data:/var/lib/kafka/data:rw"
-  manager:
-    image: sheepkiller/kafka-manager
-    ports:
-      - 9000:9000
-    environment:
-      - ZK_HOSTS=zoo1:2181
-    depends_on:
-      - zoo1
-  redis:
-    image: redis:latest
+  zookeeper:
+    image: zookeeper:3.7
+    container_name: zookeeper
     restart: always
-    command: ["redis-server"]
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOO_ADMINSERVER_ENABLED: "false"
+    volumes:
+      - "zookeeper-data:/data"
+      - "zookeeper-datalog:/datalog"
+    networks:
+      - spectrum-network
+  kafka:
+    image: bitnami/kafka:2
+    container_name: kafka
+    restart: always
+    environment:
+      KAFKA_BROKER_ID: "1"
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    volumes:
+      - "kafka-data:/bitnami/kafka"
+    depends_on:
+      - zookeeper
+    networks:
+      - spectrum-network
+  redis:
+    image: redis:7.0-alpine
+    container_name: redis
+    restart: always
     ports:
-      - "127.0.0.1:6379:6379"
+      - "6379:6379"
     volumes:
-      - "../redis:/data"
-  tracker:
+      - "redis-data:/data"
+    networks:
+      - spectrum-network
+  utxo-tracker:
     build:
-      context: ${DEX_SOURCES_PATH}/modules/utxo-tracker/target/docker/stage
+      context: ./modules/utxo-tracker/target/docker/stage
       dockerfile: Dockerfile
+    container_name: utxo-tracker
     volumes:
-      - "../logs:/var/log/dex-backend:rw"
+      - "log-data:/var/log/dex-backend"
     env_file: config.env
     depends_on:
-      - kafka1
+      - kafka
       - redis
+    networks:
+      - spectrum-network
   amm-executor:
     build:
-      context: ${DEX_SOURCES_PATH}/modules/amm-executor/target/docker/stage
+      context: ./modules/amm-executor/target/docker/stage
       dockerfile: Dockerfile
+    container_name: amm-executor
+    restart: always
     volumes:
-      - "../logs:/var/log/dex-backend:rw"
+      - "log-data:/var/log/dex-backend"
     env_file: config.env
     depends_on:
-      - kafka1
+      - kafka
       - poolresolver
+    networks:
+      - spectrum-network
   poolresolver:
     build:
-      context: ${DEX_SOURCES_PATH}/modules/pool-resolver/target/docker/stage
+      context: ./modules/pool-resolver/target/docker/stage
       dockerfile: Dockerfile
+    container_name: poolresolver
     volumes:
-      - "../logs:/var/log/dex-backend:rw"
-      - "../data/pool-resolver/rocks:/usr/local/etc/rocks:Z"
+      - "log-data:/var/log/dex-backend"
+      - "poolresolver-data:/var/lib/pool-resolver:Z"
     env_file: config.env
     ports:
-      - 9876:9876
+      - "9876:9876"
     depends_on:
-      - kafka1
-      - redis
+      - kafka
+    networks:
+      - spectrum-network
+
+networks:
+  spectrum-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
+  poolresolver-data:
+    driver: local
+  log-data:
+    driver: local
+  zookeeper-data:
+    driver: local
+  zookeeper-datalog:
+    driver: local
+  kafka-data:
+    driver: local
