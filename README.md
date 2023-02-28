@@ -22,7 +22,6 @@ The services require access to an Ergo node, so if you do not have one yet insta
 Besides the node the services depend on tools such as Kafka and Redis to run, to make it easier to manage a docker based solution has been made to allow for easy building and running of the services.
 The only requirements besides the node are that you have the following installed:
  - GIT to download the code and help fetch updates. [GIT](https://git-scm.com/)
- - SBT (which requires Java) for building the bots. [SBT](https://www.scala-sbt.org/index.html)
  - Docker and Docker-compose (included in Docker for Windows). [Docker](https://www.docker.com/get-started)
 
 ### Building
@@ -31,21 +30,30 @@ First you need to download the code from this repo. The easiest way to keep it u
 cd <the folder you want to keep the off-chain services code in>
 git clone https://github.com/ergolabs/ergo-dex-backend.git
 ```
-Instructions for building the services are all combined in the build script and the docker-compose.yml file. The only configuration needed for running the services need to be stored in a file called config.env. An example can be found in config-example.env
+Instructions for the containers are all defined in the `docker-compose.yml` file. The only configuration needed for running the services need to be stored in a file called config.env. An example can be found in `config-example.env`
 Make a copy of the example file, name it config.env and edit the file to match your values:
+
+Linux:
 ```
 cd ergo-dex-backend
 cp ./config-example.env ./config.env
 ```
-The 2 values that need to be changed in the config.env file are the address you want to recieve fees on and the URI to your node (localhost/127.0.0.1 might not be accessible from within a docker container, it is best to use the local lan ip if the node is running on the same host).
-Finally the Docker images need to be build before running them:
+Windows:
 ```
-./build
+cd ergo-dex-backend
+copy ./config-example.env ./config.env
 ```
+The 2 values that need to be changed in the `config.env` file are the address you want to recieve fees on and the URI to your node (localhost/127.0.0.1 might not be accessible from within a docker container, it is best to use the local lan ip if the node is running on the same host).
 ### Running the services
-Once the Docker images are built the only thing left to do is to run them:
+Once the `config.env` file is created the only thing left to do is to run the containers:
+
+Linux:
 ```
-./run
+sudo -E docker-compose up -d
+```
+Windows:
+```
+docker compose up -d
 ```
 #### Verifying the services are running correctly
 You can look into the logs of the services to ensure they are running correctly. To look at a combined log for all services use the following command:
@@ -58,4 +66,20 @@ Linux:
 ```
 cd ergo-dex-backend
 sudo docker-compose logs -f
+```
+
+### Updating the services
+After running `git pull` from the instructions below make sure to check for potential changes in `config-example.env` to apply to your own `config.env`!
+
+Linux:
+```
+git pull
+sudo -E docker-compose pull
+sudo -E docker-compose up -d
+```
+Windows:
+```
+git pull
+docker-compose pull
+docker-compose up -d
 ```

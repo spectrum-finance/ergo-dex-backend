@@ -39,9 +39,7 @@ services:
     networks:
       - spectrum-network
   utxo-tracker:
-    build:
-      context: ./modules/utxo-tracker/target/docker/stage
-      dockerfile: Dockerfile
+    image: spectrumlabs/ergo-utxo-tracker:latest
     container_name: utxo-tracker
     volumes:
       - "log-data:/var/log/dex-backend"
@@ -52,9 +50,7 @@ services:
     networks:
       - spectrum-network
   amm-executor:
-    build:
-      context: ./modules/amm-executor/target/docker/stage
-      dockerfile: Dockerfile
+    image: spectrumlabs/ergo-amm-executor:latest
     container_name: amm-executor
     restart: always
     volumes:
@@ -66,9 +62,7 @@ services:
     networks:
       - spectrum-network
   poolresolver:
-    build:
-      context: ./modules/pool-resolver/target/docker/stage
-      dockerfile: Dockerfile
+    image: spectrumlabs/ergo-pool-resolver:latest
     container_name: poolresolver
     volumes:
       - "log-data:/var/log/dex-backend"

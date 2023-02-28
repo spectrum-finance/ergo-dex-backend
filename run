@@ -1,2 +1,0 @@
-export DEX_SOURCES_PATH=${PWD}
-sudo -E docker-compose up -d
