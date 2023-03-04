@@ -53,19 +53,21 @@ sudo -E docker-compose up -d
 ```
 Windows:
 ```
-docker compose up -d
+docker-compose up -d
 ```
 #### Verifying the services are running correctly
 You can look into the logs of the services to ensure they are running correctly. To look at a combined log for all services use the following command:
-Windows:
-```
-cd ergo-dex-backend
-docker compose logs -f
-```
+
 Linux:
 ```
 cd ergo-dex-backend
 sudo docker-compose logs -f
+```
+
+Windows:
+```
+cd ergo-dex-backend
+docker-compose logs -f
 ```
 
 ### Updating the services
