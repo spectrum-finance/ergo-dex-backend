@@ -36,7 +36,7 @@ def nativePackagerSettings(moduleSig: String) = List(
   Universal / mappings += ((Compile / packageBin) map { p =>
     p -> s"lib/$moduleSig.jar"
   }).value,
-  dockerExposedVolumes := Seq(s"/var/lib/$moduleSig", "/opt/docker/logs/")
+  dockerExposedVolumes := Seq(s"/var/lib/$moduleSig", "/var/log/dex-backend")
 )
 
 lazy val commonScalacOptions = List(

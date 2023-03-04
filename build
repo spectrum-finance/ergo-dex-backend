@@ -1,6 +1,0 @@
-mkdir -m 777 -p ../data/pool-resolver/rocks
-git pull
-git checkout $1
-sudo -E sbt docker:stage
-export DEX_SOURCES_PATH=${PWD}
-sudo -E docker-compose build $2
