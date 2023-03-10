@@ -28,7 +28,7 @@ The only requirements besides the node are that you have the following installed
 First you need to download the code from this repo. The easiest way to keep it updated in the future is by using git:
 ```
 cd <the folder you want to keep the off-chain services code in>
-git clone https://github.com/ergolabs/ergo-dex-backend.git
+git clone https://github.com/spectrum-finance/ergo-dex-backend.git
 ```
 Instructions for the containers are all defined in the `docker-compose.yml` file. The only configuration needed for running the services need to be stored in a file called config.env. An example can be found in `config-example.env`
 Make a copy of the example file, name it config.env and edit the file to match your values:
