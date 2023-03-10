@@ -7,6 +7,7 @@ import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
 import org.ergoplatform.dex.domain.Ticker
 import org.ergoplatform.ergo.TokenId
+import org.ergoplatform.ergo.domain.Output
 import scodec.Codec
 import scodec.codecs.{uint16, utf8, variableSizeBits}
 import sttp.tapir.{Schema, Validator}
@@ -14,6 +15,12 @@ import tofu.logging.Loggable
 import tofu.logging.derivation.loggable
 
 package object domain {
+
+  @derive(loggable)
+  @newtype
+  final case class DexOperatorOutput(output: Output)
+
+  object DexOperatorOutput
 
   @derive(loggable)
   final case class Price(byX: BigDecimal, byY: BigDecimal)

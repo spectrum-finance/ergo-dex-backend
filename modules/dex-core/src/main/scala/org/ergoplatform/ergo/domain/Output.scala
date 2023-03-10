@@ -4,8 +4,10 @@ import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.ErgoBox
+import org.ergoplatform.dex.domain.DexOperatorOutput
 import org.ergoplatform.ergo.services.explorer.models.{Output => ExplorerOutput}
 import org.ergoplatform.ergo.services.node.models.{Output => NodeOutput}
+import org.ergoplatform.ergo.state.{Predicted, Traced}
 import org.ergoplatform.ergo.{BoxId, SErgoTree, TokenId, TxId}
 import scorex.crypto.authds.ADKey
 import scorex.util.ModifierId
@@ -25,6 +27,8 @@ final case class Output(
 )
 
 object Output {
+  def predicted(output: Output, prevBoxId: BoxId): Traced[Predicted[DexOperatorOutput]] =
+    Traced(Predicted(DexOperatorOutput(output)), prevBoxId)
 
   def fromExplorer(o: ExplorerOutput): Output =
     Output(

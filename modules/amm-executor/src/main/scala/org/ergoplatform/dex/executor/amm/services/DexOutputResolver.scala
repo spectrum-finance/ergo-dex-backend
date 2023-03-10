@@ -4,14 +4,11 @@ import cats.Monad
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
 import derevo.derive
+import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
-import org.ergoplatform.ergo.Address
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.services.explorer.ErgoExplorer
-import org.ergoplatform.wallet.mnemonic.Mnemonic
-import org.ergoplatform.wallet.secrets.ExtendedSecretKey.deriveMasterKey
-import org.ergoplatform.wallet.secrets.{DerivationPath, ExtendedSecretKey}
-import org.ergoplatform.{ErgoAddressEncoder, P2PKAddress}
+import org.ergoplatform.ergo.{Address, PrivKeyGenerator}
 import tofu.higherKind.Mid
 import tofu.higherKind.derived.representableK
 import tofu.lift.IsoK
@@ -40,12 +37,7 @@ object DexOutputResolver {
   ): I[DexOutputResolver[F]] =
     logs.forService[DexOutputResolver[F]].flatMap { implicit __ =>
       Ref.in[I, F, Option[Output]](None).flatMap { ref =>
-        val seed: Array[Byte] = Mnemonic.toSeed(exchange.mnemonic)
-        val SK: ExtendedSecretKey = deriveMasterKey(seed)
-        val path = "m/44'/429'/0'/0/0"
-        val derivationPath = DerivationPath.fromEncoded(path).get
-        val nextSK = SK.derive(derivationPath).asInstanceOf[ExtendedSecretKey]
-        val address = Address.fromStringUnsafe(e.toString(P2PKAddress(nextSK.publicImage)))
+        val address = PrivKeyGenerator.make(exchange.mnemonic)._2
 
         iso
           .to(

@@ -1,20 +1,15 @@
 package org.ergoplatform.dex.executor.amm.interpreters
 
-import org.bouncycastle.util.BigIntegers
 import org.ergoplatform.ErgoBox.{NonMandatoryRegisterId, R4}
+import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.CFMMOrder.{SwapErg, SwapMultiAddress, SwapP2Pk, SwapTokenFee}
 import org.ergoplatform.dex.domain.amm.CFMMPool
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, NegativeDexFee, PriceTooHigh, PriceTooLow}
-import org.ergoplatform.ergo.{Address, TokenId}
 import org.ergoplatform.ergo.syntax._
-import org.ergoplatform.wallet.mnemonic.Mnemonic
-import org.ergoplatform.wallet.secrets.ExtendedSecretKey.deriveMasterKey
-import org.ergoplatform.wallet.secrets.{DerivationPath, ExtendedSecretKey}
-import org.ergoplatform._
-import scorex.util.encode.Base16
+import org.ergoplatform.ergo.{PrivKeyGenerator, TokenId}
 import sigmastate.Values.IntConstant
 import sigmastate.basics.DLogProtocol.DLogProverInput
 import sigmastate.eval._
@@ -28,14 +23,7 @@ final class CFMMInterpreterHelpers(
 
   val minerFeeProp: Values.ErgoTree = Pay2SAddress(ErgoScriptPredef.feeProposition()).script
 
-  val seed: Array[Byte]     = Mnemonic.toSeed(exchange.mnemonic)
-  val SK: ExtendedSecretKey = deriveMasterKey(seed)
-  val path                  = "m/44'/429'/0'/0/0"
-  val derivationPath        = DerivationPath.fromEncoded(path).get
-  val nextSK                = SK.derive(derivationPath).asInstanceOf[ExtendedSecretKey]
-  val address               = Address.fromStringUnsafe(encoder.toString(P2PKAddress(nextSK.publicImage)))
-  val SKHex                 = Base16.encode(nextSK.keyBytes)
-  val sk: DLogProverInput   = DLogProverInput(BigIntegers.fromUnsignedByteArray(Base16.decode(SKHex).get))
+  val sk: DLogProverInput = PrivKeyGenerator.make(exchange.mnemonic)._1
 
   def swapParamsErgFee(swap: SwapErg, pool: CFMMPool): Either[ExecutionFailed, (AssetAmount, AssetAmount, Long)] = {
     val params = swap match {

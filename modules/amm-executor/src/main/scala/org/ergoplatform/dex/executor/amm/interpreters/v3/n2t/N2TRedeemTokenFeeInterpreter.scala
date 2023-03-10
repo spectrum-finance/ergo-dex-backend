@@ -8,7 +8,7 @@ import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.amm.CFMMPool
-import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
+import org.ergoplatform.dex.domain.{BoxInfo, DexOperatorOutput, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors.{ExecutionFailed, IncorrectMultiAddressTree}
 import org.ergoplatform.dex.executor.amm.interpreters.CFMMInterpreterHelpers
@@ -36,7 +36,7 @@ final class N2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
     redeem: RedeemTokenFee,
     pool: CFMMPool,
     dexFeeOutput: Output
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] = ref.get.flatMap { ctx =>
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])] = ref.get.flatMap { ctx =>
     Either
       .catchNonFatal(ErgoTreeSerializer.default.deserialize(redeem.params.redeemer))
       .leftMap(s => IncorrectMultiAddressTree(pool.poolId, redeem.box.boxId, redeem.params.redeemer, s.getMessage))
@@ -92,7 +92,7 @@ final class N2TRedeemTokenFeeInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         val nextPoolBox        = poolOut.toBox(tx.id, 0)
         val boxInfo            = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
         val nextPool           = pool.redeem(inLP, boxInfo)
-        val predictedDexOutput = Output.fromErgoBox(tx.outputs(2))
+        val predictedDexOutput = Output.predicted(Output.fromErgoBox(tx.outputs(2)), dexFeeOutput.boxId)
         (tx, nextPool, predictedDexOutput)
       }
   }

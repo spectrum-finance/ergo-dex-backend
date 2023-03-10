@@ -2,6 +2,7 @@ package org.ergoplatform.dex.executor.amm.interpreters
 
 import cats.{Functor, Monad}
 import org.ergoplatform.ErgoLikeTransaction
+import org.ergoplatform.dex.domain.DexOperatorOutput
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.amm.CFMMOrderType.{DepositType, RedeemType, SwapType}
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool}
@@ -22,14 +23,17 @@ trait CFMMInterpreter[CT <: CFMMType, F[_]] {
   def deposit(
     in: CFMMOrder.AnyDeposit,
     pool: CFMMPool
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)]
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])]
 
   def redeem(
     in: CFMMOrder.AnyRedeem,
     pool: CFMMPool
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)]
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])]
 
-  def swap(in: CFMMOrder.AnySwap, pool: CFMMPool): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)]
+  def swap(
+    in: CFMMOrder.AnySwap,
+    pool: CFMMPool
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])]
 }
 
 object CFMMInterpreter {
@@ -60,7 +64,7 @@ object CFMMInterpreter {
     def deposit(
       in: CFMMOrder[DepositType],
       pool: CFMMPool
-    ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] =
+    ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])] =
       in match {
         case d: DepositErgFee =>
           if (pool.isNative) n2tV1.deposit(d, pool)
@@ -71,7 +75,7 @@ object CFMMInterpreter {
     def redeem(
       in: CFMMOrder[RedeemType],
       pool: CFMMPool
-    ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] =
+    ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])] =
       in match {
         case r: RedeemErgFee =>
           if (pool.isNative) n2tV1.redeem(r, pool)
@@ -82,7 +86,7 @@ object CFMMInterpreter {
     def swap(
       in: CFMMOrder[SwapType],
       pool: CFMMPool
-    ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] =
+    ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])] =
       in match {
         case s: SwapErg =>
           if (pool.isNative) n2tV1.swap(s, pool)
@@ -97,7 +101,7 @@ object CFMMInterpreter {
     def deposit(
       in: AnyDeposit,
       pool: CFMMPool
-    ): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] =
+    ): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])] =
       for {
         _ <- info"deposit(${in.box.boxId}, ${pool.box.boxId})"
         r <- _
@@ -107,14 +111,17 @@ object CFMMInterpreter {
     def redeem(
       in: AnyRedeem,
       pool: CFMMPool
-    ): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] =
+    ): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])] =
       for {
         _ <- info"redeem(${in.box.boxId}, ${pool.box.boxId})"
         r <- _
         _ <- info"redeem(${in.box.boxId}, ${pool.box.boxId}) -> ${s"${r._1.id}"}"
       } yield r
 
-    def swap(in: AnySwap, pool: CFMMPool): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] =
+    def swap(
+      in: AnySwap,
+      pool: CFMMPool
+    ): Mid[F, (ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])] =
       for {
         _ <- info"swap(${in.box.boxId}, ${pool.box.boxId})"
         r <- _

@@ -55,24 +55,25 @@ object Execution {
           }
           val executeF =
             for {
-              _ <- info"Pool is: $pool ${pool.isNative} -> $order "
+              _                                  <- info"Pool is: $pool ${pool.isNative} -> $order "
               (transaction, nextPool, nextOrder) <- interpretF
               finalizeF =
-                network.submitTransaction(transaction) >> pools.put(nextPool) >> resolver.setPredicted(nextOrder)
+                network.submitTransaction(transaction) >> pools.put(nextPool) >> resolver.setPredicted(
+                  nextOrder.state.entity.output
+                )
               res <- (finalizeF as none[CFMMOrder.AnyOrder])
                        .handleWith[TxFailed] { e =>
                          info"Error is: ${e.getMessage}" >>
                          resolver.getLatest.flatMap { output =>
                            val invalidInputs    = errParser.missedInputs(e.reason)
                            val poolBoxId        = pool.box.boxId
-                           val invalidPool      = invalidInputs.contains(0)
-                           val invalidDexOutput = invalidInputs.contains(2)
+                           val invalidPool      = invalidInputs.contains(TxSubmissionErrorParser.InvalidPoolIndex)
+                           val invalidDexOutput = invalidInputs.contains(TxSubmissionErrorParser.InvalidDexOutputIndex)
                            if (invalidPool && invalidDexOutput) {
                              warnCause"PoolState{poolId=${pool.poolId}, boxId=$poolBoxId} is invalidated. And dex output ${output
                                .map(_.boxId)} is invalidated" (e) >>
                              pools.invalidate(pool.poolId, poolBoxId) >> resolver.invalidateAndUpdate as order.some
-                           }
-                           else if (invalidPool)
+                           } else if (invalidPool)
                              warnCause"PoolState{poolId=${pool.poolId}, boxId=$poolBoxId} is invalidated" (e) >>
                              pools.invalidate(pool.poolId, poolBoxId) as order.some
                            else if (invalidDexOutput)

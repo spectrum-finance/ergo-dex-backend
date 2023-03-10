@@ -6,7 +6,7 @@ import org.ergoplatform._
 import org.ergoplatform.dex.configs.MonetaryConfig
 import org.ergoplatform.dex.domain.amm.CFMMOrder._
 import org.ergoplatform.dex.domain.amm._
-import org.ergoplatform.dex.domain.{BoxInfo, NetworkContext}
+import org.ergoplatform.dex.domain.{BoxInfo, DexOperatorOutput, NetworkContext}
 import org.ergoplatform.dex.executor.amm.config.ExchangeConfig
 import org.ergoplatform.dex.executor.amm.domain.errors._
 import InterpreterV1.InterpreterTracing
@@ -43,7 +43,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
   def deposit(
     deposit: DepositErgFee,
     pool: CFMMPool
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] =
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])] =
     resolver.getLatest
       .flatMap(_.orRaise[F](EmptyOutputForDexTokenFee(pool.poolId, deposit.box.boxId)))
       .map { dexFeeOutput =>
@@ -92,14 +92,14 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
         val nextPoolBox        = poolBox1.toBox(tx.id, 0)
         val boxInfo            = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
         val nextPool           = pool.deposit(inX, inY, boxInfo)
-        val predictedDexOutput = Output.fromErgoBox(tx.outputs(2))
+        val predictedDexOutput = Output.predicted(Output.fromErgoBox(tx.outputs(2)), dexFeeOutput.boxId)
         (tx, nextPool, predictedDexOutput)
       }
 
   def redeem(
     redeem: RedeemErgFee,
     pool: CFMMPool
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] = resolver.getLatest
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])] = resolver.getLatest
     .flatMap(_.orRaise[F](EmptyOutputForDexTokenFee(pool.poolId, redeem.box.boxId)))
     .map { dexFeeOutput =>
       val poolBox0         = pool.box
@@ -145,14 +145,14 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
       val nextPoolBox        = poolBox1.toBox(tx.id, 0)
       val boxInfo            = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
       val nextPool           = pool.redeem(inLP, boxInfo)
-      val predictedDexOutput = Output.fromErgoBox(tx.outputs(2))
+      val predictedDexOutput = Output.predicted(Output.fromErgoBox(tx.outputs(2)), dexFeeOutput.boxId)
       (tx, nextPool, predictedDexOutput)
     }
 
   def swap(
     swap: SwapErg,
     pool: CFMMPool
-  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Output)] = resolver.getLatest
+  ): F[(ErgoLikeTransaction, Traced[Predicted[CFMMPool]], Traced[Predicted[DexOperatorOutput]])] = resolver.getLatest
     .flatMap(_.orRaise[F](EmptyOutputForDexTokenFee(pool.poolId, swap.box.boxId)))
     .flatMap { dexFeeOutput =>
       swapParamsErgFee(swap, pool).toRaise.flatMap { case (input, output, dexFee) =>
@@ -206,7 +206,7 @@ final class T2TCFMMInterpreter[F[_]: Monad: ExecutionFailed.Raise](
           val nextPoolBox        = poolBox1.toBox(tx.id, 0)
           val boxInfo            = BoxInfo(BoxId.fromErgo(nextPoolBox.id), nextPoolBox.value)
           val nextPool           = pool.swap(input, boxInfo)
-          val predictedDexOutput = Output.fromErgoBox(tx.outputs(2))
+          val predictedDexOutput = Output.predicted(Output.fromErgoBox(tx.outputs(2)), dexFeeOutput.boxId)
           (tx, nextPool, predictedDexOutput)
         }
       }
