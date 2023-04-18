@@ -46,12 +46,12 @@ object App extends EnvApp[ConfigBundle] {
       configs <- Resource.eval(ConfigBundle.load[InitF](configPathOpt, blocker))
       implicit0(e: ErgoAddressEncoder)      = configs.protocol.networkType.addressEncoder
       implicit0(isoKRun: IsoK[RunF, InitF]) = isoKRunByContext(configs)
-      implicit0(producer1: Producer[OrderId, Confirmed[CFMMOrder.Any], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, Confirmed[CFMMOrder.Any]](configs.producers.confirmedAmmOrders)
+      implicit0(producer1: Producer[OrderId, Confirmed[CFMMOrder.AnyOrder], StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, OrderId, Confirmed[CFMMOrder.AnyOrder]](configs.producers.confirmedAmmOrders)
       implicit0(producer2: Producer[PoolId, ConfirmedIndexed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, ConfirmedIndexed[CFMMPool]](configs.producers.confirmedAmmPools)
-      implicit0(producer3: Producer[OrderId, Unconfirmed[CFMMOrder.Any], StreamF]) <-
-        Producer.make[InitF, StreamF, RunF, OrderId, Unconfirmed[CFMMOrder.Any]](configs.producers.unconfirmedAmmOrders)
+      implicit0(producer3: Producer[OrderId, Unconfirmed[CFMMOrder.AnyOrder], StreamF]) <-
+        Producer.make[InitF, StreamF, RunF, OrderId, Unconfirmed[CFMMOrder.AnyOrder]](configs.producers.unconfirmedAmmOrders)
       implicit0(producer4: Producer[PoolId, Unconfirmed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, Unconfirmed[CFMMPool]](configs.producers.unconfirmedAmmPools)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
@@ -59,10 +59,10 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
       implicit0(network: ErgoNetwork[RunF])         = ErgoNetwork.make[RunF]
       implicit0(ledger: LedgerStreaming[StreamF])   = LedgerStreaming.make[StreamF, RunF]
-      implicit0(mempool: MempoolStreaming[StreamF]) = MempoolStreaming.make[StreamF, RunF]
-      implicit0(cfmmRules: CFMMRules[RunF])         = CFMMRules.make[RunF]
-      confirmedAmmOrderHandler             <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF, Confirmed])
-      unconfirmedAmmOrderHandler           <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF, Unconfirmed])
+      implicit0(mempool: MempoolStreaming[StreamF])  <- Resource.eval(MempoolStreaming.make[InitF, StreamF, RunF])
+      implicit0(cfmmRules: CFMMRules[RunF])         = CFMMRules.make[RunF](configs.tokenId)
+      confirmedAmmOrderHandler             <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF, Confirmed](configs.tokenId))
+      unconfirmedAmmOrderHandler           <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF, Unconfirmed](configs.tokenId))
       confirmedAmmPoolsHandler             <- Resource.eval(SettledCFMMPoolsHandler.make[InitF, StreamF, RunF])
       unconfirmedAmmPoolsHandler           <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF, Unconfirmed])
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)

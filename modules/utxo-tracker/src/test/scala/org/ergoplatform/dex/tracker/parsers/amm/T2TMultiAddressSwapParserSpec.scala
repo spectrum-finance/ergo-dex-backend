@@ -6,7 +6,8 @@ import org.ergoplatform.dex.domain.AssetAmount
 import org.ergoplatform.dex.domain.amm.CFMMOrder.SwapMultiAddress
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, PoolId, SwapParams}
 import org.ergoplatform.dex.protocol.ErgoTreeSerializer
-import org.ergoplatform.dex.protocol.amm.{AMMType, ParserType}
+import org.ergoplatform.dex.protocol.amm.{AMMType, ParserVersion}
+import org.ergoplatform.dex.tracker.parsers.amm.v2.T2TOrdersV2Parser
 import org.ergoplatform.ergo._
 import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.{ErgoAddress, ErgoAddressEncoder}
@@ -106,8 +107,8 @@ class T2TMultiAddressSwapParserSpec
 
   def p2pk: ErgoAddress = e.fromString("9gCigPc9cZNRhKgbgdmTkVxo1ZKgw79G8DvLjCcYWAvEF3XRUKy").get
 
-  def parser: CFMMOrdersParser[AMMType.T2T_CFMM, ParserType.MultiAddress, SyncIO] =
-    T2TCFMMOrdersParserMultiAddress.make[SyncIO]
+  def parser: CFMMOrdersParser[AMMType.T2T_CFMM, ParserVersion.V2, SyncIO] =
+    T2TOrdersV2Parser.make[SyncIO]
 
   def boxSample(tree: String) =
     io.circe.parser

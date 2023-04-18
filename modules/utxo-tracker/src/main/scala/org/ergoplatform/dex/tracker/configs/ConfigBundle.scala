@@ -5,9 +5,10 @@ import derevo.pureconfig.pureconfigReader
 import org.ergoplatform.common.cache.RedisConfig
 import org.ergoplatform.common.streaming.CommitPolicy
 import org.ergoplatform.dex.configs._
+import org.ergoplatform.ergo.TokenId
 import tofu.Context
 import tofu.logging.Loggable
-import tofu.optics.macros.{promote, ClassyOptics}
+import tofu.optics.macros.{ClassyOptics, promote}
 
 @derive(pureconfigReader)
 @ClassyOptics
@@ -20,7 +21,8 @@ final case class ConfigBundle(
   @promote ledgerTracking: LedgerTrackingConfig,
   @promote mempoolTracking: MempoolTrackingConfig,
   @promote monetary: MonetaryConfig,
-  redis: RedisConfig
+  redis: RedisConfig,
+  tokenId: TokenId
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {

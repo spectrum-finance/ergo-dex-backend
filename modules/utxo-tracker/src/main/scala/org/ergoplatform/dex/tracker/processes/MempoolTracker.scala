@@ -1,11 +1,14 @@
 package org.ergoplatform.dex.tracker.processes
 
-import cats.effect.Clock
+import cats.effect.{Clock, Timer}
 import cats.{Defer, FlatMap, Monad, MonoidK}
 import org.ergoplatform.common.data.TemporalFilter
 import org.ergoplatform.dex.tracker.configs.MempoolTrackingConfig
 import org.ergoplatform.dex.tracker.handlers.BoxHandler
+import org.ergoplatform.ergo.domain.Output
 import org.ergoplatform.ergo.modules.MempoolStreaming
+import org.ergoplatform.ergo.services.explorer.models.Transaction
+import org.ergoplatform.ergo.services.node.ErgoNode
 import tofu.Catches
 import tofu.concurrent.MakeRef
 import tofu.logging.{Logging, Logs}
@@ -14,7 +17,8 @@ import tofu.syntax.embed._
 import tofu.syntax.logging._
 import tofu.syntax.monadic._
 import tofu.syntax.handle._
-import tofu.syntax.streams.all._
+import tofu.syntax.streams.all.{eval, _}
+import cats.syntax.traverse._
 
 import scala.concurrent.duration._
 
@@ -22,7 +26,7 @@ import scala.concurrent.duration._
   */
 final class MempoolTracker[
   F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: Catches,
-  G[_]: Monad: Logging
+  G[_]: Monad: Logging: Timer
 ](conf: MempoolTrackingConfig, filter: TemporalFilter[G], handlers: List[BoxHandler[F]])(implicit
   mempool: MempoolStreaming[F]
 ) extends UtxoTracker[F] {
@@ -39,6 +43,7 @@ final class MempoolTracker[
                emits(handlers.map(_(output.pure[F]))).parFlattenUnbounded
              else unit[F]
       } yield ()
+
     sync.repeat
       .throttled(conf.samplingInterval)
       .handleWith[Throwable](e => eval(warnCause"Mempool Tracker failed, restarting .." (e)) >> run)
@@ -50,7 +55,7 @@ object MempoolTracker {
   def make[
     I[_]: FlatMap,
     F[_]: Monad: Evals[*[_], G]: ParFlatten: Pace: Defer: MonoidK: MempoolTrackingConfig.Has: Catches,
-    G[_]: Monad: Clock
+    G[_]: Monad: Clock: Timer
   ](handlers: BoxHandler[F]*)(implicit
     mempool: MempoolStreaming[F],
     logs: Logs[I, G],

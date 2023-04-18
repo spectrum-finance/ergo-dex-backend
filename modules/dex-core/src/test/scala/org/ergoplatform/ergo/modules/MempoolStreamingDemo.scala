@@ -27,6 +27,6 @@ object MempoolStreamingDemo extends IOApp {
       implicit0(hasConf: NetworkConfig.Has[IO]) =
         Context.const[IO, NetworkConfig](NetworkConfig(uri"https://api.ergoplatform.com", uri"http://localhost:9053"))
       implicit0(node: ErgoNode[IO]) <- Resource.eval(ErgoNode.make[IO, IO])
-      streaming = MempoolStreaming.make[fs2.Stream[IO, *], IO]
+      streaming                     <- Resource.eval(MempoolStreaming.make[IO, fs2.Stream[IO, *], IO])
     } yield streaming
 }

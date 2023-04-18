@@ -7,7 +7,7 @@ import scorex.util.encode.Base16
 import sigmastate.Values.{ByteArrayConstant, Constant, ErgoTree, SigmaPropConstant}
 import sigmastate.basics.DLogProtocol
 import sigmastate.basics.DLogProtocol.{ProveDlog, ProveDlogProp}
-import sigmastate.{SLong, SType, Values}
+import sigmastate.{SBoolean, SLong, SType, Values}
 import special.collection.Coll
 import sigmastate.eval.Extensions._
 import sigmastate.serialization.{GroupElementSerializer, SigmaSerializer}
@@ -42,6 +42,11 @@ object syntax {
     def parseLong(idx: Int): Option[Long] =
       constants.lift(idx).collect { case Values.ConstantNode(value, SLong) =>
         value.asInstanceOf[Long]
+      }
+
+    def parseBoolean(idx: Int): Option[Boolean] =
+      constants.lift(idx).collect { case Values.ConstantNode(value, SBoolean) =>
+        value.asInstanceOf[Boolean]
       }
 
     def parseBytea(idx: Int): Option[Array[Byte]] =

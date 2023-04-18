@@ -39,6 +39,7 @@ package object common {
     implicit val show: Show[HexString]         = _.unwrapped
     implicit val loggable: Loggable[HexString] = Loggable.show
 
+
     implicit def plainCodec: Codec.PlainCodec[HexString] =
       deriveCodec[String, CodecFormat.TextPlain, HexString](
         fromString[Either[Throwable, *]](_),
