@@ -21,7 +21,7 @@ jobs:
       - name: Setup Java and Scala
         uses: olafurpg/setup-scala@v10
         with:
-          java-version: adopt@1.8.0-292
+          java-version: adopt@1.11
 
       - name: Run sbt docker stage
         run: sbt docker:stage
