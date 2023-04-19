@@ -128,7 +128,7 @@ lazy val utxoTracker = utils
   .settings(commonSettings)
   .settings(assembly / mainClass := Some("org.ergoplatform.dex.tracker.App"))
   .settings(nativePackagerSettings("utxo-tracker"))
-  .settings(dockerBaseImage := "openjdk:11-jre-slim")
+  .settings(dockerBaseImage := "openjdk:11")
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(Seq(core, cache).map(_ % allConfigDependency): _*)
 
@@ -158,7 +158,7 @@ lazy val ammExecutor = utils
     assembly / mainClass := Some("org.ergoplatform.dex.executor.amm.App"),
     libraryDependencies ++= SttpClientCE
   )
-  .settings(dockerBaseImage := "openjdk:11-jre-slim")
+  .settings(dockerBaseImage := "openjdk:11")
   .settings(nativePackagerSettings("amm-executor"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(Seq(core, http).map(_ % allConfigDependency): _*)
@@ -170,7 +170,7 @@ lazy val poolResolver = utils
     assembly / mainClass := Some("org.ergoplatform.dex.resolver.App"),
     libraryDependencies ++= RocksDB
   )
-  .settings(dockerBaseImage := "openjdk:11-jre-slim")
+  .settings(dockerBaseImage := "openjdk:11")
   .settings(nativePackagerSettings("pool-resolver"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin, DockerPlugin)
   .dependsOn(Seq(core, http).map(_ % allConfigDependency): _*)
