@@ -5,7 +5,7 @@ services:
     container_name: kafka
     restart: always
     environment:
-      KAFKA_ENABLE_KRAFT: yes
+      KAFKA_ENABLE_KRAFT: "yes"
       KAFKA_CFG_PROCESS_ROLES: "broker,controller"
       KAFKA_BROKER_ID: "1"
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
@@ -13,6 +13,7 @@ services:
       KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
       ALLOW_PLAINTEXT_LISTENER: "yes"
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_CFG_NODE_ID: "1"
     volumes:
       - "kafka-data:/bitnami/kafka"
     networks:
