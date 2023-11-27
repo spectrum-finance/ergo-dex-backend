@@ -37,7 +37,7 @@ object versions {
   val LogbackVersion  = "1.2.3"
   val Slf4jVersion    = "1.7.25"
 
-  val PureConfigVersion = "0.14.1"
+  val PureConfigVersion = "0.14.0"
 
   val NewtypeVersion = "0.4.3"
   val RefinedVersion = "0.9.10"

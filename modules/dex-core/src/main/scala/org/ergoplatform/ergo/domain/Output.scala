@@ -4,14 +4,17 @@ import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import org.ergoplatform.ErgoBox
+import org.ergoplatform.ErgoBox.NonMandatoryRegisterId
 import org.ergoplatform.dex.domain.DexOperatorOutput
+import org.ergoplatform.dex.protocol.ErgoTreeSerializer.default._
+import org.ergoplatform.ergo.domain.sigma.renderEvaluatedValue
 import org.ergoplatform.ergo.services.explorer.models.{Output => ExplorerOutput}
 import org.ergoplatform.ergo.services.node.models.{Output => NodeOutput}
 import org.ergoplatform.ergo.state.{Predicted, Traced}
-import org.ergoplatform.ergo.{BoxId, SErgoTree, TokenId, TxId}
-import scorex.crypto.authds.ADKey
+import org.ergoplatform.ergo.{BoxId, SErgoTree, TxId}
 import scorex.util.ModifierId
-import scorex.util.encode.Base16
+import sigmastate.SType
+import sigmastate.Values.EvaluatedValue
 import tofu.logging.derivation.loggable
 
 @derive(show, encoder, decoder, loggable)
@@ -27,6 +30,7 @@ final case class Output(
 )
 
 object Output {
+
   def predicted(output: Output, prevBoxId: BoxId): Traced[Predicted[DexOperatorOutput]] =
     Traced(Predicted(DexOperatorOutput(output)), prevBoxId)
 
@@ -54,17 +58,25 @@ object Output {
       Map.empty // todo
     )
 
-  def fromErgoBox(b: ErgoBox): Output = {
-    val bId = ADKey !@@ b.id
+  def fromErgoBox(box: ErgoBox, txId: ModifierId): Output =
     Output(
-      BoxId(Base16.encode(bId)),
-      TxId(ModifierId !@@ b.transactionId),
-      b.value,
-      b.index,
-      b.creationHeight,
-      SErgoTree.fromBytes(b.ergoTree.bytes),
-      b.additionalTokens.toMap.map { case (id, l) => BoxAsset(TokenId.fromBytes(id), l) }.toList,
-      Map.empty
+      BoxId.fromErgo(box.id),
+      TxId(ModifierId !@@ txId),
+      box.value,
+      box.index,
+      box.creationHeight,
+      serialize(box.ergoTree),
+      box.additionalTokens.toArray.toList.map { case (id, amount) => BoxAsset.fromErgo(id, amount) },
+      parseRegisters(box.additionalRegisters)
     )
-  }
+
+  private def parseRegisters(
+    additionalRegisters: Map[NonMandatoryRegisterId, _ <: EvaluatedValue[_ <: SType]]
+  ): Map[RegisterId, SConstant] =
+    additionalRegisters.flatMap { case (k, v) =>
+      for {
+        register  <- RegisterId.withNameOption(s"R${k.number}")
+        sConstant <- renderEvaluatedValue(v).map { case (t, eval) => SConstant.fromRenderValue(t, eval) }
+      } yield (register, sConstant)
+    }
 }

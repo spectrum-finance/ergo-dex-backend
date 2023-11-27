@@ -1,17 +1,20 @@
 package org.ergoplatform.dex.tracker
 
 import cats.effect.{Blocker, Resource}
+import fs2.kafka.RecordDeserializer
 import fs2.kafka.serde._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
-import org.ergoplatform.common.streaming.Producer
+import org.ergoplatform.common.streaming.{Consumer, Delayed, MakeKafkaConsumer, Producer}
+import org.ergoplatform.dex.configs.ConsumerConfig
 import org.ergoplatform.dex.domain.amm.{CFMMOrder, CFMMPool, OrderId, PoolId}
 import org.ergoplatform.dex.tracker.configs.ConfigBundle
 import org.ergoplatform.dex.tracker.handlers.{lift, CFMMOpsHandler, CFMMPoolsHandler, SettledCFMMPoolsHandler}
 import org.ergoplatform.dex.tracker.processes.LedgerTracker.TrackerMode
 import org.ergoplatform.dex.tracker.processes.{LedgerTracker, MempoolTracker}
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
+import org.ergoplatform.dex.tracker.streaming.{MempoolConsumer, MempoolEvent}
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
 import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming, MempoolStreaming}
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
@@ -54,12 +57,13 @@ object App extends EnvApp[ConfigBundle] {
         Producer.make[InitF, StreamF, RunF, OrderId, Unconfirmed[CFMMOrder.AnyOrder]](configs.producers.unconfirmedAmmOrders)
       implicit0(producer4: Producer[PoolId, Unconfirmed[CFMMPool], StreamF]) <-
         Producer.make[InitF, StreamF, RunF, PoolId, Unconfirmed[CFMMPool]](configs.producers.unconfirmedAmmPools)
+      implicit0(consumerMempool: MempoolConsumer[StreamF, RunF]) =
+        makeConsumer[String, Option[MempoolEvent]](configs.mempoolTxConsumer)
       implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
       implicit0(explorer: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
       implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
       implicit0(network: ErgoNetwork[RunF])         = ErgoNetwork.make[RunF]
       implicit0(ledger: LedgerStreaming[StreamF])   = LedgerStreaming.make[StreamF, RunF]
-      implicit0(mempool: MempoolStreaming[StreamF])  <- Resource.eval(MempoolStreaming.make[InitF, StreamF, RunF])
       implicit0(cfmmRules: CFMMRules[RunF])         = CFMMRules.make[RunF](configs.tokenId)
       confirmedAmmOrderHandler             <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF, Confirmed](configs.tokenId))
       unconfirmedAmmOrderHandler           <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF, Unconfirmed](configs.tokenId))
@@ -68,7 +72,7 @@ object App extends EnvApp[ConfigBundle] {
       implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
       implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
       ledgerTracker  <- Resource.eval(LedgerTracker.make[InitF, StreamF, RunF](TrackerMode.Live, lift(confirmedAmmOrderHandler), confirmedAmmPoolsHandler))
-      mempoolTracker <- Resource.eval(MempoolTracker.make[InitF, StreamF, RunF](unconfirmedAmmOrderHandler, unconfirmedAmmPoolsHandler))
+      mempoolTracker <- Resource.eval(MempoolTracker.make[InitF, StreamF, RunF](consumerMempool, unconfirmedAmmOrderHandler, unconfirmedAmmPoolsHandler))
     } yield (ledgerTracker, mempoolTracker, configs)
   // format: on
 
@@ -80,4 +84,9 @@ object App extends EnvApp[ConfigBundle] {
       .eval(wr.concurrentEffect)
       .flatMap(implicit ce => AsyncHttpClientFs2Backend.resource[RunF](blocker))
       .mapK(wr.runContextK(configs))
+
+  private def makeConsumer[K: RecordDeserializer[RunF, *], V: RecordDeserializer[RunF, *]](conf: ConsumerConfig) = {
+    implicit val maker = MakeKafkaConsumer.make[InitF, RunF, K, V]
+    Consumer.make[StreamF, RunF, K, V](conf)
+  }
 }

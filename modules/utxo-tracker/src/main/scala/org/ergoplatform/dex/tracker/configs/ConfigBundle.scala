@@ -22,7 +22,8 @@ final case class ConfigBundle(
   @promote mempoolTracking: MempoolTrackingConfig,
   @promote monetary: MonetaryConfig,
   redis: RedisConfig,
-  tokenId: TokenId
+  tokenId: TokenId,
+  mempoolTxConsumer: ConsumerConfig
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {

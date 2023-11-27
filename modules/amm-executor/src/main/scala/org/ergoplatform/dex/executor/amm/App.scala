@@ -78,9 +78,9 @@ object App extends EnvApp[AppContext] {
         Resource.eval(N2TV3.make[InitF, RunF](configs.exchange, configs.monetary, context))
       implicit0(n2tInt: InterpreterV3[T2T_CFMM, RunF]) <-
         Resource.eval(T2TV3.make[InitF, RunF](configs.exchange, configs.monetary, context))
-      implicit0(interpreter: CFMMInterpreter[CFMMType, RunF]) <-Resource.eval(CFMMInterpreter.make[InitF, RunF])
-      implicit0(execution: Execution[RunF]) <- Resource.eval(Execution.make[InitF, RunF])
-      executor                              <- Resource.eval(Executor.make[InitF, StreamF, RunF])
+      implicit0(interpreter: CFMMInterpreter[CFMMType, RunF]) <- Resource.eval(CFMMInterpreter.make[InitF, RunF])
+      implicit0(execution: Execution[RunF])                   <- Resource.eval(Execution.make[InitF, RunF])
+      executor                                                <- Resource.eval(Executor.make[InitF, StreamF, RunF])
     } yield List(executor.run, networkContextUpdater.run) -> ctx
 
   private def makeBackend(
