@@ -6,6 +6,7 @@ import derevo.circe.{decoder, encoder}
 import derevo.derive
 import doobie.{Get, Put}
 import fs2.kafka.serde._
+import fs2.kafka.serde.ser._
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.estatico.newtype.macros.newtype
 import org.ergoplatform.ergo.BoxId

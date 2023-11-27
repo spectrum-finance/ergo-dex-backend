@@ -2,7 +2,8 @@ package org.ergoplatform.dex.domain
 
 import cats.effect.Sync
 import doobie.{Get, Put}
-import fs2.kafka.serde.{deserializerViaKafkaDecoder, serializerViaCirceEncoder}
+import fs2.kafka.serde.{deserializerViaKafkaDecoder}
+import fs2.kafka.serde.ser._
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype

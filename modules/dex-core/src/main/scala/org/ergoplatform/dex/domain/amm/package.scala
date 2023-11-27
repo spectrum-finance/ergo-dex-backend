@@ -5,7 +5,8 @@ import derevo.cats.show
 import derevo.circe.{decoder, encoder}
 import derevo.derive
 import doobie.{Get, Put}
-import fs2.kafka.serde.{deserializerViaKafkaDecoder, serializerViaCirceEncoder}
+import fs2.kafka.serde.deserializerViaKafkaDecoder
+import fs2.kafka.serde.ser._
 import fs2.kafka.{RecordDeserializer, RecordSerializer}
 import io.estatico.newtype.macros.newtype
 import org.ergoplatform.common.HexString

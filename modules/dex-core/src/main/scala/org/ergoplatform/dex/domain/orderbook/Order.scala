@@ -11,6 +11,7 @@ import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.ops._
 import org.ergoplatform.dex.domain.PairId
 import org.ergoplatform.dex.protocol.instances._
+import fs2.kafka.serde.ser._
 import org.ergoplatform.ergo.TokenId
 import tofu.logging.{Loggable, _}
 
@@ -74,7 +75,7 @@ object Order {
     io.circe.derivation.deriveDecoder[AnyOrder]
 
   implicit def recordSerializer[F[_]: Sync]: RecordSerializer[F, AnyOrder] =
-    fs2.kafka.serde.serializerViaCirceEncoder
+    fs2.kafka.serde.ser.serializerViaCirceEncoder
 
   implicit def recordDeserializer[F[_]: Sync]: RecordDeserializer[F, AnyOrder] =
     fs2.kafka.serde.deserializerViaKafkaDecoder

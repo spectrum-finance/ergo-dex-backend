@@ -2,7 +2,7 @@ package org.ergoplatform.dex.tracker
 
 import cats.effect.{Blocker, Resource}
 import fs2.kafka.RecordDeserializer
-import fs2.kafka.serde._
+import fs2.kafka.serde.ser._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.cache.{MakeRedisTransaction, Redis}
@@ -69,7 +69,7 @@ object App extends EnvApp[ConfigBundle] {
       confirmedAmmPoolsHandler             <- Resource.eval(SettledCFMMPoolsHandler.make[InitF, StreamF, RunF])
       unconfirmedAmmPoolsHandler           <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF, Unconfirmed])
       ledgerTracker  <- Resource.eval(LedgerTracker.make[InitF, StreamF, RunF](consumerLedger, lift(confirmedAmmOrderHandler), confirmedAmmPoolsHandler))
-      mempoolTracker <- Resource.eval(MempoolTracker.make[InitF, StreamF, RunF](consumerMempool, unconfirmedAmmOrderHandler, unconfirmedAmmPoolsHandler)))
+      mempoolTracker <- Resource.eval(MempoolTracker.make[InitF, StreamF, RunF](consumerMempool, unconfirmedAmmOrderHandler, unconfirmedAmmPoolsHandler))
     } yield (ledgerTracker, mempoolTracker, configs)
   // format: on
 

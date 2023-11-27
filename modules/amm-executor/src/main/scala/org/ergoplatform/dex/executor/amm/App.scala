@@ -4,6 +4,7 @@ import cats.Id
 import cats.effect.{Blocker, Resource}
 import fs2.kafka.RecordDeserializer
 import fs2.kafka.serde._
+import fs2.kafka.serde.ser._
 import org.ergoplatform.ErgoAddressEncoder
 import org.ergoplatform.common.EnvApp
 import org.ergoplatform.common.streaming._
