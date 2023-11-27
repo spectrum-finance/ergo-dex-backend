@@ -18,6 +18,6 @@ object Transaction {
     Transaction(
       TxId(ModifierId !@@ tx.id),
       NonEmptyList.fromListUnsafe(tx.inputs.map(_.boxId).map(BoxId.fromErgo).toList),
-      NonEmptyList.fromListUnsafe(tx.outputs.toList.map(Output.fromErgoBox(_, tx.id))).sortBy(_.index)
+      NonEmptyList.fromListUnsafe(tx.outputs.toList.map(Output.fromErgoBox(_))).sortBy(_.index)
     )
 }

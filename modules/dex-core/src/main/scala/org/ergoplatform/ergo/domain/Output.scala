@@ -58,10 +58,10 @@ object Output {
       Map.empty // todo
     )
 
-  def fromErgoBox(box: ErgoBox, txId: ModifierId): Output =
+  def fromErgoBox(box: ErgoBox): Output =
     Output(
       BoxId.fromErgo(box.id),
-      TxId(ModifierId !@@ txId),
+      TxId(ModifierId !@@ box.transactionId),
       box.value,
       box.index,
       box.creationHeight,
@@ -71,7 +71,7 @@ object Output {
     )
 
   private def parseRegisters(
-    additionalRegisters: Map[NonMandatoryRegisterId, _ <: EvaluatedValue[_ <: SType]]
+    additionalRegisters: Map[NonMandatoryRegisterId, EvaluatedValue[SType]]
   ): Map[RegisterId, SConstant] =
     additionalRegisters.flatMap { case (k, v) =>
       for {

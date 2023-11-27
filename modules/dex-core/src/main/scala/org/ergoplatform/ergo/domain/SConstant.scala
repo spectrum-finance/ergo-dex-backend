@@ -11,7 +11,7 @@ import org.ergoplatform.ergo.domain.SigmaType._
 import tofu.logging.derivation.loggable
 import io.circe.syntax._
 
-@derive(show, encoder, loggable)
+@derive(show, loggable)
 sealed trait SConstant
 
 object SConstant {
@@ -34,7 +34,7 @@ object SConstant {
   @derive(loggable, show)
   final case class IntsConstant(value: List[Int]) extends SConstant
 
-  implicit val encoder: Encoder[SConstant] = { c =>
+  implicit val encoderSConstant: Encoder[SConstant] = { c =>
     val (renderedValue, sigmaType: SigmaType) = c match {
       case IntConstant(value)       => value.toString                    -> SInt
       case LongConstant(value)      => value.toString                    -> SLong
@@ -46,7 +46,7 @@ object SConstant {
     Json.obj("renderedValue" -> Json.fromString(renderedValue), "sigmaType" -> sigmaType.asJson)
   }
 
-  implicit val decoder: Decoder[SConstant] = { c =>
+  implicit val decoderSConstant: Decoder[SConstant] = { c =>
     c.downField("renderedValue").as[String].flatMap { value =>
       c.downField("sigmaType").as[SigmaType].map {
         case SInt               => IntConstant(value.toInt)
