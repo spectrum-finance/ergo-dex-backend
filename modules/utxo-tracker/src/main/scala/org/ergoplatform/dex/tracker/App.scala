@@ -30,6 +30,8 @@ import tofu.lift.IsoK
 import tofu.syntax.unlift._
 import zio.interop.catz._
 import zio.{ExitCode, URIO, ZEnv}
+import MempoolEvent._
+import TransactionEvent._
 
 object App extends EnvApp[ConfigBundle] {
 
@@ -67,7 +69,7 @@ object App extends EnvApp[ConfigBundle] {
       confirmedAmmPoolsHandler             <- Resource.eval(SettledCFMMPoolsHandler.make[InitF, StreamF, RunF])
       unconfirmedAmmPoolsHandler           <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF, Unconfirmed])
       ledgerTracker  <- Resource.eval(LedgerTracker.make[InitF, StreamF, RunF](consumerLedger, lift(confirmedAmmOrderHandler), confirmedAmmPoolsHandler))
-      mempoolTracker <- Resource.eval(MempoolTracker.make[InitF, StreamF, RunF](consumerMempool, unconfirmedAmmOrderHandler, unconfirmedAmmPoolsHandler))
+      mempoolTracker <- Resource.eval(MempoolTracker.make[InitF, StreamF, RunF](consumerMempool, unconfirmedAmmOrderHandler, unconfirmedAmmPoolsHandler)))
     } yield (ledgerTracker, mempoolTracker, configs)
   // format: on
 

@@ -33,7 +33,7 @@ object MempoolEvent {
         .flatMap(fromKafkaEvent)
     })
 
-  private def fromKafkaEvent(event: KafkaMempoolEvent): Option[MempoolEvent] =
+  def fromKafkaEvent(event: KafkaMempoolEvent): Option[MempoolEvent] =
     Base64
       .decode(event.tx)
       .flatMap { b =>
