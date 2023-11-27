@@ -23,7 +23,8 @@ final case class ConfigBundle(
   @promote monetary: MonetaryConfig,
   redis: RedisConfig,
   tokenId: TokenId,
-  mempoolTxConsumer: ConsumerConfig
+  mempoolTxConsumer: ConsumerConfig,
+  ledgerTxConsumer: ConsumerConfig
 )
 
 object ConfigBundle extends Context.Companion[ConfigBundle] with ConfigBundleCompanion[ConfigBundle] {

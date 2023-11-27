@@ -30,7 +30,7 @@ final class MempoolTracker[
               emits(transaction.outputs.map { out =>
                 eval(debug"Scanning unconfirmed output ${out.boxId}") >>
                 emits(handlers.map(_(out.pure[F]))).parFlattenUnbounded
-              }).parFlattenUnbounded
+              }).parFlattenUnbounded >> eval(mempoolEvent.commit)
           case _ => eval(mempoolEvent.commit)
         }
       }

@@ -14,7 +14,7 @@ import org.ergoplatform.dex.tracker.handlers.{lift, CFMMOpsHandler, CFMMPoolsHan
 import org.ergoplatform.dex.tracker.processes.LedgerTracker.TrackerMode
 import org.ergoplatform.dex.tracker.processes.{LedgerTracker, MempoolTracker}
 import org.ergoplatform.dex.tracker.repositories.TrackerCache
-import org.ergoplatform.dex.tracker.streaming.{MempoolConsumer, MempoolEvent}
+import org.ergoplatform.dex.tracker.streaming.{MempoolConsumer, MempoolEvent, TransactionConsumer, TransactionEvent}
 import org.ergoplatform.dex.tracker.validation.amm.CFMMRules
 import org.ergoplatform.ergo.modules.{ErgoNetwork, LedgerStreaming, MempoolStreaming}
 import org.ergoplatform.ergo.services.explorer.ErgoExplorerStreaming
@@ -59,19 +59,14 @@ object App extends EnvApp[ConfigBundle] {
         Producer.make[InitF, StreamF, RunF, PoolId, Unconfirmed[CFMMPool]](configs.producers.unconfirmedAmmPools)
       implicit0(consumerMempool: MempoolConsumer[StreamF, RunF]) =
         makeConsumer[String, Option[MempoolEvent]](configs.mempoolTxConsumer)
-      implicit0(backend: SttpBackend[RunF, Fs2Streams[RunF]]) <- makeBackend(configs, blocker)
-      implicit0(explorer: ErgoExplorerStreaming[StreamF, RunF]) = ErgoExplorerStreaming.make[StreamF, RunF]
-      implicit0(node: ErgoNode[RunF]) <- Resource.eval(ErgoNode.make[InitF, RunF])
-      implicit0(network: ErgoNetwork[RunF])         = ErgoNetwork.make[RunF]
-      implicit0(ledger: LedgerStreaming[StreamF])   = LedgerStreaming.make[StreamF, RunF]
+      implicit0(consumerLedger: TransactionConsumer[StreamF, RunF]) =
+        makeConsumer[String, Option[TransactionEvent]](configs.ledgerTxConsumer)
       implicit0(cfmmRules: CFMMRules[RunF])         = CFMMRules.make[RunF](configs.tokenId)
       confirmedAmmOrderHandler             <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF, Confirmed](configs.tokenId))
       unconfirmedAmmOrderHandler           <- Resource.eval(CFMMOpsHandler.make[InitF, StreamF, RunF, Unconfirmed](configs.tokenId))
       confirmedAmmPoolsHandler             <- Resource.eval(SettledCFMMPoolsHandler.make[InitF, StreamF, RunF])
       unconfirmedAmmPoolsHandler           <- Resource.eval(CFMMPoolsHandler.make[InitF, StreamF, RunF, Unconfirmed])
-      implicit0(redis: Redis.Plain[RunF])  <- Redis.make[InitF, RunF](configs.redis)
-      implicit0(cache: TrackerCache[RunF]) <- Resource.eval(TrackerCache.make[InitF, RunF])
-      ledgerTracker  <- Resource.eval(LedgerTracker.make[InitF, StreamF, RunF](TrackerMode.Live, lift(confirmedAmmOrderHandler), confirmedAmmPoolsHandler))
+      ledgerTracker  <- Resource.eval(LedgerTracker.make[InitF, StreamF, RunF](consumerLedger, lift(confirmedAmmOrderHandler), confirmedAmmPoolsHandler))
       mempoolTracker <- Resource.eval(MempoolTracker.make[InitF, StreamF, RunF](consumerMempool, unconfirmedAmmOrderHandler, unconfirmedAmmPoolsHandler))
     } yield (ledgerTracker, mempoolTracker, configs)
   // format: on
