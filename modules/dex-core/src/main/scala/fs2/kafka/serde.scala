@@ -16,10 +16,13 @@ object serde {
       Deserializer.lift(decoder.decode)
     }
 
-  implicit def serializerViaCirceEncoder[F[_]: Sync, A: Encoder]: RecordSerializer[F, A] =
-    RecordSerializer.lift {
-      Serializer.lift { a =>
-        a.asJson.noSpacesSortKeys.getBytes(charset).pure
+  object ser {
+
+    implicit def serializerViaCirceEncoder[F[_]: Sync, A: Encoder]: RecordSerializer[F, A] =
+      RecordSerializer.lift {
+        Serializer.lift { a =>
+          a.asJson.noSpacesSortKeys.getBytes(charset).pure
+        }
       }
-    }
+  }
 }
