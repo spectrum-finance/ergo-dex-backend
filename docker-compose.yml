@@ -58,6 +58,18 @@ services:
       - kafka
     networks:
       - spectrum-network
+  events-tracker:
+    image: spectrumlabs/ergo-bots-tracker:latest
+    volumes:
+      - "log-data:/usr/src/events-streaming/log"
+    env_file: config.env
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+      - utxo-tracker
+    networks:
+      - spectrum-network
 
 networks:
   spectrum-network:
