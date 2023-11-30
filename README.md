@@ -43,8 +43,9 @@ Windows:
 cd ergo-dex-backend
 copy ./config-example.env ./config.env
 ```
-The 2 values that need to be changed in the `config.env` file are the mnemonic ([howto](https://github.com/spectrum-finance/ergo-dex-backend/blob/master/modules/amm-executor/src/test/scala/org/ergoplatfrom/dex/executor/amm/HowTo.scala)) from which bot will create the wallet to receive fees on and pay miner fees from (in SPF fee cases)
+The 3 values that need to be changed in the `config.env` file are the mnemonic ([howto](https://github.com/spectrum-finance/ergo-dex-backend/blob/master/modules/amm-executor/src/test/scala/org/ergoplatfrom/dex/executor/amm/HowTo.scala)) from which bot will create the wallet to receive fees on and pay miner fees from (in SPF fee cases)
 and the URI to your node (localhost/127.0.0.1 might not be accessible from within a docker container, it is best to use the local lan ip if the node is running on the same host).
+You have to setup URI twice.
 ### Running the services
 Once the `config.env` file is created, make sure you have funds on expected address (you can check which address bot will use with `HowTo.scala` script). Next, the only thing left to do is to run the containers:
 
