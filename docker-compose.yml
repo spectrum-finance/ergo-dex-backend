@@ -64,9 +64,7 @@ services:
       - "log-data:/usr/src/events-streaming/log"
     env_file: config.env
     depends_on:
-      - kafka1
-      - kafka2
-      - kafka3
+      - kafka
       - utxo-tracker
     networks:
       - spectrum-network
