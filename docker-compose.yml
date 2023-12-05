@@ -4,6 +4,8 @@ services:
     image: bitnami/kafka:3.4.0
     container_name: kafka
     restart: always
+    ports:
+      - "9092:9092"
     environment:
       KAFKA_ENABLE_KRAFT: "yes"
       KAFKA_CFG_PROCESS_ROLES: "broker,controller"
@@ -15,12 +17,24 @@ services:
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
       KAFKA_CFG_NODE_ID: "1"
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --describe"]
+      test: [ "CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --describe" ]
       timeout: 10s
       interval: 15s
       retries: 5
     volumes:
       - "kafka-data:/bitnami/kafka"
+    networks:
+      - spectrum-network
+  init-kafka:
+    image: bitnami/kafka:3.4.0
+    container_name: init-kafka
+    working_dir: /opt/bitnami/kafka/bin
+    command: [ "/bin/bash", "/etc/create_topic.sh" ]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - "./create_topic.sh:/etc/create_topic.sh:rw"
     networks:
       - spectrum-network
   redis:
@@ -33,6 +47,7 @@ services:
       - spectrum-network
   utxo-tracker:
     image: spectrumlabs/ergo-utxo-tracker:latest
+    container_name: ergo-utxo-tracker
     volumes:
       - "log-data:/var/log/dex-backend"
     env_file: config.env
@@ -43,6 +58,7 @@ services:
       - spectrum-network
   amm-executor:
     image: spectrumlabs/ergo-amm-executor:latest
+    container_name: ergo-amm-executor
     restart: always
     volumes:
       - "log-data:/var/log/dex-backend"
@@ -65,6 +81,7 @@ services:
       - spectrum-network
   events-tracker:
     image: spectrumlabs/ergo-bots-tracker:latest
+    container_name: ergo-events-tracker
     volumes:
       - "log-data:/usr/src/events-streaming/log"
       - "${PWD}/rocks/tracker:/tmp/chain"
@@ -74,6 +91,8 @@ services:
       kafka:
         condition: service_healthy
       utxo-tracker:
+        condition: service_started
+      init-kafka:
         condition: service_started
     networks:
       - spectrum-network
