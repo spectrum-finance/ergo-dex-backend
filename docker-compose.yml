@@ -4,6 +4,8 @@ services:
     image: bitnami/kafka:3.4.0
     container_name: kafka
     restart: always
+    ports:
+      - "9092:9092"
     environment:
       KAFKA_ENABLE_KRAFT: "yes"
       KAFKA_CFG_PROCESS_ROLES: "broker,controller"
