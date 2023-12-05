@@ -25,22 +25,14 @@ services:
       - spectrum-network
   init-kafka:
     image: bitnami/kafka:3.4.0
+    working_dir: /opt/bitnami/kafka/bin
+    entrypoint: /bin/bash
     depends_on:
       kafka:
         condition: service_healthy
-    entrypoint: [ '/bin/sh', '-c' ]
     command: |
-      "
-      # blocks until kafka is reachable
-      kafka-topics --bootstrap-server kafka:9092 --list
-
-      echo -e 'Creating kafka topics'
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic ledger-tx-topic --replication-factor 1 --partitions 1
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic mempool-tx-topic --replication-factor 1 --partitions 1
-
-      echo -e 'Successfully created the following topics:'
-      kafka-topics --bootstrap-server kafka:9092 --list
-      "
+      kafka-topics.sh --create --if-not-exists --topic mempool-tx-topic --replication-factor=1 --partitions=3 --bootstrap-server kafka:9092
+      kafka-topics.sh --create --if-not-exists --topic ledger-tx-topic --replication-factor=1 --partitions=3 --bootstrap-server kafka:9092
   redis:
     image: redis:7.0-alpine
     container_name: redis
