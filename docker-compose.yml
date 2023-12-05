@@ -35,6 +35,8 @@ services:
         condition: service_healthy
     volumes:
       - "./create_topic.sh:/etc/create_topic.sh:rw"
+    networks:
+      - spectrum-network
   redis:
     image: redis:7.0-alpine
     container_name: redis
