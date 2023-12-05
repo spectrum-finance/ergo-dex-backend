@@ -14,6 +14,11 @@ services:
       ALLOW_PLAINTEXT_LISTENER: "yes"
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
       KAFKA_CFG_NODE_ID: "1"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --describe"]
+      timeout: 10s
+      interval: 15s
+      retries: 5
     volumes:
       - "kafka-data:/bitnami/kafka"
     networks:
@@ -62,10 +67,14 @@ services:
     image: spectrumlabs/ergo-bots-tracker:latest
     volumes:
       - "log-data:/usr/src/events-streaming/log"
+      - "${PWD}/rocks/tracker:/tmp/chain"
+      - "${PWD}/rocks/pool:/tmp/mempool"
     env_file: config.env
     depends_on:
-      - kafka
-      - utxo-tracker
+      kafka:
+        condition: service_healthy
+      utxo-tracker:
+        condition: service_started
     networks:
       - spectrum-network
 
