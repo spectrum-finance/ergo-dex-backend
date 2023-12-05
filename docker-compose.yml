@@ -30,9 +30,10 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-    command: |
+    command: "|
       kafka-topics.sh --create --if-not-exists --topic mempool-tx-topic --replication-factor=1 --partitions=3 --bootstrap-server kafka:9092
       kafka-topics.sh --create --if-not-exists --topic ledger-tx-topic --replication-factor=1 --partitions=3 --bootstrap-server kafka:9092
+      "
   redis:
     image: redis:7.0-alpine
     container_name: redis
