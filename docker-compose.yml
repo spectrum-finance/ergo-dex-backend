@@ -27,16 +27,12 @@ services:
     image: bitnami/kafka:3.4.0
     working_dir: /opt/bitnami/kafka/bin
     entrypoint: /bin/bash
+    command: [ "/bin/bash", "-c", "/create_topic.sh"]
     depends_on:
       kafka:
         condition: service_healthy
-    command: |
-      "
-      kafka-topics.sh --create --if-not-exists --topic mempool-tx-topic --replication-factor=1 --partitions=3 --bootstrap-server kafka:9092
-      kafka-topics.sh --create --if-not-exists --topic ledger-tx-topic --replication-factor=1 --partitions=3 --bootstrap-server kafka:9092
-      echo -e 'Successfully created the following topics:'
-      kafka-topics --bootstrap-server kafka:9092 --list
-      "
+    volumes:
+      - "${PWD}/create_topic.sh:/create_topic.sh"
   redis:
     image: redis:7.0-alpine
     container_name: redis
