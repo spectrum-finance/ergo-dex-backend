@@ -26,7 +26,6 @@ services:
   init-kafka:
     image: bitnami/kafka:3.4.0
     working_dir: /opt/bitnami/kafka/bin
-    entrypoint: /bin/bash
     command: [ "/bin/bash", "-c", "/create_topic.sh"]
     depends_on:
       kafka:
