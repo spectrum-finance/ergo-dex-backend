@@ -31,7 +31,7 @@ services:
       kafka:
         condition: service_healthy
     volumes:
-      - "./create_topic.sh:/create_topic.sh"
+      - "./create_topic.sh:/create_topic.sh:rw"
   redis:
     image: redis:7.0-alpine
     container_name: redis
